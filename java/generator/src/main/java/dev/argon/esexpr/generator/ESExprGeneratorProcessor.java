@@ -1,0 +1,90 @@
+package dev.argon.esexpr.generator;
+
+import javax.annotation.processing.*;
+import javax.lang.model.*;
+import javax.lang.model.element.*;
+import javax.lang.model.type.*;
+import javax.tools.Diagnostic;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.file.Files;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
+
+import org.apache.commons.text.StringEscapeUtils;
+
+@SupportedAnnotationTypes({"dev.argon.esexpr.ESExprCodecGen"})
+@SupportedSourceVersion(SourceVersion.RELEASE_22)
+public class ESExprGeneratorProcessor extends AbstractProcessor {
+
+    private ProcessingEnvironment processingEnv;
+
+    @Override
+    public void init(ProcessingEnvironment processingEnv) {
+        this.processingEnv = processingEnv;
+    }
+
+    @Override
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        var messager = processingEnv.getMessager();
+
+        for(TypeElement annotation : annotations) {
+            if(!annotation.getQualifiedName().toString().equals("dev.argon.esexpr.ESExprCodecGen")) {
+                continue;
+            }
+
+            Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
+            
+            for(Element elem : annotatedElements) {
+				var typeElem = (TypeElement)elem;
+
+				Function<PrintWriter, GeneratorBase> generatorFactory = switch(typeElem.getKind()) {
+					case RECORD -> writer -> new RecordCodecGenerator(writer, processingEnv, typeElem);
+					case INTERFACE -> {
+						if(typeElem.getModifiers().contains(Modifier.SEALED))
+							yield writer -> new EnumCodecGenerator(writer, processingEnv, typeElem);
+						else
+							yield null;
+					}
+					case ENUM -> writer -> new SimpleEnumCodecGenerator(writer, processingEnv, typeElem);
+					default -> null;
+				};
+
+				try {
+					if(generatorFactory == null) {
+						throw new AbortException("ESExprCodeGen must be used with a record, sealed interface (of records), or an enum.");
+					}
+
+					var sw = new StringWriter();
+					try(var pw = new PrintWriter(sw)) {
+						var gen = generatorFactory.apply(pw);
+						gen.generate();
+					}
+
+					var codecClassName = typeElem.getQualifiedName().toString() + "_Codec";
+
+					try(var w = processingEnv.getFiler().createSourceFile(codecClassName).openWriter()) {
+						w.write(sw.toString());
+					}	
+				}
+				catch(IOException ex) {
+					throw new RuntimeException(ex);
+				}
+				catch(AbortException ex) {
+					messager.printError(ex.getMessage(), ex.element == null ? elem : ex.element);
+				}
+            }
+        }
+    
+        return true;
+    }
+
+}

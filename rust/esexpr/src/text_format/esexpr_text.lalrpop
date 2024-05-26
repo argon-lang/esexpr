@@ -1,0 +1,106 @@
+
+use crate::ESExpr;
+use std::collections::HashMap;
+use std::borrow::Cow;
+
+use num_bigint::BigInt;
+
+use super::{ParseError, Field};
+use super::lexer::*;
+
+grammar<'input>;
+
+
+Identifier: String = {
+    <s: "identifier"> => s.to_owned(),
+};
+
+Constructor: ESExpr = {
+    "("
+    <name: Identifier>
+    <fields: Field*>
+    ")" => {
+        let mut args = Vec::new();
+        let mut kwargs = HashMap::new();
+
+        for field in fields {
+            match field {
+                Field::Positional(value) => args.push(value),
+                Field::Keyword(name, value) => { kwargs.insert(name, value); },
+            }
+        }
+
+        ESExpr::Constructor { name, args, kwargs }
+    }
+};
+
+Field: Field = {
+    <name: Identifier> ":" <value: Expr> => Field::Keyword(name, value),
+    <value: Expr> => Field::Positional(value),
+};
+
+Integer: ESExpr = {
+    <i: "integer"> => ESExpr::Int(i),
+};
+
+Float: ESExpr = {
+    <f: "f32"> => ESExpr::Float32(f),
+    <f: "f64"> => ESExpr::Float64(f),
+};
+
+String: ESExpr = {
+    "string_start" "string_end" => ESExpr::Str("".to_owned()),
+    "string_start" <s: StringContent> "string_end" => ESExpr::Str(s),
+};
+
+StringContent: String = {
+    <part: StringPart> => part.into_owned(),
+    <init: StringContent> <last: StringPart> => {
+        let mut s = init;
+        s.push_str(last.as_ref());
+        s
+    }
+};
+
+StringPart: Cow<'input, str> = {
+
+};
+
+Atoms: ESExpr = {
+    "#true" => ESExpr::Bool(true),
+    "#false" => ESExpr::Bool(false),
+    "#null" => ESExpr::Null,
+}
+
+pub Expr: ESExpr = {
+    Constructor,
+    Integer,
+    Float,
+    Atoms,
+};
+
+
+extern {
+    type Location = usize;
+    type Error = ParseError;
+
+    enum Token<'input> {
+        "identifier" => Token::Simple(SimpleToken::Identifier(<&'input str>)),
+        "integer" => Token::Simple(SimpleToken::Integer(<BigInt>)),
+        "f32" => Token::Simple(SimpleToken::Float32(<f32>)),
+        "f64" => Token::Simple(SimpleToken::Float64(<f64>)),
+        "#true" => Token::Simple(SimpleToken::TrueAtom),
+        "#false" => Token::Simple(SimpleToken::FalseAtom),
+        "#null" => Token::Simple(SimpleToken::NullAtom),
+        ":" => Token::Simple(SimpleToken::Colon),
+        "(" => Token::Simple(SimpleToken::OpenParen),
+        ")" => Token::Simple(SimpleToken::CloseParen),
+        "string_start" => Token::Simple(SimpleToken::StringStart),
+
+        "string_text" => Token::StringPart(StringPartToken::Text(<&'input str>)),
+        "string_escape" => Token::StringPart(StringPartToken::Escape(<char>)),
+        "string_end" => Token::StringPart(StringPartToken::StringEnd),
+    }
+}
+
+
