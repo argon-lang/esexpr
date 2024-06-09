@@ -363,11 +363,21 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 
                 kwarg_names.insert(kw_name);
 
-                if keyword_attr.required {
-                    quote! { kwargs.insert(#kw.to_owned(), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
+                if !keyword_attr.required {
+                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(#kw.to_owned(), value); } }
+                }
+                else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+                    quote! {
+                        {
+                            let value = #field_expr;
+                            if value != #default_value {
+                                kwargs.insert(#kw.to_owned(), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
+                            }
+                        }
+                    }
                 }
                 else {
-                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(#kw.to_owned(), value); } }
+                    quote! { kwargs.insert(#kw.to_owned(), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
                 }
             }
             else if has_dict_attribute(&field.attrs)? {

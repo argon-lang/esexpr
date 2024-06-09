@@ -184,6 +184,9 @@ struct KeywordStruct {
     #[keyword]
     #[default_value = false]
     g: bool,
+
+    #[keyword]
+    h: Option<bool>,
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
@@ -211,6 +214,9 @@ enum KeywordEnum {
         #[keyword]
         #[default_value = false]
         g: bool,
+
+        #[keyword]
+        h: Option<bool>,
     },
 }
 
@@ -231,6 +237,7 @@ fn keyword_args() {
             ("e2".to_owned(), ESExpr::Bool(true)),
             ("f".to_owned(), ESExpr::Bool(true)),
             ("g".to_owned(), ESExpr::Bool(true)),
+            ("h".to_owned(), ESExpr::Bool(true)),
         ]),
     };
 
@@ -242,6 +249,7 @@ fn keyword_args() {
         e: Some(true),
         f: Some(true),
         g: true,
+        h: Some(true),
     };
 
     let tags = HashSet::from([ESExprTag::Constructor("keywords".to_owned())]);
@@ -258,6 +266,7 @@ fn keyword_args() {
         e: Some(true),
         f: Some(true),
         g: true,
+        h: Some(true),
     };
 
     assert_eq!(tags, KeywordEnum::tags());
@@ -273,17 +282,7 @@ fn keyword_args() {
             ("a".to_owned(), ESExpr::Bool(true)),
             ("b2".to_owned(), ESExpr::Bool(true)),
             ("c2".to_owned(), ESExpr::Bool(true)),
-        ]),
-    };
-    
-    let expr_enc = ESExpr::Constructor {
-        name: "keywords".to_owned(),
-        args: vec!(),
-        kwargs: HashMap::from([
-            ("a".to_owned(), ESExpr::Bool(true)),
-            ("b2".to_owned(), ESExpr::Bool(true)),
-            ("c2".to_owned(), ESExpr::Bool(true)),
-            ("g".to_owned(), ESExpr::Bool(false)),
+            ("h".to_owned(), ESExpr::Null),
         ]),
     };
 
@@ -295,9 +294,10 @@ fn keyword_args() {
         e: None,
         f: None,
         g: false,
+        h: None,
     };
 
-    assert_eq!(expr_enc, value.clone().encode_esexpr());
+    assert_eq!(expr, value.clone().encode_esexpr());
     assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
 
 
@@ -310,11 +310,24 @@ fn keyword_args() {
         e: None,
         f: None,
         g: false,
+        h: None,
     };
 
-    assert_eq!(expr_enc, value.clone().encode_esexpr());
+    assert_eq!(expr, value.clone().encode_esexpr());
     assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
 
+    
+    let expr = ESExpr::Constructor {
+        name: "keywords".to_owned(),
+        args: vec!(),
+        kwargs: HashMap::from([
+            ("a".to_owned(), ESExpr::Bool(true)),
+            ("b2".to_owned(), ESExpr::Bool(true)),
+            ("c2".to_owned(), ESExpr::Bool(true)),
+        ]),
+    };
+
+    assert!(KeywordEnum::decode_esexpr(expr).is_err());
 
 }
 

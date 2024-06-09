@@ -1,8 +1,12 @@
 .idea/
 .vscode/
+.bsp/
+.metals/
 
 target/
 build/
 bin/
+lib/
+obj/
 node_modules/
 

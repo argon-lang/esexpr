@@ -4,8 +4,8 @@ import { ESExpr, type ESExprCodec } from "./index.js";
 
 
 
-function expectCodecMatch<T>(codec: ESExprCodec<T>, expr: ESExpr, value: T, encExpr?: ESExpr): void {
-    expect(codec.encode(value)).toEqual(encExpr ?? expr);
+function expectCodecMatch<T>(codec: ESExprCodec<T>, expr: ESExpr, value: T): void {
+    expect(codec.encode(value)).toEqual(expr);
     expect(codec.decode(expr)).toEqual({ success: true, value });
 }
 
@@ -142,14 +142,12 @@ test("Keywords", () => {
         KeywordStruct.codec,
         { type: "constructor", name: "keywords", args: [], kwargs: new Map([ ["a1", true] ]) },
         { a: true, b: undefined, c: false },
-        { type: "constructor", name: "keywords", args: [], kwargs: new Map([ ["a1", true], ["c3", false] ]) },
     );
 
     expectCodecMatch(
         KeywordEnum.codec,
         { type: "constructor", name: "value", args: [], kwargs: new Map([ ["a1", true] ]) },
         { $type: "value", a: true, b: undefined, c: false },
-        { type: "constructor", name: "value", args: [], kwargs: new Map([ ["a1", true], ["c3", false] ]) },
     );
 });
 

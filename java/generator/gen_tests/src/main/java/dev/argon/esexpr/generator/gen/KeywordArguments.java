@@ -18,7 +18,10 @@ public record KeywordArguments(
 	Optional<Boolean> d,
 
 	@Keyword(defaultValueMethod = "trueValue")
-	boolean e
+	boolean e,
+
+	@Keyword
+	Optional<Boolean> f
 ) {
 	static boolean trueValue() {
 		return true;

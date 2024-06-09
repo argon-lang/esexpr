@@ -504,6 +504,43 @@ abstract class GeneratorBase {
 					println("}");
 				}
 				else {
+					var defaultValueMethod = getAnnotationArgument(kwAnn, "defaultValueMethod").map(arg -> (String)arg.getValue()).orElse(null);
+					if(defaultValueMethod != null) {
+						boolean isPrimitiveField = field.asType().getKind().isPrimitive();
+
+						print("if(");
+						if(!isPrimitiveField) {
+							print("!");
+						}
+						print(valueVarName);
+						print(".");
+						print(field.getSimpleName());
+						print("()");
+
+						if(isPrimitiveField) {
+							print(" != ");
+						}
+						else {
+							print(".equals(");
+						}
+
+
+						print(elem.getQualifiedName());
+						if(te != elem) {
+							print(".");
+							print(te.getSimpleName());
+						}
+						print(".");
+						print(defaultValueMethod);
+						print("()");
+
+						if(!isPrimitiveField) {
+							print(")");
+						}
+
+						print(") { ");
+					}
+
 					print("kwargs.put(");
 					printStringLiteral(kwName);
 					print(", ");
@@ -512,7 +549,13 @@ abstract class GeneratorBase {
 					print(valueVarName);
 					print(".");
 					print(field.getSimpleName());
-					println("()));");
+					print("()));");
+
+					if(defaultValueMethod != null) {
+						print(" }");
+					}
+
+					println();
 				}
 			}
 			else if(hasAnnotation(field.getAnnotationMirrors(), VARARG_ANN_NAME)) {

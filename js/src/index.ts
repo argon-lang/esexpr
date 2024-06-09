@@ -10,6 +10,7 @@ export type ESExpr =
     | null
 ;
 
+
 export namespace ESExpr {
     export function tagOf(e: ESExpr): ESExprTag {
         switch(typeof e) {
@@ -681,6 +682,52 @@ class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T | undefined> {
     }
 }
 
+function valuesEqual(a: unknown, b: unknown): boolean {
+    if(typeof a !== typeof b) {
+        return false;
+    }
+    else if(typeof a === "object") {
+        if(a === b) {
+            return true;
+        }
+
+        if(a === null || b == null) {
+            return false;
+        }
+
+        if(a instanceof Uint8Array && b instanceof Uint8Array) {
+            if(a.length !== b.length) {
+                return false;
+            }
+
+            for(let i = 0; i < a.length; ++i) {
+                if(a[i] !== b[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        const aKeys = Object.keys(a);
+        const bKeys = Object.keys(b);
+        if(!aKeys.every(k => bKeys.includes(k)) || !bKeys.every(k => aKeys.includes(k))) {
+            return false;
+        }
+
+        for(const k of aKeys) {
+            if(!valuesEqual((a as any)[k], (b as any)[k])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return a === b;
+}
+
+
 class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     constructor(codec: ESExprCodec<T>, name: string, defaultValue: () => T) {
         this.#codec = codec;
@@ -697,7 +744,9 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     }
 
     encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
-        kwargs.set(this.#name, this.#codec.encode(value));
+        if(!valuesEqual(value, this.#defaultValue())) {
+            kwargs.set(this.#name, this.#codec.encode(value));
+        }
     }
 
     decode(_args: ESExpr[], kwargs: Map<string, ESExpr>): DecodeResult<T> {
