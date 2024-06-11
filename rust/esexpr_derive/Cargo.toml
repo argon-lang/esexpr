@@ -2,6 +2,13 @@
 name = "esexpr-derive"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+description = "ESExpr serialization format and related utilities."
+documentation = "https://docs.rs/esexpr"
+homepage = "https://github.com/argon-lang/esexpr"
+repository = "https://github.com/argon-lang/esexpr"
+categories = [ "encoding" ]
+readme = "README.md"
 
 [lib]
 proc-macro = true
@@ -13,5 +20,4 @@ regex = "1.10.4"
 syn = { version = "2.0.63", features = ["derive", "full"] }
 
 [dev-dependencies]
-
 syn = { version = "2.0.63", features = ["derive", "full", "visit"] }
