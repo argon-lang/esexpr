@@ -92,7 +92,7 @@ final class EnumCodecGenerator extends GeneratorBase {
 
 				print("var inner = ");
 				printCodecExpr(field.asType(), field);
-				println(".decode(expr);");
+				println(".decode(expr, path);");
 
 				print("yield new ");
 				print(elem.getQualifiedName());
@@ -120,7 +120,7 @@ final class EnumCodecGenerator extends GeneratorBase {
 			}
 		}
 
-		println("default -> throw new dev.argon.esexpr.DecodeException(\"Unexpected value for enum\");");
+		println("default -> throw new dev.argon.esexpr.DecodeException(\"Unexpected value for enum\", path);");
 
 		dedent();
 		println("};");

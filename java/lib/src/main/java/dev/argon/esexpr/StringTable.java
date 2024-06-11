@@ -26,22 +26,24 @@ public record StringTable(List<String> values) {
 		}
 
 		@Override
-		public @NotNull StringTable decode(@NotNull ESExpr expr) throws DecodeException {
+		public @NotNull StringTable decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("string-table")) {
 				if(kwargs.size() > 0) {
-					throw new DecodeException("Unexpected keyword arguments for string table");
+					throw new DecodeException("Unexpected keyword arguments for string table", path.withConstructor("string-table"));
 				}
 
-				var values = new ArrayList<String>();
+				var values = new ArrayList<String>(args.size());
+				int i = 0;
 
 				for(var arg : args) {
-					values.add(ESExprCodec.STRING_CODEC.decode(arg));
+					values.add(ESExprCodec.STRING_CODEC.decode(arg, path.append("string-table", i)));
+					++i;
 				}
 
 				return new StringTable(values);
 			}
 			else {
-				throw new DecodeException("Expected a string-table constructor");
+				throw new DecodeException("Expected a string-table constructor", path);
 			}
 		}
 		

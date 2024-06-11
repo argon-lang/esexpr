@@ -70,7 +70,7 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 			println(";");
 		}
 
-		println("default -> throw new dev.argon.esexpr.DecodeException(\"Invalid simple enum value\");");
+		println("default -> throw new dev.argon.esexpr.DecodeException(\"Invalid simple enum value\", path);");
 
 		dedent();
 		println("};");
@@ -81,7 +81,7 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 		indent();
 
 
-		println("throw new dev.argon.esexpr.DecodeException(\"Simple enum must be a string\");");
+		println("throw new dev.argon.esexpr.DecodeException(\"Simple enum must be a string\", path);");
 
 		dedent();
 		println("}");

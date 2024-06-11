@@ -324,7 +324,7 @@ abstract class GeneratorBase {
 			}
 			print(">");
 		}
-		print(" implements dev.argon.esexpr.ESExprCodec<");
+		print(" extends dev.argon.esexpr.ESExprCodec<");
 		print(elem.getQualifiedName());
 		printTypeArguments();
 		println("> {");
@@ -403,7 +403,7 @@ abstract class GeneratorBase {
 		print("public ");
 		print(elem.getQualifiedName());
 		printTypeArguments();
-		println(" decode(dev.argon.esexpr.ESExpr expr) throws dev.argon.esexpr.DecodeException {");
+		println(" decode(dev.argon.esexpr.ESExpr expr, dev.argon.esexpr.ESExprCodec.FailurePath path) throws dev.argon.esexpr.DecodeException {");
 		indent();
 		writeDecodeImpl();
 		dedent();
@@ -628,13 +628,15 @@ abstract class GeneratorBase {
 	}
 
 	protected void writeDecodeFields(TypeElement te, boolean useYield) throws IOException, AbortException {
+		int positionalIndex = 0;
 		for(var field : getFields(te)) {
 			var kwAnn = getKeywordAnn(field).orElse(null);
 			if(kwAnn != null) {
+				String keywordName = getKeywordName(field, kwAnn);
 				print("var expr_");
 				print(field.getSimpleName());
 				print(" = kwargs.remove(");
-				printStringLiteral(getKeywordName(field, kwAnn));
+				printStringLiteral(keywordName);
 				println(");");
 
 				if(!isKeywordRequired(kwAnn)) {
@@ -649,7 +651,11 @@ abstract class GeneratorBase {
 					printCodecExpr(elemType, field);
 					print(".decode(expr_");
 					print(field.getSimpleName());
-					println("));");
+					print(", path.append(");
+					printStringLiteral(getConstructorName(te));
+					print(", ");
+					printStringLiteral(keywordName);
+					println(")));");
 				}
 				else {
 					var defaultValueMethod = getAnnotationArgument(kwAnn, "defaultValueMethod").map(arg -> (String)arg.getValue()).orElse(null);
@@ -674,20 +680,29 @@ abstract class GeneratorBase {
 						print(" : ");
 						printCodecExpr(field.asType(), field);
 						print(".decode(expr_");
-						print(field.getSimpleName());
-						println(");");
+						print(field.getSimpleName());print(", path.append(");
+						printStringLiteral(getConstructorName(te));
+						print(", ");
+						printStringLiteral(keywordName);
+						println("));");
 					}
 					else {
 						print("if(expr_");
 						print(field.getSimpleName());
-						println(" == null) { throw new dev.argon.esexpr.DecodeException(\"Missing required keyword argument\"); }");
+						print(" == null) { throw new dev.argon.esexpr.DecodeException(\"Missing required keyword argument\", path.withConstructor(");
+						printStringLiteral(getConstructorName(te));
+						println(")); }");
 						print("var field_");
 						print(field.getSimpleName());
 						print(" = ");
 						printCodecExpr(field.asType(), field);
 						print(".decode(expr_");
 						print(field.getSimpleName());
-						println(");");
+						print(", path.append(");
+						printStringLiteral(getConstructorName(te));
+						print(", ");
+						printStringLiteral(keywordName);
+						println("));");
 					}
 				}
 			}
@@ -700,6 +715,9 @@ abstract class GeneratorBase {
 				print(elemType.toString());
 				print(">();");
 
+				println("{");
+				indent();
+				println("int i = 0;");
 				println("for(var arg : args) {");
 				indent();
 
@@ -707,12 +725,23 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				print(".add(");
 				printCodecExpr(elemType, field);
-				println(".decode(arg));");
+				println(".decode(arg, path.append(");
+				printStringLiteral(getConstructorName(te));
+				print(", ");
+				print(Integer.toString(positionalIndex));
+				println(" + i)));");
+
+				println("++i;");
+
+				dedent();
+				println("}");
 
 				dedent();
 				println("}");
 
 				println("args.clear();");
+
+				++positionalIndex;
 			}
 			else if(hasAnnotation(field.getAnnotationMirrors(), DICT_ANN_NAME)) {
 				var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(1);
@@ -730,7 +759,9 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				print(".put(entry.getKey(), ");
 				printCodecExpr(elemType, field);
-				println(".decode(entry.getValue()));");
+				println(".decode(entry.getValue(), path.append(");
+				printStringLiteral(getConstructorName(te));
+				print(", entry.getKey())));");
 
 				dedent();
 				println("}");
@@ -738,17 +769,27 @@ abstract class GeneratorBase {
 				println("kwargs.clear();");
 			}
 			else {
-				println("if(args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Not enough arguments\"); }");
+				print("if(args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Not enough arguments\", path.withConstructor(");
+				printStringLiteral(getConstructorName(te));
+				println(")); }");
 				print("var field_");
 				print(field.getSimpleName());
 				print(" = ");
 				printCodecExpr(field.asType(), field);
-				println(".decode(args.removeFirst());");
+				println(".decode(args.removeFirst(), path.append(");
+				printStringLiteral(getConstructorName(te));
+				print(", ");
+				print(Integer.toString(positionalIndex));
+				println("));");
 			}
 		}
 
-		println("if(!args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra positional arguments were found.\"); }");
-		println("if(!kwargs.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra keyword arguments were found.\"); }");
+		println("if(!args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra positional arguments were found.\", path.withConstructor(");
+		printStringLiteral(getConstructorName(te));
+		println(")); }");
+		println("if(!kwargs.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra keyword arguments were found.\", path.withConstructor(");
+		printStringLiteral(getConstructorName(te));
+		println(")); }");
 
 		if(useYield) {
 			print("yield");

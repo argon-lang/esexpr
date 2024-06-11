@@ -77,9 +77,16 @@ export type ESExprTag =
     | null
 ;
 
+export type DecodeErrorPath =
+    | { readonly type: "current" }
+    | { readonly type: "constructor"; readonly constructor: string; }
+    | { readonly type: "positional"; readonly constructor: string; readonly index: number; readonly next: DecodeErrorPath; }
+    | { readonly type: "keyword"; readonly constructor: string; readonly keyword: string; readonly next: DecodeErrorPath; }
+;
+
 export type DecodeResult<T> =
     | { readonly success: true; readonly value: T; }
-    | { readonly success: false; readonly message: string; }
+    | { readonly success: false; readonly message: string; readonly path: DecodeErrorPath; }
 ;
 
 export interface ESExprCodec<T> {
@@ -88,10 +95,17 @@ export interface ESExprCodec<T> {
     decode(expr: ESExpr): DecodeResult<T>;
 }
 
+export interface FieldDecodeState {
+    readonly constructor: string;
+    positionalIndex: number;
+    readonly args: ESExpr[];
+    readonly kwargs: Map<string, ESExpr>;
+}
+
 export interface ESExprFieldCodec<T> {
     readonly tags: ReadonlySet<ESExprTag>;
-    encode(value: T, args: ESExpr[], kwargs: Map<string, ESExpr>): void;
-    decode(args: ESExpr[], kwargs: Map<string, ESExpr>): DecodeResult<T>;
+    encode(value: T, args: readonly ESExpr[], kwargs: ReadonlyMap<string, ESExpr>): void;
+    decode(state: FieldDecodeState): DecodeResult<T>;
 }
 
 export interface ESExprCaseCodec<T> {
@@ -116,7 +130,11 @@ export const boolCodec: ESExprCodec<boolean> = {
             return { success: true, value: expr };
         }
         else {
-            return { success: false, message: "Expected a boolean" };
+            return {
+                success: false,
+                message: "Expected a boolean",
+                path: { type: "current" },
+            };
         }
     },
 };
@@ -136,7 +154,11 @@ export const intCodec: ESExprCodec<bigint> = {
             return { success: true, value: expr };
         }
         else {
-            return { success: false, message: "Expected a bigint" };
+            return {
+                success: false,
+                message: "Expected a bigint",
+                path: { type: "current" },
+            };
         }
     },
 };
@@ -168,6 +190,7 @@ class SmallIntCodec implements ESExprCodec<number> {
             return {
                 success: false,
                 message: "Integer value is out of range",
+                path: { type: "current" },
             };
         }
 
@@ -205,6 +228,7 @@ class BigIntCodec implements ESExprCodec<bigint> {
             return {
                 success: false,
                 message: "Integer value is out of range",
+                path: { type: "current" },
             };
         }
 
@@ -238,7 +262,11 @@ export const strCodec: ESExprCodec<string> = {
             return { success: true, value: expr };
         }
         else {
-            return { success: false, message: "Expected a string" };
+            return {
+                success: false,
+                message: "Expected a string",
+                path: { type: "current" },
+            };
         }
     },
 };
@@ -257,7 +285,11 @@ export const binaryCodec: ESExprCodec<Uint8Array> = {
             return { success: true, value: expr };
         }
         else {
-            return { success: false, message: "Expected a binary value" };
+            return {
+                success: false,
+                message: "Expected a binary value",
+                path: { type: "current" },
+            };
         }
     },
 };
@@ -276,7 +308,11 @@ export const float32Codec: ESExprCodec<ESExpr.Float32> = {
             return { success: true, value: expr };
         }
         else {
-            return { success: false, message: "Expected a float32" };
+            return {
+                success: false,
+                message: "Expected a float32",
+                path: { type: "current" },
+            };
         }
     },
 };
@@ -295,7 +331,11 @@ export const float64Codec: ESExprCodec<number> = {
             return { success: true, value: expr };
         }
         else {
-            return { success: false, message: "Expected a float64" };
+            return {
+                success: false,
+                message: "Expected a float64",
+                path: { type: "current" },
+            };
         }
     },
 };
@@ -323,21 +363,35 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
     decode(expr: ESExpr): DecodeResult<readonly T[]> {
         if(ESExpr.isConstructor(expr) && expr.name === "list") {
             if(expr.kwargs.size > 0) {
-                return { success: false, message: "List must not have keyword arguments" };
+                return {
+                    success: false,
+                    message: "List must not have keyword arguments",
+                    path: { type: "current" },
+                };
             }
 
             const items: T[] = [];
+            let i = 0;
             for(const t of expr.args) {
                 const res = this.#itemCodec.decode(t);
                 if(!res.success) {
-                    return res;
+                    return {
+                        success: false,
+                        message: res.message,
+                        path: { type: "positional", constructor: "list", index: i, next: res.path }
+                    };
                 }
+                ++i;
             }
 
             return { success: true, value: items };
         }
         else {
-            return { success: false, message: "Expected a list constructor" };
+            return {
+                success: false,
+                message: "Expected a list constructor",
+                path: { type: "current" },
+            };
         }
     }   
 }
@@ -434,14 +488,23 @@ class RecordCodec<T> implements ESExprCodec<T> {
             return {
                 success: false,
                 message: `Expected a constructor of name ${this.#constructorName}`,
+                path: { type: "current" },
             };
         }
 
         let obj: any = {};
         let args = [...expr.args];
         let kwargs = new Map<string, ESExpr>(expr.kwargs);
+
+        const state: FieldDecodeState = {
+            constructor: expr.name,
+            positionalIndex: 0,
+            args,
+            kwargs,
+        };
+
         for(const field of Object.keys(this.#fields) as (keyof T)[]) {
-            const result = this.#fields[field].decode(args, kwargs);
+            const result = this.#fields[field].decode(state);
             if(!result.success) {
                 return result;
             }
@@ -499,6 +562,7 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
         return {
             success: false,
             message: "Unexpected tag",
+            path: { type: "current" },
         };
     }
     
@@ -535,11 +599,19 @@ class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
                 return { success: true, value: expr as T };
             }
             else {
-                return { success: false, message: "Invalid simple enum value" };
+                return {
+                    success: false,
+                    message: "Invalid simple enum value",
+                    path: { type: "current" },
+                };
             }
         }
         else {
-            return { success: false, message: "Simple enum value must be a string" };
+            return {
+                success: false,
+                message: "Simple enum value must be a string",
+                path: { type: "current" },
+            };
         }
     }
 
@@ -565,13 +637,33 @@ class PositionalFieldCodec<T> implements ESExprFieldCodec<T> {
         args.push(this.#codec.encode(value));
     }
 
-    decode(args: ESExpr[], _kwargs: Map<string, ESExpr>): DecodeResult<T> {
-        const expr = args.shift();
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        const expr = state.args.shift();
         if(expr === undefined) {
-            return { success: false, message: "Not enough arguments" };
+            return {
+                success: false,
+                message: "Not enough arguments",
+                path: { type: "constructor", constructor: state.constructor },
+            };
         }
 
-        return this.#codec.decode(expr);
+        const result = this.#codec.decode(expr);
+        if(!result.success) {
+            return {
+                success: false,
+                message: result.message,
+                path: {
+                    type: "positional",
+                    constructor: state.constructor,
+                    index: state.positionalIndex,
+                    next: result.path,
+                },
+            };
+        }
+
+        ++state.positionalIndex;
+
+        return result;
     }
 }
 
@@ -596,18 +688,28 @@ class VarargFieldCodec<T> implements ESExprFieldCodec<readonly T[]> {
         }
     }
 
-    decode(args: ESExpr[], _kwargs: Map<string, ESExpr>): DecodeResult<readonly T[]> {
+    decode(state: FieldDecodeState): DecodeResult<readonly T[]> {
         let result: T[] = [];
-        for(const e of args) {
+        for(const e of state.args) {
             const item = this.#codec.decode(e);
             if(!item.success) {
-                return item;
+                return {
+                    success: false,
+                    message: item.message,
+                    path: {
+                        type: "positional",
+                        constructor: state.constructor,
+                        index: state.positionalIndex,
+                        next: item.path,
+                    },
+                };
             }
 
             result.push(item.value);
+            ++state.positionalIndex;
         }
 
-        args.length = 0;
+        state.args.length = 0;
 
         return {
             success: true,
@@ -639,15 +741,33 @@ class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
         kwargs.set(this.#name, this.#codec.encode(value));
     }
 
-    decode(_args: ESExpr[], kwargs: Map<string, ESExpr>): DecodeResult<T> {
-        const expr = kwargs.get(this.#name);
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        const expr = state.kwargs.get(this.#name);
         if(expr === undefined) {
-            return { success: false, message: "Not enough arguments" };
+            return {
+                success: false,
+                message: "Not enough arguments",
+                path: { type: "constructor", constructor: state.constructor },
+            };
         }
 
-        kwargs.delete(this.#name);
+        state.kwargs.delete(this.#name);
 
-        return this.#codec.decode(expr);
+        const result = this.#codec.decode(expr);
+        if(!result.success) {
+            return {
+                success: false,
+                message: result.message,
+                path: {
+                    type: "keyword",
+                    constructor: state.constructor,
+                    keyword: this.#name,
+                    next: result.path,
+                },
+            };
+        }
+
+        return result;
     }
 }
 
@@ -670,15 +790,29 @@ class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T | undefined> {
         }
     }
 
-    decode(_args: ESExpr[], kwargs: Map<string, ESExpr>): DecodeResult<T | undefined> {
-        const expr = kwargs.get(this.#name);
+    decode(state: FieldDecodeState): DecodeResult<T | undefined> {
+        const expr = state.kwargs.get(this.#name);
         if(expr === undefined) {
             return { success: true, value: undefined };
         }
 
-        kwargs.delete(this.#name);
+        state.kwargs.delete(this.#name);
 
-        return this.#codec.decode(expr);
+        const result = this.#codec.decode(expr);
+        if(!result.success) {
+            return {
+                success: false,
+                message: result.message,
+                path: {
+                    type: "keyword",
+                    constructor: state.constructor,
+                    keyword: this.#name,
+                    next: result.path,
+                },
+            };
+        }
+        
+        return result;
     }
 }
 
@@ -749,15 +883,29 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
         }
     }
 
-    decode(_args: ESExpr[], kwargs: Map<string, ESExpr>): DecodeResult<T> {
-        const expr = kwargs.get(this.#name);
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        const expr = state.kwargs.get(this.#name);
         if(expr === undefined) {
             return { success: true, value: this.#defaultValue() };
         }
 
-        kwargs.delete(this.#name);
+        state.kwargs.delete(this.#name);
 
-        return this.#codec.decode(expr);
+        const result = this.#codec.decode(expr);
+        if(!result.success) {
+            return {
+                success: false,
+                message: result.message,
+                path: {
+                    type: "keyword",
+                    constructor: state.constructor,
+                    keyword: this.#name,
+                    next: result.path,
+                },
+            };
+        }
+        
+        return result;
     }
 }
 
@@ -778,18 +926,27 @@ class DictFieldCodec<T> implements ESExprFieldCodec<ReadonlyMap<string, T>> {
         }
     }
 
-    decode(_args: ESExpr[], kwargs: Map<string, ESExpr>): DecodeResult<ReadonlyMap<string, T>> {
+    decode(state: FieldDecodeState): DecodeResult<ReadonlyMap<string, T>> {
         let result = new Map<string, T>();
-        for(const [kw, item] of kwargs) {
+        for(const [kw, item] of state.kwargs) {
             const decItem = this.#codec.decode(item);
             if(!decItem.success) {
-                return decItem;
+                return {
+                    success: false,
+                    message: decItem.message,
+                    path: {
+                        type: "keyword",
+                        constructor: state.constructor,
+                        keyword: kw,
+                        next: decItem.path,
+                    },
+                };
             }
 
             result.set(kw, decItem.value);
         }
         
-        kwargs.clear();
+        state.kwargs.clear();
 
         return {
             success: true,

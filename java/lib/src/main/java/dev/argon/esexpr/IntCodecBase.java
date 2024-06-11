@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-abstract class IntCodecBase<T> implements ESExprCodec<T> {
+abstract class IntCodecBase<T> extends ESExprCodec<T> {
 	IntCodecBase(BigInteger min, BigInteger max) {
 		this.min = min;
 		this.max = max;
@@ -24,16 +24,16 @@ abstract class IntCodecBase<T> implements ESExprCodec<T> {
 	}
 
 	@Override
-	public final @NotNull T decode(@NotNull ESExpr expr) throws DecodeException {
+	public final @NotNull T decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Int(var i)) {
 			if(i.compareTo(min) < 0 || i.compareTo(max) > 0) {
-				throw new DecodeException("Integer value out of range");
+				throw new DecodeException("Integer value out of range", path);
 			}
 
 			return fromBigInt(i);
 		}
 		else {
-			throw new DecodeException("Expected an integer value");
+			throw new DecodeException("Expected an integer value", path);
 		}
 	}
 

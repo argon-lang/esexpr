@@ -47,7 +47,7 @@ final class RecordCodecGenerator extends GeneratorBase {
 
 		print("throw new dev.argon.esexpr.DecodeException(");
 		printStringLiteral("Expected a " + getConstructorName(elem) + " constructor");
-		println(");");
+		println(", path);");
 
 		dedent();
 		println("}");

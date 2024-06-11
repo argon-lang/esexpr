@@ -2,6 +2,7 @@ use std::{borrow::Cow, collections::HashSet};
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
+use proc_macro2::Literal;
 use quote::quote;
 use regex::Regex;
 use syn::{
@@ -412,7 +413,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
         Data::Struct(s) => {
             let constructor_name = make_constructor_name(attrs, type_name)?;
 
-            let decode_fields = make_decode_fields(&s.fields, quote! { #type_name })?;
+            let decode_fields = make_decode_fields(&s.fields, &constructor_name, quote! { #type_name })?;
 
             quote! {
                 if let (::esexpr::ESExpr::Constructor { name, mut args, mut kwargs }) = expr {
@@ -420,17 +421,23 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                         Ok(#decode_fields)
                     }
                     else {
-                        Err(::esexpr::DecodeError::UnexpectedExpr {
-                            expected_tags: Self::tags(),
-                            actual_tag: ::esexpr::ESExprTag::Constructor(name),
-                        })?
+                        Err(::esexpr::DecodeError(
+                            ::esexpr::DecodeErrorType::UnexpectedExpr {
+                                expected_tags: Self::tags(),
+                                actual_tag: ::esexpr::ESExprTag::Constructor(name),
+                            },
+                            ::esexpr::DecodeErrorPath::Current,
+                        ))?
                     }
                 }
                 else {
-                    Err(::esexpr::DecodeError::UnexpectedExpr {
-                        expected_tags: Self::tags(),
-                        actual_tag: expr.tag(),
-                    })?
+                    Err(::esexpr::DecodeError(
+                        ::esexpr::DecodeErrorType::UnexpectedExpr {
+                            expected_tags: Self::tags(),
+                            actual_tag: expr.tag(),
+                        },
+                        ::esexpr::DecodeErrorPath::Current,
+                    ))?
                 }
             }
         },
@@ -451,10 +458,16 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                 match expr {
                     ::esexpr::ESExpr::Str(s) => match s.as_str() {
                         #decode_cases
-                        _ => Err(::esexpr::DecodeError::OutOfRange(format!("Invalid value for simple enum {}: {}", #type_name_str, s))),
+                        _ => Err(::esexpr::DecodeError(
+                            ::esexpr::DecodeErrorType::OutOfRange(format!("Invalid value for simple enum {}: {}", #type_name_str, s)),
+                            ::esexpr::DecodeErrorPath::Current,
+                        )),
                     },
                     _ => {
-                        Err(::esexpr::DecodeError::UnexpectedExpr { expected_tags: Self::tags(), actual_tag: expr.tag() })
+                        Err(::esexpr::DecodeError(
+                            ::esexpr::DecodeErrorType::UnexpectedExpr { expected_tags: Self::tags(), actual_tag: expr.tag() },
+                            ::esexpr::DecodeErrorPath::Current,
+                        ))
                     },
                 }
             }
@@ -486,7 +499,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                 }
                 else {
                     let name = make_constructor_name(&c.attrs, case_name)?;
-                    let decode_fields = make_decode_fields(&c.fields, quote! { #type_name::#case_name })?;
+                    let decode_fields = make_decode_fields(&c.fields, &name, quote! { #type_name::#case_name })?;
                     Ok(quote! {
                         ::esexpr::ESExpr::Constructor { name, mut args, mut kwargs } if name == #name => {
                             ::std::result::Result::Ok(#decode_fields)
@@ -499,7 +512,10 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                 match expr {
                     #decode_cases
                     _ => {
-                        Err(::esexpr::DecodeError::UnexpectedExpr { expected_tags: Self::tags(), actual_tag: expr.tag() })    
+                        Err(::esexpr::DecodeError(
+                            ::esexpr::DecodeErrorType::UnexpectedExpr { expected_tags: Self::tags(), actual_tag: expr.tag() },
+                            ::esexpr::DecodeErrorPath::Current,
+                        ))  
                     },
                 }
             }
@@ -509,12 +525,13 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
     })
 }
 
-fn make_decode_fields(fields: &Fields, constructor: proc_macro2::TokenStream) -> TokenRes {
+fn make_decode_fields(fields: &Fields, constructor_name: &Expr, constructor: proc_macro2::TokenStream) -> TokenRes {
+    let mut arg_index = 0;
     Ok(match fields {
         Fields::Named(fields) => {
             let field_init: proc_macro2::TokenStream = fields.named.iter().map(|field| -> TokenRes {
-                let field_name = &field.ident;
-                let field_value = make_decode_field(field)?;
+                let field_name = field.ident.as_ref().unwrap();
+                let field_value = make_decode_field(field, &mut arg_index, constructor_name)?;
                 Ok(quote! { #field_name: #field_value, })
             }).collect::<Result<_, _>>()?;
 
@@ -522,7 +539,7 @@ fn make_decode_fields(fields: &Fields, constructor: proc_macro2::TokenStream) ->
         },
         Fields::Unnamed(fields) => {
             let field_init: proc_macro2::TokenStream = fields.unnamed.iter().map(|field| -> TokenRes {
-                let field_value = make_decode_field(field)?;
+                let field_value = make_decode_field(field, &mut arg_index, constructor_name)?;
                 Ok(quote! { #field_value, })
             }).collect::<Result<_, _>>()?;
 
@@ -532,16 +549,23 @@ fn make_decode_fields(fields: &Fields, constructor: proc_macro2::TokenStream) ->
     })
 }
 
-fn make_decode_field(field: &Field) -> TokenRes {
+enum FieldPath<'a> {
+    Positional(usize),
+    Keyword(&'a Expr),
+}
+
+fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Expr) -> TokenRes {
     let field_type = &field.ty;
 
     Ok(
         if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
             let kw = make_kwarg_name(keyword_attr.name.as_deref(), field.ident.as_ref())?;
+            let error_mapping = make_error_mapping(constructor_name, FieldPath::Keyword(&kw));
 
             if !keyword_attr.required {
                 quote! {
-                    <#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(kwargs.remove(#kw))?
+                    <#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(kwargs.remove(#kw))
+                        .map_err(#error_mapping)?
                 }
                 
             }
@@ -549,29 +573,40 @@ fn make_decode_field(field: &Field) -> TokenRes {
                 quote! {
                     kwargs.remove(#kw)
                         .map(<#field_type as ::esexpr::ESExprCodec>::decode_esexpr)
-                        .transpose()?
+                        .transpose()
+                        .map_err(#error_mapping)?
                         .unwrap_or_else(|| #default_value)
                 }
             }
             else {
                 quote! {
-                    <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(kwargs.remove(#kw).ok_or_else(|| ::esexpr::DecodeError::MissingKeyword(#kw.to_owned()))?)?
+                    <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(
+                        kwargs.remove(#kw).ok_or_else(|| ::esexpr::DecodeError(
+                            ::esexpr::DecodeErrorType::MissingKeyword(#kw.to_owned()),
+                            ::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
+                        ))?
+                    ).map_err(#error_mapping)?
                 }
             }
         }
         else if has_dict_attribute(&field.attrs)? {
-            quote! { <#field_type as ::esexpr::ESExprDictCodec>::decode_dict_element(&mut kwargs)? }
+            quote! { <#field_type as ::esexpr::ESExprDictCodec>::decode_dict_element(&mut kwargs, #constructor_name)? }
         }
         else if has_vararg_attribute(&field.attrs)? {
-            quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::decode_vararg_element(&mut args)? }
+            let i_expr = Literal::usize_suffixed(*arg_index);
+            quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::decode_vararg_element(&mut args, #constructor_name, #i_expr)? }
         }
         else {
+            let error_mapping = make_error_mapping(constructor_name, FieldPath::Positional(*arg_index));
             quote! {
                 if args.is_empty() {
-                    Err(::esexpr::DecodeError::MissingPositional)?
+                    Err(::esexpr::DecodeError(
+                        ::esexpr::DecodeErrorType::MissingPositional,
+                        ::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
+                    ))?
                 }
                 else {
-                    <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(args.remove(0))?
+                    <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(args.remove(0)).map_err(#error_mapping)?
                 }
             }
         }
@@ -579,6 +614,19 @@ fn make_decode_field(field: &Field) -> TokenRes {
 }
 
 
+
+fn make_error_mapping(constructor_name: &Expr, path: FieldPath) -> proc_macro2::TokenStream {
+    match path {
+        FieldPath::Positional(i) => {
+            let i_expr = Literal::usize_suffixed(i);
+            quote! { |mut e| { e.1 = ::esexpr::DecodeErrorPath::Positional(#constructor_name.to_owned(), #i_expr, Box::new(e.1)); e } }
+        },
+
+        FieldPath::Keyword(name) => {
+            quote! { |mut e| { e.1 = ::esexpr::DecodeErrorPath::Keyword(#constructor_name.to_owned(), #name.to_owned(), Box::new(e.1)); e } }
+        }
+    }
+}
 
 
 

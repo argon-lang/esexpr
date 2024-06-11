@@ -10,11 +10,85 @@ import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 
 
-public interface ESExprCodec<T> {
-	@NotNull Set<@NotNull ESExprTag> tags();
+public abstract class ESExprCodec<T> {
+	public abstract @NotNull Set<@NotNull ESExprTag> tags();
 
-	@NotNull ESExpr encode(@NotNull T value);
-	@NotNull T decode(@NotNull ESExpr expr) throws DecodeException;
+	public abstract @NotNull ESExpr encode(@NotNull T value);
+	public final @NotNull T decode(@NotNull ESExpr expr) throws DecodeException {
+		return decode(expr, new FailurePath.Current());
+	}
+
+	public abstract @NotNull T decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException;
+
+	public sealed interface FailurePath {
+		FailurePath append(String constructor, int index);
+		FailurePath append(String constructor, String keyword);
+		FailurePath withConstructor(String constructor);
+
+		public record Current() implements FailurePath {
+			@Override
+			public FailurePath append(String constructor, int index) {
+				return new Positional(constructor, index, this);
+			}
+
+			@Override
+			public FailurePath append(String constructor, String keyword) {
+				return new Keyword(constructor, keyword, this);
+			}
+
+			@Override
+			public FailurePath withConstructor(String constructor) {
+				return new Constructor(constructor);
+			}
+		}
+		public record Constructor(String name) implements FailurePath {
+			@Override
+			public FailurePath append(String constructor, int index) {
+				return new Positional(constructor, index, new Current());
+			}
+
+			@Override
+			public FailurePath append(String constructor, String keyword) {
+				return new Keyword(constructor, keyword, new Current());
+			}
+
+			@Override
+			public FailurePath withConstructor(String constructor) {
+				return new Constructor(constructor);
+			}
+		}
+		public record Positional(String constructor, int index, FailurePath next) implements FailurePath {
+			@Override
+			public FailurePath append(String constructor, int index) {
+				return new Positional(this.constructor, this.index, next.append(constructor, index));
+			}
+
+			@Override
+			public FailurePath append(String constructor, String keyword) {
+				return new Positional(this.constructor, index, next.append(constructor, keyword));
+			}
+
+			@Override
+			public FailurePath withConstructor(String constructor) {
+				return new Positional(this.constructor, index, next.withConstructor(constructor));
+			}
+		}
+		public record Keyword(String constructor, String keyword, FailurePath next) implements FailurePath {
+			@Override
+			public FailurePath append(String constructor, int index) {
+				return new Keyword(this.constructor, this.keyword, next.append(constructor, index));
+			}
+
+			@Override
+			public FailurePath append(String constructor, String keyword) {
+				return new Keyword(this.constructor, keyword, next.append(constructor, keyword));
+			}
+
+			@Override
+			public FailurePath withConstructor(String constructor) {
+				return new Keyword(this.constructor, keyword, next.withConstructor(constructor));
+			}}
+	}
 
 	public static final ESExprCodec<Boolean> BOOLEAN_CODEC = new ESExprCodec<Boolean>() {
 		@Override
@@ -28,12 +102,12 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public @NotNull Boolean decode(@NotNull ESExpr expr) throws DecodeException {
+		public @NotNull Boolean decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Bool(var b)) {
 				return b;
 			}
 			else {
-				throw new DecodeException("Expected a boolean value");
+				throw new DecodeException("Expected a boolean value", path);
 			}
 		}
 	};
@@ -154,12 +228,12 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public final @NotNull BigInteger decode(@NotNull ESExpr expr) throws DecodeException {
+		public final @NotNull BigInteger decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Int(var i)) {
 				return i;
 			}
 			else {
-				throw new DecodeException("Expected an integer value");
+				throw new DecodeException("Expected an integer value", path);
 			}
 		}
 	};
@@ -177,21 +251,21 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public final @NotNull BigInteger decode(@NotNull ESExpr expr) throws DecodeException {
+		public final @NotNull BigInteger decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Int(var i)) {
 				if(i.compareTo(BigInteger.ZERO) < 0) {
-					throw new DecodeException("Integer value out of range");
+					throw new DecodeException("Integer value out of range", path);
 				}
 
 				return i;
 			}
 			else {
-				throw new DecodeException("Expected an integer value");
+				throw new DecodeException("Expected an integer value", path);
 			}
 		}
 	};
 
-	public final ESExprCodec<String> STRING_CODEC = new ESExprCodec<>() {
+	public static final ESExprCodec<String> STRING_CODEC = new ESExprCodec<>() {
 		@Override
 		public @NotNull Set<@NotNull ESExprTag> tags() {
 			return Set.of(new ESExprTag.Str());
@@ -203,12 +277,12 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public @NotNull String decode(@NotNull ESExpr expr) throws DecodeException {
+		public @NotNull String decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Str(var s)) {
 				return s;
 			}
 			else {
-				throw new DecodeException("Expected a string value");
+				throw new DecodeException("Expected a string value", path);
 			}
 		}
 	};
@@ -225,12 +299,12 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public byte @NotNull[] decode(@NotNull ESExpr expr) throws DecodeException {
+		public byte @NotNull[] decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Binary(var b)) {
 				return b;
 			}
 			else {
-				throw new DecodeException("Expected a binary value");
+				throw new DecodeException("Expected a binary value", path);
 			}
 		}
 	};
@@ -247,12 +321,12 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public @NotNull Float decode(@NotNull ESExpr expr) throws DecodeException {
+		public @NotNull Float decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Float32(var f)) {
 				return f;
 			}
 			else {
-				throw new DecodeException("Expected a float value");
+				throw new DecodeException("Expected a float value", path);
 			}
 		}
 	};
@@ -269,12 +343,12 @@ public interface ESExprCodec<T> {
 		}
 
 		@Override
-		public @NotNull Double decode(@NotNull ESExpr expr) throws DecodeException {
+		public @NotNull Double decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Float64(var d)) {
 				return d;
 			}
 			else {
-				throw new DecodeException("Expected a double value");
+				throw new DecodeException("Expected a double value", path);
 			}
 		}
 	};
@@ -292,20 +366,23 @@ public interface ESExprCodec<T> {
 			}
 	
 			@Override
-			public @NotNull List<T> decode(@NotNull ESExpr expr) throws DecodeException {
+			public @NotNull List<T> decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 				if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("list")) {
 					if(kwargs.size() > 0) {
-						throw new DecodeException("Unexpected keyword arguments for list.");
+						throw new DecodeException("Unexpected keyword arguments for list.", path.withConstructor("list"));
 					}
 	
 					List<T> res = new ArrayList<T>(args.size());
+					int i = 0;
 					for(ESExpr item : args) {
-						res.add(itemCodec.decode(item));
+						res.add(itemCodec.decode(item, path.append("list", i)));
+
+						++i;
 					}
 					return res;
 				}
 				else {
-					throw new DecodeException("Expected a boolean value");
+					throw new DecodeException("Expected a list constructor", path);
 				}
 			}
 		};
@@ -327,7 +404,7 @@ public interface ESExprCodec<T> {
 			}
 	
 			@Override
-			public @NotNull Optional<T> decode(@NotNull ESExpr expr) throws DecodeException {
+			public @NotNull Optional<T> decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
 				if(expr instanceof ESExpr.Null) {
 					return Optional.empty();
 				}
