@@ -12,9 +12,12 @@ dependencies {
     implementation("org.jetbrains:annotations:24.0.0")
 }
 
-tasks.withType<JavaCompile> {
-    options.release.set(22)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(22)
+    }
 }
+
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
