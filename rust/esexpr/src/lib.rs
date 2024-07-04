@@ -131,6 +131,20 @@ impl ESExprCodec for ESExpr {
     }
 }
 
+impl <A: ESExprCodec> ESExprCodec for Box<A> {
+    fn tags() -> HashSet<ESExprTag> {
+        A::tags()
+    }
+
+    fn encode_esexpr(self) -> ESExpr {
+        A::encode_esexpr(*self)
+    }
+
+    fn decode_esexpr(expr: ESExpr) -> Result<Self, DecodeError> {
+        A::decode_esexpr(expr).map(Box::new)
+    }
+}
+
 impl ESExprCodec for bool {
     fn tags() -> HashSet<ESExprTag> {
         HashSet::from([ESExprTag::Bool])
