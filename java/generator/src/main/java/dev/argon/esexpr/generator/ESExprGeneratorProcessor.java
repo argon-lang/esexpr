@@ -3,27 +3,25 @@ package dev.argon.esexpr.generator;
 import javax.annotation.processing.*;
 import javax.lang.model.*;
 import javax.lang.model.element.*;
-import javax.lang.model.type.*;
-import javax.tools.Diagnostic;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Files;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Map;
-import java.util.HashMap;
 
-import org.apache.commons.text.StringEscapeUtils;
-
+/**
+ * Annotation processor for ESExprCodecGen.
+ * Generates ESExprCodecs.
+ */
 @SupportedAnnotationTypes({"dev.argon.esexpr.ESExprCodecGen"})
 @SupportedSourceVersion(SourceVersion.RELEASE_22)
 public class ESExprGeneratorProcessor extends AbstractProcessor {
+
+	/**
+	 * Create the generator.
+	 */
+	public ESExprGeneratorProcessor() {
+	}
 
     private ProcessingEnvironment processingEnv;
 

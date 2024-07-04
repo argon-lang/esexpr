@@ -10,3 +10,4 @@ lib/
 obj/
 node_modules/
 
+js/*.tgz

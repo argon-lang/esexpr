@@ -8,8 +8,16 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Encodes ESExpr values into a binary format.
+ */
 public class ESExprBinaryWriter {
 
+	/**
+	 * Creates an encoder.
+	 * @param symbolTable The symbol table used when parsing.
+	 * @param os The stream.
+	 */
 	public ESExprBinaryWriter(@NotNull List<? extends @NotNull String> symbolTable, OutputStream os) {
 
 		this.symbolTable = symbolTable;
@@ -19,6 +27,11 @@ public class ESExprBinaryWriter {
 	private final List<? extends @NotNull String> symbolTable;
 	private final OutputStream os;
 
+	/**
+	 * Write an ESExpr to the stream.
+	 * @param expr The ESExpr to write.
+	 * @throws IOException when an error occurs in the underlying stream.
+	 */
 	public void write(ESExpr expr) throws IOException {
 		switch(expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {

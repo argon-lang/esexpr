@@ -7,6 +7,10 @@ import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * A string table used while reading binary ESExprs.
+ * @param values The strings in the string table.
+ */
 public record StringTable(List<String> values) {
 	
 	public static final ESExprCodec<StringTable> codec = new ESExprCodec<StringTable>() {

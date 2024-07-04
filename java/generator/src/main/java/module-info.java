@@ -1,3 +1,6 @@
+/**
+ * Annotation processor that generates ESExprCodecs for types annotated with ESExprCodeGen.
+ */
 module dev.argon.esexpr.generator {
 	requires transitive java.compiler;
 	requires org.apache.commons.text;

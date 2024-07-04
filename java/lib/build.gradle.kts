@@ -1,6 +1,11 @@
 plugins {
     `java-library`
+    `maven-publish`
+    signing
 }
+
+group = "dev.argon"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -16,6 +21,23 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(22)
     }
+
+    withSourcesJar()
+    withJavadocJar()
+
+    
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            artifactId = "esexpr-generator"
+        }
+    }
+}
+
+signing {
+    sign(publishing.publications["mavenJava"])
 }
 
 

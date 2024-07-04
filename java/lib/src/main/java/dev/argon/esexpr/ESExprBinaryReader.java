@@ -14,7 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+/**
+ * A reader for the ESExpr binary format.
+ */
 public class ESExprBinaryReader {
+	/**
+	 * Create a reader for the ESExpr binary format.
+	 * @param symbolTable The symbol table used when parsing.
+	 * @param is The stream.
+	 */
 	public ESExprBinaryReader(@NotNull List<String> symbolTable, @NotNull InputStream is) {
 		this.symbolTable = new ArrayList<>(symbolTable);
 		this.is = is;
@@ -24,6 +32,12 @@ public class ESExprBinaryReader {
 	private final @NotNull InputStream is;
 	private int nextByte;
 
+	/**
+	 * Attempts to read an ESExpr from the stream.
+	 * @return The ESExpr, or null if at the end of the stream.
+	 * @throws IOException when an error occurs in the underlying stream.
+	 * @throws SyntaxException when an expression cannot be read.
+	 */
 	public @Nullable ESExpr read() throws IOException, SyntaxException {
 		if(peekNext() < 0) {
 			return null;
@@ -32,6 +46,10 @@ public class ESExprBinaryReader {
 		return readExpr();
 	}
 
+	/**
+	 * Reads all ESExpr values from the stream.
+	 * @return A stream of ESExpr values.
+	 */
 	public @NotNull Stream<@NotNull ESExpr> readAll() {
 		return Stream
 			.generate(() -> {
@@ -45,6 +63,13 @@ public class ESExprBinaryReader {
 			.takeWhile(x -> x != null);
 	}
 
+	/**
+	 * Reads all ESExpr values, using the first as the string table.
+	 * @param is The input stream.
+	 * @return A stream of ESExpr values.
+	 * @throws IOException when an error occurs in the underlying stream.
+	 * @throws SyntaxException when an expression cannot be read.
+	 */
 	public static @NotNull Stream<@NotNull ESExpr> readEmbeddedStringTable(InputStream is) throws IOException, SyntaxException {
 		try {
 			var stringTable = StringTable.codec.decode(new ESExprBinaryReader(List.of(), is).readExpr());
