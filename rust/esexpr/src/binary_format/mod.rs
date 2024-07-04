@@ -27,6 +27,9 @@ pub enum ParseError {
     #[from(ignore)]
     UnexpectedEndOfFile,
 
+    #[from(ignore)]
+    InvalidStringPool(crate::DecodeError),
+
     IOError(std::io::Error),
     Utf8Error(std::str::Utf8Error),
 
@@ -296,6 +299,23 @@ pub fn parse<'a, F: Read + 'a, S: AsRef<str>>(f: F, string_pool: &'a [S]) -> imp
         iter: TokenReader { read: f },
         string_pool,
     }
+}
+
+#[derive(ESExprCodec)]
+struct EmbeddedStringPool(#[vararg] pub Vec<String>);
+
+pub fn parse_embedded_string_pool<'a, F: Read + 'a, S: AsRef<str>>(f: F) -> impl Iterator<Item=Result<ESExpr, ParseError>> + 'a {
+    let empty_sp = Vec::new();
+    let mut parser = ExprParser {
+        iter: TokenReader { read: f },
+        string_pool: empty_sp,
+    };
+
+    let Some(sp) = sp_parser.next() else { return Err(ParseError::UnexpectedEndOfFile) };
+
+    parser.string_pool = sp.0;
+
+    parser
 }
 
 
