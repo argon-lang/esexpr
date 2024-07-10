@@ -8,7 +8,7 @@ use std::{borrow::Cow, collections::HashMap, io::{Read, Write}};
 
 use esexpr::{ESExpr, ESExprCodec};
 
-#[derive(From)]
+#[derive(From, Debug)]
 pub enum ParseError {
     #[from(ignore)]
     InvalidTokenByte(u8),
