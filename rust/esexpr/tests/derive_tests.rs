@@ -441,4 +441,36 @@ fn many_args_test() {
 
 
 
+#[derive(esexpr::ESExprCodec, Clone)]
+struct GenericTest1<A>(A);
 
+#[derive(esexpr::ESExprCodec, Clone)]
+struct GenericTest2<A: esexpr::ESExprCodec>(A);
+
+
+#[test]
+fn generic_tests() {
+    use std::collections::HashMap;
+    use num_bigint::BigInt;
+    use esexpr::{ESExpr, ESExprCodec};
+
+    let expr = ESExpr::Constructor {
+        name: "generic-test1".to_owned(),
+        args: vec!(ESExpr::Int(BigInt::from(5))),
+        kwargs: HashMap::new(),
+    };
+
+    assert_eq!(expr, GenericTest1(5).encode_esexpr());
+    assert_eq!(5, GenericTest1::decode_esexpr(expr).unwrap().0);
+
+
+    let expr = ESExpr::Constructor {
+        name: "generic-test2".to_owned(),
+        args: vec!(ESExpr::Int(BigInt::from(5))),
+        kwargs: HashMap::new(),
+    };
+
+    assert_eq!(expr, GenericTest2(5).encode_esexpr());
+    assert_eq!(5, GenericTest2::decode_esexpr(expr).unwrap().0);
+
+}

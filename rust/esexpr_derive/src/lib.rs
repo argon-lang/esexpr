@@ -5,6 +5,9 @@ use proc_macro2::Span;
 use proc_macro2::Literal;
 use quote::quote;
 use regex::Regex;
+use syn::TraitBound;
+use syn::TraitBoundModifier;
+use syn::TypeParamBound;
 use syn::{
     parse::Parser,
     parse_quote,
@@ -54,19 +57,44 @@ fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2::Tok
 
     let type_name = input.ident;
 
-    let generics_lt = input.generics.lt_token;
+
     let generics_params = input.generics.params;
+    
+    let generics_lt = input.generics.lt_token;
     let generics_gt = input.generics.gt_token;
 
-    let mut type_args = Punctuated::new();
-    for param in &generics_params {
-        type_args.push_value(param_to_arg(param));
-        type_args.push_punct(Token![,](Span::mixed_site()));
-    }
+    let type_args = generics_params.iter().map(param_to_arg).collect::<Punctuated<GenericArgument, Token![,]>>();
 
-    if type_args.trailing_punct() {
-        type_args.pop_punct();
-    }
+    let type_params =
+        if generics_params.is_empty() {
+            quote! {}
+        }
+        else {
+            let params = generics_params.into_iter()
+                .map(|mut p| {
+                    match &mut p {
+                        GenericParam::Type(p) => {
+                            p.colon_token.get_or_insert(Default::default());
+                            p.bounds.push(TypeParamBound::Trait(TraitBound {
+                                paren_token: None,
+                                modifier: TraitBoundModifier::None,
+                                lifetimes: None,
+                                path: parse_quote! { ::esexpr::ESExprCodec },
+                            }))
+                        },
+
+                        GenericParam::Lifetime(_) => {},
+                        GenericParam::Const(_) => {},
+                    }
+
+                    p
+                })
+                .collect::<Vec<_>>();
+
+            quote! {
+                <#(#params),*>
+            }
+        };
 
 
     let validate = flatten_token_res(validate_attributes(&input.attrs, &type_name, &input.data));
@@ -75,7 +103,7 @@ fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2::Tok
     let decode = flatten_token_res(get_esexpr_decode(&input.attrs, &type_name, &input.data));
 
     quote! {
-        impl #generics_lt #generics_params #generics_gt  ::esexpr::ESExprCodec for #type_name #generics_lt #type_args #generics_gt {
+        impl #type_params  ::esexpr::ESExprCodec for #type_name #generics_lt #type_args #generics_gt {
 
             fn tags() -> ::std::collections::HashSet<::esexpr::ESExprTag> {
                 #validate
