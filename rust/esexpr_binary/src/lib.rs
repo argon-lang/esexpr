@@ -305,7 +305,7 @@ pub fn parse<'a, F: Read + 'a, S: AsRef<str>>(f: F, string_pool: &'a [S]) -> imp
 #[derive(ESExprCodec)]
 struct EmbeddedStringPool(#[vararg] pub Vec<String>);
 
-pub fn parse_embedded_string_pool<'a, F: Read + 'a, S: AsRef<str>>(f: F) -> Result<impl Iterator<Item=Result<ESExpr, ParseError>> + 'a, ParseError> {
+pub fn parse_embedded_string_pool<'a, F: Read + 'a>(f: F) -> Result<impl Iterator<Item=Result<ESExpr, ParseError>> + 'a, ParseError> {
     let mut parser = ExprParser {
         iter: TokenReader { read: f },
         string_pool: Cow::Owned(Vec::new()),
