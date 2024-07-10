@@ -253,6 +253,23 @@ impl ESExprCodec for f64 {
     }
 }
 
+impl ESExprCodec for () {
+    fn tags() -> HashSet<ESExprTag> {
+        HashSet::from([ESExprTag::Null])
+    }
+
+    fn encode_esexpr(self) -> ESExpr {
+        ESExpr::Null
+    }
+
+    fn decode_esexpr(expr: ESExpr) -> Result<Self, DecodeError> {
+        match expr {
+            ESExpr::Null => Ok(()),
+            _  => Err(DecodeError(DecodeErrorType::UnexpectedExpr { expected_tags: HashSet::from([ESExprTag::Null]), actual_tag: expr.tag() }, DecodeErrorPath::Current))
+        }
+    }
+}
+
 impl <A: ESExprCodec> ESExprCodec for Vec<A> {
     fn tags() -> HashSet<ESExprTag> {
         HashSet::from([ESExprTag::Constructor("list".to_owned())])
