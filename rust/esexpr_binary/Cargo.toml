@@ -1,0 +1,10 @@
+[package]
+name = "esexpr_binary"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+esexpr = { path = "../esexpr" }
+num-bigint = "0.4.5"
+derive_more = "0.99.17"
+itertools = "0.13.0"

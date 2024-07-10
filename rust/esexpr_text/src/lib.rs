@@ -1,11 +1,11 @@
 
 use lalrpop_util::lalrpop_mod;
 
-use crate::ESExpr;
+use esexpr::ESExpr;
 
 pub mod lexer;
 
-lalrpop_mod!(esexpr_text, "/text_format/esexpr_text.rs");
+lalrpop_mod!(esexpr_text, "/esexpr_text.rs");
 
 
 enum Field {

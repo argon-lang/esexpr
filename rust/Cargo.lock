@@ -132,10 +132,6 @@ version = "0.1.2"
 dependencies = [
  "derive_more",
  "esexpr-derive",
- "hexfloat2",
- "lalrpop",
- "lalrpop-util",
- "logos",
  "num-bigint",
  "num-integer",
 ]
@@ -148,6 +144,28 @@ dependencies = [
  "quote",
  "regex",
  "syn 2.0.63",
+]
+
+[[package]]
+name = "esexpr_binary"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "esexpr",
+ "itertools 0.13.0",
+ "num-bigint",
+]
+
+[[package]]
+name = "esexpr_text"
+version = "0.1.0"
+dependencies = [
+ "esexpr",
+ "hexfloat2",
+ "lalrpop",
+ "lalrpop-util",
+ "logos",
+ "num-bigint",
 ]
 
 [[package]]
@@ -205,6 +223,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "lalrpop"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -213,7 +240,7 @@ dependencies = [
  "ascii-canvas",
  "bit-set",
  "ena",
- "itertools",
+ "itertools 0.11.0",
  "lalrpop-util",
  "petgraph",
  "pico-args",
