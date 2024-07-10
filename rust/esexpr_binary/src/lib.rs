@@ -302,9 +302,6 @@ pub fn parse<'a, F: Read + 'a, S: AsRef<str>>(f: F, string_pool: &'a [S]) -> imp
     }
 }
 
-#[derive(ESExprCodec)]
-struct EmbeddedStringPool(#[vararg] pub Vec<String>);
-
 pub fn parse_embedded_string_pool<'a, F: Read + 'a>(f: F) -> Result<impl Iterator<Item=Result<ESExpr, ParseError>> + 'a, ParseError> {
     let mut parser = ExprParser {
         iter: TokenReader { read: f },
@@ -314,9 +311,9 @@ pub fn parse_embedded_string_pool<'a, F: Read + 'a>(f: F) -> Result<impl Iterato
     let Some(sp) = parser.next() else { return Err(ParseError::UnexpectedEndOfFile) };
     let sp = sp?;
 
-    let sp = EmbeddedStringPool::decode_esexpr(sp).map_err(ParseError::InvalidStringPool)?;
+    let sp = FixedStringPool::decode_esexpr(sp).map_err(ParseError::InvalidStringPool)?;
 
-    parser.string_pool = Cow::Owned(sp.0);
+    parser.string_pool = Cow::Owned(sp.strings);
 
     Ok(parser)
 }
@@ -514,7 +511,10 @@ impl <'a> StringPool for StringPoolBuilderAdapter<'a> {
     }
 }
 
+#[derive(ESExprCodec, Debug, PartialEq, Clone)]
+#[constructor = "string-table"]
 pub struct FixedStringPool {
+    #[vararg]
     pub strings: Vec<String>,
 }
 
