@@ -1,10 +1,17 @@
 [package]
-name = "esexpr_binary"
-version = "0.1.0"
+name = "esexpr-binary"
+version = "0.1.3"
 edition = "2021"
+license = "Apache-2.0"
+description = "ESExpr serialization binary format."
+documentation = "https://docs.rs/esexpr-binary"
+homepage = "https://github.com/argon-lang/esexpr"
+repository = "https://github.com/argon-lang/esexpr"
+categories = [ "encoding" ]
+readme = "README.md"
 
 [dependencies]
-esexpr = { path = "../esexpr" }
+esexpr = { path = "../esexpr", version = "0.1.2" }
 num-bigint = "0.4.5"
 derive_more = "0.99.17"
 itertools = "0.13.0"
