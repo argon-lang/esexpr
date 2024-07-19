@@ -1,6 +1,6 @@
 [package]
 name = "esexpr"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "Apache-2.0"
 description = "ESExpr serialization format and related utilities."
@@ -16,5 +16,5 @@ default = []
 [dependencies]
 num-bigint = "0.4.5"
 num-integer = "0.1.46"
-esexpr-derive = { version = "0.1.3", path = "../esexpr_derive" }
+esexpr-derive = { version = "0.1.4", path = "../esexpr_derive" }
 derive_more = "0.99.17"
