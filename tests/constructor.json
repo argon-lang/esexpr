@@ -1,5 +1,6 @@
 
 {
-    "constructor": "my-constructor-name"
+    "constructor": "my-constructor-name",
+    "args": [ "a", "b" ]
 }
 

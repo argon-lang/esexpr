@@ -13,11 +13,12 @@ grammar<'input>;
 
 Identifier: String = {
     <s: "identifier"> => s.to_owned(),
+    <IdentifierStr>,
 };
 
 IdentifierStr: String = {
     "id_string_start" "id_string_end" => "".to_owned(),
-    "id_string_start" <s: StringContent> "id_string_end" => s,
+    "id_string_start" <s: IdentifierStrContent> "id_string_end" => s,
 };
 
 IdentifierStrContent: String = {

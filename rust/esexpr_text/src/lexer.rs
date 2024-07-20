@@ -234,7 +234,7 @@ impl<'input> Iterator for Lexer<'input> {
                         let position = in_id_str.span();
 
                         if let IdentifierStringPartToken::StringEnd = token {
-                            self.as_in_id_string_mode();
+                            self.as_normal_mode();
                         }
 
 						Some(Ok((position.start, Token::IdentifierStringPart(token), position.end)))
