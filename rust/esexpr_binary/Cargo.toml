@@ -1,6 +1,6 @@
 [package]
 name = "esexpr-binary"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 license = "Apache-2.0"
 description = "ESExpr serialization binary format."
@@ -11,7 +11,7 @@ categories = [ "encoding" ]
 readme = "README.md"
 
 [dependencies]
-esexpr = { path = "../esexpr", version = "0.1.5" }
+esexpr = { path = "../esexpr", version = "0.1.6" }
 num-bigint = "0.4.5"
 derive_more = "0.99.17"
 itertools = "0.13.0"
