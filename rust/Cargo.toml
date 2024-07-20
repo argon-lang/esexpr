@@ -3,5 +3,5 @@ resolver = "2"
 
 members = [
     "esexpr", "esexpr_binary",
-    "esexpr_derive", "esexpr_text",
+    "esexpr_derive", "esexpr_json", "esexpr_text",
 ]

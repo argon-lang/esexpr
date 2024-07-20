@@ -1,0 +1,21 @@
+[
+    "Hello, world!\n",
+    "This is a tab:\tand a new line:\n",
+    "Unicode heart: \u2764",
+    "Backslash: \\",
+    "Double quote: \"",
+    "Single quote: '",
+    "Carriage return:\r",
+    "Form feed:\f",
+    "Bell sound:\u0007",
+    "Unicode smile: \u263A",
+    "Hexadecimal escape: \u0041",
+    "Vertical tab:\u000B",
+    "Unicode music note: \u266B",
+    "Escaped Unicode: \\u{0041}",
+    "Backspace:\b",
+    "Question mark: ?",
+    "Ampersand: &",
+    "Percent sign: %",
+    "Dollar sign: $"
+]

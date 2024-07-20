@@ -1,0 +1,22 @@
+(list
+    0x1.34567ap3
+    0x1.bcdefp-4
+    0x1.6789abp6
+    0x1.cdef01p-2
+    0x1.456789p-5
+    0x1.abcd12p7
+    0x1.89ab12p-3
+    0x1.bcde34p8
+    0x1.23cd45p-6
+    0x1.56ef67p9
+    0x1.a23456p-7
+    0x1.789abcdep10
+    0x1.b12345p-8
+    0x1.cdef456p11
+    0x1.01234ap-9
+    0x1.5678bcdp12
+    0x1.89def12p-10
+    0x1.a23bcdep13
+    0x1.45ef67p-11
+    0x1.67cdefp14
+)

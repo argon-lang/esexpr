@@ -270,6 +270,7 @@ impl ESExprCodec for () {
     }
 }
 
+
 impl <A: ESExprCodec> ESExprCodec for Vec<A> {
     fn tags() -> HashSet<ESExprTag> {
         HashSet::from([ESExprTag::Constructor("list".to_owned())])
@@ -390,7 +391,8 @@ impl <A: ESExprCodec> ESExprDictCodec for HashMap<String, A> {
                     })?;
 
                 Ok((k, value))
-            }).collect()
+            })
+            .collect()
     }
 }
 

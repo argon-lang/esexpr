@@ -13,6 +13,7 @@ enum Field {
     Keyword(String, ESExpr),
 }
 
+#[derive(Debug)]
 pub enum ParseError {
     Lex(lexer::LexError),
 }

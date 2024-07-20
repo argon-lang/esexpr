@@ -9,6 +9,7 @@ use std::ops::Range;
 pub enum LexErrorType {
     UnexpectedToken,
     UnterminatedString,
+    UnterminatedIdentifierString,
 
     InvalidUnicodeCodePoint(u32),
 }
@@ -31,7 +32,7 @@ pub struct LexError {
 #[logos(error = LexErrorType)]
 #[logos(skip r"\s+")]
 pub enum SimpleToken<'input> {
-    #[regex(r"[a-z]|[a-z][a-z0-9-]*[a-z0-9]")]
+    #[regex(r"[a-z]([a-z0-9\\-]*[a-z0-9])?")]
     Identifier(&'input str),
 
     #[regex(r"[+\-]?0", |_| BigInt::ZERO)]
@@ -67,13 +68,41 @@ pub enum SimpleToken<'input> {
 
     #[token("\"")]
     StringStart,
+
+    #[token("'")]
+    IdentifierStringStart,
 }
 
 
 #[derive(Debug, Clone, Logos)]
 #[logos(error = LexErrorType)]
 pub enum StringPartToken<'input> {
-    #[regex("[^\"\\\\]")]
+    #[regex("[^\"\\\\]+")]
+    Text(&'input str),
+
+    #[token("\\f", |_| '\x0C')]
+    #[token("\\n", |_| '\n')]
+    #[token("\\r", |_| '\r')]
+    #[token("\\t", |_| '\t')]
+    #[token("\\\\", |_| '\\')]
+    #[token("\\'", |_| '\'')]
+    #[token("\\\"", |_| '"')]
+    #[regex(r"\\u\{[a-fA-F0-9]+\}", |x| {
+        let s = x.slice();
+        let s = &s[3..x.slice().len() - 1];
+        let codepoint = u32::from_str_radix(s, 16).unwrap();
+        char::from_u32(codepoint).ok_or_else(|| LexErrorType::InvalidUnicodeCodePoint(codepoint))
+    })]
+    Escape(char),
+
+    #[token("\"")]
+    StringEnd,
+}
+
+#[derive(Debug, Clone, Logos)]
+#[logos(error = LexErrorType)]
+pub enum IdentifierStringPartToken<'input> {
+    #[regex("[^'\\\\]+")]
     Text(&'input str),
 
     #[token("\\f", |_| '\x0C')]
@@ -91,7 +120,7 @@ pub enum StringPartToken<'input> {
     })]
     Escape(char),
 
-    #[token("\"")]
+    #[token("'")]
     StringEnd,
 }
 
@@ -99,11 +128,13 @@ pub enum StringPartToken<'input> {
 pub enum Token<'input> {
     Simple(SimpleToken<'input>),
     StringPart(StringPartToken<'input>),
+    IdentifierStringPart(IdentifierStringPartToken<'input>),
 }
 
 enum LexerImpl<'input> {
 	Normal(logos::Lexer<'input, SimpleToken<'input>>),
 	InString(logos::Lexer<'input, StringPartToken<'input>>),
+    InIdentifierString(logos::Lexer<'input, IdentifierStringPartToken<'input>>),
 }
 
 
@@ -125,6 +156,7 @@ impl<'input> Lexer<'input> {
 		lexer_impl = match lexer_impl {
 			LexerImpl::Normal(normal) => LexerImpl::Normal(normal),
 			LexerImpl::InString(in_string) => LexerImpl::Normal(in_string.morph()),
+            LexerImpl::InIdentifierString(in_id_string) => LexerImpl::Normal(in_id_string.morph()),
 		};
 
 		std::mem::swap(&mut lexer_impl, &mut self.inner);
@@ -137,6 +169,20 @@ impl<'input> Lexer<'input> {
 		lexer_impl = match lexer_impl {
 			LexerImpl::Normal(normal) => LexerImpl::InString(normal.morph()),
 			LexerImpl::InString(in_string) => LexerImpl::InString(in_string),
+            LexerImpl::InIdentifierString(in_id_string) => LexerImpl::InString(in_id_string.morph()),
+		};
+
+		std::mem::swap(&mut lexer_impl, &mut self.inner);
+	}
+
+	fn as_in_id_string_mode(&mut self) {
+		let mut lexer_impl: LexerImpl<'input> = LexerImpl::Normal(SimpleToken::lexer(""));
+		std::mem::swap(&mut lexer_impl, &mut self.inner);
+
+		lexer_impl = match lexer_impl {
+			LexerImpl::Normal(normal) => LexerImpl::InIdentifierString(normal.morph()),
+			LexerImpl::InString(in_string) => LexerImpl::InIdentifierString(in_string.morph()),
+            LexerImpl::InIdentifierString(in_id_string) => LexerImpl::InIdentifierString(in_id_string),
 		};
 
 		std::mem::swap(&mut lexer_impl, &mut self.inner);
@@ -153,8 +199,10 @@ impl<'input> Iterator for Lexer<'input> {
 					Some(Ok(token)) => {
                         let position = normal.span();
 
-                        if let SimpleToken::StringStart = token {
-                            self.as_in_string_mode();
+                        match token {
+                            SimpleToken::StringStart => self.as_in_string_mode(),
+                            SimpleToken::IdentifierStringStart => self.as_in_id_string_mode(),
+                            _ => {},
                         }
 
 						Some(Ok((position.start, Token::Simple(token), position.end)))
@@ -179,6 +227,22 @@ impl<'input> Iterator for Lexer<'input> {
 					None => Some(Err(LexError { error_type: LexErrorType::UnterminatedString, position: instr.span() })),
 				}
 			}
+
+            LexerImpl::InIdentifierString(in_id_str) => {
+                match in_id_str.next() {
+                    Some(Ok(token)) => {
+                        let position = in_id_str.span();
+
+                        if let IdentifierStringPartToken::StringEnd = token {
+                            self.as_in_id_string_mode();
+                        }
+
+						Some(Ok((position.start, Token::IdentifierStringPart(token), position.end)))
+                    },
+                    Some(Err(e)) => Some(Err(LexError { error_type: e, position: in_id_str.span() })),
+                    None => Some(Err(LexError { error_type: LexErrorType::UnterminatedIdentifierString, position: in_id_str.span() })),
+                }
+            },
 		}
 	}
 }
