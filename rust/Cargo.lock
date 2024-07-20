@@ -148,8 +148,10 @@ version = "0.1.6"
 dependencies = [
  "derive_more",
  "esexpr",
+ "esexpr-json",
  "itertools 0.13.0",
  "num-bigint",
+ "serde_json",
 ]
 
 [[package]]
@@ -185,6 +187,16 @@ dependencies = [
  "logos",
  "num-bigint",
  "serde_json",
+]
+
+[[package]]
+name = "esexpr-utils"
+version = "0.1.0"
+dependencies = [
+ "esexpr",
+ "esexpr-binary",
+ "esexpr-json",
+ "esexpr-text",
 ]
 
 [[package]]

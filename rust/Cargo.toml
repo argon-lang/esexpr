@@ -2,6 +2,6 @@
 resolver = "2"
 
 members = [
-    "esexpr", "esexpr_binary",
+    "esexpr", "esexpr-utils", "esexpr_binary",
     "esexpr_derive", "esexpr_json", "esexpr_text",
 ]

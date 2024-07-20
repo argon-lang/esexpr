@@ -1,0 +1,11 @@
+[package]
+name = "esexpr-utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+esexpr = { path = "../esexpr" }
+esexpr-json = { path = "../esexpr_json" }
+esexpr-text = { path = "../esexpr_text" }
+esexpr-binary = { path = "../esexpr_binary" }
+

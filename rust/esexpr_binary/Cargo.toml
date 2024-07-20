@@ -15,3 +15,7 @@ esexpr = { path = "../esexpr", version = "0.1.6" }
 num-bigint = "0.4.5"
 derive_more = "0.99.17"
 itertools = "0.13.0"
+
+[dev-dependencies]
+serde_json = { version = "1.0.120", features = ["float_roundtrip"] }
+esexpr-json = { version = "0.1.6", path = "../esexpr_json" }

@@ -3,11 +3,14 @@
 .bsp/
 .metals/
 
-target/
-build/
-bin/
-lib/
-obj/
-node_modules/
+/rust/**/target/
 
-js/*.tgz
+/scala/**/target/
+
+/java/**/build/
+/java/**/bin/
+
+/js/**/lib/
+/js/**/obj/
+/js/**/node_modules/
+/js/**/*.tgz
