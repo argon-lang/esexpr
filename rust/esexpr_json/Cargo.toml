@@ -2,6 +2,13 @@
 name = "esexpr-json"
 version = "0.1.5"
 edition = "2021"
+license = "Apache-2.0"
+description = "ESExpr serialization text format."
+documentation = "https://docs.rs/esexpr-text"
+homepage = "https://github.com/argon-lang/esexpr"
+repository = "https://github.com/argon-lang/esexpr"
+categories = [ "encoding" ]
+readme = "README.md"
 
 [dependencies]
 serde = { version = "1.0.204", features = ["derive"] }

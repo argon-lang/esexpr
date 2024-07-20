@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 
-cargo deploy -p esexpr-derive
-cargo deploy -p esexpr
-cargo deploy -p esexpr-binary
-cargo deploy -p esexpr-json
-cargo deploy -p esexpr-text
+cargo publish -p esexpr-derive
+cargo publish -p esexpr
+cargo publish -p esexpr-binary
+cargo publish -p esexpr-json
+cargo publish -p esexpr-text
