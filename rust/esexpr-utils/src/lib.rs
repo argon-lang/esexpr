@@ -4,8 +4,6 @@ use std::{ffi::OsStr, io::{Read, Write}, path::PathBuf};
 pub fn parse_io_args() -> (Box<dyn Read>, Box<dyn Write>) {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
 
-    println!("{:?}", args);
-
     if args.len() > 2 {
         panic!("Up to two arguments are allowed.");
     }

@@ -103,8 +103,6 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
 
     let b: u8 = b[0];
 
-    println!("Reading tag: {:02x}", b);
-
     Ok(Some(
         if (b & TAG_VARINT_MASK) == TAG_VARINT_MASK {
             match b {
@@ -140,8 +138,6 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
             };
 
             let mut n = read_int(reader, b)?;
-
-            println!("n: {}", n);
 
             match tag {
                 VarIntTag::ConstructorStart => ExprToken::ConstructorStart(get_string_table_index(n)?),
@@ -185,8 +181,7 @@ fn read_int<R: Read>(reader: &mut TokenReader<R>, initial: u8) -> Result<BigUint
         let value = b & 0x7F;
         let low = value << bit_offset;
         let high = if bit_offset > 1 { value >> (8 - bit_offset) } else { 0 };
-
-        eprintln!("current = {:02x}, has_next = {}, bit_offset = {}, value = {:02x}, low = {:02x}, high = {:02x}", current, has_next, bit_offset, value, low, high);
+        
 
 
         current |= low;
@@ -198,13 +193,9 @@ fn read_int<R: Read>(reader: &mut TokenReader<R>, initial: u8) -> Result<BigUint
         }
     }
 
-    eprintln!("current = {:02x}, bit_offset = {}", current, bit_offset);
-
     if bit_offset > 0 {
         buffer.push(current);
     }
-
-    eprintln!("buffer = {:?}", buffer);
     
     Ok(BigUint::from_bytes_le(&buffer))
 }
@@ -322,8 +313,6 @@ pub fn parse_embedded_string_pool<'a, F: Read + 'a>(f: F) -> Result<impl Iterato
     let Some(sp) = parser.next() else { return Err(ParseError::UnexpectedEndOfFile) };
     let sp = sp?;
 
-    println!("{:?}", sp);
-
     let sp = FixedStringPool::decode_esexpr(sp).map_err(ParseError::InvalidStringPool)?;
 
     parser.string_pool = Cow::Owned(sp.strings);
@@ -353,7 +342,6 @@ struct ExprGenerator<'a, SP, W> {
 
 impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
     fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
-        eprintln!("{:?}", expr);
         match expr {
             ESExpr::Constructor { name, args, kwargs } => {
                 match name.as_str() {
@@ -428,18 +416,14 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
     fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
         let buff = i.to_bytes_le();
 
-        eprintln!("write {} {:?}", tag, buff);
-
         let b0 = *buff.get(0).unwrap_or(&0);
         let mut current = tag | (b0 & 0x0F);
         if buff.len() < 2 && (b0 & 0xF0) == 0 {
-            eprintln!("writing {:02x}", current);
             self.write(current)?;
             return Ok(());
         }
 
         current |= 0x10;
-        eprintln!("writing {:02x}", current);
         self.write(current)?;
 
         current = b0 >> 4;
@@ -449,7 +433,6 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
             let mut bit_index2 = 0;
             while bit_index2 < 8 {
                 let written_bits = std::cmp::min(7 - bit_index, 8 - bit_index2);
-                eprintln!("write b = {:02x}, current = {:02x}, bit_index = {}, bit_index2 = {}, written_bits = {}", b, current, bit_index, bit_index2, written_bits);
                 current |= ((b >> bit_index2) & 0x7F) << bit_index;
 
                 
@@ -459,8 +442,6 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
                     if i < buff.len() - 1 || (bit_index2 < 8 && (b >> bit_index2) != 0) {
                         current |= 0x80;
                     }
-
-                    eprintln!("writing {:02x}", current);
 
                     self.write(current)?;
                     bit_index = 0;
