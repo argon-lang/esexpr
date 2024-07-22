@@ -1,9 +1,9 @@
 [package]
 name = "esexpr-json"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 license = "Apache-2.0"
-description = "ESExpr serialization text format."
+description = "ESExpr serialization JSON encoding mappings."
 documentation = "https://docs.rs/esexpr-text"
 homepage = "https://github.com/argon-lang/esexpr"
 repository = "https://github.com/argon-lang/esexpr"
@@ -13,6 +13,6 @@ readme = "README.md"
 [dependencies]
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
-esexpr = { path = "../esexpr", version = "0.1.8" }
+esexpr = { path = "../esexpr", version = "0.1.9" }
 num-bigint = { version = "0.4.6" }
 base64 = "0.22.1"
