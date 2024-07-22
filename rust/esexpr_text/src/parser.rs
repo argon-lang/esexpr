@@ -36,9 +36,9 @@ fn is_alphanum(c: char) -> bool {
 
 
 pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
-    recognize(
-        tuple((
-            multispace0,
+    preceded(
+        multispace0,
+         recognize(tuple((
             take_while1(is_alpha),
             take_while(is_alphanum),
             many0(
@@ -47,7 +47,7 @@ pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
                     take_while1(is_alphanum),
                 )
             ),
-        ))
+        )))
     )(input)
 }
 
@@ -56,7 +56,7 @@ pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
 pub fn identifier(input: &str) -> IResult<&str, String> {
     alt((
         map(simple_identifier, String::from),
-        string_impl('\'', "'\\"),
+        preceded(multispace0, string_impl('\'', "'\\")),
     ))(input)
 }
 

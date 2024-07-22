@@ -10,9 +10,6 @@ repository = "https://github.com/argon-lang/esexpr"
 categories = [ "encoding" ]
 readme = "README.md"
 
-[build-dependencies]
-lalrpop = "0.20.2"
-
 [dependencies]
 esexpr = { path = "../esexpr", version = "0.1.9" }
 hexfloat2 = "0.1.3"

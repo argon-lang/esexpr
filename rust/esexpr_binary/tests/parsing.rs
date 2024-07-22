@@ -36,6 +36,7 @@ fn parse_bool() {
 #[test]
 fn parse_constructor() {
     parse_test("constructor");
+    parse_test("constructor2");
     parse_test("constructor-keyword");
 }
 
