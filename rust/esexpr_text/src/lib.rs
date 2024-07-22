@@ -1,27 +1,10 @@
-
-use lalrpop_util::lalrpop_mod;
-
 use esexpr::ESExpr;
 
-pub mod lexer;
+pub mod parser;
 
-lalrpop_mod!(esexpr_text, "/esexpr_text.rs");
-
-
-enum Field {
-    Positional(ESExpr),
-    Keyword(String, ESExpr),
-}
-
-#[derive(Debug)]
-pub enum ParseError {
-    Lex(lexer::LexError),
-}
-
-pub fn parse<'input>(s: &'input str) -> Result<ESExpr, lalrpop_util::ParseError<usize, lexer::Token<'input>, ParseError>> {
-    let lexer = lexer::Lexer::new(s).map(|res| res.map_err(ParseError::Lex));
-
-	esexpr_text::ExprParser::new().parse(lexer)
+pub fn parse<'input>(s: &'input str) -> Result<ESExpr, nom::Err<nom::error::Error<&'input str>>> {
+    let (_, expr) = parser::expr_file(s)?;
+    Ok(expr)
 }
 
 

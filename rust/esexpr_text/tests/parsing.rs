@@ -26,8 +26,7 @@ fn parse_test(name: &str) {
 #[test]
 fn parse_bool() {
     parse_test("bool_false");
-    parse_test("bool_true");
-    
+    parse_test("bool_true");    
 }
 
 #[test]
