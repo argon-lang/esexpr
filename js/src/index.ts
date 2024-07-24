@@ -1005,3 +1005,38 @@ export function inlineCaseCodec<Field extends string, T>(field: Field, codec: ES
     return new InlineCaseCodec(field, codec)
 }
 
+
+class LazyCodec<A> implements ESExprCodec<A> {
+    constructor(create: () => ESExprCodec<A>) {
+        this.#create = create;
+        this.#inner = null;
+    }
+
+    readonly #create: () => ESExprCodec<A>;
+    #inner: ESExprCodec<A> | null;
+
+    #getInner(): ESExprCodec<A> {
+        if(this.#inner === null) {
+            this.#inner = this.#create();
+        }
+
+        return this.#inner;
+    }
+
+    get tags(): ReadonlySet<ESExprTag> {
+        return this.#getInner().tags;
+    }
+
+    encode(value: A): ESExpr {
+        return this.#getInner().encode(value);
+    }
+    decode(expr: ESExpr): DecodeResult<A> {
+        return this.#getInner().decode(expr);
+    }
+}
+
+export function lazyCodec<A>(inner: () => ESExprCodec<A>): ESExprCodec<A> {
+    return new LazyCodec(inner);
+}
+
+

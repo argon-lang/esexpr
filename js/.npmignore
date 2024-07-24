@@ -4,3 +4,4 @@ tsconfig.json
 
 *.test.js
 *.test.js.map
+*.test.d.ts
