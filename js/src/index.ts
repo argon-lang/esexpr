@@ -65,6 +65,18 @@ export namespace ESExpr {
         readonly type: "float32";
         readonly value: number;
     }
+
+    export const codec: ESExprCodec<ESExpr> = {
+        tags: new Set(),
+
+        encode(value: ESExpr): ESExpr {
+            return value;
+        },
+
+        decode(expr: ESExpr): DecodeResult<ESExpr> {
+            return { success: true, value: expr };
+        }
+    };
 }
 
 export type ESExprTag =
