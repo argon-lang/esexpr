@@ -29,7 +29,7 @@
         "sourceMap": true,
         "verbatimModuleSyntax": true,
         
-        "lib": ["ES2022", "DOM"],
+        "lib": ["ES2022", "ESNext.Array", "DOM"],
         "target": "ES2022"
 
     },

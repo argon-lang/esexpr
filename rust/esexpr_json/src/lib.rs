@@ -70,7 +70,7 @@ impl JsonExpr {
 #[serde(untagged)]
 pub enum JsonEncodedESExpr {
     Constructor {
-        constructor: String,
+        constructor_name: String,
         args: Option<Vec<JsonEncodedESExpr>>,
         kwargs: Option<HashMap<String, JsonEncodedESExpr>>,
     },
@@ -99,7 +99,7 @@ impl JsonEncodedESExpr {
         match expr {
             ESExpr::Constructor { name, args, kwargs } =>
                 JsonEncodedESExpr::Constructor {
-                    constructor: name,
+                    constructor_name: name,
                     args: Some(
                         args
                             .into_iter()
@@ -125,9 +125,9 @@ impl JsonEncodedESExpr {
 
     pub fn into_esexpr(self) -> ESExpr {
         match self {
-            JsonEncodedESExpr::Constructor { constructor, args, kwargs } =>
+            JsonEncodedESExpr::Constructor { constructor_name, args, kwargs } =>
                 ESExpr::Constructor {
-                    name: constructor,
+                    name: constructor_name,
                     args: args.unwrap_or_default()
                         .into_iter()
                         .map(Self::into_esexpr)

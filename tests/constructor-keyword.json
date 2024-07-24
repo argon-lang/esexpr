@@ -1,6 +1,6 @@
 
 {
-    "constructor": "my+constructor-name",
+    "constructor_name": "my+constructor-name",
     "kwargs": {
         "kw": "kw",
         "k.w": "k.w"

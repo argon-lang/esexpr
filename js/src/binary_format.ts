@@ -1,4 +1,5 @@
-import type { ESExpr } from "./index.js";
+import * as esexpr from "./index.js";
+import type { ESExpr, ESExprCodec } from "./index.js";
 
 type Token =
     | { type: "constructor_start", index: number }
@@ -67,8 +68,9 @@ class ByteReader {
         let res = new Uint8Array(size);
         while(offset < size) {
             const buff = await this.#ensureBuffer();
-            const len = size - offset;
-            res.set(buff.subarray(0, len));
+            const len = Math.min(size - offset, buff.length - this.#index);
+            res.set(buff.subarray(this.#index, this.#index + len));
+            this.#index += len;
             offset += len;
         }
         return res;
@@ -80,8 +82,9 @@ class ByteReader {
         let offset = 0;
         while(offset < size) {
             const buff = await this.#ensureBuffer();
-            const len = size - offset;
-            s += decoder.decode(buff.subarray(0, len));
+            const len = Math.min(size - offset, buff.length - this.#index);
+            s += decoder.decode(buff.subarray(this.#index, this.#index + len));
+            this.#index += len;
             offset += len;
         }
         return s;
@@ -134,14 +137,6 @@ async function* getTokens(reader: ByteReader): AsyncIterable<Token> {
 
                 case TAG_NULL:
                     yield { type: "null_value" };
-                    break;
-
-                case TAG_FLOAT32:
-                    yield { type: "boolean_value", value: true };
-                    break;
-
-                case TAG_FALSE:
-                    yield { type: "boolean_value", value: false };
                     break;
 
 
@@ -223,6 +218,7 @@ async function readInt(reader: ByteReader, b: number): Promise<bigint> {
         b = await reader.readByte();
         n |= BigInt(b & 0x7F) << bitOffset;
         bitOffset += 7n;
+        hasNext = (b & 0x80) == 0x80;
     }
 
     return n;
@@ -357,6 +353,34 @@ export async function* readExprStream(data: AsyncIterable<Uint8Array>, stringPoo
     }
 }
 
+export async function* readExprStreamEmbeddedStringPool(data: AsyncIterable<Uint8Array>): AsyncIterator<ESExpr> {
+    const dataIter = data[Symbol.asyncIterator]();
+    try {
+        const reader = new ByteReader(dataIter);
+        const tokens = getTokens(reader);
+        const tokenIter = tokens[Symbol.asyncIterator]();
+        try {
+            const spRes = StringPoolEncoded.codec.decode(await readExpr(tokenIter, new ArrayStringPool([])));
+            if(!spRes.success) {
+                throw new Error("Invalid string pool");
+            }
+
+            const sp = ArrayStringPool.fromEncoded(spRes.value);
+
+            yield* readExprs(tokenIter, sp);
+        }
+        catch(e) {
+            if(tokenIter.return) await tokenIter.return();
+            throw e;
+        }
+    }
+    catch(e) {
+        if(dataIter.return) await dataIter.return();
+        throw e;
+    }
+}
+
+
 
 async function writeByte(b: number): Promise<Uint8Array> {
     return new Uint8Array([b]);
@@ -395,9 +419,12 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
             break;
 
         case "string":
-            yield* writeInt(TAG_VARINT_STRING_LENGTH, BigInt(e.length));
-            yield new TextEncoder().encode(e);
+        {
+            const buff = new TextEncoder().encode(e);
+            yield* writeInt(TAG_VARINT_STRING_LENGTH, BigInt(buff.length));
+            yield buff;
             break;
+        }
         
         case "number":
         {
@@ -420,30 +447,27 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                 switch(e.type) {
                     case "constructor":
                     {
-                        const index = stringPool.lookup(e.name);
-                        yield* writeInt(TAG_VARINT_CONSTRUCTOR_START, BigInt(index));
+                        switch(e.name) {
+                            case "string-table":
+                                yield writeByte(0xE6);
+                                break;
+
+                            case "list":
+                                yield writeByte(0xE7);
+                                break;
+
+                            default:
+                                const index = stringPool.lookup(e.name);
+                                yield* writeInt(TAG_VARINT_CONSTRUCTOR_START, BigInt(index));
+                        }
 
                         for(const arg of e.args) {
                             yield* writeExpr(arg, stringPool);
                         }
 
                         for(const [kw, value] of e.kwargs) {
-                            switch(kw) {
-                                case "string-table":
-                                    yield writeByte(0xE6);
-                                    break;
-
-                                case "list":
-                                    yield writeByte(0xE7);
-                                    break;
-
-                                default:
-                                {
-                                    const index = stringPool.lookup(kw);
-                                    yield* writeInt(TAG_VARINT_KEYWORD, BigInt(index));
-                                    break;
-                                }
-                            }
+                            const index = stringPool.lookup(kw);
+                            yield* writeInt(TAG_VARINT_KEYWORD, BigInt(index));
                             
                             yield* writeExpr(value, stringPool);
                         }
@@ -469,12 +493,19 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 
 
 
-interface StringPool {
+export interface StringPool {
     get(i: number): string;
     lookup(s: string): number;
 }
 
-class ArrayStringPool implements StringPool {
+
+export namespace StringPool {
+    export function fromArray(values: readonly string[]): StringPool {
+        return new ArrayStringPool(values);
+    }
+}
+
+export class ArrayStringPool implements StringPool {
     constructor(values: readonly string[]) {
         this.#values = values;
     }
@@ -499,10 +530,65 @@ class ArrayStringPool implements StringPool {
 
         return i;
     }
+
+    static fromEncoded(encoded: StringPoolEncoded): ArrayStringPool {
+        return new ArrayStringPool(encoded.values);
+    }
+
+    toEncoded(): StringPoolEncoded {
+        return {
+            values: this.#values,
+        };
+    }
 }
 
-export namespace StringPool {
-    export function fromArray(values: readonly string[]): StringPool {
+
+export interface StringPoolEncoded {
+    values: readonly string[],
+}
+
+export namespace StringPoolEncoded {
+    export const codec: ESExprCodec<StringPoolEncoded> = esexpr.recordCodec(
+        "string-table",
+        {
+            values: esexpr.varargFieldCodec(esexpr.strCodec),
+        },
+    );
+}
+
+
+export class StringPoolBuilder {
+    constructor() {
+        this.#values = [];
+    }
+
+    adapter(): StringPool {
+        const spb = this;
+        return {
+            get(_i: number): string {
+                throw new Error("Not supported");
+            },
+        
+            lookup(s: string): number {
+                const index = spb.#values.indexOf(s);
+                if(index >= 0) {
+                    return index;
+                }
+
+                const index2 = spb.#values.length;
+                spb.#values.push(s);
+                return index2;
+            },
+        };
+    }
+
+
+    #values: string[];
+
+    toStringPool(): ArrayStringPool {
+        const values = this.#values;
+        this.#values = [];
         return new ArrayStringPool(values);
     }
 }
+

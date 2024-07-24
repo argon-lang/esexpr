@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "exports": {
+    ".": "./lib/index.js",
+    "./binary_format": "./lib/binary_format.js"
+  },
   "scripts": {
     "build": "tsc --project .",
     "test": "npm run build && vitest run --root lib"
@@ -12,7 +16,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^20.12.12",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.4",
     "vitest": "^1.6.0"
   }
 }

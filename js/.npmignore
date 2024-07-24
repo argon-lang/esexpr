@@ -1,3 +1,6 @@
 src/
 tsconfig.json
 *.tgz
+
+*.test.js
+*.test.js.map
