@@ -4,7 +4,6 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use proc_macro2::Literal;
 use quote::quote;
-use regex::Regex;
 use syn::TraitBound;
 use syn::TraitBoundModifier;
 use syn::TypeParamBound;
@@ -885,33 +884,50 @@ fn has_vararg_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenS
     has_simple_attribute("vararg", attrs)
 }
 
-
+// Convert name from PascalCase to kebab-case
 fn reformat_type_name(name: &str) -> String {
-    let r = Regex::new("[a-z0-9]+").unwrap();
-    
+    let mut last_dash = false;
+    let mut last_upper = None;
     let mut res = String::new();
-    let mut last_index = 0;
 
-    for m in r.find_iter(name) {
-        if m.start() > last_index {
-            if !res.is_empty() {
-                res += "-";
+    for c in name.chars() {
+        if c.is_ascii_lowercase() {
+            if let Some(upper) = last_upper.take() {
+                if !res.is_empty() && !last_dash {
+                    res.push('-');
+                }
+                res.push(upper);
             }
-            res += &name[last_index..m.end()].to_ascii_lowercase();
+            res.push(c);
+            last_dash = false;
+        }
+        else if c.is_ascii_uppercase() {
+            if let Some(upper) = last_upper.take() {
+                res.push(upper);
+                last_dash = false;
+            }
+            else if !res.is_empty() && !last_dash {
+                res.push('-');
+                last_dash = true;
+            }
 
-            last_index = m.end();
+            last_upper = Some(c.to_ascii_lowercase());
+        }
+        else {
+            if let Some(upper) = last_upper.take() {
+                res.push(upper);
+            }
+
+            res.push(c);
+            last_dash = false;
         }
     }
 
-    if last_index < name.len() {
-        if !res.is_empty() {
-            res += "-";
-        }
-        res += &name[last_index..].to_ascii_lowercase();
+    if let Some(upper) = last_upper.take() {
+        res.push(upper);
     }
 
     res
-
 }
 
 fn reformat_field_name(name: &str) -> String {
@@ -944,6 +960,7 @@ mod test {
     fn reformat_str_test() {
         assert_eq!("test-abc", reformat_type_name("TestABC"));
         assert_eq!("test-name-with-parts", reformat_type_name("TestNameWithParts"));
+        assert_eq!("test-abc-after", reformat_type_name("TestABCAfter"));
     }
 
     macro_rules! ensure_error {
