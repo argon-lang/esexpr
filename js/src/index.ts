@@ -497,7 +497,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
     }
 
     decode(expr: ESExpr): DecodeResult<T> {
-        if(!(typeof expr === "object" && expr !== null && "type" in expr && expr.type == "constructor")) {
+        if(!(typeof expr === "object" && expr !== null && "type" in expr && expr.type == "constructor") || expr.name !== this.#constructorName) {
             return {
                 success: false,
                 message: `Expected a constructor of name ${this.#constructorName}`,
