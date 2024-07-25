@@ -394,6 +394,7 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
                         path: { type: "positional", constructor: "list", index: i, next: res.path }
                     };
                 }
+                items.push(res.value);
                 ++i;
             }
 

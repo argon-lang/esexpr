@@ -211,4 +211,12 @@ test("Many args", () => {
 });
 
 
+test("list codec", () => {
+    expectCodecMatch(
+        esexpr.listCodec(esexpr.strCodec),
+        { type: "constructor", name: "list", args: [ "a", "b", "c" ], kwargs: new Map(), },
+        [ "a", "b", "c" ],
+    )
+});
+
 
