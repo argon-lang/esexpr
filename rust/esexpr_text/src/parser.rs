@@ -241,14 +241,26 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
     ))(input)
 }
 
+fn atom(expr: ESExpr, s: &'static str) -> impl Fn(&str) -> IResult<&str, ESExpr> {
+    move |input| {
+        value(
+            expr.clone(),
+            preceded(
+                multispace0,
+                terminated(tag(s), not(alphanumeric1))
+            ),
+        )(input)
+    }
+}
+
 pub fn expr(input: &str) -> IResult<&str, ESExpr> {
     alt((
         float,
         map(integer, ESExpr::Int),
         map(string, ESExpr::Str),
-        value(ESExpr::Bool(true), preceded(multispace0, tag("#true"))),
-        value(ESExpr::Bool(false), preceded(multispace0, tag("#false"))),
-        value(ESExpr::Null, preceded(multispace0, tag("#null"))),
+        atom(ESExpr::Bool(true), "#true"),
+        atom(ESExpr::Bool(false), "#false"),
+        atom(ESExpr::Null, "#null"),
         constructor,
     ))(input)
 }
