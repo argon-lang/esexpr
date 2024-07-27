@@ -464,7 +464,7 @@ export function optionCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<{ readonl
 
 
 export type RecordFieldCodecs<T> = {
-    readonly [Key in keyof T]: ESExprFieldCodec<T[Key]>;
+    readonly [Key in keyof T]-?: ESExprFieldCodec<T[Key]>;
 };
 
 
