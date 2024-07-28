@@ -551,7 +551,7 @@ export namespace StringPoolEncoded {
     export const codec: ESExprCodec<StringPoolEncoded> = esexpr.recordCodec(
         "string-table",
         {
-            values: esexpr.varargFieldCodec(esexpr.strCodec),
+            values: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.strCodec)),
         },
     );
 }

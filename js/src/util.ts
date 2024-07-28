@@ -89,6 +89,7 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 
         return true;
     }
-
-    return a === b;
+    else {
+        return Object.is(a, b);
+    }
 }

@@ -110,7 +110,7 @@ interface KeywordStruct {
 namespace KeywordStruct {
     export const codec: ESExprCodec<KeywordStruct> = esexpr.recordCodec("keywords", {
         a: esexpr.keywordFieldCodec("a1", esexpr.boolCodec),
-        b: esexpr.optionalKeywordFieldCodec("b2", esexpr.boolCodec),
+        b: esexpr.optionalKeywordFieldCodec("b2", esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
         c: esexpr.defaultKeywordFieldCodec("c3", () => false, esexpr.boolCodec),
     });
 }
@@ -124,7 +124,7 @@ namespace KeywordEnum {
     export const codec: ESExprCodec<KeywordEnum> = esexpr.enumCodec({
         value: esexpr.caseCodec({
             a: esexpr.keywordFieldCodec("a1", esexpr.boolCodec),
-            b: esexpr.optionalKeywordFieldCodec("b2", esexpr.boolCodec),
+            b: esexpr.optionalKeywordFieldCodec("b2", esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
             c: esexpr.defaultKeywordFieldCodec("c3", () => false, esexpr.boolCodec),
         }),
     });
@@ -197,8 +197,8 @@ interface ManyArgs {
 
 namespace ManyArgs {
     export const codec: ESExprCodec<ManyArgs> = esexpr.recordCodec("many", {
-        args: esexpr.varargFieldCodec(esexpr.boolCodec),
-        kwargs: esexpr.dictFieldCodec(esexpr.boolCodec),
+        args: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.boolCodec)),
+        kwargs: esexpr.dictFieldCodec(esexpr.mapMappedValueCodec(esexpr.boolCodec)),
     });
 }
 

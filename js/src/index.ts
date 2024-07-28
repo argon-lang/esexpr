@@ -117,7 +117,7 @@ export interface FieldDecodeState {
 
 export interface ESExprFieldCodec<T> {
     readonly tags: ReadonlySet<ESExprTag>;
-    encode(value: T, args: readonly ESExpr[], kwargs: ReadonlyMap<string, ESExpr>): void;
+    encode(value: T, args: ESExpr[], kwargs: Map<string, ESExpr>): void;
     decode(state: FieldDecodeState): DecodeResult<T>;
 }
 
@@ -684,7 +684,19 @@ export function positionalFieldCodec<T>(codec: ESExprCodec<T>): ESExprFieldCodec
     return new PositionalFieldCodec<T>(codec);
 }
 
-class VarargFieldCodec<T> implements ESExprFieldCodec<readonly T[]> {
+
+export interface RepeatedValuesCodec<T> {
+    readonly tags: ReadonlySet<ESExprTag>;
+    encodeMany(value: T): readonly ESExpr[];
+    decodeMany(exprs: readonly ESExpr[]): RepeatedDecodeResult<T>;
+}
+
+export type RepeatedDecodeResult<T> =
+    | { readonly success: true; readonly value: T; }
+    | { readonly success: false; readonly message: string; readonly path: DecodeErrorPath; readonly index: number; }
+;
+
+class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
     constructor(codec: ESExprCodec<T>) {
         this.#codec = codec;
     }
@@ -695,34 +707,27 @@ class VarargFieldCodec<T> implements ESExprFieldCodec<readonly T[]> {
         return this.#codec.tags;
     }
 
-    encode(value: readonly T[], args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
-        for(const a of value) {
-            args.push(this.#codec.encode(a));
-        }
+    encodeMany(value: readonly T[]): readonly ESExpr[] {
+        return value.map(v => this.#codec.encode(v));
     }
 
-    decode(state: FieldDecodeState): DecodeResult<readonly T[]> {
+    decodeMany(exprs: readonly ESExpr[]): RepeatedDecodeResult<readonly T[]> {
         let result: T[] = [];
-        for(const e of state.args) {
+        let i = 0;
+        for(const e of exprs) {
             const item = this.#codec.decode(e);
             if(!item.success) {
                 return {
                     success: false,
                     message: item.message,
-                    path: {
-                        type: "positional",
-                        constructor: state.constructor,
-                        index: state.positionalIndex,
-                        next: item.path,
-                    },
+                    path: item.path,
+                    index: i,
                 };
             }
 
             result.push(item.value);
-            ++state.positionalIndex;
+            ++i;
         }
-
-        state.args.length = 0;
 
         return {
             success: true,
@@ -731,8 +736,52 @@ class VarargFieldCodec<T> implements ESExprFieldCodec<readonly T[]> {
     }
 }
 
+export function arrayRepeatedValuesCodec<T>(codec: ESExprCodec<T>): RepeatedValuesCodec<readonly T[]> {
+    return new ArrayRepeatedValuesCodec(codec);
+}
 
-export function varargFieldCodec<T>(codec: ESExprCodec<T>): ESExprFieldCodec<readonly T[]> {
+
+class VarargFieldCodec<T> implements ESExprFieldCodec<T> {
+    constructor(codec: RepeatedValuesCodec<T>) {
+        this.#codec = codec;
+    }
+
+    readonly #codec: RepeatedValuesCodec<T>;
+
+    get tags(): ReadonlySet<ESExprTag> {
+        return this.#codec.tags;
+    }
+
+    encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
+        const items = this.#codec.encodeMany(value);
+        for(const a of items) {
+            args.push(a);
+        }
+    }
+
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        const result = this.#codec.decodeMany(state.args);
+        state.args.length = 0;
+
+        if(result.success) {
+            return result;
+        }
+
+        return {
+            success: false,
+            message: result.message,
+            path: {
+                type: "positional",
+                constructor: state.constructor,
+                index: state.positionalIndex + result.index,
+                next: result.path,
+            },
+        };
+    }
+}
+
+
+export function varargFieldCodec<T>(codec: RepeatedValuesCodec<T>): ESExprFieldCodec<T> {
     return new VarargFieldCodec(codec);
 }
 
@@ -784,49 +833,83 @@ class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     }
 }
 
-class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T | undefined> {
-    constructor(codec: ESExprCodec<T>, name: string) {
+export function keywordFieldCodec<T>(name: string, codec: ESExprCodec<T>): ESExprFieldCodec<T> {
+    return new KeywordFieldCodec<T>(codec, name);
+}
+
+
+export interface OptionalValueCodec<T> {
+    readonly tags: ReadonlySet<ESExprTag>;
+    encodeOptional(value: T): ESExpr | undefined;
+    decodeOptional(expr: ESExpr | undefined): DecodeResult<T>;
+}
+
+class UndefinedOptionalValueCodec<T> implements OptionalValueCodec<T | undefined> {
+    constructor(codec: ESExprCodec<T>) {
+        this.#codec = codec;
+    }
+
+    readonly #codec: ESExprCodec<T>;
+
+    get tags(): ReadonlySet<ESExprTag> {
+        return this.#codec.tags;
+    }
+
+    encodeOptional(value: T | undefined): ESExpr | undefined {
+        if(value === undefined) {
+            return undefined;
+        }
+
+        return this.#codec.encode(value);
+    }
+
+    decodeOptional(expr: ESExpr | undefined): DecodeResult<T | undefined> {
+        if(expr === undefined) {
+            return { success: true, value: undefined };
+        }
+
+        return this.#codec.decode(expr);
+    }
+}
+
+export function undefinedOptionalCodec<T>(codec: ESExprCodec<T>): OptionalValueCodec<T | undefined> {
+    return new UndefinedOptionalValueCodec<T>(codec);
+}
+
+
+class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
+    constructor(codec: OptionalValueCodec<T>, name: string) {
         this.#codec = codec;
         this.#name = name;
     }
 
-    readonly #codec: ESExprCodec<T>;
+    readonly #codec: OptionalValueCodec<T>;
     readonly #name: string;
 
     get tags(): ReadonlySet<ESExprTag> {
         return this.#codec.tags;
     }
 
-    encode(value: T | undefined, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
-        if(value !== undefined) {
-            kwargs.set(this.#name, this.#codec.encode(value));
+    encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
+        const expr = this.#codec.encodeOptional(value);
+        if(expr !== undefined) {
+            kwargs.set(this.#name, expr);
         }
     }
 
-    decode(state: FieldDecodeState): DecodeResult<T | undefined> {
+    decode(state: FieldDecodeState): DecodeResult<T> {
         const expr = state.kwargs.get(this.#name);
-        if(expr === undefined) {
-            return { success: true, value: undefined };
+        if(expr !== undefined) {
+            state.kwargs.delete(this.#name);
+            
         }
 
-        state.kwargs.delete(this.#name);
-
-        const result = this.#codec.decode(expr);
-        if(!result.success) {
-            return {
-                success: false,
-                message: result.message,
-                path: {
-                    type: "keyword",
-                    constructor: state.constructor,
-                    keyword: this.#name,
-                    next: result.path,
-                },
-            };
-        }
-        
-        return result;
+        return this.#codec.decodeOptional(expr);
     }
+}
+
+export function optionalKeywordFieldCodec<T>(name: string, codec: OptionalValueCodec<T>): ESExprFieldCodec<T> {
+    return new OptionalKeywordFieldCodec(codec, name);
 }
 
 
@@ -879,7 +962,26 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     }
 }
 
-class DictFieldCodec<T> implements ESExprFieldCodec<ReadonlyMap<string, T>> {
+export function defaultKeywordFieldCodec<T>(name: string, defaultValue: () => T, codec: ESExprCodec<T>): ESExprFieldCodec<T> {
+    return new DefaultKeywordFieldCodec(codec, name, defaultValue);
+}
+
+
+
+export interface MappedValueCodec<T> {
+    readonly tags: ReadonlySet<ESExprTag>;
+    encodeMapped(value: T): ReadonlyMap<string, ESExpr>;
+    decodeMapped(expr: ReadonlyMap<string, ESExpr>): MappedValueDecodeResult<T>;
+}
+
+export type MappedValueDecodeResult<T> =
+    | { readonly success: true; readonly value: T; }
+    | { readonly success: false; readonly message: string; readonly path: DecodeErrorPath; readonly key: string; }
+;
+
+
+
+class MapMappedValueCodec<T> implements MappedValueCodec<ReadonlyMap<string, T>> {
     constructor(codec: ESExprCodec<T>) {
         this.#codec = codec;
     }
@@ -890,54 +992,81 @@ class DictFieldCodec<T> implements ESExprFieldCodec<ReadonlyMap<string, T>> {
         return this.#codec.tags;
     }
 
-    encode(value: ReadonlyMap<string, T>, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
-        for(const [kw, item] of value) {
-            kwargs.set(kw, this.#codec.encode(item));
+    encodeMapped(value: ReadonlyMap<string, T>): ReadonlyMap<string, ESExpr> {
+        const m = new Map<string, ESExpr>();
+        for(const [k, v] of value) {
+            m.set(k, this.#codec.encode(v));
         }
+        return m;
     }
 
-    decode(state: FieldDecodeState): DecodeResult<ReadonlyMap<string, T>> {
-        let result = new Map<string, T>();
-        for(const [kw, item] of state.kwargs) {
+    decodeMapped(expr: ReadonlyMap<string, ESExpr>): MappedValueDecodeResult<ReadonlyMap<string, T>> {
+        const m = new Map<string, T>();
+
+        for(const [kw, item] of expr) {
             const decItem = this.#codec.decode(item);
             if(!decItem.success) {
                 return {
                     success: false,
                     message: decItem.message,
-                    path: {
-                        type: "keyword",
-                        constructor: state.constructor,
-                        keyword: kw,
-                        next: decItem.path,
-                    },
+                    path: decItem.path,
+                    key: kw,
                 };
             }
 
-            result.set(kw, decItem.value);
+            m.set(kw, decItem.value);
         }
-        
-        state.kwargs.clear();
 
         return {
             success: true,
-            value: result,
+            value: m,
         };
     }
 }
 
-export function keywordFieldCodec<T>(name: string, codec: ESExprCodec<T>): ESExprFieldCodec<T> {
-    return new KeywordFieldCodec<T>(codec, name);
+export function mapMappedValueCodec<T>(codec: ESExprCodec<T>): MappedValueCodec<ReadonlyMap<string, T>> {
+    return new MapMappedValueCodec<T>(codec);
 }
 
-export function optionalKeywordFieldCodec<T>(name: string, codec: ESExprCodec<T>): ESExprFieldCodec<T | undefined> {
-    return new OptionalKeywordFieldCodec(codec, name);
+class DictFieldCodec<T> implements ESExprFieldCodec<T> {
+    constructor(codec: MappedValueCodec<T>) {
+        this.#codec = codec;
+    }
+
+    readonly #codec: MappedValueCodec<T>;
+
+    get tags(): ReadonlySet<ESExprTag> {
+        return this.#codec.tags;
+    }
+
+    encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
+        const encoded = this.#codec.encodeMapped(value);
+        for(const [k, v] of encoded) {
+            kwargs.set(k, v);
+        }
+    }
+
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        const result = this.#codec.decodeMapped(state.kwargs);
+        state.kwargs.clear();
+        if(result.success) {
+            return result;
+        }
+
+        return {
+            success: false,
+            message: result.message,
+            path: {
+                type: "keyword",
+                constructor: state.constructor,
+                keyword: result.key,
+                next: result.path,
+            },
+        }
+    }
 }
 
-export function defaultKeywordFieldCodec<T>(name: string, defaultValue: () => T, codec: ESExprCodec<T>): ESExprFieldCodec<T> {
-    return new DefaultKeywordFieldCodec(codec, name, defaultValue);
-}
-
-export function dictFieldCodec<T>(codec: ESExprCodec<T>): ESExprFieldCodec<ReadonlyMap<string, T>> {
+export function dictFieldCodec<T>(codec: MappedValueCodec<T>): ESExprFieldCodec<T> {
     return new DictFieldCodec(codec);
 }
 
