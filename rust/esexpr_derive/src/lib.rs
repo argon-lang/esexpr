@@ -392,6 +392,8 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
     let mut has_dict_field = false;
     let mut has_vararg_field = false;
     let mut kwarg_names = HashSet::new();
+    let mut has_optional_positional = false;
+
 
     fields.into_iter().enumerate().map(|(i, field)| -> TokenRes {
         let field_expr = make_field_expr(field.ident.as_ref(), i);
@@ -442,6 +444,10 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     Err(quote! { compile_error!("Only a single vararg is allowed"); })?;
                 }
                 has_vararg_field = true;
+
+                if has_optional_positional {
+                    Err(quote! { compile_error!("Variable arguments cannot follow optional positional arguments."); })?;
+                }
         
                 quote! { ::esexpr::ESExprVarArgCodec::encode_vararg_element(#field_expr, &mut args); }
             }
@@ -449,8 +455,29 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 if has_vararg_field {
                     Err(quote! { compile_error!("Positional arguments must precede varargs"); })?;
                 }
-        
-                quote! { args.push(::esexpr::ESExprCodec::encode_esexpr(#field_expr)); }
+
+                if has_optional_attribute(&field.attrs)? {
+                    has_optional_positional = true;
+                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { args.push(value); } }
+                }
+                else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+                    has_optional_positional = true;
+                    quote! {
+                        {
+                            let value = #field_expr;
+                            if value != #default_value {
+                                args.push(<#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
+                            }
+                        }
+                    }
+                }
+                else {
+                    if has_optional_positional {
+                        Err(quote! { compile_error!("Required positional arguments cannot follow optional positional arguments."); })?;
+                    }
+
+                    quote! { args.push(::esexpr::ESExprCodec::encode_esexpr(#field_expr)); }
+                }
             }
         )
     }).collect::<Result<_, _>>()
@@ -646,17 +673,46 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
         }
         else {
             let error_mapping = make_error_mapping(constructor_name, FieldPath::Positional(*arg_index));
-            quote! {
-                if args.is_empty() {
-                    Err(::esexpr::DecodeError(
-                        ::esexpr::DecodeErrorType::MissingPositional,
-                        ::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
-                    ))?
+
+            if has_optional_attribute(&field.attrs)? {
+                quote! {
+                    <#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(
+                        if args.is_empty() {
+                            std::option::Option::None
+                        }
+                        else {
+                            std::option::Option::Some(args.remove(0))
+                        }
+                    ).map_err(#error_mapping)?
+
                 }
-                else {
-                    <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(args.remove(0)).map_err(#error_mapping)?
+                
+            }
+            else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+                quote! {
+                    if args.is_empty() {
+                        #default_value
+                    }
+                    else {
+                        <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(args.remove(0))
+                            .map_err(#error_mapping)?
+                    }
                 }
             }
+            else {
+                quote! {
+                    if args.is_empty() {
+                        Err(::esexpr::DecodeError(
+                            ::esexpr::DecodeErrorType::MissingPositional,
+                            ::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
+                        ))?
+                    }
+                    else {
+                        <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(args.remove(0)).map_err(#error_mapping)?
+                    }
+                }
+            }
+
         }
     )
 }
@@ -1116,6 +1172,20 @@ mod test {
     }
 
     #[test]
+    fn required_after_optional_positional() {
+        ensure_error!("Required positional arguments cannot follow optional positional arguments.",
+            struct MyStruct(#[optional] u32, u32);
+        );
+    }
+
+    #[test]
+    fn vararg_after_optional_positional() {
+        ensure_error!("Variable arguments cannot follow optional positional arguments.",
+            struct MyStruct(#[optional] u32, #[vararg] u32);
+        );
+    }
+
+    #[test]
     fn default_value_dict() {
         ensure_error!("Dictionary arguments cannot have default values.",
             struct MyStruct(#[default_value = 4] #[dict] HashMap<String, u32>);
@@ -1132,21 +1202,21 @@ mod test {
     #[test]
     fn default_value_vararg() {
         ensure_error!("Variable arguments cannot have default values.",
-        struct MyStruct(#[default_value = 4] #[vararg] HashMap<String, u32>);
+        struct MyStruct(#[default_value = 4] #[vararg] Vec<u32>);
         );
     }
 
     #[test]
     fn optional_value_vararg() {
         ensure_error!("Variable arguments cannot be optional.",
-        struct MyStruct(#[optional] #[vararg] HashMap<String, u32>);
+        struct MyStruct(#[optional] #[vararg] Vec<u32>);
         );
     }
 
     #[test]
     fn default_value_optional() {
         ensure_error!("Optional arguments cannot have default values.",
-            struct MyStruct(#[keyword = "a"] #[optional] #[default_value = 4] HashMap<String, u32>);
+            struct MyStruct(#[keyword = "a"] #[optional] #[default_value = 4] u32);
         );
     }
 
