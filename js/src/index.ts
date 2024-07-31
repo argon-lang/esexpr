@@ -122,7 +122,7 @@ export interface ESExprFieldCodec<T> {
 }
 
 export interface ESExprCaseCodec<Name extends string, T extends { readonly $type: Name }> {
-    tags(caseName: string): ReadonlySet<ESExprTag>;
+    readonly tags: ReadonlySet<ESExprTag>;
     encode(value: T): ESExpr;
     decode(caseName: Name, expr: ESExpr): DecodeResult<T>;
 }
@@ -552,7 +552,7 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
     get tags(): ReadonlySet<ESExprTag> {
         const tags = new Set<ESExprTag>();
         for(const c of Object.keys(this.#cases) as T["$type"][]) {
-            for(const tag of this.#cases[c].tags(c)) {
+            for(const tag of this.#cases[c].tags) {
                 tags.add(tag);
             }
         }
@@ -568,7 +568,7 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
         const tag = ESExpr.tagOf(expr);
         for(const c of Object.keys(this.#cases) as T["$type"][]) {
             const cc = this.#cases[c];
-            if(cc.tags(c).has(tag)) {
+            if(cc.tags.has(tag)) {
                 return cc.decode(c, expr) as DecodeResult<T>;
             }
         }
@@ -1075,20 +1075,22 @@ function recombine<A, B>(value: A & Omit<B, keyof A>): B {
 }
 
 class CaseCodec<Name extends string, T extends { readonly $type: Name }> implements ESExprCaseCodec<Name, T> {
-    constructor(fields: RecordFieldCodecs<Omit<T, "$type">>) {
+    constructor(constructor_name: string, fields: RecordFieldCodecs<Omit<T, "$type">>) {
+        this.#constructor_name = constructor_name;
         this.#fields = fields;
     }
 
+    readonly #constructor_name: string;
     readonly #fields: RecordFieldCodecs<Omit<T, "$type">>;
 
-    tags(caseName: string): ReadonlySet<ESExprTag> {
-        return new Set([caseName]);
+    get tags(): ReadonlySet<ESExprTag> {
+        return new Set([this.#constructor_name]);
     }
     encode(value: T): ESExpr {
-        return recordCodec(value.$type, this.#fields).encode(value);
+        return recordCodec(this.#constructor_name, this.#fields).encode(value);
     }
     decode(caseName: Name, expr: ESExpr): DecodeResult<T> {
-        const res = recordCodec(caseName, this.#fields).decode(expr);
+        const res = recordCodec(this.#constructor_name, this.#fields).decode(expr);
         if(!res.success) {
             return res;
         }
@@ -1104,8 +1106,8 @@ class CaseCodec<Name extends string, T extends { readonly $type: Name }> impleme
 
 }
 
-export function caseCodec<Name extends string, T extends { readonly $type: Name }>(fields: RecordFieldCodecs<Omit<T, "$type">>): ESExprCaseCodec<Name, T> {
-    return new CaseCodec(fields)
+export function caseCodec<Name extends string, T extends { readonly $type: Name }>(constructor_name: string, fields: RecordFieldCodecs<Omit<T, "$type">>): ESExprCaseCodec<Name, T> {
+    return new CaseCodec(constructor_name, fields);
 }
 
 
@@ -1118,7 +1120,7 @@ class InlineCaseCodec<Field extends string, Name extends string, T> implements E
     readonly #field: Field;
     readonly #codec: ESExprCodec<T>;
 
-    tags(_caseName: string): ReadonlySet<ESExprTag> {
+    get tags(): ReadonlySet<ESExprTag> {
         return this.#codec.tags
     }
     

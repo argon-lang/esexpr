@@ -44,17 +44,17 @@ type BasicEnum =
 
 namespace BasicEnum {
     export const codec: ESExprCodec<BasicEnum> = esexpr.enumCodec({
-        "my-name123-test": esexpr.caseCodec({
+        "my-name123-test": esexpr.caseCodec("my-name123-test", {
             a: esexpr.positionalFieldCodec(esexpr.float64Codec),
         }),
-        "my-name456-test": esexpr.caseCodec({
+        "my-name456-test": esexpr.caseCodec("my-name456-test2", {
             b: esexpr.positionalFieldCodec(esexpr.float64Codec),
         }),
     });
 }
 
 test("Basic enum", () => {
-    expect(BasicEnum.codec.tags).toEqual(new Set(["my-name123-test", "my-name456-test"]));
+    expect(BasicEnum.codec.tags).toEqual(new Set(["my-name123-test", "my-name456-test2"]));
     expectCodecMatch(
         BasicEnum.codec,
         { type: "constructor", name: "my-name123-test", args: [ 4 ], kwargs: new Map() },
@@ -62,7 +62,7 @@ test("Basic enum", () => {
     );
     expectCodecMatch(
         BasicEnum.codec,
-        { type: "constructor", name: "my-name456-test", args: [ 4 ], kwargs: new Map() },
+        { type: "constructor", name: "my-name456-test2", args: [ 4 ], kwargs: new Map() },
         { $type: "my-name456-test", b: 4 },
     );
 });
@@ -78,7 +78,7 @@ type InlineValueTest =
 namespace InlineValueTest {
     export const codec: ESExprCodec<InlineValueTest> = esexpr.enumCodec({
         "flag": esexpr.inlineCaseCodec("value", esexpr.boolCodec),
-        "normal-case": esexpr.caseCodec({
+        "normal-case": esexpr.caseCodec("normal-case", {
             value: esexpr.positionalFieldCodec(esexpr.boolCodec),
         }),
     });
@@ -121,8 +121,8 @@ type KeywordEnum =
 ;
 
 namespace KeywordEnum {
-    export const codec: ESExprCodec<KeywordEnum> = esexpr.enumCodec({
-        value: esexpr.caseCodec({
+    export const codec: ESExprCodec<KeywordEnum> = esexpr.enumCodec<KeywordEnum>({
+        value: esexpr.caseCodec("value", {
             a: esexpr.keywordFieldCodec("a1", esexpr.boolCodec),
             b: esexpr.optionalKeywordFieldCodec("b2", esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
             c: esexpr.defaultKeywordFieldCodec("c3", () => false, esexpr.boolCodec),
