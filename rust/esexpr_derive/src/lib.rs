@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::collections::HashSet;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -8,7 +8,6 @@ use syn::TraitBound;
 use syn::TraitBoundModifier;
 use syn::TypeParamBound;
 use syn::{
-    parse::Parser,
     parse_quote,
     punctuated::Punctuated,
     Attribute,
@@ -35,9 +34,7 @@ use syn::{
     Variant,
 };
 
-use std::collections::HashMap;
-
-#[proc_macro_derive(ESExprCodec, attributes(constructor, inline_value, keyword, simple_enum, default_value, dict, vararg))]
+#[proc_macro_derive(ESExprCodec, attributes(constructor, inline_value, keyword, simple_enum, default_value, optional, dict, vararg))]
 pub fn derive_esexpr_codec(input: TokenStream) -> TokenStream {
     TokenStream::from(derive_esexpr_codec_impl(proc_macro2::TokenStream::from(input)))
 }
@@ -157,14 +154,38 @@ fn validate_fields(fields: &Fields) -> Result<(), proc_macro2::TokenStream> {
     };
 
     for field in fields {
-        if let Some(kw) = keyword_attribute(&field.attrs)? {
-            if !kw.required && has_default_value_attribute(&field.attrs)?.is_some() {
+        if keyword_attribute(&field.attrs)?.is_some() {
+            if has_dict_attribute(&field.attrs)? {
+                return Err(quote! { compile_error!("Keyword arguments cannot be dict values."); });
+            }
+
+            if has_vararg_attribute(&field.attrs)? {
+                return Err(quote! { compile_error!("Keyword arguments cannot be vararg values."); });
+            }
+
+            if has_optional_attribute(&field.attrs)? && has_default_value_attribute(&field.attrs)?.is_some() {
                 return Err(quote! { compile_error!("Optional arguments cannot have default values."); });
             }
         }
         else if has_dict_attribute(&field.attrs)? {
+            if has_vararg_attribute(&field.attrs)? {
+                return Err(quote! { compile_error!("Dict arguments cannot be vararg values."); });
+            }
+            if has_optional_attribute(&field.attrs)? {
+                return Err(quote! { compile_error!("Dictionary arguments cannot be optional."); });
+            }
+
             if has_default_value_attribute(&field.attrs)?.is_some() {
-                return Err(quote! { compile_error!("Dictonary arguments cannot have default values."); });
+                return Err(quote! { compile_error!("Dictionary arguments cannot have default values."); });
+            }
+        }
+        else if has_vararg_attribute(&field.attrs)? {
+            if has_optional_attribute(&field.attrs)? {
+                return Err(quote! { compile_error!("Variable arguments cannot be optional."); });
+            }
+
+            if has_default_value_attribute(&field.attrs)?.is_some() {
+                return Err(quote! { compile_error!("Variable arguments cannot have default values."); });
             }
         }
         else {
@@ -382,7 +403,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     Err(quote! { compile_error!("Keyword arguments must preceed dict arguments"); })?;
                 }
         
-                let kw = make_kwarg_name(keyword_attr.name.as_deref(), field.ident.as_ref())?;
+                let kw = make_kwarg_name(keyword_attr.as_deref(), field.ident.as_ref())?;
                 let kw_name = get_string_expr_value(&kw)?;
                 if kwarg_names.contains(&kw_name) {
                     let message = make_str_expr(&format!("Duplicate keyword argument \"{}\"", kw_name));
@@ -391,7 +412,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 
                 kwarg_names.insert(kw_name);
 
-                if !keyword_attr.required {
+                if has_optional_attribute(&field.attrs)? {
                     quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(#kw.to_owned(), value); } }
                 }
                 else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
@@ -586,10 +607,10 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 
     Ok(
         if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
-            let kw = make_kwarg_name(keyword_attr.name.as_deref(), field.ident.as_ref())?;
+            let kw = make_kwarg_name(keyword_attr.as_deref(), field.ident.as_ref())?;
             let error_mapping = make_error_mapping(constructor_name, FieldPath::Keyword(&kw));
 
-            if !keyword_attr.required {
+            if has_optional_attribute(&field.attrs)? {
                 quote! {
                     <#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(kwargs.remove(#kw))
                         .map_err(#error_mapping)?
@@ -690,7 +711,7 @@ fn get_string_expr_value(e: &Expr) -> Result<String, proc_macro2::TokenStream> {
 enum DecodedAttribute<'a> {
     Simple,
     NameValue(&'a Expr),
-    KeywordArgs(HashMap<String, Expr>),
+    ArgList,
 }
 
 fn decode_attr<'a>(name: &str, attrs: &'a [Attribute]) -> Result<Option<DecodedAttribute<'a>>, proc_macro2::TokenStream> {
@@ -699,43 +720,8 @@ fn decode_attr<'a>(name: &str, attrs: &'a [Attribute]) -> Result<Option<DecodedA
             Meta::NameValue(MetaNameValue { path, value, .. }) if path.get_ident().is_some_and(|i| i.to_string() == name) =>
                 Ok(Some(DecodedAttribute::NameValue(value))),
 
-            Meta::List(MetaList { path, tokens, .. }) if path.get_ident().is_some_and(|i| i.to_string() == name) => {
-                let tokens = tokens.clone();
-
-                let args =
-                    syn::punctuated::Punctuated::<syn::ExprAssign, syn::Token![,]>::parse_terminated
-                    .parse2(tokens)
-                    .map_err(|_| {
-                        let msg = make_str_expr(&format!("Arguments to {} must be of the form name=value.", name));
-                        quote! { compile_error!(#msg); }
-                    })?;
-
-                let mut kwargs = HashMap::new();
-
-                for arg in args {
-                    let arg_name = match *arg.left {
-                        Expr::Path(path) =>
-                            path.path.get_ident()
-                                .map(|i| i.to_string())
-                                .ok_or_else(|| {
-                                    let msg = make_str_expr(&format!("Argument names passed to {} must be identifiers.", name));
-                                    quote! { compile_error!(#msg); }
-                                })?,
-                        _ => {
-                            let msg = make_str_expr(&format!("Arguments to {} must be of the form name=value.", name));
-                            Err(quote! { compile_error!(#msg); })?
-                        },
-                    };
-
-                    if kwargs.contains_key(&arg_name) {
-                        let msg = make_str_expr(&format!("Dupliate key for {}: {}", name, arg_name));
-                        Err(quote! { compile_error!(#msg); })?
-                    }
-
-                    kwargs.insert(arg_name, *arg.right);
-                }
-                
-                Ok(Some(DecodedAttribute::KeywordArgs(kwargs)))
+            Meta::List(MetaList { path, .. }) if path.get_ident().is_some_and(|i| i.to_string() == name) => {                
+                Ok(Some(DecodedAttribute::ArgList))
             },
             
             Meta::Path(p) if p.get_ident().is_some_and(|i| i.to_string() == name) =>
@@ -782,61 +768,27 @@ fn get_name_value_attribute<'a>(name: &str, attrs: &'a [Attribute]) -> Result<Op
     }).transpose()
 }
 
+fn get_name_optional_value_attribute<'a>(name: &str, attrs: &'a [Attribute]) -> Result<Option<Option<&'a Expr>>, proc_macro2::TokenStream> {
+    decode_attr(name, attrs)?.map(|attr| {
+        match attr {
+            DecodedAttribute::Simple => Ok(None),
+            DecodedAttribute::NameValue(value) => Ok(Some(value)),
+            _ => {
+                let msg = make_str_expr(&format!("Attribute {} must be a simple or name-value attribute", name));
+                Err(quote! { compile_error!(#msg); })?
+            }
+        }
+    }).transpose()
+}
+
 
 fn constructor_attribute(attrs: &[Attribute]) -> Result<Option<&Expr>, proc_macro2::TokenStream> {
     get_name_value_attribute("constructor", attrs)
 }
 
 
-struct KeywordAttr<'a> {
-    name: Option<Cow<'a, Expr>>,
-    required: bool,
-}
-
-fn keyword_attribute(attrs: &[Attribute]) -> Result<Option<KeywordAttr>, proc_macro2::TokenStream> {
-    decode_attr("keyword", attrs)?.map(|attr| {
-        match attr {
-            DecodedAttribute::Simple => Ok(KeywordAttr {
-                name: None,
-                required: true,
-            }),
-            DecodedAttribute::NameValue(value) => Ok(KeywordAttr {
-                name: Some(Cow::Borrowed(value)),
-                required: true,
-            }),
-            DecodedAttribute::KeywordArgs(kwargs) => {
-                let mut name = None;
-                let mut required = None;
-
-                for (arg_name, value) in kwargs {
-                    match arg_name.as_str() {
-                        "name" => {
-                            name = Some(value);
-                        },
-                        "required" => {
-                            let req = match value {
-                                Expr::Lit(ExprLit { lit: Lit::Bool(b), .. }) => b.value(),
-                                _ => Err(quote! { compile_error!("Value of \"required\" must be a boolean literal"); })?,
-                            };
-
-                            required = Some(req);
-                        },
-
-                        _ => {
-                            let msg = make_str_expr(&format!("Unknown argument \"{}\"", arg_name));
-                            Err(quote! { compile_error!(#msg); })?
-                        },
-                    }
-                }
-
-                
-                Ok(KeywordAttr {
-                    name: name.map(Cow::Owned),
-                    required: required.unwrap_or(true),
-                })
-            },
-        }
-    }).transpose()
+fn keyword_attribute(attrs: &[Attribute]) -> Result<Option<Option<&Expr>>, proc_macro2::TokenStream> {
+    get_name_optional_value_attribute("keyword", attrs)
 }
 
 
@@ -846,6 +798,10 @@ fn has_simple_enum_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::T
 
 fn has_default_value_attribute(attrs: &[Attribute]) -> Result<Option<&Expr>, proc_macro2::TokenStream> {
     get_name_value_attribute("default_value", attrs)
+}
+
+fn has_optional_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
+    has_simple_attribute("optional", attrs)
 }
 
 fn has_inline_value_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
@@ -1161,15 +1117,36 @@ mod test {
 
     #[test]
     fn default_value_dict() {
-        ensure_error!("Dictonary arguments cannot have default values.",
+        ensure_error!("Dictionary arguments cannot have default values.",
             struct MyStruct(#[default_value = 4] #[dict] HashMap<String, u32>);
+        );
+    }
+
+    #[test]
+    fn optional_value_dict() {
+        ensure_error!("Dictionary arguments cannot be optional.",
+            struct MyStruct(#[optional] #[dict] HashMap<String, u32>);
+        );
+    }
+
+    #[test]
+    fn default_value_vararg() {
+        ensure_error!("Variable arguments cannot have default values.",
+        struct MyStruct(#[default_value = 4] #[vararg] HashMap<String, u32>);
+        );
+    }
+
+    #[test]
+    fn optional_value_vararg() {
+        ensure_error!("Variable arguments cannot be optional.",
+        struct MyStruct(#[optional] #[vararg] HashMap<String, u32>);
         );
     }
 
     #[test]
     fn default_value_optional() {
         ensure_error!("Optional arguments cannot have default values.",
-            struct MyStruct(#[keyword(name = "a", required = false)] #[default_value = 4] HashMap<String, u32>);
+            struct MyStruct(#[keyword = "a"] #[optional] #[default_value = 4] HashMap<String, u32>);
         );
     }
 
@@ -1193,22 +1170,16 @@ mod test {
     #[test]
     fn keyword_arg_invalid() {
         ensure_error!("Attribute keyword may only be specified once.",
-            struct MyStruct(#[keyword = "a"] #[keyword = "b"] u32);
-        );
-        ensure_error!("Arguments to keyword must be of the form name=value.",
-            struct MyStruct(#[keyword(0 = 1)] u32);
-        );
-        ensure_error!("Arguments to keyword must be of the form name=value.",
-            struct MyStruct(#[keyword(1)] u32);
-        );
-        ensure_error!("Value of \"required\" must be a boolean literal",
-            struct MyStruct(#[keyword(name = "name", required = 2)] u32);
-        );
-        ensure_error!("Unknown argument \"bob\"",
-            struct MyStruct(#[keyword(bob = 1)] u32);
+            struct MyStruct(#[keyword] #[keyword = "b"] u32);
         );
         ensure_error!("Duplicate keyword argument \"a\"",
             struct MyStruct(#[keyword = "a"] u32, #[keyword = "a"] u32);
+        );
+        ensure_error!("Keyword arguments cannot be dict values.",
+            struct MyStruct(#[dict] #[keyword = "x"] HashMap<String, String>);
+        );
+        ensure_error!("Keyword arguments cannot be vararg values.",
+            struct MyStruct(#[vararg] #[keyword = "x"] HashMap<String, String>);
         );
     }
 
@@ -1261,13 +1232,13 @@ mod test {
     #[test]
     fn default_value() {
         ensure_error!("Attribute default_value may only be specified once.",
-            struct MyStruct(#[keyword(name = "name")] #[default_value] #[default_value] u32);
+            struct MyStruct(#[keyword = "name"] #[default_value] #[default_value] u32);
         );
         ensure_error!("Attribute default_value must be a name-value attribute",
-            struct MyStruct(#[keyword(name = "name")] #[default_value] u32);
+            struct MyStruct(#[keyword = "name"] #[default_value] u32);
         );
         ensure_error!("Attribute default_value must be a name-value attribute",
-            struct MyStruct(#[keyword(name = "name")] #[default_value()] u32);
+            struct MyStruct(#[keyword = "name"] #[default_value()] u32);
         );
     }
 
@@ -1282,6 +1253,9 @@ mod test {
         );
         ensure_error!("Attribute dict must be a simple attribute",
             struct MyStruct(#[dict()] HashMap<String, String>);
+        );
+        ensure_error!("Dict arguments cannot be vararg values.",
+            struct MyStruct(#[dict] #[vararg] HashMap<String, String>);
         );
     }
 

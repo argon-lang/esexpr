@@ -169,24 +169,20 @@ struct KeywordStruct {
     #[keyword = "b2"]
     b: bool,
 
-    #[keyword(name = "c2")]
-    c: bool,
+    #[keyword = "c2"]
+    #[optional]
+    c: Option<bool>,
 
-    #[keyword(name = "d2", required = false)]
+    #[keyword]
+    #[optional]
     d: Option<bool>,
-
-    #[keyword(required = false, name = "e2")]
-    e: Option<bool>,
-
-    #[keyword(required = false)]
-    f: Option<bool>,
 
     #[keyword]
     #[default_value = false]
-    g: bool,
+    e: bool,
 
     #[keyword]
-    h: Option<bool>,
+    f: Option<bool>,
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
@@ -199,24 +195,20 @@ enum KeywordEnum {
         #[keyword = "b2"]
         b: bool,
 
-        #[keyword(name = "c2")]
-        c: bool,
+        #[keyword = "c2"]
+        #[optional]
+        c: Option<bool>,
 
-        #[keyword(name = "d2", required = false)]
+        #[keyword]
+        #[optional]
         d: Option<bool>,
-
-        #[keyword(required = false, name = "e2")]
-        e: Option<bool>,
-
-        #[keyword(required = false)]
-        f: Option<bool>,
 
         #[keyword]
         #[default_value = false]
-        g: bool,
+        e: bool,
 
         #[keyword]
-        h: Option<bool>,
+        f: Option<bool>,
     },
 }
 
@@ -233,23 +225,19 @@ fn keyword_args() {
             ("a".to_owned(), ESExpr::Bool(true)),
             ("b2".to_owned(), ESExpr::Bool(true)),
             ("c2".to_owned(), ESExpr::Bool(true)),
-            ("d2".to_owned(), ESExpr::Bool(true)),
-            ("e2".to_owned(), ESExpr::Bool(true)),
+            ("d".to_owned(), ESExpr::Bool(true)),
+            ("e".to_owned(), ESExpr::Bool(true)),
             ("f".to_owned(), ESExpr::Bool(true)),
-            ("g".to_owned(), ESExpr::Bool(true)),
-            ("h".to_owned(), ESExpr::Bool(true)),
         ]),
     };
 
     let value = KeywordStruct {
         a: true,
         b: true,
-        c: true,
+        c: Some(true),
         d: Some(true),
-        e: Some(true),
+        e: true,
         f: Some(true),
-        g: true,
-        h: Some(true),
     };
 
     let tags = HashSet::from([ESExprTag::Constructor("keywords".to_owned())]);
@@ -261,12 +249,10 @@ fn keyword_args() {
     let value = KeywordEnum::Value {
         a: true,
         b: true,
-        c: true,
+        c: Some(true),
         d: Some(true),
-        e: Some(true),
+        e: true,
         f: Some(true),
-        g: true,
-        h: Some(true),
     };
 
     assert_eq!(tags, KeywordEnum::tags());
@@ -281,20 +267,17 @@ fn keyword_args() {
         kwargs: HashMap::from([
             ("a".to_owned(), ESExpr::Bool(true)),
             ("b2".to_owned(), ESExpr::Bool(true)),
-            ("c2".to_owned(), ESExpr::Bool(true)),
-            ("h".to_owned(), ESExpr::Null),
+            ("f".to_owned(), ESExpr::Null),
         ]),
     };
 
     let value = KeywordStruct {
         a: true,
         b: true,
-        c: true,
+        c: None,
         d: None,
-        e: None,
+        e: false,
         f: None,
-        g: false,
-        h: None,
     };
 
     assert_eq!(expr, value.clone().encode_esexpr());
@@ -305,12 +288,10 @@ fn keyword_args() {
     let value = KeywordEnum::Value {
         a: true,
         b: true,
-        c: true,
+        c: None,
         d: None,
-        e: None,
+        e: false,
         f: None,
-        g: false,
-        h: None,
     };
 
     assert_eq!(expr, value.clone().encode_esexpr());
@@ -323,7 +304,6 @@ fn keyword_args() {
         kwargs: HashMap::from([
             ("a".to_owned(), ESExpr::Bool(true)),
             ("b2".to_owned(), ESExpr::Bool(true)),
-            ("c2".to_owned(), ESExpr::Bool(true)),
         ]),
     };
 
