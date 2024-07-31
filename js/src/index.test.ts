@@ -101,6 +101,66 @@ test("Inline value", () => {
 });
 
 
+interface Positional1 {
+    readonly a: boolean,
+    readonly b: boolean,
+    readonly c?: boolean | undefined,
+}
+
+namespace Positional1 {
+    export const codec: ESExprCodec<Positional1> = esexpr.recordCodec("args", {
+        a: esexpr.positionalFieldCodec(esexpr.boolCodec),
+        b: esexpr.positionalFieldCodec(esexpr.boolCodec),
+        c: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
+    });
+}
+
+interface Positional2 {
+    readonly a: boolean,
+    readonly b?: boolean | undefined,
+    readonly c?: boolean | undefined,
+}
+
+namespace Positional2 {
+    export const codec: ESExprCodec<Positional2> = esexpr.recordCodec("args", {
+        a: esexpr.positionalFieldCodec(esexpr.boolCodec),
+        b: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
+        c: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
+    });
+}
+
+test("Optional Positional", () => {
+    expectCodecMatch(
+        Positional1.codec,
+        { type: "constructor", name: "args", args: [ true, false ], kwargs: new Map(), },
+        { a: true, b: false, c: undefined }
+    );
+    expectCodecMatch(
+        Positional1.codec,
+        { type: "constructor", name: "args", args: [ true, false, true ], kwargs: new Map(), },
+        { a: true, b: false, c: true }
+    );
+
+
+    expectCodecMatch(
+        Positional2.codec,
+        { type: "constructor", name: "args", args: [ true ], kwargs: new Map(), },
+        { a: true, b: undefined, c: undefined }
+    );
+    expectCodecMatch(
+        Positional2.codec,
+        { type: "constructor", name: "args", args: [ true, false ], kwargs: new Map(), },
+        { a: true, b: false, c: undefined }
+    );
+    expectCodecMatch(
+        Positional2.codec,
+        { type: "constructor", name: "args", args: [ true, false, true ], kwargs: new Map(), },
+        { a: true, b: false, c: true }
+    );
+});
+
+
+
 interface KeywordStruct {
     readonly a: boolean;
     readonly b?: boolean | undefined;

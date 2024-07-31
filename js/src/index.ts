@@ -684,6 +684,51 @@ export function positionalFieldCodec<T>(codec: ESExprCodec<T>): ESExprFieldCodec
     return new PositionalFieldCodec<T>(codec);
 }
 
+class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
+    constructor(codec: OptionalValueCodec<T>) {
+        this.#codec = codec;
+    }
+
+    readonly #codec: OptionalValueCodec<T>;
+
+    get tags(): ReadonlySet<ESExprTag> {
+        return this.#codec.tags;
+    }
+
+    encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
+        const encoded = this.#codec.encodeOptional(value);
+        if(encoded !== undefined) {
+            args.push(encoded);
+        }
+    }
+
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        const expr = state.args.shift();
+
+        const result = this.#codec.decodeOptional(expr);
+        if(!result.success) {
+            return {
+                success: false,
+                message: result.message,
+                path: {
+                    type: "positional",
+                    constructor: state.constructor,
+                    index: state.positionalIndex,
+                    next: result.path,
+                },
+            };
+        }
+
+        ++state.positionalIndex;
+
+        return result;
+    }
+}
+
+export function optionalPositionalFieldCodec<T>(codec: OptionalValueCodec<T>): ESExprFieldCodec<T> {
+    return new OptionalPositionalFieldCodec(codec);
+}
+
 
 export interface RepeatedValuesCodec<T> {
     readonly tags: ReadonlySet<ESExprTag>;
