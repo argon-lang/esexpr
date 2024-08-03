@@ -535,7 +535,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
                     index: state.positionalIndex,
                     next: { type: "current"  },
                 },
-            };
+            };  
         }
 
         let firstRemainingKeyword: string | undefined = undefined;
