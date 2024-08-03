@@ -35,6 +35,16 @@ test("Basic record", () => {
         BasicRecord.codec,
         { type: "constructor", name: "bad-name", args: [ 4 ], kwargs: new Map() },
     );
+
+    expectDecodeFailure(
+        BasicRecord.codec,
+        { type: "constructor", name: "basic-record", args: [ 4, 5 ], kwargs: new Map() },
+    );
+
+    expectDecodeFailure(
+        BasicRecord.codec,
+        { type: "constructor", name: "basic-record", args: [ 4 ], kwargs: new Map([ [ "a", "b" ] ]) },
+    );
 });
 
 type BasicEnum =

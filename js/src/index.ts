@@ -525,6 +525,38 @@ class RecordCodec<T> implements ESExprCodec<T> {
             obj[field] = result.value;
         }
 
+        if(state.args.length > 0) {
+            return {
+                success: false,
+                message: "Additional positional arguments",
+                path: {
+                    type: "positional",
+                    constructor: this.#constructorName,
+                    index: state.positionalIndex,
+                    next: { type: "current"  },
+                },
+            };
+        }
+
+        let firstRemainingKeyword: string | undefined = undefined;
+        for(const kw of state.kwargs.keys()) {
+            firstRemainingKeyword = kw;
+            break;
+        }
+
+        if(firstRemainingKeyword !== undefined) {
+            return {
+                success: false,
+                message: "Additional keyword arguments",
+                path: {
+                    type: "keyword",
+                    constructor: this.#constructorName,
+                    keyword: firstRemainingKeyword,
+                    next: { type: "current"  },
+                },
+            };
+        }
+
         return {
             success: true,
             value: obj,
