@@ -163,10 +163,6 @@ fn inline_value_case() {
 #[constructor = "optional-args"]
 struct PositionalArgsOptional1(bool, bool, #[optional] Option<bool>);
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
-#[constructor = "optional-args"]
-struct PositionalArgsOptional2(bool, #[optional] Option<bool>, #[optional] Option<bool>);
-
 
 #[test]
 fn positional_optional_args() {
@@ -174,11 +170,6 @@ fn positional_optional_args() {
     use std::collections::HashMap;
 
 
-    let expr1 = ESExpr::Constructor {
-        name: "optional-args".to_owned(),
-        args: vec![ ESExpr::Bool(true) ],
-        kwargs: HashMap::new(),
-    };
     let expr2 = ESExpr::Constructor {
         name: "optional-args".to_owned(),
         args: vec![ ESExpr::Bool(true), ESExpr::Bool(false) ],
@@ -197,24 +188,7 @@ fn positional_optional_args() {
 
     let value = PositionalArgsOptional1(true, false, Some(true));
     assert_eq!(expr3, value.clone().encode_esexpr());
-    assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap());
-
-
-
-    let value = PositionalArgsOptional2(true, None, None);
-    assert_eq!(expr1, value.clone().encode_esexpr());
-    assert_eq!(value, PositionalArgsOptional2::decode_esexpr(expr1).unwrap());
-
-    let value = PositionalArgsOptional2(true, Some(false), None);
-    assert_eq!(expr2, value.clone().encode_esexpr());
-    assert_eq!(value, PositionalArgsOptional2::decode_esexpr(expr2).unwrap());
-
-    let value = PositionalArgsOptional1(true, false, Some(true));
-    assert_eq!(expr3, value.clone().encode_esexpr());
-    assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr3).unwrap());
-
-
-    
+    assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap());    
 }
 
 

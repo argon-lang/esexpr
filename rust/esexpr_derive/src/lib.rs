@@ -457,6 +457,10 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 }
 
                 if has_optional_attribute(&field.attrs)? {
+                    if has_optional_positional {
+                        Err(quote! { compile_error!("Only a single optional positional argument is allowed."); })?;
+                    }
+
                     has_optional_positional = true;
                     quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { args.push(value); } }
                 }
@@ -1187,6 +1191,13 @@ mod test {
     }
 
     #[test]
+    fn multiple_optional_positional() {
+        ensure_error!("Only a single optional positional argument is allowed.",
+            struct MyStruct(#[optional] u32, #[optional] u32);
+        );
+    }
+
+    #[test]
     fn vararg_after_optional_positional() {
         ensure_error!("Variable arguments cannot follow optional positional arguments.",
             struct MyStruct(#[optional] u32, #[vararg] u32);
@@ -1210,14 +1221,14 @@ mod test {
     #[test]
     fn default_value_vararg() {
         ensure_error!("Variable arguments cannot have default values.",
-        struct MyStruct(#[default_value = "4"] #[vararg] Vec<u32>);
+            struct MyStruct(#[default_value = "4"] #[vararg] Vec<u32>);
         );
     }
 
     #[test]
     fn optional_value_vararg() {
         ensure_error!("Variable arguments cannot be optional.",
-        struct MyStruct(#[optional] #[vararg] Vec<u32>);
+            struct MyStruct(#[optional] #[vararg] Vec<u32>);
         );
     }
 
