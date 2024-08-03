@@ -339,6 +339,16 @@ impl <A: ESExprCodec> ESExprOptionalFieldCodec for Option<A> {
     }
 }
 
+impl <F: ESExprOptionalFieldCodec> ESExprOptionalFieldCodec for Box<F> {
+    fn encode_optional_field(self) -> Option<ESExpr> {
+        (*self).encode_optional_field()
+    }
+
+    fn decode_optional_field(value: Option<ESExpr>) -> Result<Self, DecodeError> {
+        F::decode_optional_field(value).map(Box::new)
+    }
+}
+
 /// A field codec for variable arguments.
 pub trait ESExprVarArgCodec where Self : Sized {
     /// Encode variable arguments
@@ -365,6 +375,16 @@ impl <A: ESExprCodec> ESExprVarArgCodec for Vec<A> {
     }
 }
 
+impl <F: ESExprVarArgCodec> ESExprVarArgCodec for Box<F> {
+    fn encode_vararg_element(self, args: &mut Vec<ESExpr>) {
+        (*self).encode_vararg_element(args)
+    }
+
+    fn decode_vararg_element(args: &mut Vec<ESExpr>, constructor_name: &str, start_index: usize) -> Result<Self, DecodeError> {
+        F::decode_vararg_element(args, constructor_name, start_index).map(Box::new)
+    }
+}
+
 /// A field codec for dictionary arguments.
 pub trait ESExprDictCodec where Self : Sized {
     /// Encode dictionary arguments.
@@ -372,6 +392,16 @@ pub trait ESExprDictCodec where Self : Sized {
 
     /// Decode dictionary arguments.
     fn decode_dict_element(kwargs: &mut HashMap<String, ESExpr>, constructor_name: &str) -> Result<Self, DecodeError>;
+}
+
+impl <F: ESExprDictCodec> ESExprDictCodec for Box<F> {
+    fn encode_dict_element(self, kwargs: &mut HashMap<String, ESExpr>) {
+        (*self).encode_dict_element(kwargs)
+    }
+
+    fn decode_dict_element(kwargs: &mut HashMap<String, ESExpr>, constructor_name: &str) -> Result<Self, DecodeError> {
+        F::decode_dict_element(kwargs, constructor_name).map(Box::new)
+    }
 }
 
 impl <A: ESExprCodec> ESExprDictCodec for HashMap<String, A> {
