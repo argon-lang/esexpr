@@ -238,7 +238,7 @@ struct KeywordStruct {
     d: Option<bool>,
 
     #[keyword]
-    #[default_value = false]
+    #[default_value = "false"]
     e: bool,
 
     #[keyword]
@@ -264,7 +264,7 @@ enum KeywordEnum {
         d: Option<bool>,
 
         #[keyword]
-        #[default_value = false]
+        #[default_value = "false"]
         e: bool,
 
         #[keyword]

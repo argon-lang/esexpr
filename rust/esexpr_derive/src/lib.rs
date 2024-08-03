@@ -757,7 +757,7 @@ fn make_kwarg_name(attr_name: Option<&Expr>, field_name: Option<&Ident>) -> Resu
 fn get_string_expr_value(e: &Expr) -> Result<String, proc_macro2::TokenStream> {
     match e {
         Expr::Lit(ExprLit { lit: Lit::Str(lit_str), .. }) => Ok(lit_str.value()),
-        _ => Err(quote! { compile_error!("Expected a string literal") }),
+        _ => Err(quote! { compile_error!("Expected a string literal"); }),
     }
 }
 
@@ -852,8 +852,14 @@ fn has_simple_enum_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::T
     has_simple_attribute("simple_enum", attrs)
 }
 
-fn has_default_value_attribute(attrs: &[Attribute]) -> Result<Option<&Expr>, proc_macro2::TokenStream> {
-    get_name_value_attribute("default_value", attrs)
+fn has_default_value_attribute(attrs: &[Attribute]) -> Result<Option<Expr>, proc_macro2::TokenStream> {
+    let Some(expr_str_expr) = get_name_value_attribute("default_value", attrs)? else { return Ok(None); };
+
+    let expr_str = get_string_expr_value(expr_str_expr)?;
+
+    syn::parse_str::<Expr>(&expr_str)
+        .map(Some)
+        .map_err(|_| quote! { compile_error!("Default value must be a string containing a valid expression of the field type") })
 }
 
 fn has_optional_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
@@ -987,6 +993,8 @@ mod test {
         let mut checker = CompileErrorChecker {
             compile_error_messages: Vec::new(),
         };
+
+        eprintln!("{}", tokens);
 
         checker.visit_item(&syn::parse2(tokens).unwrap());
 
@@ -1167,7 +1175,7 @@ mod test {
     #[test]
     fn default_value_positional() {
         ensure_error!("Positional arguments cannot have default values.",
-            struct MyStruct(#[default_value = 4] u32);
+            struct MyStruct(#[default_value = "4"] u32);
         );
     }
 
@@ -1188,7 +1196,7 @@ mod test {
     #[test]
     fn default_value_dict() {
         ensure_error!("Dictionary arguments cannot have default values.",
-            struct MyStruct(#[default_value = 4] #[dict] HashMap<String, u32>);
+            struct MyStruct(#[default_value = "4"] #[dict] HashMap<String, u32>);
         );
     }
 
@@ -1202,7 +1210,7 @@ mod test {
     #[test]
     fn default_value_vararg() {
         ensure_error!("Variable arguments cannot have default values.",
-        struct MyStruct(#[default_value = 4] #[vararg] Vec<u32>);
+        struct MyStruct(#[default_value = "4"] #[vararg] Vec<u32>);
         );
     }
 
@@ -1216,7 +1224,7 @@ mod test {
     #[test]
     fn default_value_optional() {
         ensure_error!("Optional arguments cannot have default values.",
-            struct MyStruct(#[keyword = "a"] #[optional] #[default_value = 4] u32);
+            struct MyStruct(#[keyword = "a"] #[optional] #[default_value = "4"] u32);
         );
     }
 
@@ -1302,7 +1310,7 @@ mod test {
     #[test]
     fn default_value() {
         ensure_error!("Attribute default_value may only be specified once.",
-            struct MyStruct(#[keyword = "name"] #[default_value] #[default_value] u32);
+            struct MyStruct(#[keyword = "name"] #[default_value = "1"] #[default_value = "2"] u32);
         );
         ensure_error!("Attribute default_value must be a name-value attribute",
             struct MyStruct(#[keyword = "name"] #[default_value] u32);
