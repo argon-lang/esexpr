@@ -6,14 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicates that the value is encoded as a keyword argument.
+ * Indicates that an argument is optional.
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.RECORD_COMPONENT)
-public @interface Keyword {
-	/**
-	 * Gets the name of the keyword argument.
-	 * @return The name.
-	 */
-	String value() default "";
+public @interface OptionalValue {
 }

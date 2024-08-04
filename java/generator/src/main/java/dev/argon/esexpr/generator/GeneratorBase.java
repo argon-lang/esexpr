@@ -443,12 +443,19 @@ abstract class GeneratorBase {
 		return getAnnotation(rce.getAnnotationMirrors(), "dev.argon.esexpr.Keyword");
 	}
 
-	private boolean isKeywordRequired(AnnotationMirror ann) {
-		return getAnnotationArgument(ann, "required").map(arg -> (Boolean)arg.getValue()).orElse(true);
+	private boolean isOptional(RecordComponentElement field) {
+		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.OptionalValue").isPresent();
+	}
+
+	private Optional<String> getDefaultValue(RecordComponentElement field) {
+		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.DefaultValue")
+			.flatMap(ann -> getAnnotationArgument(ann, "value"))
+			.flatMap(value -> value.getValue() instanceof String s ? Optional.of(s) : Optional.empty());
+
 	}
 
 	private String getKeywordName(RecordComponentElement rce, AnnotationMirror ann) {
-		return getAnnotationArgument(ann, "name")
+		return getAnnotationArgument(ann, "value")
 			.map(arg -> (String)arg.getValue())
 			.filter(s -> !s.isEmpty())
 			.orElseGet(() -> nameToKebabCase(rce.getSimpleName().toString()));
@@ -479,7 +486,7 @@ abstract class GeneratorBase {
 					throw new AbortException("Keyword arguments must precede dict arguments", field);
 				}
 
-				if(!isKeywordRequired(kwAnn)) {
+				if(isOptional(field)) {
 					var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(0);
 
 					println("{");
@@ -508,7 +515,7 @@ abstract class GeneratorBase {
 					println("}");
 				}
 				else {
-					var defaultValueMethod = getAnnotationArgument(kwAnn, "defaultValueMethod").map(arg -> (String)arg.getValue()).orElse(null);
+					var defaultValueMethod = getDefaultValue(field).orElse(null);
 					if(defaultValueMethod != null) {
 						boolean isPrimitiveField = field.asType().getKind().isPrimitive();
 
@@ -643,7 +650,7 @@ abstract class GeneratorBase {
 				printStringLiteral(keywordName);
 				println(");");
 
-				if(!isKeywordRequired(kwAnn)) {
+				if(isOptional(field)) {
 					var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(0);
 
 					print(field.asType().toString());
@@ -662,7 +669,7 @@ abstract class GeneratorBase {
 					println(")));");
 				}
 				else {
-					var defaultValueMethod = getAnnotationArgument(kwAnn, "defaultValueMethod").map(arg -> (String)arg.getValue()).orElse(null);
+					var defaultValueMethod = getDefaultValue(field).orElse(null);
 					if(defaultValueMethod != null) {
 						print("var field_");
 						print(field.getSimpleName());

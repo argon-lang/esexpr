@@ -171,6 +171,11 @@ public class ESExprBinaryWriter {
 	}
 
 
+	/**
+	 * Creates a string table with the required values for an expression.
+	 * @param expr The expression to scan.
+	 * @return The string table for expr.
+	 */
 	public static StringTable buildSymbolTable(ESExpr expr) {
 		Set<String> st = new HashSet<>();
 		buildSymbolTableImpl(st, expr);

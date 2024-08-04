@@ -8,16 +8,19 @@ public record KeywordArguments(
 	@Keyword
 	boolean a,
 
-	@Keyword(name = "b2")
+	@Keyword("b2")
 	boolean b,
 
-	@Keyword(name = "c2", required = false)
+	@Keyword("c2")
+	@OptionalValue
 	Optional<Boolean> c,
 
-	@Keyword(required = false)
+	@Keyword
+	@OptionalValue
 	Optional<Boolean> d,
 
-	@Keyword(defaultValueMethod = "trueValue")
+	@Keyword
+	@DefaultValue("trueValue")
 	boolean e,
 
 	@Keyword
