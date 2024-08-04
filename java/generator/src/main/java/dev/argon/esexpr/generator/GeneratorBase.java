@@ -3,7 +3,6 @@ package dev.argon.esexpr.generator;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -443,8 +442,10 @@ abstract class GeneratorBase {
 		return getAnnotation(rce.getAnnotationMirrors(), "dev.argon.esexpr.Keyword");
 	}
 
-	private boolean isOptional(RecordComponentElement field) {
-		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.OptionalValue").isPresent();
+	private Optional<TypeMirror> getOptional(RecordComponentElement field) {
+		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.OptionalValue")
+			.flatMap(ann -> getAnnotationArgument(ann, "value"))
+			.flatMap(value -> value.getValue() instanceof TypeMirror t ? Optional.of(t) : Optional.empty());
 	}
 
 	private Optional<String> getDefaultValue(RecordComponentElement field) {
@@ -454,15 +455,24 @@ abstract class GeneratorBase {
 
 	}
 
+	private Optional<TypeMirror> getVarArg(RecordComponentElement field) {
+		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.VarArg")
+			.flatMap(ann -> getAnnotationArgument(ann, "value"))
+			.flatMap(value -> value.getValue() instanceof TypeMirror t ? Optional.of(t) : Optional.empty());
+	}
+
+	private Optional<TypeMirror> getDict(RecordComponentElement field) {
+		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.Dict")
+			.flatMap(ann -> getAnnotationArgument(ann, "value"))
+			.flatMap(value -> value.getValue() instanceof TypeMirror t ? Optional.of(t) : Optional.empty());
+	}
+
 	private String getKeywordName(RecordComponentElement rce, AnnotationMirror ann) {
 		return getAnnotationArgument(ann, "value")
 			.map(arg -> (String)arg.getValue())
 			.filter(s -> !s.isEmpty())
 			.orElseGet(() -> nameToKebabCase(rce.getSimpleName().toString()));
 	}
-
-	private final String VARARG_ANN_NAME = "dev.argon.esexpr.VarArgs";
-	private final String DICT_ANN_NAME = "dev.argon.esexpr.Dict";
 
 	protected void writeEncodeFields(TypeElement te, String valueVarName, boolean useYield) throws IOException, AbortException {
 
@@ -486,17 +496,18 @@ abstract class GeneratorBase {
 					throw new AbortException("Keyword arguments must precede dict arguments", field);
 				}
 
-				if(isOptional(field)) {
-					var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(0);
-
+				var optionalValueCodec = getOptional(field).orElse(null);
+				if(optionalValueCodec != null) {
 					println("{");
 					indent();
 
 					print("var kwValue = ");
+					writeFieldCodec(optionalValueCodec, field);
+					print(".encodeOptional(");
 					print(valueVarName);
 					print(".");
 					print(field.getSimpleName());
-					println("().orElse(null);");
+					println("()).orElse(null);");
 
 
 					println("if(kwValue != null) {");
@@ -504,109 +515,112 @@ abstract class GeneratorBase {
 
 					print("kwargs.put(");
 					printStringLiteral(kwName);
-					print(", ");
-					printCodecExpr(elemType, field);
-					println(".encode(kwValue));");					
+					print(", kwValue);");
 
 					dedent();
 					println("}");
 
 					dedent();
 					println("}");
+					continue;
 				}
-				else {
-					var defaultValueMethod = getDefaultValue(field).orElse(null);
-					if(defaultValueMethod != null) {
-						boolean isPrimitiveField = field.asType().getKind().isPrimitive();
-
-						print("if(");
-						if(!isPrimitiveField) {
-							print("!");
-						}
-						print(valueVarName);
-						print(".");
-						print(field.getSimpleName());
-						print("()");
-
-						if(isPrimitiveField) {
-							print(" != ");
-						}
-						else {
-							print(".equals(");
-						}
 
 
-						print(elem.getQualifiedName());
-						if(te != elem) {
-							print(".");
-							print(te.getSimpleName());
-						}
-						print(".");
-						print(defaultValueMethod);
-						print("()");
+				var defaultValueMethod = getDefaultValue(field).orElse(null);
+				if(defaultValueMethod != null) {
+					boolean isPrimitiveField = field.asType().getKind().isPrimitive();
 
-						if(!isPrimitiveField) {
-							print(")");
-						}
-
-						print(") { ");
+					print("if(");
+					if(!isPrimitiveField) {
+						print("!");
 					}
-
-					print("kwargs.put(");
-					printStringLiteral(kwName);
-					print(", ");
-					printCodecExpr(field.asType(), field);
-					print(".encode(");
 					print(valueVarName);
 					print(".");
 					print(field.getSimpleName());
-					print("()));");
+					print("()");
 
-					if(defaultValueMethod != null) {
-						print(" }");
+					if(isPrimitiveField) {
+						print(" != ");
+					}
+					else {
+						print(".equals(");
 					}
 
-					println();
+
+					print(elem.getQualifiedName());
+					if(te != elem) {
+						print(".");
+						print(te.getSimpleName());
+					}
+					print(".");
+					print(defaultValueMethod);
+					print("()");
+
+					if(!isPrimitiveField) {
+						print(")");
+					}
+
+					print(") { ");
 				}
+
+				print("kwargs.put(");
+				printStringLiteral(kwName);
+				print(", ");
+				printCodecExpr(field.asType(), field);
+				print(".encode(");
+				print(valueVarName);
+				print(".");
+				print(field.getSimpleName());
+				print("()));");
+
+				if(defaultValueMethod != null) {
+					print(" }");
+				}
+
+				println();
+				continue;
 			}
-			else if(hasAnnotation(field.getAnnotationMirrors(), VARARG_ANN_NAME)) {
+
+			var varargValueCodec = getVarArg(field).orElse(null);
+			if(varargValueCodec != null) {
 				if(hasVarArgs) {
 					throw new AbortException("Only a single vararg is allowed", field);
 				}
 				hasVarArgs = true;
 
-				var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(0);
 				print("for(var arg : ");
+				writeFieldCodec(varargValueCodec, field);
+				print(".encodeVarArg(");
 				print(valueVarName);
 				print(".");
 				print(field.getSimpleName());
-				println("()) {");
+				println("())) {");
 				indent();
 
-				print("args.add(");
-				printCodecExpr(elemType, field);
-				println(".encode(arg));");
+				println("args.add(arg);");
 
 				dedent();
 				println("}");
+				continue;
 			}
-			else if(hasAnnotation(field.getAnnotationMirrors(), DICT_ANN_NAME)) {
+
+			var dictValueCodec = getDict(field).orElse(null);
+			if(dictValueCodec != null) {
 				if(hasDict) {
 					throw new AbortException("Only a single dict argument is allowed", field);
 				}
 				hasDict = true;
 
-				var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(1);
 				print("for(var pair : ");
+				writeFieldCodec(dictValueCodec, field);
+				print(".encodeDict(");
 				print(valueVarName);
 				print(".");
 				print(field.getSimpleName());
-				println("().entrySet()) {");
+				println("()).entrySet()) {");
 				indent();
 
-				print("kwargs.put(pair.getKey(), ");
-				printCodecExpr(elemType, field);
-				println(".encode(pair.getValue()));");
+				println("kwargs.put(pair.getKey(), pair.getValue());");
 
 				dedent();
 				println("}");
@@ -624,7 +638,6 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				println("()));");
 			}
-
 		}
 		
 		if(useYield) {
@@ -650,132 +663,102 @@ abstract class GeneratorBase {
 				printStringLiteral(keywordName);
 				println(");");
 
-				if(isOptional(field)) {
-					var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(0);
-
+				var optionalValueCodec = getOptional(field).orElse(null);
+				if(optionalValueCodec != null) {
 					print(field.asType().toString());
 					print(" field_");
 					print(field.getSimpleName());
-					print(" = expr_");
+					print(" = ");
+					writeFieldCodec(optionalValueCodec, field);
+					print(".decodeOptional(expr_");
 					print(field.getSimpleName());
-					print(" == null ? java.util.Optional.empty() : java.util.Optional.of(");
-					printCodecExpr(elemType, field);
+					print(" == null ? java.util.Optional.empty() : java.util.Optional.of(expr_");
+					print(field.getSimpleName());
+					print("), path.append(");
+					printStringLiteral(getConstructorName(te));
+					print(", ");
+					printStringLiteral(keywordName);
+					println("));");
+					continue;
+				}
+
+				var defaultValueMethod = getDefaultValue(field).orElse(null);
+				if(defaultValueMethod != null) {
+					print("var field_");
+					print(field.getSimpleName());
+					print(" = ");
+					print("expr_");
+					print(field.getSimpleName());
+					print(" == null ? ");
+
+					print(elem.getQualifiedName());
+					if(te != elem) {
+						print(".");
+						print(te.getSimpleName());
+					}
+					print(".");
+					print(defaultValueMethod);
+					print("()");
+
+
+					print(" : ");
+					printCodecExpr(field.asType(), field);
+					print(".decode(expr_");
+					print(field.getSimpleName());print(", path.append(");
+					printStringLiteral(getConstructorName(te));
+					print(", ");
+					printStringLiteral(keywordName);
+					println("));");
+				}
+				else {
+					print("if(expr_");
+					print(field.getSimpleName());
+					print(" == null) { throw new dev.argon.esexpr.DecodeException(\"Missing required keyword argument\", path.withConstructor(");
+					printStringLiteral(getConstructorName(te));
+					println(")); }");
+					print("var field_");
+					print(field.getSimpleName());
+					print(" = ");
+					printCodecExpr(field.asType(), field);
 					print(".decode(expr_");
 					print(field.getSimpleName());
 					print(", path.append(");
 					printStringLiteral(getConstructorName(te));
 					print(", ");
 					printStringLiteral(keywordName);
-					println(")));");
+					println("));");
 				}
-				else {
-					var defaultValueMethod = getDefaultValue(field).orElse(null);
-					if(defaultValueMethod != null) {
-						print("var field_");
-						print(field.getSimpleName());
-						print(" = ");
-						print("expr_");
-						print(field.getSimpleName());
-						print(" == null ? ");
 
-						print(elem.getQualifiedName());
-						if(te != elem) {
-							print(".");
-							print(te.getSimpleName());
-						}
-						print(".");
-						print(defaultValueMethod);
-						print("()");
-
-
-						print(" : ");
-						printCodecExpr(field.asType(), field);
-						print(".decode(expr_");
-						print(field.getSimpleName());print(", path.append(");
-						printStringLiteral(getConstructorName(te));
-						print(", ");
-						printStringLiteral(keywordName);
-						println("));");
-					}
-					else {
-						print("if(expr_");
-						print(field.getSimpleName());
-						print(" == null) { throw new dev.argon.esexpr.DecodeException(\"Missing required keyword argument\", path.withConstructor(");
-						printStringLiteral(getConstructorName(te));
-						println(")); }");
-						print("var field_");
-						print(field.getSimpleName());
-						print(" = ");
-						printCodecExpr(field.asType(), field);
-						print(".decode(expr_");
-						print(field.getSimpleName());
-						print(", path.append(");
-						printStringLiteral(getConstructorName(te));
-						print(", ");
-						printStringLiteral(keywordName);
-						println("));");
-					}
-				}
+				continue;
 			}
-			else if(hasAnnotation(field.getAnnotationMirrors(), VARARG_ANN_NAME)) {
-				var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(0);
 
+			var varargValueCodec = getVarArg(field).orElse(null);
+			if(varargValueCodec != null) {
 				print("var field_");
 				print(field.getSimpleName());
-				print(" = new java.util.ArrayList<");
-				print(elemType.toString());
-				print(">();");
-
-				println("{");
-				indent();
-				println("int i = 0;");
-				println("for(var arg : args) {");
-				indent();
-
-				print("field_");
-				print(field.getSimpleName());
-				print(".add(");
-				printCodecExpr(elemType, field);
-				println(".decode(arg, path.append(");
+				print(" = ");
+				writeFieldCodec(varargValueCodec, field);
+				print(".decodeVarArg(args, i -> path.append(");
 				printStringLiteral(getConstructorName(te));
 				print(", ");
 				print(Integer.toString(positionalIndex));
-				println(" + i)));");
-
-				println("++i;");
-
-				dedent();
-				println("}");
-
-				dedent();
-				println("}");
+				println(" + i));");
 
 				println("args.clear();");
 
 				++positionalIndex;
+				continue;
 			}
-			else if(hasAnnotation(field.getAnnotationMirrors(), DICT_ANN_NAME)) {
-				var elemType = ((DeclaredType)field.asType()).getTypeArguments().get(1);
 
+			var dictValueCodec = getDict(field).orElse(null);
+			if(dictValueCodec != null) {
 				print("var field_");
 				print(field.getSimpleName());
-				print(" = new java.util.HashMap<java.lang.String, ");
-				print(elemType.toString());
-				print(">();");
-
-				println("for(var entry : kwargs.entrySet()) {");
-				indent();
-
-				print("field_");
-				print(field.getSimpleName());
-				print(".put(entry.getKey(), ");
-				printCodecExpr(elemType, field);
-				println(".decode(entry.getValue(), path.append(");
+				print(" = ");
+				writeFieldCodec(dictValueCodec, field);
+				print(".decodeDict(kwargs, kw -> path.append(");
 				printStringLiteral(getConstructorName(te));
-				print(", entry.getKey())));");
-
-				dedent();
-				println("}");
+				println(", kw));");
 
 				println("kwargs.clear();");
 			}
@@ -829,6 +812,39 @@ abstract class GeneratorBase {
 		}
 
 		println(");");
+	}
+
+	private void writeFieldCodec(TypeMirror codecType, RecordComponentElement field) throws IOException, AbortException {
+		DeclaredType fieldType = (DeclaredType)field.asType();
+
+		print("new ");
+		print(codecType.toString());
+		if(!fieldType.getTypeArguments().isEmpty()) {
+			print("<");
+			int i = 0;
+			for(var arg : fieldType.getTypeArguments()) {
+				if(i > 0) {
+					print(", ");
+				}
+				++i;
+
+				print(arg.toString());
+			}
+			print(">");
+		}
+		{
+			print("(");
+			int i = 0;
+			for(var arg : fieldType.getTypeArguments()) {
+				if(i > 0) {
+					print(", ");
+				}
+				++i;
+
+				printCodecExpr(arg, field);
+			}
+			print(")");
+		}
 	}
 
 

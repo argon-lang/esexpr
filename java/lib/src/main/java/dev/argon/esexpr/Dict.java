@@ -11,5 +11,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.RECORD_COMPONENT)
 public @interface Dict {
-	
+	/**
+	 * The DictCodec to use for this field.
+	 * @return The DictCodec.
+	 */
+	Class<?> value();
 }

@@ -12,11 +12,11 @@ public record KeywordArguments(
 	boolean b,
 
 	@Keyword("c2")
-	@OptionalValue
+	@OptionalValue(OptionalValueCodec.ForOptional.class)
 	Optional<Boolean> c,
 
 	@Keyword
-	@OptionalValue
+	@OptionalValue(OptionalValueCodec.ForOptional.class)
 	Optional<Boolean> d,
 
 	@Keyword

@@ -1,5 +1,6 @@
 package dev.argon.esexpr.generator.gen.tests;
 
+import dev.argon.esexpr.KeywordMapping;
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.generator.gen.RepeatedArguments;
 import dev.argon.esexpr.generator.gen.RepeatedArguments_Codec;
@@ -25,11 +26,11 @@ public class RepeatedArgumentsTest extends TestBase {
 			),
 			new RepeatedArguments(
 				List.of("A", "B", "Z"),
-				Map.of(
+				new KeywordMapping<>(Map.of(
 					"A", "1",
 					"B", "2",
 					"Z", "3"
-				)
+				))
 			)
 		);
 

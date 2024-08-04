@@ -103,8 +103,8 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@Dict
-					Map<String, String> a,
+					@Dict(DictCodec.ForKeywordMapping.class)
+					KeywordMapping<String> a,
 					
 					@Keyword
 					String b
@@ -120,11 +120,11 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@Dict
-					Map<String, String> a,
+					@Dict(DictCodec.ForKeywordMapping.class)
+					KeywordMapping<String> a,
 					
-					@Dict
-					Map<String, String> b
+					@Dict(DictCodec.ForKeywordMapping.class)
+					KeywordMapping<String> b
 				) {}"""
 		);
 	}
@@ -137,10 +137,10 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@VarArgs
+					@VarArg(VarArgCodec.ForList.class)
 					List<String> a,
 					
-					@VarArgs
+					@VarArg(VarArgCodec.ForList.class)
 					List<String> b
 				) {}"""
 		);
@@ -154,7 +154,7 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@VarArgs
+					@VarArg(VarArgCodec.ForList.class)
 					List<String> a,
 					
 					String b

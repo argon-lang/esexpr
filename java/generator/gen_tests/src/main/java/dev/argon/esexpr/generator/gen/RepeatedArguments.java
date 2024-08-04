@@ -1,16 +1,16 @@
 package dev.argon.esexpr.generator.gen;
 
 import java.util.List;
-import java.util.Map;
+
 import dev.argon.esexpr.*;
 
 @ESExprCodecGen
 public record RepeatedArguments(
-	@VarArgs
+	@VarArg(VarArgCodec.ForList.class)
 	List<String> args,
 
-	@Dict
-	Map<String, String> kwargs
+	@Dict(DictCodec.ForKeywordMapping.class)
+	KeywordMapping<String> kwargs
 ) {
 }
 

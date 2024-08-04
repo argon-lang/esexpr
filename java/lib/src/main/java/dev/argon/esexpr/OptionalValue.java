@@ -11,4 +11,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.RECORD_COMPONENT)
 public @interface OptionalValue {
+	/**
+	 * The OptionalValueCodec to use for this field.
+	 * @return The OptionalValueCodec.
+	 */
+	Class<?> value();
 }

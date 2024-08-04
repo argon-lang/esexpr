@@ -10,6 +10,10 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.RECORD_COMPONENT)
-public @interface VarArgs {
-	
+public @interface VarArg {
+	/**
+	 * The VarArgCodec to use for this field.
+	 * @return The VarArgCodec.
+	 */
+	Class<?> value();
 }
