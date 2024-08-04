@@ -14,10 +14,10 @@ import java.math.BigInteger;
 	111XXXXX Fixed
 
 
-	11100000 Null
-	11100001 Constructor End
-	11100010 True
-	11100011 False
+	11100000 Constructor End
+	11100001 True
+	11100010 False
+	11100011 Null
 	11100100 Float32
 	11100101 Float64
 	11100110 constructor start "string-table"
@@ -47,4 +47,7 @@ sealed interface BinToken {
 		CONSTRUCTOR_START_STRING_TABLE,
 		CONSTRUCTOR_START_LIST,
 	}
+
+	static final String StringTableName = "string-table";
+	static final String ListName = "list";
 }

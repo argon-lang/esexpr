@@ -13,10 +13,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 class BinaryEncodingTest {
@@ -30,6 +33,7 @@ class BinaryEncodingTest {
 		var esxbValue = parseEsxb(Files.readAllBytes(esxbPath));
 
 		assertEquals(jsonValue, esxbValue);
+		assertEquals(esxbValue, parseEsxb(encodeEsxb(esxbValue)));
 	}
 
 	private ESExpr parseJson(String value) throws Exception {
@@ -49,6 +53,15 @@ class BinaryEncodingTest {
 		return exprs.getFirst();
 	}
 
+	private byte[] encodeEsxb(ESExpr expr) throws Exception {
+		var st = ESExprBinaryWriter.buildSymbolTable(expr);
+		var os = new ByteArrayOutputStream();
+
+		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec.encode(st));
+		new ESExprBinaryWriter(st.values(), os).write(expr);
+
+		return os.toByteArray();
+	}
 
 	public static Stream<Path> fileProvider() throws IOException {
 		Path directory = Paths.get("../../tests");

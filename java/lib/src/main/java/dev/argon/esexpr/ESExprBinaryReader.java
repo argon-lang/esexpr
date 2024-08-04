@@ -244,8 +244,8 @@ public class ESExprBinaryReader {
 					yield new ExprPlus.Expr(new ESExpr.Float64(Double.longBitsToDouble(bits)));
 				}
 
-				case CONSTRUCTOR_START_STRING_TABLE -> new ExprPlus.Expr(readConstructor("string-table"));
-				case CONSTRUCTOR_START_LIST -> new ExprPlus.Expr(readConstructor("list"));
+				case CONSTRUCTOR_START_STRING_TABLE -> new ExprPlus.Expr(readConstructor(BinToken.StringTableName));
+				case CONSTRUCTOR_START_LIST -> new ExprPlus.Expr(readConstructor(BinToken.ListName));
 			};
 		};
 	}
@@ -269,6 +269,6 @@ public class ESExprBinaryReader {
 		}
 
 		return new ESExpr.Constructor(name, args, kwargs);
-	} 
+	}
 
 }

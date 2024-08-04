@@ -17,13 +17,13 @@ public record StringTable(List<String> values) {
 
 		@Override
 		public @NotNull Set<@NotNull ESExprTag> tags() {
-			return Set.of(new ESExprTag.Constructor("string-table"));
+			return Set.of(new ESExprTag.Constructor(BinToken.StringTableName));
 		}
 
 		@Override
 		public @NotNull ESExpr encode(@NotNull StringTable value) {
 			return new ESExpr.Constructor(
-				"string-table",
+				BinToken.StringTableName,
 				value.values.stream().map(ESExprCodec.STRING_CODEC::encode).toList(),
 				new HashMap<>()
 			);
@@ -31,16 +31,16 @@ public record StringTable(List<String> values) {
 
 		@Override
 		public @NotNull StringTable decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
-			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("string-table")) {
-				if(kwargs.size() > 0) {
-					throw new DecodeException("Unexpected keyword arguments for string table", path.withConstructor("string-table"));
+			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals(BinToken.StringTableName)) {
+				if(!kwargs.isEmpty()) {
+					throw new DecodeException("Unexpected keyword arguments for string table", path.withConstructor(BinToken.StringTableName));
 				}
 
 				var values = new ArrayList<String>(args.size());
 				int i = 0;
 
 				for(var arg : args) {
-					values.add(ESExprCodec.STRING_CODEC.decode(arg, path.append("string-table", i)));
+					values.add(ESExprCodec.STRING_CODEC.decode(arg, path.append(BinToken.StringTableName, i)));
 					++i;
 				}
 

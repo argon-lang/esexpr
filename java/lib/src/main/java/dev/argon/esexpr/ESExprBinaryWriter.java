@@ -6,7 +6,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Encodes ESExpr values into a binary format.
@@ -36,8 +39,8 @@ public class ESExprBinaryWriter {
 		switch(expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {
 				switch(constructor) {
-					case "string-table" -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE); 
-					case "list" -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_LIST);
+					case BinToken.StringTableName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE);
+					case BinToken.ListName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_LIST);
 					default -> {
 						var index = getSymbolIndex(constructor);
 						writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.CONSTRUCTOR, index));
@@ -119,7 +122,7 @@ public class ESExprBinaryWriter {
 					case KEYWORD -> 0xC0;
 				};
 
-				b |= value.byteValue() & 0x40;
+				b |= value.byteValue() & 0x0F;
 				value = value.shiftRight(4);
 
 				boolean isPos = value.signum() > 0;
@@ -133,10 +136,10 @@ public class ESExprBinaryWriter {
 			}
 			case BinToken.Fixed fixed -> {
 				int b = switch(fixed) {
-					case NULL -> 0xE0;
-					case CONSTRUCTOR_END -> 0xE1;
-					case TRUE -> 0xE2;
-					case FALSE -> 0xE3;
+					case CONSTRUCTOR_END -> 0xE0;
+					case TRUE -> 0xE1;
+					case FALSE -> 0xE2;
+					case NULL -> 0xE3;
 					case FLOAT32 -> 0xE4;
 					case FLOAT64 -> 0xE5;
 					case CONSTRUCTOR_START_STRING_TABLE -> 0xE6;
@@ -167,4 +170,27 @@ public class ESExprBinaryWriter {
 		} while(value.signum() > 0);
 	}
 
+
+	public static StringTable buildSymbolTable(ESExpr expr) {
+		Set<String> st = new HashSet<>();
+		buildSymbolTableImpl(st, expr);
+		return new StringTable(st.stream().toList());
+	}
+
+	private static void buildSymbolTableImpl(Set<String> st, ESExpr expr) {
+		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
+			if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
+				st.add(name);
+			}
+
+			for(var arg : args) {
+				buildSymbolTableImpl(st, arg);
+			}
+
+			for(var kwarg : kwargs.entrySet()) {
+				st.add(kwarg.getKey());
+				buildSymbolTableImpl(st, kwarg.getValue());
+			}
+		}
+	}
 }
