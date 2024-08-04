@@ -15,6 +15,9 @@ public record OptionalPositionalFields(
 	Optional<Long> e,
 	Optional<@Unsigned Long> e2,
 	Optional<Float> f,
-	Optional<Double> g
+	Optional<Double> g,
+
+	@OptionalValue(OptionalValueCodec.ForOptional.class)
+	Optional<String> h
 ) {}
 

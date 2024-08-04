@@ -162,5 +162,55 @@ public class CompileTests {
 		);
 	}
 
+	@Test
+	public void optionalArgAfterVarArg() throws Throwable {
+		assertFails(
+			"Positional arguments must precede varargs",
+			"MyRecord",
+			IMPORTS + """
+				@ESExprCodecGen
+				public record MyRecord(
+					@VarArg(VarArgCodec.ForList.class)
+					List<String> a,
+					
+					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					Optional<String> b
+				) {}"""
+		);
+	}
+
+	@Test
+	public void multipleOptionalPos() throws Throwable {
+		assertFails(
+			"Only a single positional argument is allowed",
+			"MyRecord",
+			IMPORTS + """
+				@ESExprCodecGen
+				public record MyRecord(
+					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					Optional<String> a,
+					
+					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					Optional<String> b
+				) {}"""
+		);
+	}
+
+	@Test
+	public void argAfterOptionalPos() throws Throwable {
+		assertFails(
+			"Required positional arguments must precede optional positional arguments",
+			"MyRecord",
+			IMPORTS + """
+				@ESExprCodecGen
+				public record MyRecord(
+					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					Optional<String> a,
+					
+					String b
+				) {}"""
+		);
+	}
+
 
 }

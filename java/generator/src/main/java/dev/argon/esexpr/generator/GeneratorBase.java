@@ -478,6 +478,7 @@ abstract class GeneratorBase {
 
 		boolean hasVarArgs = false;
 		boolean hasDict = false;
+		boolean hasOptionalPositional = false;
 		var kwargNames = new HashSet<String>();
 
 		println("var args = new java.util.ArrayList<dev.argon.esexpr.ESExpr>();");
@@ -563,6 +564,7 @@ abstract class GeneratorBase {
 					print(") { ");
 				}
 
+
 				print("kwargs.put(");
 				printStringLiteral(kwName);
 				print(", ");
@@ -624,10 +626,31 @@ abstract class GeneratorBase {
 
 				dedent();
 				println("}");
+				continue;
+			}
+
+			if(hasVarArgs) {
+				throw new AbortException("Positional arguments must precede varargs", field);
+			}
+
+			var optionalValueCodecPos = getOptional(field).orElse(null);
+			if(optionalValueCodecPos != null) {
+				if(hasOptionalPositional) {
+					throw new AbortException("Only a single positional argument is allowed", field);
+				}
+
+				hasOptionalPositional = true;
+
+				writeFieldCodec(optionalValueCodecPos, field);
+				print(".encodeOptional(");
+				print(valueVarName);
+				print(".");
+				print(field.getSimpleName());
+				println("()).ifPresent(arg -> args.add(arg));");
 			}
 			else {
-				if(hasVarArgs) {
-					throw new AbortException("Positional arguments must precede varargs", field);
+				if(hasOptionalPositional) {
+					throw new AbortException("Required positional arguments must precede optional positional arguments", field);
 				}
 
 				print("args.add(");
@@ -638,6 +661,7 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				println("()));");
 			}
+
 		}
 		
 		if(useYield) {
@@ -761,6 +785,20 @@ abstract class GeneratorBase {
 				println(", kw));");
 
 				println("kwargs.clear();");
+				continue;
+			}
+
+			var posOptionalValueCodec = getOptional(field).orElse(null);
+			if(posOptionalValueCodec != null) {
+				print("var field_");
+				print(field.getSimpleName());
+				print(" = ");
+				writeFieldCodec(posOptionalValueCodec, field);
+				print(".decodeOptional(args.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(args.removeFirst()), path.append(");
+				printStringLiteral(getConstructorName(te));
+				print(", ");
+				print(Integer.toString(positionalIndex));
+				println("));");
 			}
 			else {
 				print("if(args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Not enough arguments\", path.withConstructor(");
@@ -776,6 +814,7 @@ abstract class GeneratorBase {
 				print(Integer.toString(positionalIndex));
 				println("));");
 			}
+			++positionalIndex;
 		}
 
 		println("if(!args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra positional arguments were found.\", path.withConstructor(");
