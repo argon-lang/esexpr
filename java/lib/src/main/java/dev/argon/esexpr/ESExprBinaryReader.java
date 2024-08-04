@@ -8,10 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -30,7 +27,7 @@ public class ESExprBinaryReader {
 
 	private final List<String> symbolTable;
 	private final @NotNull InputStream is;
-	private int nextByte;
+	private int nextByte = -1;
 
 	/**
 	 * Attempts to read an ESExpr from the stream.
@@ -60,7 +57,7 @@ public class ESExprBinaryReader {
 					throw new RuntimeException(ex);
 				}
 			})
-			.takeWhile(x -> x != null);
+			.takeWhile(Objects::nonNull);
 	}
 
 	/**
@@ -72,11 +69,12 @@ public class ESExprBinaryReader {
 	 */
 	public static @NotNull Stream<@NotNull ESExpr> readEmbeddedStringTable(InputStream is) throws IOException, SyntaxException {
 		try {
-			var stringTable = StringTable.codec.decode(new ESExprBinaryReader(List.of(), is).readExpr());
+			var stExpr = new ESExprBinaryReader(List.of(), is).readExpr();
+			var stringTable = StringTable.codec.decode(stExpr);
 			return new ESExprBinaryReader(stringTable.values(), is).readAll();
 		}
 		catch(DecodeException ex) {
-			throw new SyntaxException();
+			throw new SyntaxException(ex);
 		}
 	}
 
@@ -102,7 +100,7 @@ public class ESExprBinaryReader {
 	}
 
 	private BinToken nextToken() throws IOException, SyntaxException {
-		int b = nextByte;
+		int b = next();
 		if(b < 0) {
 			throw new EOFException();
 		}
@@ -120,12 +118,14 @@ public class ESExprBinaryReader {
 
 		if(type == null) {
 			return switch(b) {
-				case 0xE0 -> BinToken.Fixed.NULL;
-				case 0xE1 -> BinToken.Fixed.CONSTRUCTOR_END;
-				case 0xE2 -> BinToken.Fixed.TRUE;
-				case 0xE3 -> BinToken.Fixed.FALSE;
+				case 0xE0 -> BinToken.Fixed.CONSTRUCTOR_END;
+				case 0xE1 -> BinToken.Fixed.TRUE;
+				case 0xE2 -> BinToken.Fixed.FALSE;
+				case 0xE3 -> BinToken.Fixed.NULL;
 				case 0xE4 -> BinToken.Fixed.FLOAT32;
 				case 0xE5 -> BinToken.Fixed.FLOAT64;
+				case 0xE6 -> BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE;
+				case 0xE7 -> BinToken.Fixed.CONSTRUCTOR_START_LIST;
 				default -> throw new SyntaxException();
 			};
 		}
@@ -139,11 +139,6 @@ public class ESExprBinaryReader {
 		}
 	}
 
-
-	private BigInteger readInt() throws IOException {
-		return readInt(BigInteger.ZERO, 0);
-	}
-
 	private BigInteger readInt(BigInteger acc, int bits) throws IOException {
 		while(true) {
 			int b = next();
@@ -151,12 +146,12 @@ public class ESExprBinaryReader {
 				throw new EOFException();
 			}
 
-			if((b & 0x80) == 0x80) {
+			acc = acc.or(BigInteger.valueOf(b & 0x7F).shiftLeft(bits));
+			bits += 7;
+
+			if((b & 0x80) == 0) {
 				return acc;
 			}
-
-			acc = acc.and(BigInteger.valueOf(b & 0x7F).shiftLeft(bits));
-			bits += 7;
 		}
 	}
 

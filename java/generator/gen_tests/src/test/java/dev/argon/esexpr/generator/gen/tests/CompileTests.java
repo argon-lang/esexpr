@@ -98,7 +98,7 @@ public class CompileTests {
 	@Test
 	public void kwargAfterDict() throws Throwable {
 		assertFails(
-			"Keyword arguments must preceed dict arguments",
+			"Keyword arguments must precede dict arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen

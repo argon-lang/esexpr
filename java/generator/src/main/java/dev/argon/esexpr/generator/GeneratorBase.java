@@ -471,8 +471,12 @@ abstract class GeneratorBase {
 			if(kwAnn != null) {
 				var kwName = getKeywordName(field, kwAnn);
 
+				if(!kwargNames.add(kwName)) {
+					throw new AbortException("Duplicate keyword argument: " + kwName, field);
+				}
+
 				if(hasDict) {
-					throw new AbortException("Keyword arguments must preceed dict arguments", field);
+					throw new AbortException("Keyword arguments must precede dict arguments", field);
 				}
 
 				if(!isKeywordRequired(kwAnn)) {
