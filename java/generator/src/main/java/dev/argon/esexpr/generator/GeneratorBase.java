@@ -71,6 +71,51 @@ abstract class GeneratorBase {
 	}
 
 	protected void printCodecExpr(TypeMirror t, Element associatedElement) throws IOException, AbortException {
+		var useCodec = getAnnotation(t.getAnnotationMirrors(), "dev.argon.esexpr.UseCodec").orElse(null);
+		if(useCodec != null) {
+			var codecType = (TypeMirror)getAnnotationArgument(useCodec, "value").get().getValue();
+
+			var codecTypeElem = (TypeElement)env.getTypeUtils().asElement(codecType);
+
+			print("new ");
+			if(codecTypeElem.getTypeParameters().isEmpty()) {
+				print(codecTypeElem.getQualifiedName());
+				print("()");
+			}
+			else {
+				print(codecType.toString());
+				if(t instanceof DeclaredType dt && !dt.getTypeArguments().isEmpty()) {
+					print("<");
+					int i = 0;
+					for(var arg : dt.getTypeArguments()) {
+						if(i > 0) {
+							print(", ");
+						}
+						++i;
+
+						print(arg.toString());
+					}
+					print(">(");
+					i = 0;
+					for(var arg : dt.getTypeArguments()) {
+						if(i > 0) {
+							print(", ");
+						}
+						++i;
+
+						printCodecExpr(arg, associatedElement);
+					}
+					print(")");
+				}
+				else {
+					print("()");
+				}
+			}
+
+			return;
+		}
+
+
 		switch(t.getKind()) {
 			case BOOLEAN -> print("dev.argon.esexpr.ESExprCodec.BOOLEAN_CODEC");
 			case BYTE -> {
