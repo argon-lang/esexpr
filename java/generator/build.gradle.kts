@@ -28,6 +28,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             artifactId = "esexpr-generator"
+            from(components["java"])
         }
     }
 }

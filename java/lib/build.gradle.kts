@@ -37,7 +37,8 @@ java {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            artifactId = "esexpr-generator"
+            artifactId = "esexpr-java-runtime"
+            from(components["java"])
         }
     }
 }

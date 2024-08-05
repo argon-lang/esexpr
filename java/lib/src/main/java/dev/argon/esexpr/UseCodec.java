@@ -11,5 +11,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE_USE)
 public @interface UseCodec {
+	/**
+	 * Gets the codec to use.
+	 * @return The codec to use.
+	 */
 	Class<?> value();
 }
