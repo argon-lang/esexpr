@@ -572,8 +572,8 @@ abstract class GeneratorBase {
 				}
 
 
-				var defaultValueMethod = getDefaultValue(field).orElse(null);
-				if(defaultValueMethod != null) {
+				var defaultValue = getDefaultValue(field).orElse(null);
+				if(defaultValue != null) {
 					boolean isPrimitiveField = field.asType().getKind().isPrimitive();
 
 					print("if(");
@@ -592,15 +592,7 @@ abstract class GeneratorBase {
 						print(".equals(");
 					}
 
-
-					print(elem.getQualifiedName());
-					if(te != elem) {
-						print(".");
-						print(te.getSimpleName());
-					}
-					print(".");
-					print(defaultValueMethod);
-					print("()");
+					print(defaultValue);
 
 					if(!isPrimitiveField) {
 						print(")");
@@ -620,7 +612,7 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				print("()));");
 
-				if(defaultValueMethod != null) {
+				if(defaultValue != null) {
 					print(" }");
 				}
 
@@ -751,8 +743,8 @@ abstract class GeneratorBase {
 					continue;
 				}
 
-				var defaultValueMethod = getDefaultValue(field).orElse(null);
-				if(defaultValueMethod != null) {
+				var defaultValue = getDefaultValue(field).orElse(null);
+				if(defaultValue != null) {
 					print("var field_");
 					print(field.getSimpleName());
 					print(" = ");
@@ -760,14 +752,9 @@ abstract class GeneratorBase {
 					print(field.getSimpleName());
 					print(" == null ? ");
 
-					print(elem.getQualifiedName());
-					if(te != elem) {
-						print(".");
-						print(te.getSimpleName());
-					}
-					print(".");
-					print(defaultValueMethod);
-					print("()");
+					print("(");
+					print(defaultValue);
+					print(")");
 
 
 					print(" : ");

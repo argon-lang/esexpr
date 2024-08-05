@@ -20,14 +20,10 @@ public record KeywordArguments(
 	Optional<Boolean> d,
 
 	@Keyword
-	@DefaultValue("trueValue")
+	@DefaultValue("true")
 	boolean e,
 
 	@Keyword
 	Optional<Boolean> f
-) {
-	static boolean trueValue() {
-		return true;
-	}
-}
+) {}
 
