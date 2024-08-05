@@ -592,7 +592,13 @@ abstract class GeneratorBase {
 						print(".equals(");
 					}
 
+					if(isPrimitiveField) {
+						print("(");
+					}
 					print(defaultValue);
+					if(isPrimitiveField) {
+						print(")");
+					}
 
 					if(!isPrimitiveField) {
 						print(")");
@@ -673,7 +679,7 @@ abstract class GeneratorBase {
 			var optionalValueCodecPos = getOptional(field).orElse(null);
 			if(optionalValueCodecPos != null) {
 				if(hasOptionalPositional) {
-					throw new AbortException("Only a single positional argument is allowed", field);
+					throw new AbortException("Only a single optional positional argument is allowed", field);
 				}
 
 				hasOptionalPositional = true;

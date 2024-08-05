@@ -182,7 +182,7 @@ public class CompileTests {
 	@Test
 	public void multipleOptionalPos() throws Throwable {
 		assertFails(
-			"Only a single positional argument is allowed",
+			"Only a single optional positional argument is allowed",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
