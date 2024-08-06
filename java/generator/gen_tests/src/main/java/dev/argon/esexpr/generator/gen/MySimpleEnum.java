@@ -10,5 +10,10 @@ public enum MySimpleEnum {
 
 	@Constructor("my-custom-name")
 	CUSTOM_NAME,
+	;
+
+	public static ESExprCodec<MySimpleEnum> codec() {
+		return MySimpleEnum_CodecImpl.INSTANCE;
+	}
 }
 

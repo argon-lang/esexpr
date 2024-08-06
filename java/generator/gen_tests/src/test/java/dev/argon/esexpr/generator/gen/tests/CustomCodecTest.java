@@ -2,7 +2,6 @@ package dev.argon.esexpr.generator.gen.tests;
 
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.generator.gen.CustomCodecRecord;
-import dev.argon.esexpr.generator.gen.CustomCodecRecord_Codec;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -14,7 +13,7 @@ public class CustomCodecTest extends TestBase {
 	@Test
 	public void manyArgsTest() throws Throwable {
 		assertCodecMatch(
-			CustomCodecRecord_Codec.INSTANCE,
+			CustomCodecRecord.codec(),
 			new ESExpr.Constructor(
 				"custom-codec-record",
 				List.of(

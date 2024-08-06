@@ -18,6 +18,10 @@ public record CustomCodecRecord(
 	@UseCodec(CCodec.class)
 	List<String> c
 ) {
+	public static ESExprCodec<CustomCodecRecord> codec() {
+		return CustomCodecRecord_CodecImpl.INSTANCE;
+	}
+
 
 	public static class ACodec extends ESExprCodec<Integer> {
 		@Override

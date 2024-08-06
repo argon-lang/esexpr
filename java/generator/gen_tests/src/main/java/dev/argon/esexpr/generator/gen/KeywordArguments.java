@@ -25,5 +25,9 @@ public record KeywordArguments(
 
 	@Keyword
 	Optional<Boolean> f
-) {}
+) {
+	public static ESExprCodec<KeywordArguments> codec() {
+		return KeywordArguments_CodecImpl.INSTANCE;
+	}
+}
 

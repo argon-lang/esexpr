@@ -14,9 +14,9 @@ import java.util.Set;
 public class ConstructorNameTests extends TestBase {
 	@Test
 	public void constructorNameConversion() throws Throwable {
-		assertEquals(Set.of(new ESExprTag.Constructor("primitive-fields")), PrimitiveFields_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Constructor("primitive-fields")), PrimitiveFields.codec().tags());
 		assertCodecMatch(
-			PrimitiveFields_Codec.INSTANCE,
+			PrimitiveFields.codec(),
 			new ESExpr.Constructor(
 				"primitive-fields",
 				List.of(
@@ -37,9 +37,9 @@ public class ConstructorNameTests extends TestBase {
 			new PrimitiveFields(false, (byte)0, (byte)0, (short)0, (short)0, 0, 0, 0L, 0L, 0.0f, 0.0)
 		);
 
-		assertEquals(Set.of(new ESExprTag.Constructor("constructor-name123-conversion")), ConstructorName123Conversion_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Constructor("constructor-name123-conversion")), ConstructorName123Conversion.codec().tags());
 		assertCodecMatch(
-			ConstructorName123Conversion_Codec.INSTANCE,
+			ConstructorName123Conversion.codec(),
 			new ESExpr.Constructor(
 				"constructor-name123-conversion",
 				List.of(new ESExpr.Int(BigInteger.ZERO)),
@@ -48,9 +48,9 @@ public class ConstructorNameTests extends TestBase {
 			new ConstructorName123Conversion(0)
 		);
 
-		assertEquals(Set.of(new ESExprTag.Constructor("constructor-name-456-conversion")), ConstructorName_456Conversion_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Constructor("constructor-name-456-conversion")), ConstructorName_456Conversion.codec().tags());
 		assertCodecMatch(
-			ConstructorName_456Conversion_Codec.INSTANCE,
+			ConstructorName_456Conversion.codec(),
 			new ESExpr.Constructor(
 				"constructor-name-456-conversion",
 				List.of(new ESExpr.Int(BigInteger.ZERO)),
@@ -59,9 +59,9 @@ public class ConstructorNameTests extends TestBase {
 			new ConstructorName_456Conversion(0)
 		);
 
-		assertEquals(Set.of(new ESExprTag.Constructor("my-case-a"), new ESExprTag.Constructor("my-case-b")), MyEnum_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Constructor("my-case-a"), new ESExprTag.Constructor("my-case-b")), MyEnum.codec().tags());
 		assertCodecMatch(
-			MyEnum_Codec.INSTANCE,
+			MyEnum.codec(),
 			new ESExpr.Constructor(
 				"my-case-a",
 				List.of(new ESExpr.Int(BigInteger.ZERO)),
@@ -70,7 +70,7 @@ public class ConstructorNameTests extends TestBase {
 			new MyEnum.MyCaseA(0)
 		);
 		assertCodecMatch(
-			MyEnum_Codec.INSTANCE,
+			MyEnum.codec(),
 			new ESExpr.Constructor(
 				"my-case-b",
 				List.of(new ESExpr.Float32(0.0f)),
@@ -83,9 +83,9 @@ public class ConstructorNameTests extends TestBase {
 
 	@Test
 	public void customNames() throws Throwable {
-		assertEquals(Set.of(new ESExprTag.Constructor("my-ctor-name")), CustomConstructorRecord_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Constructor("my-ctor-name")), CustomConstructorRecord.codec().tags());
 		assertCodecMatch(
-			CustomConstructorRecord_Codec.INSTANCE,
+			CustomConstructorRecord.codec(),
 			new ESExpr.Constructor(
 				"my-ctor-name",
 				List.of(new ESExpr.Bool(true)),
@@ -95,9 +95,9 @@ public class ConstructorNameTests extends TestBase {
 		);
 
 
-		assertEquals(Set.of(new ESExprTag.Constructor("my-ctor-name"), new ESExprTag.Constructor("normal-name-case")), CustomConstructorEnum_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Constructor("my-ctor-name"), new ESExprTag.Constructor("normal-name-case")), CustomConstructorEnum.codec().tags());
 		assertCodecMatch(
-			CustomConstructorEnum_Codec.INSTANCE,
+			CustomConstructorEnum.codec(),
 			new ESExpr.Constructor(
 				"my-ctor-name",
 				List.of(new ESExpr.Int(BigInteger.ZERO)),
@@ -106,7 +106,7 @@ public class ConstructorNameTests extends TestBase {
 			new CustomConstructorEnum.CustomNameCase(0)
 		);
 		assertCodecMatch(
-			CustomConstructorEnum_Codec.INSTANCE,
+			CustomConstructorEnum.codec(),
 			new ESExpr.Constructor(
 				"normal-name-case",
 				List.of(new ESExpr.Float32(0.0f)),
@@ -118,24 +118,24 @@ public class ConstructorNameTests extends TestBase {
 
 	@Test
 	public void simpleEnumNames() throws Throwable {
-		assertEquals(Set.of(new ESExprTag.Str()), MySimpleEnum_Codec.INSTANCE.tags());
+		assertEquals(Set.of(new ESExprTag.Str()), MySimpleEnum.codec().tags());
 		assertCodecMatch(
-			MySimpleEnum_Codec.INSTANCE,
+			MySimpleEnum.codec(),
 			new ESExpr.Str("test-name123"),
 			MySimpleEnum.TEST_NAME123
 		);
 		assertCodecMatch(
-			MySimpleEnum_Codec.INSTANCE,
+			MySimpleEnum.codec(),
 			new ESExpr.Str("test-name-123"),
 			MySimpleEnum.TEST_NAME_123
 		);
 		assertCodecMatch(
-			MySimpleEnum_Codec.INSTANCE,
+			MySimpleEnum.codec(),
 			new ESExpr.Str("other-name-here"),
 			MySimpleEnum.OTHER_NAME_HERE
 		);
 		assertCodecMatch(
-			MySimpleEnum_Codec.INSTANCE,
+			MySimpleEnum.codec(),
 			new ESExpr.Str("my-custom-name"),
 			MySimpleEnum.CUSTOM_NAME
 		);

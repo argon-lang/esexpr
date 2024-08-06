@@ -15,5 +15,9 @@ public record PrimitiveFields(
 	@Unsigned long e2,
 	float f,
 	double g
-) {}
+) {
+	public static ESExprCodec<PrimitiveFields> codec() {
+		return PrimitiveFields_CodecImpl.INSTANCE;
+	}
+}
 

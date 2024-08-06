@@ -67,7 +67,7 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 						gen.generate();
 					}
 
-					var codecClassName = typeElem.getQualifiedName().toString() + "_Codec";
+					var codecClassName = typeElem.getQualifiedName().toString() + "_CodecImpl";
 
 					try(var w = processingEnv.getFiler().createSourceFile(codecClassName).openWriter()) {
 						w.write(sw.toString());

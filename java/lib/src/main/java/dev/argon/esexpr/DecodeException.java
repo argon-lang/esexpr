@@ -20,4 +20,9 @@ public class DecodeException extends Exception {
 	 * The path in the object where the failure occurred.
 	 */
 	public final FailurePath path;
+
+	@Override
+	public String getMessage() {
+		return super.getMessage() + "\n" + path.toString();
+	}
 }

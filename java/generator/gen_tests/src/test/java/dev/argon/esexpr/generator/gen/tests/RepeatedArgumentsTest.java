@@ -3,7 +3,6 @@ package dev.argon.esexpr.generator.gen.tests;
 import dev.argon.esexpr.KeywordMapping;
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.generator.gen.RepeatedArguments;
-import dev.argon.esexpr.generator.gen.RepeatedArguments_Codec;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,7 +13,7 @@ public class RepeatedArgumentsTest extends TestBase {
 	@Test
 	public void manyArgsTest() throws Throwable {
 		assertCodecMatch(
-			RepeatedArguments_Codec.INSTANCE,
+			RepeatedArguments.codec(),
 			new ESExpr.Constructor(
 				"repeated-arguments",
 				List.of(new ESExpr.Str("A"), new ESExpr.Str("B"), new ESExpr.Str("Z")),
@@ -33,7 +32,6 @@ public class RepeatedArgumentsTest extends TestBase {
 				))
 			)
 		);
-
 	}
 
 }

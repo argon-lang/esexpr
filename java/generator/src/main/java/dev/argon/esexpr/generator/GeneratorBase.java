@@ -236,28 +236,25 @@ abstract class GeneratorBase {
 						print(")");
 					}
 
+					case "dev.argon.esexpr.ESExpr" -> {
+						print("dev.argon.esexpr.ESExpr.CODEC");
+					}
+
 					case String s -> {
-						print("new ");
 						print(s);
-						print("_Codec");
+						print(".codec(");
 
-						if(declType.getTypeArguments().isEmpty()) {
-							print("()");
-						}
-						else {
-							print("<>(");
-							int i = 0;
-							for(var arg : declType.getTypeArguments()) {
-								if(i > 0) {
-									print(", ");
-								}
-								++i;
-
-								printCodecExpr(arg, associatedElement);
+						int i = 0;
+						for(var arg : declType.getTypeArguments()) {
+							if(i > 0) {
+								print(", ");
 							}
-							print(")");
+							++i;
+
+							printCodecExpr(arg, associatedElement);
 						}
 
+						print(")");
 					}
 				}
 			}
@@ -352,9 +349,9 @@ abstract class GeneratorBase {
 	}
 
 	private void writeClassImpl() throws IOException, AbortException {
-		print("public class ");
+		print("class ");
 		print(elem.getSimpleName());
-		print("_Codec");
+		print("_CodecImpl");
 		if(!elem.getTypeParameters().isEmpty()) {
 			print("<");
 			int i = 0;
@@ -379,12 +376,12 @@ abstract class GeneratorBase {
 			print(elem.getQualifiedName());
 			print("> INSTANCE = new ");
 			print(elem.getQualifiedName());
-			println("_Codec();");
+			println("_CodecImpl();");
 		}
 		else {
 			println("public ");
 			print(elem.getSimpleName());
-			print("_Codec(");
+			print("_CodecImpl(");
 
 			int i = 0;
 			for(TypeParameterElement tp : elem.getTypeParameters()) {
@@ -846,7 +843,7 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				print(" = ");
 				printCodecExpr(field.asType(), field);
-				println(".decode(args.removeFirst(), path.append(");
+				print(".decode(args.removeFirst(), path.append(");
 				printStringLiteral(getConstructorName(te));
 				print(", ");
 				print(Integer.toString(positionalIndex));
@@ -855,10 +852,10 @@ abstract class GeneratorBase {
 			++positionalIndex;
 		}
 
-		println("if(!args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra positional arguments were found.\", path.withConstructor(");
+		print("if(!args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra positional arguments were found.\", path.withConstructor(");
 		printStringLiteral(getConstructorName(te));
 		println(")); }");
-		println("if(!kwargs.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra keyword arguments were found.\", path.withConstructor(");
+		print("if(!kwargs.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra keyword arguments were found.\", path.withConstructor(");
 		printStringLiteral(getConstructorName(te));
 		println(")); }");
 

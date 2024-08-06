@@ -19,7 +19,7 @@ public class KeywordArgTests extends TestBase {
 	@Test
 	public void optionalFieldsPresent() throws Throwable {
 		assertCodecMatch(
-			KeywordArguments_Codec.INSTANCE,
+			KeywordArguments.codec(),
 			new ESExpr.Constructor(
 				"keyword-arguments",
 				List.of(),
@@ -39,7 +39,7 @@ public class KeywordArgTests extends TestBase {
 	@Test
 	public void optionalFieldsEmpty() throws Throwable {
 		assertCodecMatch(
-			KeywordArguments_Codec.INSTANCE,
+			KeywordArguments.codec(),
 			new ESExpr.Constructor(
 				"keyword-arguments",
 				List.of(),
@@ -57,7 +57,7 @@ public class KeywordArgTests extends TestBase {
 	public void missingRequiredOptional() throws Throwable {
 		assertThrows(
 			DecodeException.class,
-			() -> KeywordArguments_Codec.INSTANCE.decode(
+			() -> KeywordArguments.codec().decode(
 				new ESExpr.Constructor(
 					"keyword-arguments",
 					List.of(),

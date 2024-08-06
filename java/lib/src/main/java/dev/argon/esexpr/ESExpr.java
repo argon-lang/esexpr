@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Represents an ESExpr value.
@@ -106,4 +107,25 @@ public sealed interface ESExpr {
 		}
 	}
 
+
+
+	/**
+	 * Codec for arbitrary ESExpr values.
+	 */
+	public static final ESExprCodec<ESExpr> CODEC = new ESExprCodec<ESExpr>() {
+		@Override
+		public @NotNull Set<@NotNull ESExprTag> tags() {
+			return Set.of();
+		}
+
+		@Override
+		public @NotNull ESExpr encode(@NotNull ESExpr value) {
+			return value;
+		}
+
+		@Override
+		public @NotNull ESExpr decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+			return expr;
+		}
+	};
 }
