@@ -9,8 +9,8 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
 final class EnumCodecGenerator extends GeneratorBase {
-	public EnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, TypeElement elem) {
-		super(writer, env, elem);
+	public EnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+		super(writer, env, metadataCache, elem);
 	}
 
 

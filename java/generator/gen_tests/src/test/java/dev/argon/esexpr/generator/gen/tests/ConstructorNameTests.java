@@ -22,19 +22,19 @@ public class ConstructorNameTests extends TestBase {
 				List.of(
 					new ESExpr.Bool(false),
 					new ESExpr.Int(BigInteger.ZERO),
+					new ESExpr.Int(BigInteger.valueOf(255)),
 					new ESExpr.Int(BigInteger.ZERO),
+					new ESExpr.Int(BigInteger.valueOf(65535)),
 					new ESExpr.Int(BigInteger.ZERO),
+					new ESExpr.Int(BigInteger.valueOf(4294967295L)),
 					new ESExpr.Int(BigInteger.ZERO),
-					new ESExpr.Int(BigInteger.ZERO),
-					new ESExpr.Int(BigInteger.ZERO),
-					new ESExpr.Int(BigInteger.ZERO),
-					new ESExpr.Int(BigInteger.ZERO),
+					new ESExpr.Int(new BigInteger("18446744073709551615")),
 					new ESExpr.Float32(0.0f),
 					new ESExpr.Float64(0.0)
 				),
 				Map.of()
 			),
-			new PrimitiveFields(false, (byte)0, (byte)0, (short)0, (short)0, 0, 0, 0L, 0L, 0.0f, 0.0)
+			new PrimitiveFields(false, (byte)0, (byte)-1, (short)0, (short)-1, 0, -1, 0L, -1L, 0.0f, 0.0)
 		);
 
 		assertEquals(Set.of(new ESExprTag.Constructor("constructor-name123-conversion")), ConstructorName123Conversion.codec().tags());

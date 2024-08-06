@@ -70,7 +70,7 @@ public class ESExprBinaryReader {
 	public static @NotNull Stream<@NotNull ESExpr> readEmbeddedStringTable(InputStream is) throws IOException, SyntaxException {
 		try {
 			var stExpr = new ESExprBinaryReader(List.of(), is).readExpr();
-			var stringTable = StringTable.codec.decode(stExpr);
+			var stringTable = StringTable.codec().decode(stExpr);
 			return new ESExprBinaryReader(stringTable.values(), is).readAll();
 		}
 		catch(DecodeException ex) {

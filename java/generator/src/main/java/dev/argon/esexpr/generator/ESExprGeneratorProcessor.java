@@ -14,7 +14,6 @@ import java.util.function.Function;
  * Generates ESExprCodecs.
  */
 @SupportedAnnotationTypes({"dev.argon.esexpr.ESExprCodecGen"})
-@SupportedSourceVersion(SourceVersion.RELEASE_22)
 public class ESExprGeneratorProcessor extends AbstractProcessor {
 
 	/**
@@ -24,10 +23,18 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 	}
 
     private ProcessingEnvironment processingEnv;
+	private MetadataCache metadataCache;
 
-    @Override
+
+	@Override
+	public SourceVersion getSupportedSourceVersion() {
+		return SourceVersion.latestSupported();
+	}
+
+	@Override
     public void init(ProcessingEnvironment processingEnv) {
         this.processingEnv = processingEnv;
+		this.metadataCache = new MetadataCache(processingEnv);
     }
 
     @Override
@@ -45,14 +52,14 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 				var typeElem = (TypeElement)elem;
 
 				Function<PrintWriter, GeneratorBase> generatorFactory = switch(typeElem.getKind()) {
-					case RECORD -> writer -> new RecordCodecGenerator(writer, processingEnv, typeElem);
+					case RECORD -> writer -> new RecordCodecGenerator(writer, processingEnv, metadataCache, typeElem);
 					case INTERFACE -> {
 						if(typeElem.getModifiers().contains(Modifier.SEALED))
-							yield writer -> new EnumCodecGenerator(writer, processingEnv, typeElem);
+							yield writer -> new EnumCodecGenerator(writer, processingEnv, metadataCache, typeElem);
 						else
 							yield null;
 					}
-					case ENUM -> writer -> new SimpleEnumCodecGenerator(writer, processingEnv, typeElem);
+					case ENUM -> writer -> new SimpleEnumCodecGenerator(writer, processingEnv, metadataCache, typeElem);
 					default -> null;
 				};
 

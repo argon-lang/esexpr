@@ -103,7 +103,7 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@Dict(DictCodec.ForKeywordMapping.class)
+					@Dict
 					KeywordMapping<String> a,
 					
 					@Keyword
@@ -120,41 +120,41 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@Dict(DictCodec.ForKeywordMapping.class)
+					@Dict
 					KeywordMapping<String> a,
 					
-					@Dict(DictCodec.ForKeywordMapping.class)
+					@Dict
 					KeywordMapping<String> b
 				) {}"""
 		);
 	}
 
 	@Test
-	public void multipleVarArg() throws Throwable {
+	public void multipleVararg() throws Throwable {
 		assertFails(
 			"Only a single vararg is allowed",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@VarArg(VarArgCodec.ForList.class)
+					@Vararg
 					List<String> a,
 					
-					@VarArg(VarArgCodec.ForList.class)
+					@Vararg
 					List<String> b
 				) {}"""
 		);
 	}
 
 	@Test
-	public void argAfterVarArg() throws Throwable {
+	public void argAfterVararg() throws Throwable {
 		assertFails(
 			"Positional arguments must precede varargs",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@VarArg(VarArgCodec.ForList.class)
+					@Vararg
 					List<String> a,
 					
 					String b
@@ -163,17 +163,17 @@ public class CompileTests {
 	}
 
 	@Test
-	public void optionalArgAfterVarArg() throws Throwable {
+	public void optionalArgAfterVararg() throws Throwable {
 		assertFails(
 			"Positional arguments must precede varargs",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@VarArg(VarArgCodec.ForList.class)
+					@Vararg
 					List<String> a,
 					
-					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					@OptionalValue
 					Optional<String> b
 				) {}"""
 		);
@@ -187,10 +187,10 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					@OptionalValue
 					Optional<String> a,
 					
-					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					@OptionalValue
 					Optional<String> b
 				) {}"""
 		);
@@ -204,7 +204,7 @@ public class CompileTests {
 			IMPORTS + """
 				@ESExprCodecGen
 				public record MyRecord(
-					@OptionalValue(OptionalValueCodec.ForOptional.class)
+					@OptionalValue
 					Optional<String> a,
 					
 					String b

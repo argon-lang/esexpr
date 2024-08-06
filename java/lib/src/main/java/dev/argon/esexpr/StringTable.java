@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import dev.argon.esexpr.codecs.StringCodec;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -12,8 +13,16 @@ import org.jetbrains.annotations.NotNull;
  * @param values The strings in the string table.
  */
 public record StringTable(List<String> values) {
-	
-	public static final ESExprCodec<StringTable> codec = new ESExprCodec<StringTable>() {
+
+	/**
+	 * StringTable codec.
+	 * @return The codec.
+	 */
+	public static ESExprCodec<StringTable> codec() {
+		return CODEC;
+	}
+
+	private static final ESExprCodec<StringTable> CODEC = new ESExprCodec<StringTable>() {
 
 		@Override
 		public @NotNull Set<@NotNull ESExprTag> tags() {
@@ -24,7 +33,7 @@ public record StringTable(List<String> values) {
 		public @NotNull ESExpr encode(@NotNull StringTable value) {
 			return new ESExpr.Constructor(
 				BinToken.StringTableName,
-				value.values.stream().map(ESExprCodec.STRING_CODEC::encode).toList(),
+				value.values.stream().map(StringCodec.INSTANCE::encode).toList(),
 				new HashMap<>()
 			);
 		}
@@ -40,7 +49,7 @@ public record StringTable(List<String> values) {
 				int i = 0;
 
 				for(var arg : args) {
-					values.add(ESExprCodec.STRING_CODEC.decode(arg, path.append(BinToken.StringTableName, i)));
+					values.add(StringCodec.INSTANCE.decode(arg, path.append(BinToken.StringTableName, i)));
 					++i;
 				}
 
@@ -50,7 +59,7 @@ public record StringTable(List<String> values) {
 				throw new DecodeException("Expected a string-table constructor", path);
 			}
 		}
-		
+
 	};
 
 }

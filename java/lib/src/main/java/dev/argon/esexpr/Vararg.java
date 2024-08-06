@@ -6,14 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Overrides the codec used for this type.
+ * Indicates a value that is encoded as repeated arguments.
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE_USE)
-public @interface UseCodec {
-	/**
-	 * Gets the codec to use.
-	 * @return The codec to use.
-	 */
-	Class<?> value();
+@Target(ElementType.RECORD_COMPONENT)
+public @interface Vararg {
 }

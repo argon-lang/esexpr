@@ -9,7 +9,7 @@ import java.util.List;
  * A codec for variable argument values.
  * @param <T> The type of the variable argument value.
  */
-public interface VarArgCodec<T> {
+public interface VarargCodec<T> {
 	/**
 	 * Encode a variable argument value into a list of expressions.
 	 * @param value The variable argument value.
@@ -36,38 +36,5 @@ public interface VarArgCodec<T> {
 		 * @return A path for the element at the index.
 		 */
 		@NotNull ESExprCodec.FailurePath pathAt(int index);
-	}
-
-	/**
-	 * A VarArgCodec for List values.
-	 * @param <T> The element type.
-	 */
-	public static class ForList<T> implements VarArgCodec<List<T>> {
-		/**
-		 * Creates a VarArgCodec for List values.
-		 * @param elementCodec A value codec for the element type.
-		 */
-		public ForList(ESExprCodec<T> elementCodec) {
-			this.elementCodec = elementCodec;
-		}
-
-		private final ESExprCodec<T> elementCodec;
-
-		@Override
-		public List<ESExpr> encodeVarArg(List<T> value) {
-			return value.stream().map(elementCodec::encode).toList();
-		}
-
-		@Override
-		public List<T> decodeVarArg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException {
-			List<T> values = new ArrayList<>(exprs.size());
-			int i = 0;
-			for(var expr : exprs) {
-				var value = elementCodec.decode(expr, pathBuilder.pathAt(i));
-				values.add(value);
-				++i;
-			}
-			return values;
-		}
 	}
 }

@@ -57,7 +57,7 @@ class BinaryEncodingTest {
 		var st = ESExprBinaryWriter.buildSymbolTable(expr);
 		var os = new ByteArrayOutputStream();
 
-		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec.encode(st));
+		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec().encode(st));
 		new ESExprBinaryWriter(st.values(), os).write(expr);
 
 		return os.toByteArray();

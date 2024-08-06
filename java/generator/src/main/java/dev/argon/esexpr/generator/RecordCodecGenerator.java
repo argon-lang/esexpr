@@ -2,16 +2,13 @@ package dev.argon.esexpr.generator;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
-import java.util.Objects;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 
 final class RecordCodecGenerator extends GeneratorBase {
-	public RecordCodecGenerator(PrintWriter writer, ProcessingEnvironment env, TypeElement elem) {
-		super(writer, env, elem);
+	public RecordCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+		super(writer, env, metadataCache, elem);
 	}
 
 	@Override

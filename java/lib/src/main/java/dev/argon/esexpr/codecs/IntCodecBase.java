@@ -1,10 +1,19 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.codecs;
 
 import java.math.BigInteger;
 import java.util.Set;
+
+import dev.argon.esexpr.DecodeException;
+import dev.argon.esexpr.ESExpr;
+import dev.argon.esexpr.ESExprCodec;
+import dev.argon.esexpr.ESExprTag;
 import org.jetbrains.annotations.NotNull;
 
-abstract class IntCodecBase<T> extends ESExprCodec<T> {
+/**
+ * Base type for sized integer codecs.
+ * @param <T> The integer type.
+ */
+public abstract class IntCodecBase<T> extends ESExprCodec<T> {
 	IntCodecBase(BigInteger min, BigInteger max) {
 		this.min = min;
 		this.max = max;
@@ -37,6 +46,6 @@ abstract class IntCodecBase<T> extends ESExprCodec<T> {
 		}
 	}
 
-	protected abstract @NotNull T fromBigInt(@NotNull BigInteger value);
-	protected abstract @NotNull BigInteger toBigInt(@NotNull T value);
+	abstract @NotNull T fromBigInt(@NotNull BigInteger value);
+	abstract @NotNull BigInteger toBigInt(@NotNull T value);
 }

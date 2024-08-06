@@ -37,41 +37,4 @@ public interface DictCodec<T> {
 		 */
 		@NotNull ESExprCodec.FailurePath pathAt(String keyword);
 	}
-
-	/**
-	 * A DictCodec for KeywordMapping values.
-	 * @param <T> The element type.
-	 */
-	public static class ForKeywordMapping<T> implements DictCodec<KeywordMapping<T>> {
-		/**
-		 * Creates a DictCodec for KeywordMapping values.
-		 * @param elementCodec A value codec for the element type.
-		 */
-		public ForKeywordMapping(ESExprCodec<T> elementCodec) {
-			this.elementCodec = elementCodec;
-		}
-
-		private final ESExprCodec<T> elementCodec;
-
-		@Override
-		public Map<String, ESExpr> encodeDict(KeywordMapping<T> value) {
-			Map<String, ESExpr> map = new HashMap<>();
-			for(var entry : value.map().entrySet()) {
-				map.put(entry.getKey(), elementCodec.encode(entry.getValue()));
-			}
-			return map;
-		}
-
-		@Override
-		public KeywordMapping<T> decodeDict(Map<String, ESExpr> exprs, @NotNull KeywordPathBuilder pathBuilder) throws DecodeException {
-			Map<String, T> values = new HashMap<>();
-			int i = 0;
-			for(var entry : exprs.entrySet()) {
-				var value = elementCodec.decode(entry.getValue(), pathBuilder.pathAt(entry.getKey()));
-				values.put(entry.getKey(), value);
-				++i;
-			}
-			return new KeywordMapping<>(values);
-		}
-	}
 }

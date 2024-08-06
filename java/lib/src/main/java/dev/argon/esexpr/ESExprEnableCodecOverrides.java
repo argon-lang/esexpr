@@ -6,9 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicates that an argument is optional.
+ * Enable searching for overridden codecs within this package.
  */
-@Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.RECORD_COMPONENT)
-public @interface OptionalValue {
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.PACKAGE)
+public @interface ESExprEnableCodecOverrides {
 }

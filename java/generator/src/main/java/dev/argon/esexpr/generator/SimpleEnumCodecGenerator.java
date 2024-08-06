@@ -2,10 +2,7 @@ package dev.argon.esexpr.generator;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
@@ -13,8 +10,8 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 
 final class SimpleEnumCodecGenerator extends GeneratorBase {
-	public SimpleEnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, TypeElement elem) {
-		super(writer, env, elem);
+	public SimpleEnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+		super(writer, env, metadataCache, elem);
 	}
 
 	private List<VariableElement> getCases() {

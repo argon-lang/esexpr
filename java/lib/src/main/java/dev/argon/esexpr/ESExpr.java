@@ -111,8 +111,16 @@ public sealed interface ESExpr {
 
 	/**
 	 * Codec for arbitrary ESExpr values.
+	 * @return The codec.
 	 */
-	public static final ESExprCodec<ESExpr> CODEC = new ESExprCodec<ESExpr>() {
+	public static ESExprCodec<ESExpr> codec() {
+		return CODEC;
+	}
+
+	/**
+	 * Codec for arbitrary ESExpr values.
+	 */
+	static final ESExprCodec<ESExpr> CODEC = new ESExprCodec<ESExpr>() {
 		@Override
 		public @NotNull Set<@NotNull ESExprTag> tags() {
 			return Set.of();

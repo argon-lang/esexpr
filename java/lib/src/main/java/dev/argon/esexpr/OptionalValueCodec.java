@@ -24,36 +24,4 @@ public interface OptionalValueCodec<T> {
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
 	T decodeOptional(Optional<ESExpr> expr, @NotNull ESExprCodec.FailurePath path) throws DecodeException;
-
-	/**
-	 * An OptionalValueCodec for Optional values.
-	 * @param <T> The element type.
-	 */
-	public static class ForOptional<T> implements OptionalValueCodec<Optional<T>> {
-		/**
-		 * Creates an OptionalValueCodec for Optional values.
-		 * @param elementCodec A value codec for the element type.
-		 */
-		public ForOptional(ESExprCodec<T> elementCodec) {
-			this.elementCodec = elementCodec;
-		}
-
-		private final ESExprCodec<T> elementCodec;
-
-		@Override
-		public Optional<ESExpr> encodeOptional(Optional<T> value) {
-			return value.map(elementCodec::encode);
-		}
-
-		@Override
-		public Optional<T> decodeOptional(Optional<ESExpr> expr, @NotNull ESExprCodec.FailurePath path) throws DecodeException {
-			var expr2 = expr.orElse(null);
-			if(expr2 == null) {
-				return Optional.empty();
-			}
-
-			var value = elementCodec.decode(expr2, path);
-			return Optional.of(value);
-		}
-	}
 }
