@@ -22,7 +22,6 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 	public ESExprGeneratorProcessor() {
 	}
 
-    private ProcessingEnvironment processingEnv;
 	private MetadataCache metadataCache;
 
 
@@ -33,7 +32,7 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 
 	@Override
     public void init(ProcessingEnvironment processingEnv) {
-        this.processingEnv = processingEnv;
+		super.init(processingEnv);
 		this.metadataCache = new MetadataCache(processingEnv);
     }
 

@@ -6,6 +6,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 record CodecOverride(Element overridingElement, TypeMirror t, CodecType codecType, List<TypeMirror> requiredAnnotations, List<TypeMirror> excludedAnnotations) {
@@ -17,16 +18,40 @@ record CodecOverride(Element overridingElement, TypeMirror t, CodecType codecTyp
 	}
 
 
-	public static List<CodecOverride> scan(ProcessingEnvironment env) {
-		return env.getElementUtils()
-			.getAllModuleElements()
+	public static List<CodecOverride> scan(ProcessingEnvironment env) throws AbortException {
+		var modules = env.getElementUtils().getAllModuleElements();
+		if(modules.isEmpty()) {
+			throw new AbortException("No modules were found. Please ensure that all codec mappings are on the module path.");
+		}
+
+		var unnamedModule = env.getElementUtils().getModuleElement("");
+		if(unnamedModule != null) {
+			if(scanModule(unnamedModule).findFirst().isPresent()) {
+				throw new AbortException("Codec overrride was found on the unnamed module. Please ensure that all codec mappings are on the module path.");
+			}
+		}
+
+
+		var overrides = modules
 			.stream()
-			.flatMap(moduleElement -> moduleElement.getEnclosedElements().stream())
+			.filter(moduleElement -> !moduleElement.isUnnamed())
+			.flatMap(CodecOverride::scanModule)
+			.toList();
+
+		if(overrides.isEmpty()) {
+			throw new AbortException("No overrides were found. Please ensure that all codec mappings are on the module path.");
+		}
+
+		return overrides;
+	}
+
+	private static Stream<CodecOverride> scanModule(ModuleElement moduleElement) {
+		return moduleElement.getEnclosedElements()
+			.stream()
 			.map(element -> (PackageElement)element)
 			.filter(packageElement -> GeneratorBase.hasAnnotation(packageElement.getAnnotationMirrors(), "dev.argon.esexpr.ESExprEnableCodecOverrides"))
 			.flatMap(packageElement -> packageElement.getEnclosedElements().stream())
-			.flatMap(CodecOverride::scanElement)
-			.toList();
+			.flatMap(CodecOverride::scanElement);
 	}
 
 	private static Stream<CodecOverride> scanElement(Element elem) {

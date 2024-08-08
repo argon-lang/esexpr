@@ -11,7 +11,7 @@ class MetadataCache {
 	private final ProcessingEnvironment env;
 	private List<CodecOverride> codecOverrides = null;
 
-	public List<CodecOverride> getCodecOverrides() {
+	public List<CodecOverride> getCodecOverrides() throws AbortException {
 		if(codecOverrides == null) {
 			codecOverrides = CodecOverride.scan(env);
 		}
