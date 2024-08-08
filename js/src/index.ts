@@ -620,36 +620,38 @@ export function enumCodec<T extends { readonly $type: string }>(cases: EnumCaseC
 
 
 export type SimpleEnumNames<T extends string> = {
-    readonly [K in T]: K;
+    readonly [K in T]: string;
 };
 
 class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
-    constructor(names: readonly T[]) {
+    constructor(names: SimpleEnumNames<T>) {
         this.#names = names;
     }
 
-    readonly #names: readonly string[];
+    readonly #names: SimpleEnumNames<T>;
 
     get tags(): ReadonlySet<ESExprTag> {
         return new Set([String]);
     }
 
     encode(value: T): ESExpr {
-        return value;
+        return this.#names[value];
     }
 
     decode(expr: ESExpr): DecodeResult<T> {
         if(typeof expr === "string") {
-            if(this.#names.indexOf(expr) >= 0) {
-                return { success: true, value: expr as T };
+
+            for(const [name, value] of Object.entries(this.#names)) {
+                if(expr === value) {
+                    return { success: true, value: name as T };
+                }
             }
-            else {
-                return {
-                    success: false,
-                    message: "Invalid simple enum value",
-                    path: { type: "current" },
-                };
-            }
+
+            return {
+                success: false,
+                message: "Invalid simple enum value",
+                path: { type: "current" },
+            };
         }
         else {
             return {
@@ -663,7 +665,7 @@ class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
 }
 
 export function simpleEnumCodec<T extends string>(names: SimpleEnumNames<T>): ESExprCodec<T> {
-    return new SimpleEnumCodec(Object.keys(names) as T[]);
+    return new SimpleEnumCodec(names);
 }
 
 
