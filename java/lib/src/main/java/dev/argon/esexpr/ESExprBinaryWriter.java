@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -198,4 +197,12 @@ public class ESExprBinaryWriter {
 			}
 		}
 	}
+
+	public static void writeWithSymbolTable(OutputStream os, ESExpr expr) throws IOException {
+		var st = buildSymbolTable(expr);
+
+		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec().encode(st));
+		new ESExprBinaryWriter(st.values(), os).write(expr);
+	}
+
 }
