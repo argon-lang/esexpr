@@ -569,7 +569,7 @@ abstract class GeneratorBase {
 
 				print("for(var arg : ");
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.VARARG);
-				print(".encodeVarArg(");
+				print(".encodeVararg(");
 				print(valueVarName);
 				print(".");
 				print(field.getSimpleName());
@@ -730,7 +730,7 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				print(" = ");
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.VARARG);
-				print(".decodeVarArg(args, i -> path.append(");
+				print(".decodeVararg(args, i -> path.append(");
 				printStringLiteral(getConstructorName(te));
 				print(", ");
 				print(Integer.toString(positionalIndex));

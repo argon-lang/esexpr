@@ -176,28 +176,59 @@ public class ESExprBinaryWriter {
 	 * @return The string table for expr.
 	 */
 	public static StringTable buildSymbolTable(ESExpr expr) {
-		Set<String> st = new HashSet<>();
-		buildSymbolTableImpl(st, expr);
-		return new StringTable(st.stream().toList());
+		var builder = new SymbolTableBuilder();
+		builder.add(expr);
+		return builder.build();
 	}
 
-	private static void buildSymbolTableImpl(Set<String> st, ESExpr expr) {
-		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
-			if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
-				st.add(name);
-			}
+	/**
+	 * Builds a string table from expressions.
+	 */
+	public static final class SymbolTableBuilder {
 
-			for(var arg : args) {
-				buildSymbolTableImpl(st, arg);
-			}
+		/**
+		 * Creates a SymbolTableBuilder.
+		 */
+		public SymbolTableBuilder() {}
 
-			for(var kwarg : kwargs.entrySet()) {
-				st.add(kwarg.getKey());
-				buildSymbolTableImpl(st, kwarg.getValue());
+		private final Set<String> st = new HashSet<>();
+
+		/**
+		 * Add any required strings to the string table.
+		 * @param expr The expression to scan.
+		 */
+		void add(ESExpr expr) {
+			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
+				if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
+					st.add(name);
+				}
+
+				for(var arg : args) {
+					add(arg);
+				}
+
+				for(var kwarg : kwargs.entrySet()) {
+					st.add(kwarg.getKey());
+					add(kwarg.getValue());
+				}
 			}
+		}
+
+		/**
+		 * Builds the string table.
+		 * @return The string table.
+		 */
+		public StringTable build() {
+			return new StringTable(st.stream().toList());
 		}
 	}
 
+	/**
+	 * Write an expression with an embedded string table.
+	 * @param os The stream to write to.
+	 * @param expr The expression to write.
+	 * @throws IOException If an IO error occurs.
+	 */
 	public static void writeWithSymbolTable(OutputStream os, ESExpr expr) throws IOException {
 		var st = buildSymbolTable(expr);
 

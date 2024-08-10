@@ -2,7 +2,6 @@ package dev.argon.esexpr;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,7 +14,7 @@ public interface VarargCodec<T> {
 	 * @param value The variable argument value.
 	 * @return The expressions.
 	 */
-	List<ESExpr> encodeVarArg(T value);
+	List<ESExpr> encodeVararg(T value);
 
 	/**
 	 * Decode a list of expressions into a variable argument value.
@@ -24,7 +23,7 @@ public interface VarargCodec<T> {
 	 * @return The variable argument value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	T decodeVarArg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException;
+	T decodeVararg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException;
 
 	/**
 	 * Builds paths for elements of a variable argument.

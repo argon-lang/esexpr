@@ -1,6 +1,10 @@
 import * as esexpr from "./index.js";
 import type { ESExpr, ESExprCodec } from "./index.js";
 
+
+export class ESExprFormatError extends Error {}
+
+
 type Token =
     | { type: "constructor_start", index: number }
     | { type: "constructor_start_known", value: string }
@@ -34,6 +38,8 @@ const TAG_FLOAT32 = 0xE4;
 const TAG_FLOAT64 = 0xE5;
 const TAG_CONSTRUCTOR_START_STRING_TABLE = 0xE6;
 const TAG_CONSTRUCTOR_START_LIST = 0xE7;
+
+
 
 class ByteReader {
     constructor(iter: AsyncIterator<Uint8Array>) {
@@ -107,7 +113,7 @@ class ByteReader {
     async #ensureBuffer(): Promise<Uint8Array> {
         const buff = await this.#tryLoadBuffer();
         if(buff === null) {
-            throw new Error("Unexpected end of file");
+            throw new ESExprFormatError("Unexpected end of file");
         }
         return buff;
     }
@@ -165,7 +171,7 @@ async function* getTokens(reader: ByteReader): AsyncIterable<Token> {
                     break;
 
                 default:
-                    throw new Error("Invalid token byte");
+                    throw new ESExprFormatError("Invalid token byte");
             }
         }
         else {
@@ -226,7 +232,7 @@ async function readInt(reader: ByteReader, b: number): Promise<bigint> {
 
 function checkIntRange(n: bigint): number {
     if(n > Number.MAX_SAFE_INTEGER) {
-        throw new Error("Integer is too large");
+        throw new ESExprFormatError("Integer is too large");
     }
 
     return Number(n);
@@ -246,7 +252,7 @@ async function* readExprs(tokens: AsyncIterator<Token>, stringPool: StringPool):
 async function readExpr(tokens: AsyncIterator<Token>, stringPool: StringPool): Promise<ESExpr> {
     const token = await tokens.next();
     if(token.done) {
-        throw new Error("Unexpected end of file");
+        throw new ESExprFormatError("Unexpected end of file");
     }
 
     return await readExprWith(tokens, token.value, stringPool);
@@ -264,10 +270,10 @@ async function readExprWith(tokens: AsyncIterator<Token>, startToken: Token, str
             return await readExprConstructor(tokens, stringPool, startToken.value);
 
         case "constructor_end":
-            throw new Error("Unexpected constructor end");
+            throw new ESExprFormatError("Unexpected constructor end");
 
         case "keyword":
-            throw new Error("Unexpected constructor end");
+            throw new ESExprFormatError("Unexpected constructor end");
 
         case "int_value":
             return startToken.value;
@@ -303,7 +309,7 @@ async function readExprConstructor(tokens: AsyncIterator<Token>, stringPool: Str
     for(;;) {
         const token = await tokens.next();
         if(token.done) {
-            throw new Error("Missing constructor end");
+            throw new ESExprFormatError("Missing constructor end");
         }
 
         switch(token.value.type) {
@@ -362,7 +368,7 @@ export async function* readExprStreamEmbeddedStringPool(data: AsyncIterable<Uint
         try {
             const spRes = StringPoolEncoded.codec.decode(await readExpr(tokenIter, new ArrayStringPool([])));
             if(!spRes.success) {
-                throw new Error("Invalid string pool");
+                throw new ESExprFormatError("Invalid string pool");
             }
 
             const sp = ArrayStringPool.fromEncoded(spRes.value);
@@ -516,7 +522,7 @@ export class ArrayStringPool implements StringPool {
     get(i: number): string {
         const s = this.#values[i];
         if(s === undefined) {
-            throw new Error("Invalid string pool index");
+            throw new ESExprFormatError("Invalid string pool index");
         }
 
         return s;
@@ -525,7 +531,7 @@ export class ArrayStringPool implements StringPool {
     lookup(s: string): number {
         const i = this.#values.indexOf(s);
         if(i < 0) {
-            throw new Error("String not present in string pool");
+            throw new ESExprFormatError("String not present in string pool");
         }
 
         return i;
@@ -566,7 +572,7 @@ export class StringPoolBuilder {
         const spb = this;
         return {
             get(_i: number): string {
-                throw new Error("Not supported");
+                throw new ESExprFormatError("Not supported");
             },
         
             lookup(s: string): number {

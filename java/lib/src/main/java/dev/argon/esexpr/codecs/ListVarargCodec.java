@@ -25,12 +25,12 @@ public class ListVarargCodec<T> implements VarargCodec<List<T>> {
 	private final ESExprCodec<T> elementCodec;
 
 	@Override
-	public List<ESExpr> encodeVarArg(List<T> value) {
+	public List<ESExpr> encodeVararg(List<T> value) {
 		return value.stream().map(elementCodec::encode).toList();
 	}
 
 	@Override
-	public List<T> decodeVarArg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException {
+	public List<T> decodeVararg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException {
 		List<T> values = new ArrayList<>(exprs.size());
 		int i = 0;
 		for(var expr : exprs) {
