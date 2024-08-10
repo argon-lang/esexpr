@@ -24,7 +24,7 @@ public sealed interface ESExpr {
 	 * @param args Positional arguments.
 	 * @param kwargs Keyword arguments.
 	 */
-    public static record Constructor(@NotNull String constructor, @NotNull List<ESExpr> args, @NotNull Map<String, ESExpr> kwargs) implements ESExpr {
+    public static record Constructor(@NotNull String constructor, @NotNull List<@NotNull ESExpr> args, @NotNull Map<@NotNull String, @NotNull ESExpr> kwargs) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
 			return new ESExprTag.Constructor(constructor);
@@ -113,14 +113,14 @@ public sealed interface ESExpr {
 	 * Codec for arbitrary ESExpr values.
 	 * @return The codec.
 	 */
-	public static ESExprCodec<ESExpr> codec() {
+	public static @NotNull ESExprCodec<@NotNull ESExpr> codec() {
 		return CODEC;
 	}
 
 	/**
 	 * Codec for arbitrary ESExpr values.
 	 */
-	static final ESExprCodec<ESExpr> CODEC = new ESExprCodec<ESExpr>() {
+	static final @NotNull ESExprCodec<@NotNull ESExpr> CODEC = new ESExprCodec<ESExpr>() {
 		@Override
 		public @NotNull Set<@NotNull ESExprTag> tags() {
 			return Set.of();

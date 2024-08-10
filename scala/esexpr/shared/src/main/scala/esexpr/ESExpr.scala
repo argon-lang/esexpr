@@ -10,3 +10,5 @@ enum ESExpr derives CanEqual {
   case Float64(d: Double)
   case Null
 }
+
+object ESExpr extends ESExprObjectPlatformSpecific

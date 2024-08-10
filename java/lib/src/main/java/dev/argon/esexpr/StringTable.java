@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  * A string table used while reading binary ESExprs.
  * @param values The strings in the string table.
  */
-public record StringTable(List<String> values) {
+public record StringTable(@NotNull List<@NotNull String> values) {
 
 	/**
 	 * StringTable codec.

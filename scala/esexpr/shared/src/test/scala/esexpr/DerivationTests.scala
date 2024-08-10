@@ -234,14 +234,14 @@ object DerivationTests extends ZIOSpecDefault {
         @constructor("many")
         final case class ManyArgsRecord(
           @dict kwargs: Map[String, Boolean],
-          args: Boolean*
+          @vararg args: Seq[Boolean],
         ) derives ESExprCodec, CanEqual
 
         enum ManyArgsEnum derives ESExprCodec, CanEqual {
           @constructor("many")
           case Value(
             @dict kwargs: Map[String, Boolean],
-            args: Boolean*
+          @vararg args: Seq[Boolean],
           )
         }
 
@@ -260,18 +260,14 @@ object DerivationTests extends ZIOSpecDefault {
             expr = expr,
             value = ManyArgsRecord(
               Map("a" -> true, "b" -> true, "c" -> false),
-              true,
-              true,
-              false,
+              Seq(true, true, false),
             ),
           ),
           codecTest("enum")(
             expr = expr,
             value = ManyArgsEnum.Value(
               Map("a" -> true, "b" -> true, "c" -> false),
-              true,
-              true,
-              false,
+              Seq(true, true, false),
             ),
           ),
         )

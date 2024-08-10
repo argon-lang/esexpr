@@ -175,7 +175,7 @@ public class ESExprBinaryWriter {
 	 * @param expr The expression to scan.
 	 * @return The string table for expr.
 	 */
-	public static StringTable buildSymbolTable(ESExpr expr) {
+	public static @NotNull StringTable buildSymbolTable(@NotNull ESExpr expr) {
 		var builder = new SymbolTableBuilder();
 		builder.add(expr);
 		return builder.build();
@@ -197,7 +197,7 @@ public class ESExprBinaryWriter {
 		 * Add any required strings to the string table.
 		 * @param expr The expression to scan.
 		 */
-		public void add(ESExpr expr) {
+		public void add(@NotNull ESExpr expr) {
 			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
 				if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
 					st.add(name);
@@ -218,7 +218,7 @@ public class ESExprBinaryWriter {
 		 * Builds the string table.
 		 * @return The string table.
 		 */
-		public StringTable build() {
+		public @NotNull StringTable build() {
 			return new StringTable(st.stream().toList());
 		}
 	}
@@ -229,7 +229,7 @@ public class ESExprBinaryWriter {
 	 * @param expr The expression to write.
 	 * @throws IOException If an IO error occurs.
 	 */
-	public static void writeWithSymbolTable(OutputStream os, ESExpr expr) throws IOException {
+	public static void writeWithSymbolTable(@NotNull OutputStream os, @NotNull ESExpr expr) throws IOException {
 		var st = buildSymbolTable(expr);
 
 		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec().encode(st));

@@ -2,6 +2,7 @@
 .vscode/
 .bsp/
 .metals/
+.bloop/
 
 /rust/**/target/
 
