@@ -197,7 +197,7 @@ public class ESExprBinaryWriter {
 		 * Add any required strings to the string table.
 		 * @param expr The expression to scan.
 		 */
-		void add(ESExpr expr) {
+		public void add(ESExpr expr) {
 			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
 				if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
 					st.add(name);
