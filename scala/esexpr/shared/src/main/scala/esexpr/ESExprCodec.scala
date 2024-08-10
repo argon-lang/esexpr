@@ -161,6 +161,18 @@ object ESExprCodec {
       }
   end given
 
+  given ESExprCodec[Float] with
+    override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Float64)
+    override def encode(value: Float): ESExpr =
+      ESExpr.Float64(value)
+
+    override def decode(expr: ESExpr): Either[DecodeError, Float] =
+      expr match {
+        case ESExpr.Float32(f) => Right(f)
+        case _ => Left(DecodeError("Expected a float32", ErrorPath.Current))
+      }
+  end given
+
   given ESExprCodec[Double] with
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Float64)
     override def encode(value: Double): ESExpr =
