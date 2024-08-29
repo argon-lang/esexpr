@@ -12,7 +12,7 @@ import java.util.Set;
  * @param map The underlying map.
  * @param <T> The element type.
  */
-public record KeywordMapping<T>(Map<String, T> map) {
+public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 	/**
 	 * Get a codec for the keyword mapping.
 	 * @param tCodec The element codec.

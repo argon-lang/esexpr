@@ -189,7 +189,7 @@ fn string_impl(quote: char, non_normal_chars: &'static str) -> impl Fn(&str) -> 
                 ))
             ),
             char(quote),
-        )(input)    
+        )(input)
     }    
 }
 

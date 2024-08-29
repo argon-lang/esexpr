@@ -1,6 +1,7 @@
 package esexpr
 
 import dev.argon.esexpr.ESExprBinaryWriter
+import dev.argon.util.async.ZStreamFromOutputStreamWriterZIO
 import zio.*
 import zio.stream.*
 
@@ -20,12 +21,14 @@ object ESExprBinaryEncoder {
       .map(StringTable.fromJava)
 
   def write(stringTable: StringTable, expr: ESExpr): UStream[Byte] =
-    ZStream.fromOutputStreamWriter { os =>
-      ESExprBinaryWriter(stringTable.values.asJava, os).write(ESExpr.toJava(expr))
-    }.orDie
+    ZStreamFromOutputStreamWriterZIO { os =>
+      ZIO.succeed { ESExprBinaryWriter(stringTable.values.asJava, os).write(ESExpr.toJava(expr)) }
+    }
 
   def writeWithSymbolTable(expr: ESExpr): UStream[Byte] =
-    ZStream.fromOutputStreamWriter { os =>
-      ESExprBinaryWriter.writeWithSymbolTable(os, ESExpr.toJava(expr))
-    }.orDie
+    ZStreamFromOutputStreamWriterZIO { os =>
+      ZIO.succeed {
+        ESExprBinaryWriter.writeWithSymbolTable(os, ESExpr.toJava(expr))
+      }
+    }
 }

@@ -46,15 +46,15 @@ object ESExprBinaryDecoder {
   }
 
 
-  def readAll[R, E >: IOException | ESExprFormatException](data: ZStream[R, E, Byte])(stringTable: Seq[String])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
+  def readAll[R, E](data: ZStream[R, E, Byte])(stringTable: Seq[String])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
     readWith(data) { b => readExprStream(b, StringPool.fromArray(stringTable.toJSArray)) }
 
-  def readEmbeddedStringTable[R, E >: IOException | ESExprFormatException](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
+  def readEmbeddedStringTable[R, E](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
     readWith(data)(readExprStreamEmbeddedStringPool)
     
 
 
-  private def readWith[R, E >: IOException | ESExprFormatException, EX <: Throwable](data: ZStream[R, E, Byte])(f: AsyncIterable[Uint8Array] => AsyncIterable[esexpr.sjs.ESExpr])(using errorWrapper: ErrorWrapper[E]): ZStream[R, E, ESExpr] =
+  private def readWith[R, E, EX <: Throwable](data: ZStream[R, E, Byte])(f: AsyncIterable[Uint8Array] => AsyncIterable[esexpr.sjs.ESExpr])(using errorWrapper: ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
     ZStream.unwrap(
         ZIO.runtime[R]
           .flatMap { rt =>

@@ -35,14 +35,8 @@ object UByte {
     def toUInt: UInt = toInt
     def toLong: Long = JByte.toUnsignedLong(a)
     def toULong: ULong = toLong
-  end extension 
-
-  given Conversion[UByte, Short] = _.toShort
-  given Conversion[UByte, Int] = _.toInt
-  given Conversion[UByte, Long] = _.toLong
-  given Conversion[UByte, UShort] = _.toUShort
-  given Conversion[UByte, UInt] = _.toUInt
-  given Conversion[UByte, ULong] = _.toULong
+    def toBigInt: BigInt = toLong
+  end extension
 }
 
 extension (a: Byte)
@@ -86,12 +80,8 @@ object UShort {
     def toUInt: UInt = toInt
     def toLong: Long = JShort.toUnsignedLong(a)
     def toULong: ULong = toLong
-  end extension 
-
-  given Conversion[UShort, Int] = _.toInt
-  given Conversion[UShort, Long] = _.toLong
-  given Conversion[UShort, UInt] = _.toUInt
-  given Conversion[UShort, ULong] = _.toULong
+    def toBigInt: BigInt = toLong
+  end extension
 }
 
 extension (a: Short)
@@ -135,11 +125,8 @@ object UInt {
     def toInt: Int = a
     def toLong: Long = JInt.toUnsignedLong(a)
     def toULong: ULong = toLong
-  end extension 
-
-  given Conversion[UInt, BigInt] = _.toLong
-  given Conversion[UInt, Long] = _.toLong
-  given Conversion[UInt, ULong] = _.toULong
+    def toBigInt: BigInt = toLong
+  end extension
 }
 
 extension (a: Int)
@@ -182,9 +169,8 @@ object ULong {
     def toInt: Int = a.toInt
     def toUInt: UInt = toInt
     def toLong: Long = a
-  end extension 
-
-  given Conversion[UInt, BigInt] = (((1 : BigInt) << JLong.SIZE) - 1) & _
+    def toBigInt: BigInt = (((1 : BigInt) << JLong.SIZE) - 1) & a
+  end extension
 }
 
 extension (a: Long)

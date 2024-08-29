@@ -85,19 +85,19 @@ object ESExprCodec {
     override def decode(expr: ESExpr): Either[DecodeError, Byte] =
       expr match {
         case ESExpr.Int(n) if n >= Byte.MinValue && n <= Byte.MaxValue => Right(n.toByte)
-        case _ => Left(DecodeError("Expected an int within the range of an 8-bit siged integer", ErrorPath.Current))
+        case _ => Left(DecodeError("Expected an int within the range of an 8-bit signed integer", ErrorPath.Current))
       }
   end given
 
   given ESExprCodec[UByte] with
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: UByte): ESExpr =
-      ESExpr.Int(BigInt(value))
+      ESExpr.Int(value.toBigInt)
 
     override def decode(expr: ESExpr): Either[DecodeError, UByte] =
       expr match {
-        case ESExpr.Int(n) if n >= BigInt(UByte.MinValue) && n <= BigInt(UByte.MaxValue) => Right(n.toUByte)
-        case _ => Left(DecodeError("Expected an int within the range of an 8-bit unsiged integer", ErrorPath.Current))
+        case ESExpr.Int(n) if n >= UByte.MinValue.toBigInt && n <= UByte.MaxValue.toBigInt => Right(n.toUByte)
+        case _ => Left(DecodeError("Expected an int within the range of an 8-bit unsigned integer", ErrorPath.Current))
       }
   end given
 
@@ -109,19 +109,19 @@ object ESExprCodec {
     override def decode(expr: ESExpr): Either[DecodeError, Short] =
       expr match {
         case ESExpr.Int(n) if n >= Short.MinValue && n <= Short.MaxValue => Right(n.toShort)
-        case _ => Left(DecodeError("Expected an int within the range of a 16-bit siged integer", ErrorPath.Current))
+        case _ => Left(DecodeError("Expected an int within the range of a 16-bit signed integer", ErrorPath.Current))
       }
   end given
 
   given ESExprCodec[UShort] with
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: UShort): ESExpr =
-      ESExpr.Int(BigInt(value))
+      ESExpr.Int(value.toBigInt)
 
     override def decode(expr: ESExpr): Either[DecodeError, UShort] =
       expr match {
-        case ESExpr.Int(n) if n >= BigInt(UShort.MinValue) && n <= BigInt(UShort.MaxValue) => Right(n.toUShort)
-        case _ => Left(DecodeError("Expected an int within the range of an 16-bit unsiged integer", ErrorPath.Current))
+        case ESExpr.Int(n) if n >= UShort.MinValue.toBigInt && n <= UShort.MaxValue.toBigInt => Right(n.toUShort)
+        case _ => Left(DecodeError("Expected an int within the range of an 16-bit unsigned integer", ErrorPath.Current))
       }
   end given
 
@@ -133,19 +133,19 @@ object ESExprCodec {
     override def decode(expr: ESExpr): Either[DecodeError, Int] =
       expr match {
         case ESExpr.Int(n) if n >= Int.MinValue && n <= Int.MaxValue => Right(n.toInt)
-        case _ => Left(DecodeError("Expected an int within the range of a 32-bit siged integer", ErrorPath.Current))
+        case _ => Left(DecodeError("Expected an int within the range of a 32-bit signed integer", ErrorPath.Current))
       }
   end given
 
   given ESExprCodec[UInt] with
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: UInt): ESExpr =
-      ESExpr.Int(value)
+      ESExpr.Int(value.toBigInt)
 
     override def decode(expr: ESExpr): Either[DecodeError, UInt] =
       expr match {
-        case ESExpr.Int(n) if n >= UInt.MinValue && n <= UInt.MaxValue => Right(n.toUInt)
-        case _ => Left(DecodeError("Expected an int within the range of an 16-bit unsiged integer", ErrorPath.Current))
+        case ESExpr.Int(n) if n >= UInt.MinValue.toBigInt && n <= UInt.MaxValue.toBigInt => Right(n.toUInt)
+        case _ => Left(DecodeError("Expected an int within the range of an 16-bit unsigned integer", ErrorPath.Current))
       }
   end given
 
@@ -157,7 +157,19 @@ object ESExprCodec {
     override def decode(expr: ESExpr): Either[DecodeError, Long] =
       expr match {
         case ESExpr.Int(n) if n >= Long.MinValue && n <= Long.MaxValue => Right(n.toLong)
-        case _ => Left(DecodeError("Expected an int within the range of a 64-bit siged integer", ErrorPath.Current))
+        case _ => Left(DecodeError("Expected an int within the range of a 64-bit signed integer", ErrorPath.Current))
+      }
+  end given
+
+  given ESExprCodec[ULong] with
+    override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
+    override def encode(value: ULong): ESExpr =
+      ESExpr.Int(value.toBigInt)
+
+    override def decode(expr: ESExpr): Either[DecodeError, ULong] =
+      expr match {
+        case ESExpr.Int(n) if n >= ULong.MinValue.toBigInt && n <= ULong.MaxValue.toBigInt => Right(n.toULong)
+        case _ => Left(DecodeError("Expected an int within the range of a 64-bit unsigned integer", ErrorPath.Current))
       }
   end given
 
