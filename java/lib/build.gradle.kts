@@ -4,8 +4,8 @@ plugins {
     signing
 }
 
-group = "dev.argon"
-version = "0.1.1-SNAPSHOT"
+group = "dev.argon.esexpr"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -30,8 +30,6 @@ java {
 
     withSourcesJar()
     withJavadocJar()
-
-    
 }
 
 publishing {
@@ -39,6 +37,37 @@ publishing {
         create<MavenPublication>("mavenJava") {
             artifactId = "esexpr-java-runtime"
             from(components["java"])
+
+            pom {
+                name = "ESExpr Runtime"
+                description = "ESExpr runtime library"
+                url = "https://github.com/argon-lang/esexpr"
+                licenses {
+                    license {
+                        name = "GNU Lesser General Public License, Version 3"
+                        url = "https://www.gnu.org/licenses/lgpl-3.0.en.html"
+                    }
+                }
+                developers {
+                    developer {
+                        name = "argon-dev"
+                        email = "argon@argon.dev"
+                        organization = "argon-lang"
+                        organizationUrl = "https://argon.dev"
+                    }
+                }
+                scm {
+                    connection = "scm:git:git@github.com:argon-lang/esexpr.git"
+                    developerConnection = "scm:git:git@github.com:argon-lang/esexpr.git"
+                    url = "https://github.com/argon-lang/esexpr/tree/master/java"
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url = uri(layout.buildDirectory.dir("repo"))
         }
     }
 }
