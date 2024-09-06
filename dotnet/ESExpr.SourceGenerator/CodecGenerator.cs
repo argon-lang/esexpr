@@ -476,30 +476,74 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 						new object?[] {}
 					));
 				}
-				
-				var encodedExpr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						GetCodecExpr(propType),
-						IdentifierName("Encode")
-					),
-					ArgumentList(SeparatedList([
-						Argument(propertyValue),
-					]))
-				);
 
-				var expr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						IdentifierName("args"),
-						IdentifierName("Add")
-					),
-					ArgumentList(SeparatedList([
-						Argument(encodedExpr),
-					]))
-				);
+				if(IsOptional(prop)) {
+					var encodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetOptionalCodecExpr(propType),
+							IdentifierName("EncodeOptional")
+						),
+						ArgumentList(SeparatedList([
+							Argument(propertyValue),
+						]))
+					);
+
+					
+					var condition = IsPatternExpression(
+						encodedExpr,
+						RecursivePattern()
+							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
+							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
+					);
+					
+					var ifStatement = IfStatement(
+						condition,
+						Block(
+							ExpressionStatement(InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									IdentifierName("args"),
+									IdentifierName("Add")
+								),
+								ArgumentList(SeparatedList(new[] {
+									Argument(
+										IdentifierName("encodedExpr")
+									),
+								}))
+							))
+						)
+					);
+					
+					stmts.Add(Block(
+						ifStatement	
+					));
+				}
+				else {
+					var encodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(propType),
+							IdentifierName("Encode")
+						),
+						ArgumentList(SeparatedList([
+							Argument(propertyValue),
+						]))
+					);
+
+					var expr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							IdentifierName("args"),
+							IdentifierName("Add")
+						),
+						ArgumentList(SeparatedList([
+							Argument(encodedExpr),
+						]))
+					);
 			
-				stmts.Add(ExpressionStatement(expr));
+					stmts.Add(ExpressionStatement(expr));
+				}
 			}
 		}
 		
@@ -793,7 +837,6 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				stmts.Add(clearStatement);
 			}
 			else {
-				var codecExpr = GetCodecExpr(propType);
 				
 				
 				var ifCondition = BinaryExpression(
@@ -804,35 +847,6 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 						IdentifierName("Count")),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
 				);
-				var throwStatement = ThrowStatement(
-					ObjectCreationExpression(
-							QualifiedName(
-								QualifiedName(
-									AliasQualifiedName(
-										IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-										IdentifierName("ESExpr")),
-									IdentifierName("Runtime")),
-								IdentifierName("DecodeException")))
-						.WithArgumentList(
-							ArgumentList(SeparatedList(new[] {
-								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Not enough arguments"))),
-								Argument(
-									InvocationExpression(
-											MemberAccessExpression(
-												SyntaxKind.SimpleMemberAccessExpression,
-												IdentifierName("path"),
-												IdentifierName("WithConstructor"))
-										)
-										.WithArgumentList(
-											ArgumentList(SingletonSeparatedList(
-												Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))))))
-								),
-							}))
-						)
-				);
-				
-				var ifStatement = IfStatement(ifCondition, Block(throwStatement));
-				stmts.Add(ifStatement);
 
 				var exprExpr =
 					ElementAccessExpression(IdentifierName("args"))
@@ -841,7 +855,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 								Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)))
 							))
 						);
-
+				
 				var pathExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -853,31 +867,6 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 						Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))),
 					]))
 				);
-
-				var decodedExpr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						codecExpr,
-						IdentifierName("Decode")
-					),
-					ArgumentList(SeparatedList([
-						Argument(exprExpr),
-						Argument(pathExpr),
-					]))
-				);
-			
-				stmts.Add(LocalDeclarationStatement(
-					VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
-						.WithVariables(
-							SingletonSeparatedList(
-								VariableDeclarator(Identifier(localName))
-									.WithInitializer(
-										EqualsValueClause(decodedExpr)
-									)
-							)
-						)
-				));
-			
 				
 				// args = args.Slice(1);
 				var sliceStatement = ExpressionStatement(
@@ -894,9 +883,108 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 									Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)))
 								))
 							)
-						)
+					)
 				);
-				stmts.Add(sliceStatement);
+
+				if(IsOptional(prop)) {
+					ExpressionSyntax DecodeOptionalExpr(ExpressionSyntax expr) =>
+						AssignmentExpression(
+							SyntaxKind.SimpleAssignmentExpression,
+							IdentifierName(localName),
+							InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									GetOptionalCodecExpr(propType),
+									IdentifierName("DecodeOptional")
+								),
+								ArgumentList(SeparatedList([
+									Argument(expr),
+									Argument(pathExpr),
+								]))
+							)
+						);
+
+					stmts.Add(LocalDeclarationStatement(
+						VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+							.WithVariables(
+								SingletonSeparatedList(
+									VariableDeclarator(Identifier(localName))
+								)
+							)
+					));
+					
+					
+					var ifStatement = IfStatement(
+						ifCondition,
+						Block(
+							ExpressionStatement(DecodeOptionalExpr(LiteralExpression(SyntaxKind.NullLiteralExpression)))
+						),
+						ElseClause(Block(
+							ExpressionStatement(DecodeOptionalExpr(exprExpr)),
+							sliceStatement
+						))
+					);
+					stmts.Add(ifStatement);
+				}
+				else {
+					var codecExpr = GetCodecExpr(propType);
+					
+					var throwStatement = ThrowStatement(
+						ObjectCreationExpression(
+								QualifiedName(
+									QualifiedName(
+										AliasQualifiedName(
+											IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+											IdentifierName("ESExpr")),
+										IdentifierName("Runtime")),
+									IdentifierName("DecodeException")))
+							.WithArgumentList(
+								ArgumentList(SeparatedList(new[] {
+									Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Not enough arguments"))),
+									Argument(
+										InvocationExpression(
+												MemberAccessExpression(
+													SyntaxKind.SimpleMemberAccessExpression,
+													IdentifierName("path"),
+													IdentifierName("WithConstructor"))
+											)
+											.WithArgumentList(
+												ArgumentList(SingletonSeparatedList(
+													Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))))))
+									),
+								}))
+							)
+					);
+					
+					var ifStatement = IfStatement(ifCondition, Block(throwStatement));
+					stmts.Add(ifStatement);
+
+					var decodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							codecExpr,
+							IdentifierName("Decode")
+						),
+						ArgumentList(SeparatedList([
+							Argument(exprExpr),
+							Argument(pathExpr),
+						]))
+					);
+			
+					stmts.Add(LocalDeclarationStatement(
+						VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+							.WithVariables(
+								SingletonSeparatedList(
+									VariableDeclarator(Identifier(localName))
+										.WithInitializer(
+											EqualsValueClause(decodedExpr)
+										)
+								)
+							)
+					));
+					stmts.Add(sliceStatement);
+				}
+				
 			}
 			
 				
@@ -1056,16 +1144,15 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 
 		var parentNS = NameFromNamespaceNodes(ns.Parent);
 
+		if(parentNS is null) {
+			return ns.Name;
+		}
+
 		return MergeNames(parentNS, ns.Name);
 	}
 
-	protected static NameSyntax MergeNames(NameSyntax? a, NameSyntax b) {
-		if(a == null) {
-			return b;
-		}
-
+	protected static NameSyntax MergeNames(NameSyntax a, NameSyntax b) {
 		return b switch {
-			null => a,
 			QualifiedNameSyntax qb => QualifiedName(
 				MergeNames(a, qb.Left),
 				qb.Right

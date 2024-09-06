@@ -14,6 +14,8 @@ public struct Option<T> : IEquatable<Option<T>> {
 	
 	private bool hasValue;
 	private T value;
+	
+	public bool IsSome => hasValue;
 
 	public bool TryGetValue([MaybeNullWhen(false)] out T value) {
 		value = hasValue ? this.value : default;

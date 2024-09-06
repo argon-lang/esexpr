@@ -17,6 +17,11 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 
 	private readonly IImmutableList<T>? list;
 	
+	
+	public static VList<T> Empty => default;
+	
+	
+	
 	public IImmutableList<T> ImmutableList => list ?? ImmutableList<T>.Empty;
 
 
@@ -79,7 +84,7 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 			this.itemCodec = itemCodec;
 		}
 
-		private const string ListConstructor = "list";
+		internal const string ListConstructor = "list";
 	
 		private readonly IESExprCodec<T> itemCodec;
 
