@@ -19,7 +19,7 @@ trait ESExprObjectPlatformSpecific {
       case expr: JESExpr.Binary => ESExpr.Binary(IArray(expr.b.nn*))
       case expr: JESExpr.Float32 => ESExpr.Float32(expr.f)
       case expr: JESExpr.Float64 => ESExpr.Float64(expr.d)
-      case expr: JESExpr.Null => ESExpr.Null
+      case expr: JESExpr.Null => ESExpr.Null(expr.level().nn)
       case _ => throw new MatchError(expr)
     }
 
@@ -38,7 +38,7 @@ trait ESExprObjectPlatformSpecific {
       case ESExpr.Binary(b) => JESExpr.Binary(IArray.genericWrapArray(b).toArray)
       case ESExpr.Float32(f) => JESExpr.Float32(f)
       case ESExpr.Float64(d) => JESExpr.Float64(d)
-      case ESExpr.Null => JESExpr.Null()
+      case ESExpr.Null(level) => JESExpr.Null(level.bigInteger)
     }
     
 }

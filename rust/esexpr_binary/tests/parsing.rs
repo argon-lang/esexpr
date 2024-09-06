@@ -59,3 +59,8 @@ fn parse_float32() {
 fn parse_float64() {
     parse_test("float64");
 }
+
+#[test]
+fn parse_null() {
+    parse_test("null");
+}

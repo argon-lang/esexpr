@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use esexpr::ESExpr;
 use hexfloat2::{HexFloat32, HexFloat64};
@@ -11,7 +11,7 @@ use nom::{
     multi::many0,
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
 };
-use num_bigint::{BigInt, Sign};
+use num_bigint::{BigInt, BigUint, Sign};
 
 
 
@@ -241,6 +241,18 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
     ))(input)
 }
 
+fn null_atom(input: &str) -> IResult<&str, ESExpr> {
+    map(
+        tuple((
+            multispace0,
+            tag("#null"),
+            digit1,
+            not(alphanumeric1)
+        )),
+        |(_, _, n, _)| ESExpr::Null(BigUint::from_str(n).unwrap())
+    )(input)
+}
+
 fn atom(expr: ESExpr, s: &'static str) -> impl Fn(&str) -> IResult<&str, ESExpr> {
     move |input| {
         value(
@@ -260,7 +272,8 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr> {
         map(string, ESExpr::Str),
         atom(ESExpr::Bool(true), "#true"),
         atom(ESExpr::Bool(false), "#false"),
-        atom(ESExpr::Null, "#null"),
+        null_atom,
+        atom(ESExpr::Null(BigUint::ZERO), "#null"),
         constructor,
     ))(input)
 }

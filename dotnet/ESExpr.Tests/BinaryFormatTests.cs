@@ -31,7 +31,7 @@ public class BinaryFormatTests : TestBase {
 			JsonValueKind.True => new Expr.Bool(true),
 			JsonValueKind.False => new Expr.Bool(false),
 			JsonValueKind.String => new Expr.Str(elem.GetString()!),
-			JsonValueKind.Null => new Expr.Null(),
+			JsonValueKind.Null => new Expr.Null(0),
 			JsonValueKind.Array => new Expr.Constructor(
 				"list",
 				elem.EnumerateArray().Select(DecodeJson).ToImmutableList(),
@@ -48,6 +48,9 @@ public class BinaryFormatTests : TestBase {
 			
 			JsonValueKind.Object when elem.TryGetProperty("float64", out var float64Value) =>
 				new Expr.Float64(float64Value.GetDouble()),
+			
+			JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
+				new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
 			
 			_ => throw new ArgumentException(nameof(elem)),
 		};

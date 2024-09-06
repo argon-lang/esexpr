@@ -102,8 +102,20 @@ public class ESExprBinaryWriter {
 				}
 			}
 
-			case ESExpr.Null() -> {
-				writeToken(BinToken.Fixed.NULL);
+			case ESExpr.Null(var level) -> {
+				if(level.equals(BigInteger.ZERO)) {
+					writeToken(BinToken.Fixed.NULL0);
+				}
+				else if(level.equals(BigInteger.ONE)) {
+					writeToken(BinToken.Fixed.NULL1);
+				}
+				else if(level.equals(BigInteger.valueOf(2))) {
+					writeToken(BinToken.Fixed.NULL2);
+				}
+				else {
+					writeToken(BinToken.Fixed.NULLN);
+					writeInt(level.subtract(BigInteger.valueOf(3)));
+				}
 			}
 		}
 	}
@@ -138,11 +150,14 @@ public class ESExprBinaryWriter {
 					case CONSTRUCTOR_END -> 0xE0;
 					case TRUE -> 0xE1;
 					case FALSE -> 0xE2;
-					case NULL -> 0xE3;
+					case NULL0 -> 0xE3;
 					case FLOAT32 -> 0xE4;
 					case FLOAT64 -> 0xE5;
 					case CONSTRUCTOR_START_STRING_TABLE -> 0xE6;
 					case CONSTRUCTOR_START_LIST -> 0xE7;
+					case NULL1 -> 0xE8;
+					case NULL2 -> 0xE9;
+					case NULLN -> 0xEA;
 				};
 				os.write(b);
 			}

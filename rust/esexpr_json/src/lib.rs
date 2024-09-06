@@ -1,6 +1,6 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
 use esexpr::{ESExpr, ESExprCodec};
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint};
 
 
 
@@ -91,6 +91,9 @@ pub enum JsonEncodedESExpr {
         float64: f64,
     },
     Null(()),
+    NullLevel {
+        null: JsonBigIntValue,
+    },
 
 }
 
@@ -119,7 +122,8 @@ impl JsonEncodedESExpr {
             ESExpr::Binary(b) => JsonEncodedESExpr::Binary { base64: Base64Value(b) },
             ESExpr::Float32(float32) => JsonEncodedESExpr::Float32 { float32 },
             ESExpr::Float64(float64) => JsonEncodedESExpr::Float64 { float64 },
-            ESExpr::Null => JsonEncodedESExpr::Null(()),
+            ESExpr::Null(level) if level == BigUint::ZERO => JsonEncodedESExpr::Null(()),
+            ESExpr::Null(level) => JsonEncodedESExpr::NullLevel { null: JsonBigIntValue(level.into()) },
         }
     } 
 
@@ -150,7 +154,8 @@ impl JsonEncodedESExpr {
             JsonEncodedESExpr::Binary { base64 } => ESExpr::Binary(base64.0),
             JsonEncodedESExpr::Float32 { float32 } => ESExpr::Float32(float32),
             JsonEncodedESExpr::Float64 { float64 } => ESExpr::Float64(float64),
-            JsonEncodedESExpr::Null(_) => ESExpr::Null,
+            JsonEncodedESExpr::Null(_) => ESExpr::Null(BigUint::ZERO),
+            JsonEncodedESExpr::NullLevel { null } => ESExpr::Null(null.0.to_biguint().unwrap())
         }
     } 
 }
@@ -220,3 +225,4 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
         Ok(Base64Value(bytes))
     }
 }
+

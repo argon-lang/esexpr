@@ -1,3 +1,5 @@
+use num_bigint::BigUint;
+
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 struct ConstructorName123Conversion {
@@ -301,7 +303,7 @@ fn keyword_args() {
         kwargs: HashMap::from([
             ("a".to_owned(), ESExpr::Bool(true)),
             ("b2".to_owned(), ESExpr::Bool(true)),
-            ("f".to_owned(), ESExpr::Null),
+            ("f".to_owned(), ESExpr::Null(BigUint::ZERO)),
         ]),
     };
 

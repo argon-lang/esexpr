@@ -9,6 +9,7 @@ export type ESExpr =
     | ESExpr.Float32
     | number
     | null
+    | ESExpr.NestedNull
 ;
 
 
@@ -42,6 +43,9 @@ export namespace ESExpr {
 
                     case "float32":
                         return Math;
+
+                    case "null":
+                        return null;
                 }
         }
     }
@@ -54,6 +58,10 @@ export namespace ESExpr {
         return typeof e === "object" && e !== null && "type" in e && e.type === "float32";
     }
 
+    export function isNestedNull(e: ESExpr): e is ESExpr.NestedNull {
+        return typeof e === "object" && e !== null && "type" in e && e.type === "null";
+    }
+
     export interface Constructor {
         readonly type: "constructor";
         readonly name: string;
@@ -64,6 +72,11 @@ export namespace ESExpr {
     export interface Float32 {
         readonly type: "float32";
         readonly value: number;
+    }
+
+    export interface NestedNull {
+        readonly type: "null";
+        readonly level: bigint;
     }
 
     export const codec: ESExprCodec<ESExpr> = {
@@ -435,7 +448,16 @@ class OptionCodec<T> implements ESExprCodec<{ readonly value: T } | null> {
             return null;
         }
         else {
-            return this.#itemCodec.encode(value.value);
+            const result = this.#itemCodec.encode(value.value);
+            if(result === null) {
+                return { type: "null", level: 1n };
+            }
+            else if(ESExpr.isNestedNull(result)) {
+                return { type: "null", level: result.level + 1n };
+            }
+            else {
+                return result;
+            }
         }
     }
 
@@ -444,7 +466,20 @@ class OptionCodec<T> implements ESExprCodec<{ readonly value: T } | null> {
             return { success: true, value: null };
         }
         else {
-            const value = this.#itemCodec.decode(expr);
+            let expr2: ESExpr;
+            if(ESExpr.isNestedNull(expr)) {
+                if(expr.level > 0n) {
+                    expr2 = null;
+                }
+                else {
+                    expr2 = { type: "null", level: expr.level - 1n };
+                }
+            }
+            else {
+                expr2 = expr;
+            }
+
+            const value = this.#itemCodec.decode(expr2);
             if(!value.success) {
                 return value;
             }

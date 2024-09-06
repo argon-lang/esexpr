@@ -21,6 +21,6 @@ object ESExprTag {
       case ESExpr.Binary(_) => Binary
       case ESExpr.Float32(_) => Float32
       case ESExpr.Float64(_) => Float64
-      case ESExpr.Null => Null
+      case ESExpr.Null(_) => Null
     }
 }

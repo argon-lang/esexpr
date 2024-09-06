@@ -109,8 +109,20 @@ public class ESExprBinaryWriter {
 				break;
 			}
 			
-			case Expr.Null:
-				await WriteToken(new BinToken(BinToken.TokenType.Null, null), cancellationToken).ConfigureAwait(false);
+			case Expr.Null(var level):
+				if(level == 0) {
+					await WriteToken(new BinToken(BinToken.TokenType.Null0, null), cancellationToken).ConfigureAwait(false);
+				}
+				else if(level == 1) {
+					await WriteToken(new BinToken(BinToken.TokenType.Null1, null), cancellationToken).ConfigureAwait(false);
+				}
+				else if(level == 2) {
+					await WriteToken(new BinToken(BinToken.TokenType.Null2, null), cancellationToken).ConfigureAwait(false);
+				}
+				else {
+					await WriteToken(new BinToken(BinToken.TokenType.NullN, null), cancellationToken).ConfigureAwait(false);
+					await WriteInt(level - 3, cancellationToken).ConfigureAwait(false);
+				}
 				break;
 				
 			default:
@@ -139,11 +151,14 @@ public class ESExprBinaryWriter {
 			BinToken.TokenType.ConstructorEnd => 0xE0,
 			BinToken.TokenType.True => 0xE1,
 			BinToken.TokenType.False => 0xE2,
-			BinToken.TokenType.Null => 0xE3,
+			BinToken.TokenType.Null0 => 0xE3,
 			BinToken.TokenType.Float32 => 0xE4,
 			BinToken.TokenType.Float64 => 0xE5,
 			BinToken.TokenType.ConstructorStartStringTable => 0xE6,
 			BinToken.TokenType.ConstructorStartList => 0xE7,
+			BinToken.TokenType.Null1 => 0xE8,
+			BinToken.TokenType.Null2 => 0xE9,
+			BinToken.TokenType.NullN => 0xEA,
 			_ => throw new InvalidOperationException(),
 		};
 

@@ -14,7 +14,7 @@ trait ESExprObjectPlatformSpecific {
       case "bigint" => ESExpr.Int(BigInt(expr.asInstanceOf[js.BigInt].toString))
       case "string" => ESExpr.Str(expr.asInstanceOf[String])
       case "number" => ESExpr.Float64(expr.asInstanceOf[Double])
-      case "object" if expr.asInstanceOf[AnyRef | Null] eq null => ESExpr.Null
+      case "object" if expr.asInstanceOf[AnyRef | Null] eq null => ESExpr.Null(0)
       case "object" =>
         expr match {
           case expr: Uint8Array =>
@@ -35,6 +35,10 @@ trait ESExprObjectPlatformSpecific {
                 val f32 = expr.asInstanceOf[JSESExpr.Float32]
                 ESExpr.Float32(f32.value)
 
+              case "null" =>
+                val nestedNull = expr.asInstanceOf[JSESExpr.NestedNull]
+                ESExpr.Null(BigInt(nestedNull.level.toString))
+
               case _ => throw new MatchError(expr)
             }
         }
@@ -46,10 +50,10 @@ trait ESExprObjectPlatformSpecific {
     expr match {
       case expr: ESExpr.Constructor =>
         new JSESExpr.Constructor {
-          val `type`: "constructor" = "constructor"
-          val name: String = expr.constructor
-          val args: js.Array[JSESExpr] = expr.args.map(toJS).toJSArray
-          val kwargs: js.Map[String, JSESExpr] = js.Map(expr.kwargs.view.mapValues(toJS).toSeq*)
+          override val `type`: "constructor" = "constructor"
+          override val name: String = expr.constructor
+          override val args: js.Array[JSESExpr] = expr.args.map(toJS).toJSArray
+          override val kwargs: js.Map[String, JSESExpr] = js.Map(expr.kwargs.view.mapValues(toJS).toSeq*)
         }
 
       case ESExpr.Bool(b) => b
@@ -61,12 +65,17 @@ trait ESExprObjectPlatformSpecific {
         
       case ESExpr.Float32(f) =>
         new JSESExpr.Float32 {
-          val `type`: "float32" = "float32"
-          val value: Float = f
+          override val `type`: "float32" = "float32"
+          override val value: Float = f
         }
 
       case ESExpr.Float64(d) => d
-      case ESExpr.Null => null
+      case ESExpr.Null(0) => null
+      case ESExpr.Null(levelValue) =>
+        new JSESExpr.NestedNull {
+          override val `type`: "null" = "null"
+          override val level: js.BigInt = js.BigInt(levelValue.toString)
+        }
     }
 
 }

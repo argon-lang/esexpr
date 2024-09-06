@@ -58,7 +58,7 @@ enum ExprToken {
     Float32Value(f32),
     Float64Value(f64),
     BooleanValue(bool),
-    NullValue,
+    NullValue(BigUint),
 }
 
 
@@ -74,11 +74,14 @@ const TAG_VARINT_KEYWORD: u8 = 0xC0;
 const TAG_CONSTRUCTOR_END: u8 = 0xE0;
 const TAG_TRUE: u8 = 0xE1;
 const TAG_FALSE: u8 = 0xE2;
-const TAG_NULL: u8 = 0xE3;
+const TAG_NULL0: u8 = 0xE3;
 const TAG_FLOAT32: u8 = 0xE4;
 const TAG_FLOAT64: u8 = 0xE5;
 const TAG_CONSTRUCTOR_START_STRING_TABLE: u8 = 0xE6;
 const TAG_CONSTRUCTOR_START_LIST: u8 = 0xE7;
+const TAG_NULL1: u8 = 0xE8;
+const TAG_NULL2: u8 = 0xE9;
+const TAG_NULLN: u8 = 0xEA;
 
 
 
@@ -109,7 +112,13 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
                 TAG_CONSTRUCTOR_END => ExprToken::ConstructorEnd,
                 TAG_TRUE => ExprToken::BooleanValue(true),
                 TAG_FALSE => ExprToken::BooleanValue(false),
-                TAG_NULL => ExprToken::NullValue,
+                TAG_NULL0 => ExprToken::NullValue(BigUint::ZERO),
+                TAG_NULL1 => ExprToken::NullValue(BigUint::from(1u32)),
+                TAG_NULL2 => ExprToken::NullValue(BigUint::from(2u32)),
+                TAG_NULLN => {
+                    let n = read_int_full(reader)?;
+                    ExprToken::NullValue(n + 3u32)
+                },
                 TAG_FLOAT32 => {
                     let buffer: [u8; 4] = read_bytes(reader)?;
                     ExprToken::Float32Value(f32::from_le_bytes(buffer))
@@ -167,10 +176,22 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
 }
 
 fn read_int<R: Read>(reader: &mut TokenReader<R>, initial: u8) -> Result<BigUint, ParseError> {
-    let mut current = initial & 0x0F;
-    let mut bit_offset = 4;
-    let mut has_next = (initial & 0x10) == 0x10;
+    let current = initial & 0x0F;
+    let bit_offset = 4;
+    let has_next = (initial & 0x10) == 0x10;
 
+    read_int_rest(reader, current, bit_offset, has_next)
+}
+
+fn read_int_full<R: Read>(reader: &mut TokenReader<R>) -> Result<BigUint, ParseError> {
+    let current = 0;
+    let bit_offset = 0;
+    let has_next = true;
+
+    read_int_rest(reader, current, bit_offset, has_next)
+}
+
+fn read_int_rest<R: Read>(reader: &mut TokenReader<R>, mut current: u8, mut bit_offset: i32, mut has_next: bool) -> Result<BigUint, ParseError> {
     let mut buffer = Vec::new();
 
     while has_next {
@@ -199,6 +220,8 @@ fn read_int<R: Read>(reader: &mut TokenReader<R>, initial: u8) -> Result<BigUint
     
     Ok(BigUint::from_bytes_le(&buffer))
 }
+
+
 
 fn read_bytes<R: Read, const N: usize>(reader: &mut TokenReader<R>) -> Result<[u8; N], std::io::Error> {
     let mut b: [u8; N] = [0; N];
@@ -255,7 +278,7 @@ impl <'a, S: AsRef<str>, I: Iterator<Item=Result<ExprToken, ParseError>>> ExprPa
             ExprToken::Float32Value(f) => Ok(ESExpr::Float32(f)),
             ExprToken::Float64Value(d) => Ok(ESExpr::Float64(d)),
             ExprToken::BooleanValue(b) => Ok(ESExpr::Bool(b)),
-            ExprToken::NullValue => Ok(ESExpr::Null),
+            ExprToken::NullValue(level) => Ok(ESExpr::Null(level)),
         }
     }
 
@@ -401,8 +424,20 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
                 self.write(TAG_FLOAT64)?;
                 self.out.write_all(&f64::to_le_bytes(*d))?;
             },
-            ESExpr::Null => {
-                self.write(TAG_NULL)?;
+            ESExpr::Null(level) => {
+                if *level == BigUint::ZERO {
+                    self.write(TAG_NULL0)?;
+                }
+                else if *level == BigUint::from(1u32) {
+                    self.write(TAG_NULL1)?;
+                }
+                else if *level == BigUint::from(2u32) {
+                    self.write(TAG_NULL2)?;
+                }
+                else {
+                    self.write(TAG_NULLN)?;
+                    self.write_int_full(&(level - 3u32))?;
+                }
             },
         }
 
@@ -427,9 +462,26 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
         self.write(current)?;
 
         current = b0 >> 4;
-        let mut bit_index = 4;
+        let bit_index = 4;
 
-        for (i, b) in buff.iter().copied().enumerate().skip(1) {            
+        self.write_int_rest(&buff[1..], current, bit_index)
+    }
+
+    fn write_int_full(&mut self, i: &BigUint) -> Result<(), GeneratorError> {
+        if *i == BigUint::ZERO {
+            self.write(0)?;
+            return Ok(());
+        }
+
+        let buff = i.to_bytes_le();
+        let current = 0;
+        let bit_index = 0;
+
+        self.write_int_rest(&buff, current, bit_index)
+    }
+
+    fn write_int_rest(&mut self, buff: &[u8], mut current: u8, mut bit_index: i32) -> Result<(), GeneratorError> {
+        for (i, b) in buff.iter().copied().enumerate() {            
             let mut bit_index2 = 0;
             while bit_index2 < 8 {
                 let written_bits = std::cmp::min(7 - bit_index, 8 - bit_index2);

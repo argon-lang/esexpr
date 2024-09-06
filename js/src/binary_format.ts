@@ -17,7 +17,7 @@ type Token =
     | { type: "float32_value", value: number }
     | { type: "float64_value", value: number }
     | { type: "boolean_value", value: boolean }
-    | { type: "null_value" }
+    | { type: "null_value", level: bigint }
 ;
 
 const TAG_VARINT_MASK = 0xE0;
@@ -33,11 +33,14 @@ const TAG_VARINT_KEYWORD = 0xC0;
 const TAG_CONSTRUCTOR_END = 0xE0;
 const TAG_TRUE = 0xE1;
 const TAG_FALSE = 0xE2;
-const TAG_NULL = 0xE3;
+const TAG_NULL0 = 0xE3;
 const TAG_FLOAT32 = 0xE4;
 const TAG_FLOAT64 = 0xE5;
 const TAG_CONSTRUCTOR_START_STRING_TABLE = 0xE6;
 const TAG_CONSTRUCTOR_START_LIST = 0xE7;
+const TAG_NULL1 = 0xE8;
+const TAG_NULL2 = 0xE9;
+const TAG_NULLN = 0xEA;
 
 
 
@@ -141,9 +144,24 @@ async function* getTokens(reader: ByteReader): AsyncIterable<Token> {
                     yield { type: "boolean_value", value: false };
                     break;
 
-                case TAG_NULL:
-                    yield { type: "null_value" };
+                case TAG_NULL0:
+                    yield { type: "null_value", level: 0n };
                     break;
+
+                case TAG_NULL1:
+                    yield { type: "null_value", level: 1n };
+                    break;
+
+                case TAG_NULL2:
+                    yield { type: "null_value", level: 2n };
+                    break;
+
+                case TAG_NULLN:
+                {
+                    const level = await readIntFull(reader);
+                    yield { type: "null_value", level: level + 3n };
+                    break;
+                }
 
 
                 case TAG_FLOAT32:
@@ -215,13 +233,25 @@ async function* getTokens(reader: ByteReader): AsyncIterable<Token> {
     }
 }
 
-async function readInt(reader: ByteReader, b: number): Promise<bigint> {
+function readInt(reader: ByteReader, b: number): Promise<bigint> {
     let n = BigInt(b & 0x0F);
     let bitOffset = 4n;
     let hasNext = (b & 0x10) == 0x10;
 
+    return readIntRest(reader, n, bitOffset, hasNext)
+}
+
+function readIntFull(reader: ByteReader): Promise<bigint> {
+    let n = 0n;
+    let bitOffset = 0n;
+    let hasNext = true;
+
+    return readIntRest(reader, n, bitOffset, hasNext)
+}
+
+async function readIntRest(reader: ByteReader, n: bigint, bitOffset: bigint, hasNext: boolean): Promise<bigint> {
     while(hasNext) {
-        b = await reader.readByte();
+        const b = await reader.readByte();
         n |= BigInt(b & 0x7F) << bitOffset;
         bitOffset += 7n;
         hasNext = (b & 0x80) == 0x80;
@@ -400,8 +430,16 @@ async function* writeInt(tag: number, value: bigint): AsyncIterable<Uint8Array> 
 
     yield writeByte(tag | (hasNext ? 0x10 : 0x00) | bits);
 
+    yield* writeIntRest(value, hasNext);
+}
+
+async function* writeIntFull(value: bigint): AsyncIterable<Uint8Array> {
+    yield* writeIntRest(value, true);
+}
+
+async function* writeIntRest(value: bigint, hasNext: boolean): AsyncIterable<Uint8Array> {
     while(hasNext) {
-        bits = Number(value & 0x7Fn);
+        const bits = Number(value & 0x7Fn);
         value >>= 7n;
         hasNext = value > 0;
 
@@ -443,7 +481,7 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 
         case "object":
             if(e === null) {
-                yield writeByte(TAG_NULL);
+                yield writeByte(TAG_NULL0);
             }
             else if(e instanceof Uint8Array) {
                 yield* writeInt(TAG_VARINT_BYTES_LENGTH, BigInt(e.length));
@@ -489,6 +527,20 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                         new Float32Array(data, data.byteOffset, 1)[0] = e.value;
                         yield data;
                         break;   
+                    }
+
+                    case "null":
+                    {
+                        if(e.level === 1n) {
+                            yield writeByte(TAG_NULL1);
+                        }
+                        else if(e.level === 2n) {
+                            yield writeByte(TAG_NULL2);
+                        }
+                        else {
+                            yield writeByte(TAG_NULLN);
+                            yield* writeIntFull(e.level - 3n);
+                        }
                     }
                 }
             }

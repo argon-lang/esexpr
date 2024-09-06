@@ -120,8 +120,21 @@ public class ESExprBinaryReader {
 			case BinToken.TokenType.Binary:
 				return new Expr.Binary(await ReadBytes(token.IntValue ?? throw new SyntaxException()));
 			
-			case BinToken.TokenType.Null:
-				return new Expr.Null();
+			case BinToken.TokenType.Null0:
+				return new Expr.Null(0);
+			
+			case BinToken.TokenType.Null1:
+				return new Expr.Null(1);
+			
+			case BinToken.TokenType.Null2:
+				return new Expr.Null(2);
+
+			case BinToken.TokenType.NullN:
+			{
+				var level = await ReadInt(0, 0, cancellationToken).ConfigureAwait(false);
+				return new Expr.Null(level + 3);	
+			}
+				
 			
 			case BinToken.TokenType.True:
 				return new Expr.Bool(true);
@@ -236,11 +249,14 @@ public class ESExprBinaryReader {
 				0xE0 => BinToken.TokenType.ConstructorEnd,
 				0xE1 => BinToken.TokenType.True,
 				0xE2 => BinToken.TokenType.False,
-				0xE3 => BinToken.TokenType.Null,
+				0xE3 => BinToken.TokenType.Null0,
 				0xE4 => BinToken.TokenType.Float32,
 				0xE5 => BinToken.TokenType.Float64,
 				0xE6 => BinToken.TokenType.ConstructorStartStringTable,
 				0xE7 => BinToken.TokenType.ConstructorStartList,
+				0xE8 => BinToken.TokenType.Null1,
+				0xE9 => BinToken.TokenType.Null2,
+				0xEA => BinToken.TokenType.NullN,
 				_ => throw new SyntaxException(),
 			};
 

@@ -121,11 +121,14 @@ public class ESExprBinaryReader {
 				case 0xE0 -> BinToken.Fixed.CONSTRUCTOR_END;
 				case 0xE1 -> BinToken.Fixed.TRUE;
 				case 0xE2 -> BinToken.Fixed.FALSE;
-				case 0xE3 -> BinToken.Fixed.NULL;
+				case 0xE3 -> BinToken.Fixed.NULL0;
 				case 0xE4 -> BinToken.Fixed.FLOAT32;
 				case 0xE5 -> BinToken.Fixed.FLOAT64;
 				case 0xE6 -> BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE;
 				case 0xE7 -> BinToken.Fixed.CONSTRUCTOR_START_LIST;
+				case 0xE8 -> BinToken.Fixed.NULL1;
+				case 0xE9 -> BinToken.Fixed.NULL2;
+				case 0xEA -> BinToken.Fixed.NULLN;
 				default -> throw new SyntaxException();
 			};
 		}
@@ -213,7 +216,13 @@ public class ESExprBinaryReader {
 			};
 
 			case BinToken.Fixed fixed -> switch(fixed) {
-				case NULL -> new ExprPlus.Expr(new ESExpr.Null());
+				case NULL0 -> new ExprPlus.Expr(new ESExpr.Null(BigInteger.ZERO));
+				case NULL1 -> new ExprPlus.Expr(new ESExpr.Null(BigInteger.ONE));
+				case NULL2 -> new ExprPlus.Expr(new ESExpr.Null(BigInteger.valueOf(2)));
+				case NULLN -> {
+					var n = readInt(BigInteger.ZERO, 0);
+					yield new ExprPlus.Expr(new ESExpr.Null(n.add(BigInteger.valueOf(3))));
+				}
 				case CONSTRUCTOR_END -> new ExprPlus.ConstructorEnd();
 				case TRUE -> new ExprPlus.Expr(new ESExpr.Bool(true));
 				case FALSE -> new ExprPlus.Expr(new ESExpr.Bool(false));

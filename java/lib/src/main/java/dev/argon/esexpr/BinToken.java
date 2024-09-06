@@ -38,7 +38,7 @@ sealed interface BinToken {
 	}
 
 	static enum Fixed implements BinToken {
-		NULL,
+		NULL0,
 		CONSTRUCTOR_END,
 		TRUE,
 		FALSE,
@@ -46,6 +46,9 @@ sealed interface BinToken {
 		FLOAT64,
 		CONSTRUCTOR_START_STRING_TABLE,
 		CONSTRUCTOR_START_LIST,
+		NULL1,
+		NULL2,
+		NULLN,
 	}
 
 	static final String StringTableName = "string-table";

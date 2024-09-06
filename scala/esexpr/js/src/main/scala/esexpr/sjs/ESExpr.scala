@@ -13,18 +13,24 @@ type ESExpr = ESExpr.Constructor
             | ESExpr.Float32
             | Double
             | Null
+            | ESExpr.NestedNull
 
 object ESExpr {
-    trait Constructor {
+    trait Constructor extends js.Object {
         val `type`: "constructor"
         val name: String
         val args: js.Array[ESExpr]
         val kwargs: js.Map[String, ESExpr]
     }
 
-    trait Float32 {
+    trait Float32 extends js.Object {
         val `type`: "float32"
         val value: Float
+    }
+    
+    trait NestedNull extends js.Object {
+      val `type`: "null"
+      val level: js.BigInt
     }
 }
 

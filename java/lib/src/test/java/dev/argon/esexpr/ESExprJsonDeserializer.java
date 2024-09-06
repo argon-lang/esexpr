@@ -23,12 +23,13 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 			return new ESExpr.Str(node.asText());
 		}
 		else if(node.isNull()) {
-			return new ESExpr.Null();
+			return new ESExpr.Null(BigInteger.ZERO);
 		}
 		else if(node.isArray()) {
 			List<ESExpr> l = new ArrayList<>();
 			for(var elem : node) {
-				l.add(mapper.convertValue(elem, ESExpr.class));
+				var value = mapper.convertValue(elem, ESExpr.class);
+				l.add(value == null ? new ESExpr.Null(BigInteger.ZERO) : value);
 			}
 
 			return new ESExpr.Constructor(
@@ -52,6 +53,11 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 				if(node.has("kwargs")) {
 					kwargs = mapper.convertValue(node.get("kwargs"), new TypeReference<>() {});
 				}
+				for(var entry : kwargs.entrySet()) {
+					if(entry.getValue() == null) {
+						entry.setValue(new ESExpr.Null(BigInteger.ZERO));
+					}
+				}
 
 				return new ESExpr.Constructor(name, args, kwargs);
 			}
@@ -66,6 +72,9 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 			}
 			else if(node.has("base64")) {
 				return new ESExpr.Binary(Base64.getDecoder().decode(node.get("base64").asText()));
+			}
+			else if(node.has("null")) {
+				return new ESExpr.Null(new BigInteger(node.get("null").asText()));
 			}
 		}
 

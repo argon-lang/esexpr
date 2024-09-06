@@ -47,7 +47,7 @@ public abstract record Expr {
 		public override ESExprTag Tag => new ESExprTag.Float64();
 	}
 
-	public sealed record Null() : Expr {
+	public sealed record Null(BigInteger level) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Null();
 	}
 

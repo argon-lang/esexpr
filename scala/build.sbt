@@ -59,7 +59,7 @@ lazy val compilerOptions = Seq(
 lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full).in(file("esexpr"))
   .jvmConfigure(_.settings(
     jvmSettings,
-    libraryDependencies += "dev.argon" % "esexpr-java-runtime" % "0.1.0",
+    libraryDependencies += "dev.argon" % "esexpr-java-runtime" % "0.1.1-SNAPSHOT",
   ))
   .jsConfigure(_.settings(jsSettings))
   .settings(

@@ -99,8 +99,9 @@ public sealed interface ESExpr {
 
 	/**
 	 * A null value.
+	 * @param level The level where the null lives. Used to disambiguate nesting of Optional types.
 	 */
-    public static record Null() implements ESExpr {
+    public static record Null(BigInteger level) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
 			return new ESExprTag.Null();

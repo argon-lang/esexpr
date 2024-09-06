@@ -3,6 +3,7 @@ package dev.argon.esexpr.codecs;
 import dev.argon.esexpr.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -33,13 +34,26 @@ public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 
 	@Override
 	public @NotNull ESExpr encode(@NotNull Optional<T> value) {
-		return value.map(itemCodec::encode).orElseGet(ESExpr.Null::new);
+		return value.map(x -> {
+			var res = itemCodec.encode(x);
+			if(res instanceof ESExpr.Null(var level)) {
+				return new ESExpr.Null(level.add(BigInteger.ONE));
+			}
+			else {
+				return res;
+			}
+		}).orElseGet(() -> new ESExpr.Null(BigInteger.ZERO));
 	}
 
 	@Override
 	public @NotNull Optional<T> decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
-		if(expr instanceof ESExpr.Null) {
-			return Optional.empty();
+		if(expr instanceof ESExpr.Null(var level)) {
+			if(level.signum() == 0) {
+				return Optional.empty();
+			}
+			else {
+				return Optional.of(itemCodec.decode(new ESExpr.Null(level.subtract(BigInteger.ONE))));
+			}
 		}
 		else {
 			return Optional.of(itemCodec.decode(expr));

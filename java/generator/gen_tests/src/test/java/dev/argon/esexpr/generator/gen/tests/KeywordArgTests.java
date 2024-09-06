@@ -46,7 +46,7 @@ public class KeywordArgTests extends TestBase {
 				Map.of(
 					"a", new ESExpr.Bool(false),
 					"b2", new ESExpr.Bool(false),
-					"f", new ESExpr.Null()
+					"f", new ESExpr.Null(BigInteger.ZERO)
 				)
 			),
 			new KeywordArguments(false, false, Optional.empty(), Optional.empty(), true, Optional.empty())

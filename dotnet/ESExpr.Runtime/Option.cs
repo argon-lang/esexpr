@@ -73,16 +73,27 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 		public Expr Encode(Option<T> value) {
 			if(value.TryGetValue(out var v)) {
-				return elementCodec.Encode(v);
+				var element = elementCodec.Encode(v);
+				if(element is Expr.Null(var level)) {
+					return new Expr.Null(level + 1);
+				}
+				else {
+					return element;
+				}
 			}
 			else {
-				return new Expr.Null();
+				return new Expr.Null(0);
 			}
 		}
 
 		public Option<T> Decode(Expr expr, DecodeFailurePath path) {
-			if(expr is Expr.Null) {
-				return Empty;
+			if(expr is Expr.Null(var level)) {
+				if(level > 0) {
+					return new Option<T>(elementCodec.Decode(new Expr.Null(level - 1), path));					
+				}
+				else {
+					return Empty;	
+				}
 			}
 			else {
 				return new Option<T>(elementCodec.Decode(expr, path));

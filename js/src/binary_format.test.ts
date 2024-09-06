@@ -22,6 +22,7 @@ type ESExprJson =
     | { float32: number }
     | { float64: number }
     | { base64: string }
+    | { null: bigint }
 
 function json2esexpr(json: ESExprJson): ESExpr {
     if(typeof json === "string" ||  typeof json === "boolean" || json === null) {
@@ -59,6 +60,9 @@ function json2esexpr(json: ESExprJson): ESExpr {
     }
     else if("base64" in json) {
         return Buffer.from(json.base64, "base64");
+    }
+    else if("null" in json) {
+        return { type: "null", level: json.null };
     }
     else {
         console.error(json);

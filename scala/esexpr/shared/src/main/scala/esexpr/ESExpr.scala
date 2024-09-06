@@ -8,7 +8,7 @@ enum ESExpr derives CanEqual {
   case Binary(b: IArray[Byte])
   case Float32(f: Float)
   case Float64(d: Double)
-  case Null
+  case Null(level: BigInt)
 }
 
 object ESExpr extends ESExprObjectPlatformSpecific

@@ -15,6 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,7 +44,13 @@ class BinaryEncodingTest {
 		module.addDeserializer(ESExpr.class, new ESExprJsonDeserializer());
 		mapper.registerModule(module);
 
-		return mapper.readValue(value, ESExpr.class);
+		var res = mapper.readValue(value, ESExpr.class);
+		if(res == null) {
+			return new ESExpr.Null(BigInteger.ZERO);
+		}
+		else {
+			return res;
+		}
 	}
 
 	private ESExpr parseEsxb(byte[] value) throws Exception {

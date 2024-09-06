@@ -267,11 +267,17 @@ object ESExprCodec {
     override lazy val tags: Set[ESExprTag] = summon[ESExprCodec[A]].tags + ESExprTag.Null
 
     override def encode(value: Option[A]): ESExpr =
-      value.fold(ESExpr.Null)(summon[ESExprCodec[A]].encode)
+      value.fold(ESExpr.Null(0))(a =>
+        summon[ESExprCodec[A]].encode(a) match {
+          case ESExpr.Null(level) => ESExpr.Null(level + 1)
+          case res => res
+        }
+      )
 
     override def decode(expr: ESExpr): Either[DecodeError, Option[A]] =
       expr match {
-        case ESExpr.Null => Right(None)
+        case ESExpr.Null(0) => Right(None)
+        case ESExpr.Null(level) => summon[ESExprCodec[A]].decode(ESExpr.Null(level - 1)).map(Some.apply) 
         case _ => summon[ESExprCodec[A]].decode(expr).map(Some.apply)
       }
   end given

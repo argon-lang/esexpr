@@ -6,12 +6,6 @@ use num_bigint::{BigInt, BigUint};
 
 pub use esexpr_derive::ESExprCodec;
 
-#[cfg(feature = "text-format")]
-pub mod text_format;
-
-#[cfg(feature = "binary-format")]
-pub mod binary_format;
-
 /// Representation of an ESExpr value.
 /// Must be one of a constructor, bool, int, string, binary, float32, float64, or null.
 #[derive(Debug, Clone, PartialEq)]
@@ -48,7 +42,7 @@ pub enum ESExpr {
     Float64(f64),
 
     /// A Null value.
-    Null,
+    Null(BigUint),
 }
 
 impl ESExpr {
@@ -62,7 +56,7 @@ impl ESExpr {
             ESExpr::Binary(_) => ESExprTag::Binary,
             ESExpr::Float32(_) => ESExprTag::Float32,
             ESExpr::Float64(_) => ESExprTag::Float64,
-            ESExpr::Null => ESExprTag::Null,
+            ESExpr::Null(_) => ESExprTag::Null,
         }
     } 
 }
@@ -259,12 +253,12 @@ impl ESExprCodec for () {
     }
 
     fn encode_esexpr(self) -> ESExpr {
-        ESExpr::Null
+        ESExpr::Null(BigUint::ZERO)
     }
 
     fn decode_esexpr(expr: ESExpr) -> Result<Self, DecodeError> {
         match expr {
-            ESExpr::Null => Ok(()),
+            ESExpr::Null(level) if level == BigUint::ZERO => Ok(()),
             _  => Err(DecodeError(DecodeErrorType::UnexpectedExpr { expected_tags: HashSet::from([ESExprTag::Null]), actual_tag: expr.tag() }, DecodeErrorPath::Current))
         }
     }
@@ -307,14 +301,25 @@ impl <A: ESExprCodec> ESExprCodec for Option<A> {
 
     fn encode_esexpr(self) -> ESExpr {
         match self {
-            Some(a) => a.encode_esexpr(),
-            None => ESExpr::Null,
+            Some(a) =>
+                match a.encode_esexpr() {
+                    ESExpr::Null(level) => ESExpr::Null(level + 1u32),
+                    expr => expr,
+                },
+
+            None => ESExpr::Null(BigUint::ZERO),
         }
     }
 
     fn decode_esexpr(expr: ESExpr) -> Result<Self, DecodeError> {
         match expr {
-            ESExpr::Null => Ok(None),
+            ESExpr::Null(level) =>
+                if level == BigUint::ZERO {
+                    Ok(None)
+                }
+                else {
+                    A::decode_esexpr(ESExpr::Null(level - 1u32)).map(Some)
+                },
             _ => A::decode_esexpr(expr).map(Some),
         }
     }
