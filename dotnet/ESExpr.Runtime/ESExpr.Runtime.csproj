@@ -1,9 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>12.0</LangVersion>
-    <Nullable>Enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<LangVersion>12.0</LangVersion>
+		<Nullable>Enable</Nullable>
+		<Version>0.1.0</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Title>ESExpr Runtime</Title>
+		<Description>Runtime library for the ESExpr serialization format</Description>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<RespositoryURL>https://github.com/argon-lang/esexpr</RespositoryURL>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="docs/readme.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
 
 </Project>
