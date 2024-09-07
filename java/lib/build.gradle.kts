@@ -44,8 +44,8 @@ publishing {
                 url = "https://github.com/argon-lang/esexpr"
                 licenses {
                     license {
-                        name = "GNU Lesser General Public License, Version 3"
-                        url = "https://www.gnu.org/licenses/lgpl-3.0.en.html"
+                        name = "Apache License, Version 2.0"
+                        url = "https://www.apache.org/licenses/LICENSE-2.0"
                     }
                 }
                 developers {
