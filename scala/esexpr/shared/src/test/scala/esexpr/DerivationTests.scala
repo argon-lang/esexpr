@@ -134,7 +134,7 @@ object DerivationTests extends ZIOSpecDefault {
             expr = ESExpr.Constructor("keyword-struct", Seq(), Map(
               "a" -> ESExpr.Bool(true),
               "b2" -> ESExpr.Bool(true),
-              "c2" -> ESExpr.Null,
+              "c2" -> ESExpr.Null(0),
             )),
             value = KeywordStruct(
               a = true,
@@ -181,7 +181,7 @@ object DerivationTests extends ZIOSpecDefault {
             expr = ESExpr.Constructor("value", Seq(), Map(
               "a" -> ESExpr.Bool(true),
               "b2" -> ESExpr.Bool(true),
-              "c2" -> ESExpr.Null,
+              "c2" -> ESExpr.Null(0),
             )),
             value = KeywordEnum.Value(
               a = true,

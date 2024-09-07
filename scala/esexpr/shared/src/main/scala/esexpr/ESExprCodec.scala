@@ -362,40 +362,46 @@ object ESExprCodec {
           else
             toSExprName(constValue[m.MirroredLabel])
 
-        new ESExprCodec[T] {
-          override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Constructor(constructor))
 
-          override def encode(value: T): ESExpr =
-            val (args, kwargs) = derivedTuple.encode(
-              Tuple.fromProductTyped[T & Product](
-                summonInline[T =:= (T & Product)](value)
-              )(using summonInline[Mirror.ProductOf[T] {type MirroredElemTypes = m.MirroredElemTypes} =:= Mirror.ProductOf[T & Product] {type MirroredElemTypes = m.MirroredElemTypes}](m))
-            )
 
-            ESExpr.Constructor(constructor, args, kwargs)
-          end encode
+        var codec: ESExprCodec[T & Product] = DerivedProductCodec[T & Product, m.MirroredElemTypes](constructor, derivedTuple)(
+          using summonInline[Mirror.ProductOf[T] {type MirroredElemTypes = m.MirroredElemTypes} =:= Mirror.ProductOf[T & Product] {type MirroredElemTypes = m.MirroredElemTypes}](m)
+        )
 
-          override def decode(expr: ESExpr): Either[DecodeError, T] =
-            expr match {
-              case expr: ESExpr.Constructor =>
-                for
-                  _ <- if expr.constructor == constructor then Right(()) else Left(DecodeError(s"Unexpected constructor name: ${expr.constructor}", ErrorPath.Current))
-                  (res, state) <- derivedTuple.decode(ProductDecodeState(0, expr.args, expr.kwargs))
-                    .left.map(_.toDecodeError(constructor))
-                  
-                  _ <-
-                    if state.args.nonEmpty || state.kwargs.nonEmpty then
-                      Left(DecodeError("Extra arguments were provided", ErrorPath.Current))
-                    else
-                      Right(())
-
-                yield m.fromTuple(res)
-
-              case _ =>
-                Left(DecodeError("Expected a constructed value", ErrorPath.Current))
-            }
-        }
+        summonInline[ESExprCodec[T & Product] =:= ESExprCodec[T]](codec)
       end if
+      
+    final class DerivedProductCodec[T <: Product, Types <: Tuple](constructor: String, derivedTuple: ESExprCodecProduct[Types])(using m: Mirror.ProductOf[T] { type MirroredElemTypes = Types }) extends ESExprCodec[T] {
+      override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Constructor(constructor))
+
+      override def encode(value: T): ESExpr =
+        val (args, kwargs) = derivedTuple.encode(
+          Tuple.fromProductTyped[T](value)(using m)
+        )
+
+        ESExpr.Constructor(constructor, args, kwargs)
+      end encode
+
+      override def decode(expr: ESExpr): Either[DecodeError, T] =
+        expr match {
+          case expr: ESExpr.Constructor =>
+            for
+              _ <- if expr.constructor == constructor then Right(()) else Left(DecodeError(s"Unexpected constructor name: ${expr.constructor}", ErrorPath.Current))
+              (res, state) <- derivedTuple.decode(ProductDecodeState(0, expr.args, expr.kwargs))
+                .left.map(_.toDecodeError(constructor))
+
+              _ <-
+                if state.args.nonEmpty || state.kwargs.nonEmpty then
+                  Left(DecodeError("Extra arguments were provided", ErrorPath.Current))
+                else
+                  Right(())
+
+            yield m.fromTuple(res)
+
+          case _ =>
+            Left(DecodeError("Expected a constructed value", ErrorPath.Current))
+        }
+    }
 
     trait ESExprCodecProduct[T] {
       def encode(value: T): (Seq[ESExpr], Map[String, ESExpr])
@@ -470,35 +476,39 @@ object ESExprCodec {
 
           val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype]
 
-          val codec = new ESExprCodecProduct[htype *: ttype] {
-            override def encode(value: htype *: ttype): (Seq[ESExpr], Map[String, ESExpr]) =
-              val (head *: tail) = value
-
-              val (args1, kwargs1) = fieldCodec.encode(head)
-              val (args2, kwargs2) = tailCodec.encode(tail)
-              (args1 ++ args2, kwargs1 ++ kwargs2)
-            end encode
-
-            override def decode(state: ProductDecodeState): Either[ProductDecodeError, (htype *: ttype, ProductDecodeState)] =
-              for
-                (h, state) <- fieldCodec.decode(state)
-                (t, state) <- tailCodec.decode(state)
-              yield (h *: t, state)
-          }
+          val codec = new ProductConsCodec[htype, ttype](fieldCodec, tailCodec)
 
           summonInline[ESExprCodecProduct[htype *: ttype] <:< ESExprCodecProduct[Types]](codec)
 
         case _: (EmptyTuple, EmptyTuple) =>
-          val emptyProductCodec = new ESExprCodecProduct[EmptyTuple] {
-            override def encode(value: EmptyTuple): (Seq[ESExpr], Map[String, ESExpr]) =
-              (Seq(), Map())
-
-            override def decode(state: ProductDecodeState): Either[ProductDecodeError, (EmptyTuple, ProductDecodeState)] =
-              Right((EmptyTuple, state))
-          }
+          val emptyProductCodec = ProductEmptyCodec()
 
           summonInline[ESExprCodecProduct[EmptyTuple] =:= ESExprCodecProduct[Types]](emptyProductCodec)
       end match
+
+    final class ProductConsCodec[HType, TType <: Tuple](fieldCodec: ESExprCodecProduct[HType], tailCodec: ESExprCodecProduct[TType]) extends ESExprCodecProduct[HType *: TType] {
+      override def encode(value: HType *: TType): (Seq[ESExpr], Map[String, ESExpr]) =
+        val (head *: tail) = value
+
+        val (args1, kwargs1) = fieldCodec.encode(head)
+        val (args2, kwargs2) = tailCodec.encode(tail)
+        (args1 ++ args2, kwargs1 ++ kwargs2)
+      end encode
+
+      override def decode(state: ProductDecodeState): Either[ProductDecodeError, (HType *: TType, ProductDecodeState)] =
+        for
+          (h, state) <- fieldCodec.decode(state)
+          (t, state) <- tailCodec.decode(state)
+        yield (h *: t, state)
+    }
+
+    final class ProductEmptyCodec extends ESExprCodecProduct[EmptyTuple] {
+      override def encode(value: EmptyTuple): (Seq[ESExpr], Map[String, ESExpr]) =
+        (Seq(), Map())
+
+      override def decode(state: ProductDecodeState): Either[ProductDecodeError, (EmptyTuple, ProductDecodeState)] =
+        Right((EmptyTuple, state))
+    }
 
     def varargProductCodec[A](varargCodec: VarargCodec[A]): ESExprCodecProduct[A] =
       new ESExprCodecProduct[A] {
@@ -664,7 +674,7 @@ object ESExprCodec {
       }
     
 
-    inline def inlineValueCodec[T <: Product, Elem](elemCodec: ESExprCodec[Elem])(using m: Mirror.ProductOf[T] { type MirroredElemTypes = Elem *: EmptyTuple }): ESExprCodec[T] =
+    def inlineValueCodec[T <: Product, Elem](elemCodec: ESExprCodec[Elem])(using m: Mirror.ProductOf[T] { type MirroredElemTypes = Elem *: EmptyTuple }): ESExprCodec[T] =
       new ESExprCodec[T] {
         override lazy val tags: Set[ESExprTag] = elemCodec.tags
 
