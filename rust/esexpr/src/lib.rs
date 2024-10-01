@@ -287,7 +287,7 @@ impl <A: ESExprCodec> ESExprCodec for Vec<A> {
 
                 Ok(args.into_iter().map(A::decode_esexpr).collect::<Result<_, _>>()?)
             },
-            _  => Err(DecodeError(DecodeErrorType::UnexpectedExpr { expected_tags: HashSet::from([ESExprTag::Constructor("list".to_owned())]), actual_tag: expr.tag() }, DecodeErrorPath::Current)),
+            _  => Err(DecodeError(DecodeErrorType::UnexpectedExpr { expected_tags: Self::tags(), actual_tag: expr.tag() }, DecodeErrorPath::Current)),
         }
     }
 }
@@ -321,6 +321,41 @@ impl <A: ESExprCodec> ESExprCodec for Option<A> {
                     A::decode_esexpr(ESExpr::Null(level - 1u32)).map(Some)
                 },
             _ => A::decode_esexpr(expr).map(Some),
+        }
+    }
+}
+
+impl <A: ESExprCodec> ESExprCodec for HashMap<String, A> {
+    fn tags() -> HashSet<ESExprTag> {
+        HashSet::from([ ESExprTag::Constructor("dict".to_owned()) ])
+    }
+
+    fn encode_esexpr(self) -> ESExpr {
+        let mut kwargs = HashMap::new();
+
+        for (k, v) in self {
+            kwargs.insert(k, v.encode_esexpr());
+        }
+
+        ESExpr::Constructor { name: "dict".to_owned(), args: Vec::new(), kwargs }
+    }
+
+    fn decode_esexpr(expr: ESExpr) -> Result<Self, DecodeError> {
+        match expr {
+            ESExpr::Constructor { name, args, kwargs } if name == "dict" => {
+                if !args.is_empty() {
+                    return Err(DecodeError(DecodeErrorType::OutOfRange("Dict must not have positional arguments".to_owned()), DecodeErrorPath::Constructor(name)));
+                }
+                
+                let mut dict = HashMap::new();
+
+                for (k, v) in kwargs {
+                    dict.insert(k, A::decode_esexpr(v)?);
+                }
+
+                Ok(dict)
+            },
+            _  => Err(DecodeError(DecodeErrorType::UnexpectedExpr { expected_tags: Self::tags(), actual_tag: expr.tag() }, DecodeErrorPath::Current)),
         }
     }
 }
