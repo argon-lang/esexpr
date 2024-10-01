@@ -14,12 +14,14 @@
         "noImplicitThis": true,
         "noPropertyAccessFromIndexSignature": true,
         "noUncheckedIndexedAccess": true,
+        "noUncheckedSideEffectImports": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "strictBindCallApply": true,
         "strictFunctionTypes": true,
         "strictNullChecks": true,
         "strictPropertyInitialization": true,
+        "strictBuiltinIteratorReturn": true,
         "useUnknownInCatchVariables": true,
         "allowArbitraryExtensions": true,
 
@@ -30,7 +32,7 @@
         "declaration": true,
         "verbatimModuleSyntax": true,
         
-        "lib": ["ES2022", "ESNext.Array", "DOM"],
+        "lib": ["ES2022", "DOM"],
         "target": "ES2022"
 
     },

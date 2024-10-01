@@ -80,10 +80,18 @@ async function* arrayToAsyncIterable<A>(arr: readonly A[]): AsyncIterable<A> {
     }
 }
 
+async function arrayFromAsync<T>(iter: AsyncIterable<T>): Promise<T[]> {
+    const res: T[] = [];
+    for await(const x of iter) {
+        res.push(x);
+    }
+    return res;
+}
+
 
 async function* encodeBin(expr: ESExpr): AsyncIterable<Uint8Array> {
     const spb = new esxb.StringPoolBuilder();
-    const encoded = await Array.fromAsync(esxb.writeExpr(expr, spb.adapter()));
+    const encoded = await arrayFromAsync(esxb.writeExpr(expr, spb.adapter()));
 
     const sp = spb.toStringPool().toEncoded();
 
@@ -92,7 +100,7 @@ async function* encodeBin(expr: ESExpr): AsyncIterable<Uint8Array> {
 }
 
 async function decodeBin(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
-    const esxbArray = await Array.fromAsync({
+    const esxbArray = await arrayFromAsync({
         [Symbol.asyncIterator]() {
             return esxb.readExprStreamEmbeddedStringPool(data);
         }
