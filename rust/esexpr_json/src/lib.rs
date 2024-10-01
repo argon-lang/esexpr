@@ -4,6 +4,7 @@ use num_bigint::{BigInt, BigUint};
 
 
 
+use core::f32;
 use std::collections::HashMap;
 
 #[derive(ESExprCodec, Debug, PartialEq)]
@@ -85,9 +86,11 @@ pub enum JsonEncodedESExpr {
         base64: Base64Value,
     },
     Float32 {
+        #[serde(deserialize_with="deserialize_f32", serialize_with="serialize_f32")]
         float32: f32,
     },
     Float64 {
+        #[serde(deserialize_with="deserialize_f64", serialize_with="serialize_f64")]
         float64: f64,
     },
     Null(()),
@@ -225,4 +228,98 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
         Ok(Base64Value(bytes))
     }
 }
+
+
+
+fn serialize_f32<S: serde::Serializer>(f: &f32, serializer: S) -> Result<S::Ok, S::Error> {
+    match *f {
+        f if f.is_nan() => serializer.serialize_str("nan"),
+        f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
+        f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
+        f => serializer.serialize_f32(f)
+    }
+}
+
+fn deserialize_f32<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f32, D::Error> {
+    struct Float32ValueVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for Float32ValueVisitor {
+        type Value = f32;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a number or a string containing nan, +inf, or -inf")
+        }
+
+        fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f32, E> {
+            Ok(v as f32)
+        }
+
+        fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f32, E> {
+            Ok(v as f32)
+        }
+
+        fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f32, E> {
+            Ok(v as f32)
+        }
+
+        fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f32, E> {
+            match value {
+                "nan" => Ok(f32::NAN),
+                "+inf" => Ok(f32::INFINITY),
+                "-inf" => Ok(f32::NEG_INFINITY),
+                _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)),
+            }
+        }
+    }
+
+    deserializer.deserialize_any(Float32ValueVisitor)
+}
+
+
+fn serialize_f64<S: serde::Serializer>(f: &f64, serializer: S) -> Result<S::Ok, S::Error> {
+    match *f {
+        f if f.is_nan() => serializer.serialize_str("nan"),
+        f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
+        f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
+        f => serializer.serialize_f64(f)
+    }
+}
+
+fn deserialize_f64<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
+    struct Float64ValueVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
+        type Value = f64;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a number or a string containing nan, +inf, or -inf")
+        }
+
+        fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f64, E> {
+            Ok(v as f64)
+        }
+
+        fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f64, E> {
+            Ok(v as f64)
+        }
+
+        fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f64, E> {
+            Ok(v)
+        }
+
+        fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f64, E> {
+            match value {
+                "nan" => Ok(f64::NAN),
+                "+inf" => Ok(f64::INFINITY),
+                "-inf" => Ok(f64::NEG_INFINITY),
+                _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)),
+            }
+        }
+    }
+
+    deserializer.deserialize_any(Float64ValueVisitor)
+}
+
+
+
 

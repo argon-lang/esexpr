@@ -19,4 +19,6 @@
     0x1.a23bcdep13
     0x1.45ef67p-11
     0x1.67cdefp14
+    #float64:+inf
+    #float64:-inf
 )

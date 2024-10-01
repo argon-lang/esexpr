@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-
+use esexpr::ESExpr;
 
 
 fn parse_test(name: &str) {
@@ -42,6 +42,11 @@ fn parse_str() {
 }
 
 #[test]
+fn parse_binary() {
+    parse_test("binary");
+}
+
+#[test]
 fn parse_int() {
     parse_test("int");
 }
@@ -54,4 +59,10 @@ fn parse_float32() {
 #[test]
 fn parse_float64() {
     parse_test("float64");
+}
+
+#[test]
+fn parse_nan() {
+    assert!(matches!(esexpr_text::parse(" #float32:nan ").unwrap(), ESExpr::Float32(f) if f.is_nan()));
+    assert!(matches!(esexpr_text::parse(" #float64:nan ").unwrap(), ESExpr::Float64(f) if f.is_nan()));
 }

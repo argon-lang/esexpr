@@ -19,4 +19,6 @@
     0x1.58p1f
     0x1.d3p-10f
     0x1.86p10f
+    #float32:+inf
+    #float32:-inf
 )
