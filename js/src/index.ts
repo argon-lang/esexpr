@@ -427,7 +427,63 @@ export function listCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<readonly T[
     return new ListCodec(itemCodec);
 }
 
-class OptionCodec<T> implements ESExprCodec<{ readonly value: T } | null> {
+
+export class WrappedNull {
+    constructor(level: number) {
+        this.#level = level;
+    }
+
+    readonly #level: number;
+
+    get level(): number {
+        return this.#level;
+    }
+}
+
+const wrappedNullMemo: WrappedNull[] = [];
+function getWrappedNull(level: number): WrappedNull {
+    let wn = wrappedNullMemo[level];
+    if(wn === undefined) {
+       wn = new WrappedNull(level);
+       wrappedNullMemo[level] = wn; 
+    }
+    return wn;
+}
+
+export type Option<A> = Option.Some<A> | null;
+
+export namespace Option {
+    export type Some<A> = (A & ({} | undefined)) | (A extends null ? WrappedNull : never);
+
+    export function some<A>(value: A): Some<A> {
+        if(value === null) {
+            return getWrappedNull(1) as Some<A>;
+        }
+        else if(value instanceof WrappedNull) {
+            return getWrappedNull(value.level + 1) as Some<A>;
+        }
+        else {
+            return value;
+        }
+    }
+
+    export function get<A>(value: Some<A>): A {
+        if(value instanceof WrappedNull) {
+            if(value.level > 1n) {
+                return getWrappedNull(value.level - 1) as A;
+            }
+            else {
+                return null as A;
+            }
+        }
+        else {
+            return value;
+        }
+    }
+}
+
+
+class OptionCodec<T> implements ESExprCodec<Option<T>> {
     constructor(itemCodec: ESExprCodec<T>) {
         this.#itemCodec = itemCodec;
     }
@@ -443,12 +499,12 @@ class OptionCodec<T> implements ESExprCodec<{ readonly value: T } | null> {
         return tags;
     }
 
-    encode(value: { readonly value: T } | null): ESExpr {
+    encode(value: Option<T>): ESExpr {
         if(value === null) {
             return null;
         }
         else {
-            const result = this.#itemCodec.encode(value.value);
+            const result = this.#itemCodec.encode(Option.get(value));
             if(result === null) {
                 return { type: "null", level: 1n };
             }
@@ -461,7 +517,7 @@ class OptionCodec<T> implements ESExprCodec<{ readonly value: T } | null> {
         }
     }
 
-    decode(expr: ESExpr): DecodeResult<{ readonly value: T } | null> {
+    decode(expr: ESExpr): DecodeResult<Option<T>> {
         if(expr === null) {
             return { success: true, value: null };
         }
@@ -484,13 +540,13 @@ class OptionCodec<T> implements ESExprCodec<{ readonly value: T } | null> {
                 return value;
             }
 
-            return { success: true, value: { value: value.value } };
+            return { success: true, value: Option.some(value.value) };
         }
     }
     
 }
 
-export function optionCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<{ readonly value: T } | null> {
+export function optionCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<Option<T>> {
     return new OptionCodec(itemCodec);
 };
 

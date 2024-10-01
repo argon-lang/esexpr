@@ -290,3 +290,13 @@ test("list codec", () => {
 });
 
 
+test("Option", () => {
+    expect(esexpr.Option.some("b")).toBe("b");
+    expect(esexpr.Option.some(null)).toBeTruthy();
+    expect(esexpr.Option.some(null)).toBe(esexpr.Option.some(null));
+    expect(esexpr.Option.get(esexpr.Option.some("b"))).toBe("b");
+    expect(esexpr.Option.get(esexpr.Option.some(null))).toBeNull();
+});
+
+
+
