@@ -4,7 +4,6 @@ import zio.*
 import zio.stream.*
 import zio.test.Assertion.*
 import zio.test.{TestExecutor as _, *}
-import scala.quoted.*
 
 object UnsignedTests extends ZIOSpecDefault {
 
