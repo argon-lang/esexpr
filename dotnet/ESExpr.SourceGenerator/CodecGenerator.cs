@@ -344,7 +344,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 									InvocationExpression(
 										MemberAccessExpression(
 											SyntaxKind.SimpleMemberAccessExpression,
-											IdentifierName("encodedExpr"),
+											propertyValue,
 											IdentifierName("Equals")
 										),
 										ArgumentList(SeparatedList([
