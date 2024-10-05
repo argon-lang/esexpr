@@ -43,11 +43,32 @@ public class BinaryFormatTests : TestBase {
 			JsonValueKind.Object when elem.TryGetProperty("int", out var intValue) =>
 				new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
 			
+			JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
+				new Expr.Binary(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
+			
 			JsonValueKind.Object when elem.TryGetProperty("float32", out var float32Value) =>
-				new Expr.Float32(float32Value.GetSingle()),
+				new Expr.Float32(float32Value.ValueKind switch {
+					JsonValueKind.String => float32Value.GetString() switch {
+						"+inf" => float.PositiveInfinity,
+						"-inf" => float.NegativeInfinity,
+						"nan" => float.NaN,
+						_ => throw new InvalidOperationException(),
+					},
+					JsonValueKind.Number => float32Value.GetSingle(),
+					_ => throw new InvalidOperationException(),
+				}),
 			
 			JsonValueKind.Object when elem.TryGetProperty("float64", out var float64Value) =>
-				new Expr.Float64(float64Value.GetDouble()),
+				new Expr.Float64(float64Value.ValueKind switch {
+					JsonValueKind.String => float64Value.GetString() switch {
+						"+inf" => double.PositiveInfinity,
+						"-inf" => double.NegativeInfinity,
+						"nan" => double.NaN,
+						_ => throw new InvalidOperationException()
+					},
+					JsonValueKind.Number => float64Value.GetDouble(),
+					_ => throw new InvalidOperationException()
+				}),
 			
 			JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
 				new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
