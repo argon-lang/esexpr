@@ -3,7 +3,7 @@ import org.scalajs.linker.interface.ESVersion
 val zioVersion = "2.1.9"
 
 lazy val commonSettingsNoLibs = Seq(
-  scalaVersion := "3.5.0",
+  scalaVersion := "3.5.1",
 )
 
 publish / skip := true
@@ -21,7 +21,7 @@ lazy val commonSettings = commonSettingsNoLibs ++ Seq(
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 
   libraryDependencies ++= Seq(
-    "dev.argon" %%% "argon-async-util" % "0.1.0",
+    "dev.argon" %%% "argon-async-util" % "1.0.0",
 
     "dev.zio" %%% "zio" % zioVersion,
     "dev.zio" %%% "zio-streams" % zioVersion,
@@ -48,7 +48,7 @@ lazy val compilerOptions = Seq(
 
   scalacOptions ++= Seq(
     "-encoding", "UTF-8",
-    "-release", "22",
+    "-release", "11",
     "-source", "future",
     "-language:higherKinds",
     "-language:existentials",
@@ -77,7 +77,8 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
 
     name := "ESExpr Scala Runtime",
     organization := "dev.argon.esexpr",
-    version := "0.1.0",
+    version := "0.1.2",
+    Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.esexpr.scala"),
 
     description := "ESExpr Scala runtime library",
     homepage := Some(url("https://github.com/argon-lang/esexpr")),
