@@ -35,8 +35,8 @@ public abstract record Expr {
 	public sealed record Binary(byte[] value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Binary();
 
-		public override int GetHashCode() => new Binary(value).GetHashCode();
-		public bool Equals(Binary? other) => other is not null && new Binary(value) == new Binary(other.value);
+		public override int GetHashCode() => new ESExpr.Runtime.Binary(value).GetHashCode();
+		public bool Equals(Binary? other) => other is not null && new ESExpr.Runtime.Binary(value) == new ESExpr.Runtime.Binary(other.value);
 	}
 
 	public sealed record Float32(float value) : Expr {
