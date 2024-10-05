@@ -27,7 +27,7 @@ pub enum LexErrorType {
 }
 
 
-fn skip_ws(input: &str) -> IResult<&str, ()> {
+pub fn skip_ws(input: &str) -> IResult<&str, ()> {
 	value(
 		(),
 		many0_count(
