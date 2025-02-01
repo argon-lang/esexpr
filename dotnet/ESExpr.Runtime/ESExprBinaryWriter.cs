@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading;
@@ -10,17 +11,43 @@ using System.Threading.Tasks;
 namespace ESExpr.Runtime;
 
 public class ESExprBinaryWriter {
-	
+	public ESExprBinaryWriter(Stream stream) {
+		symbolTable = [];
+		symbolSet = [];
+		this.stream = stream;
+	}
+
 	public ESExprBinaryWriter(IImmutableList<string> symbolTable, Stream stream) {
-		this.symbolTable = symbolTable;
+		this.symbolTable = symbolTable.ToList();
+		symbolSet = new HashSet<string>(symbolTable);
 		this.stream = stream;
 	}
 	
-	private readonly IImmutableList<string> symbolTable;
+	private readonly List<string> symbolTable;
+	private readonly HashSet<string> symbolSet;
 	private readonly Stream stream;
 
-
 	public async Task Write(Expr expr, CancellationToken cancellationToken = default) {
+		int oldCount = symbolTable.Count;
+		AddSymbols(expr);
+
+		if(oldCount < symbolTable.Count) {
+			await WriteToken(new BinToken(BinToken.TokenType.AppendStringTable, null), cancellationToken);
+
+			if(oldCount + 1 == symbolTable.Count) {
+				await WriteRaw(new Expr.Str(symbolTable[oldCount]), cancellationToken);
+			}
+			else {
+				var newStrings = new StringTable(symbolTable.Skip(oldCount).ToImmutableList());
+				var newStringExpr = new StringTable.Codec().Encode(newStrings);
+				await WriteRaw(newStringExpr, cancellationToken);
+			}
+		}
+		
+		await WriteRaw(expr, cancellationToken);
+	}
+
+	private async Task WriteRaw(Expr expr, CancellationToken cancellationToken) {
 		switch(expr) {
 			case Expr.Constructor(var constructor, var args, var kwargs):
 				switch(constructor) {
@@ -33,18 +60,19 @@ public class ESExprBinaryWriter {
 						break;
 						
 					default:
-						var index = GetSymbolIndex(constructor);
+						var index = await GetSymbolIndex(constructor, cancellationToken);
 						await WriteToken(new BinToken(BinToken.TokenType.Constructor, index), cancellationToken).ConfigureAwait(false);
 						break;
 				}
 
 				foreach(var arg in args) {
-					await Write(arg, cancellationToken).ConfigureAwait(false);
+					await WriteRaw(arg, cancellationToken).ConfigureAwait(false);
 				}
 
 				foreach(var kvp in kwargs) {
-					await WriteToken(new BinToken(BinToken.TokenType.Keyword, GetSymbolIndex(kvp.Key)), cancellationToken).ConfigureAwait(false);
-					await Write(kvp.Value, cancellationToken).ConfigureAwait(false);
+					var index = await GetSymbolIndex(kvp.Key, cancellationToken);
+					await WriteToken(new BinToken(BinToken.TokenType.Keyword, index), cancellationToken).ConfigureAwait(false);
+					await WriteRaw(kvp.Value, cancellationToken).ConfigureAwait(false);
 				}
 				
 				await WriteToken(new BinToken(BinToken.TokenType.ConstructorEnd, null), cancellationToken).ConfigureAwait(false);
@@ -129,17 +157,23 @@ public class ESExprBinaryWriter {
 				throw new InvalidOperationException();
 		}
 	}
+	
+	
 
-	private BigInteger GetSymbolIndex(string constructor) {
+	private async ValueTask<BigInteger> GetSymbolIndex(string constructor, CancellationToken cancellationToken) {
 		int index = symbolTable.IndexOf(constructor);
 		if(index < 0) {
-			throw new SyntaxException();
+			await WriteToken(new BinToken(BinToken.TokenType.AppendStringTable, null), cancellationToken);
+			await WriteRaw(new Expr.Str(constructor), cancellationToken);
+			
+			index = symbolTable.Count;
+			symbolTable.Add(constructor);
 		}
 
 		return index;
 	}
 
-	private async Task WriteToken(BinToken binToken, CancellationToken cancellationToken = default) {
+	private async Task WriteToken(BinToken binToken, CancellationToken cancellationToken) {
 		byte b = binToken.BinTokenType switch {
 			BinToken.TokenType.Constructor => 0x00,
 			BinToken.TokenType.Int => 0x20,
@@ -159,6 +193,7 @@ public class ESExprBinaryWriter {
 			BinToken.TokenType.Null1 => 0xE8,
 			BinToken.TokenType.Null2 => 0xE9,
 			BinToken.TokenType.NullN => 0xEA,
+			BinToken.TokenType.AppendStringTable => 0xEB,
 			_ => throw new InvalidOperationException(),
 		};
 
@@ -182,7 +217,7 @@ public class ESExprBinaryWriter {
 		}
 	}
 
-	private async ValueTask WriteInt(BigInteger intValue, CancellationToken cancellationToken = default) {
+	private async ValueTask WriteInt(BigInteger intValue, CancellationToken cancellationToken) {
 		byte[] buff = new byte[1];
 		do {
 			byte b = (byte)(intValue & 0x7F);
@@ -197,33 +232,28 @@ public class ESExprBinaryWriter {
 		} while(intValue.Sign > 0);
 	}
 
-
-	public static StringTable BuildSymbolTable(Expr expr) {
-		var builder = new SymbolTableBuilder();
-		builder.Add(expr);
-		return builder.Build();
-	}
-
-	public sealed class SymbolTableBuilder {
-		private readonly ISet<string> st = new HashSet<string>();
-		
-		public void Add(Expr expr) {
-			if(expr is Expr.Constructor(var name, var args, var kwargs)) {
-				if(name != VList<int>.Codec.ListConstructor && name != StringTable.Codec.StringTableConstructor) {
-					st.Add(name);
-				}
-
-				foreach(var arg in args) {
-					Add(arg);
-				}
-				
-				foreach(var kvp in kwargs) {
-					st.Add(kvp.Key);
-					Add(kvp.Value);
-				}
+	
+	public void AddSymbols(Expr expr) {
+		void AddSymbol(string symbol) {
+			if(symbolSet.Add(symbol)) {
+				symbolTable.Add(symbol);
 			}
 		}
+		
+		if(expr is Expr.Constructor(var name, var args, var kwargs)) {
+			if(name != VList<int>.Codec.ListConstructor && name != StringTable.Codec.StringTableConstructor) {
+				AddSymbol(name);
+			}
 
-		public StringTable Build() => new StringTable(st.ToImmutableList());
+			foreach(var arg in args) {
+				AddSymbols(arg);
+			}
+				
+			foreach(var kvp in kwargs) {
+				AddSymbol(kvp.Key);
+				AddSymbols(kvp.Value);
+			}
+		}
 	}
+	
 }

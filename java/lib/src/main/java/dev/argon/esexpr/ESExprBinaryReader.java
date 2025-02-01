@@ -25,6 +25,15 @@ public class ESExprBinaryReader {
 		this.is = is;
 	}
 
+	/**
+	 * Create a reader for the ESExpr binary format.
+	 * @param is The stream.
+	 */
+	public ESExprBinaryReader(@NotNull InputStream is) {
+		this.symbolTable = new ArrayList<>();
+		this.is = is;
+	}
+
 	private final List<String> symbolTable;
 	private final @NotNull InputStream is;
 	private int nextByte = -1;
@@ -58,24 +67,6 @@ public class ESExprBinaryReader {
 				}
 			})
 			.takeWhile(Objects::nonNull);
-	}
-
-	/**
-	 * Reads all ESExpr values, using the first as the string table.
-	 * @param is The input stream.
-	 * @return A stream of ESExpr values.
-	 * @throws IOException when an error occurs in the underlying stream.
-	 * @throws SyntaxException when an expression cannot be read.
-	 */
-	public static @NotNull Stream<@NotNull ESExpr> readEmbeddedStringTable(InputStream is) throws IOException, SyntaxException {
-		try {
-			var stExpr = new ESExprBinaryReader(List.of(), is).readExpr();
-			var stringTable = StringTable.codec().decode(stExpr);
-			return new ESExprBinaryReader(stringTable.values(), is).readAll();
-		}
-		catch(DecodeException ex) {
-			throw new SyntaxException(ex);
-		}
 	}
 
 
@@ -129,6 +120,7 @@ public class ESExprBinaryReader {
 				case 0xE8 -> BinToken.Fixed.NULL1;
 				case 0xE9 -> BinToken.Fixed.NULL2;
 				case 0xEA -> BinToken.Fixed.NULLN;
+				case 0xEB -> BinToken.Fixed.APPEND_STRING_TABLE;
 				default -> throw new SyntaxException();
 			};
 		}
@@ -255,6 +247,25 @@ public class ESExprBinaryReader {
 
 				case CONSTRUCTOR_START_STRING_TABLE -> new ExprPlus.Expr(readConstructor(BinToken.StringTableName));
 				case CONSTRUCTOR_START_LIST -> new ExprPlus.Expr(readConstructor(BinToken.ListName));
+				case APPEND_STRING_TABLE -> {
+					var newStringTable = readExpr();
+					if(newStringTable instanceof ESExpr.Str(var s)) {
+						symbolTable.add(s);
+					}
+					else {
+						StringTable newDecoded;
+						try {
+							newDecoded = StringTable.codec().decode(newStringTable);
+						}
+						catch(DecodeException ex) {
+							throw new SyntaxException("Could not decode string table.", ex);
+						}
+
+						symbolTable.addAll(newDecoded.values());
+					}
+
+					yield readExprPlus();
+				}
 			};
 		};
 	}

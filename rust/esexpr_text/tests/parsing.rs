@@ -9,15 +9,17 @@ fn parse_test(name: &str) {
     let mut esx = dir.clone();
     esx.push(format!("{}.esx", name));
     let esx = std::fs::read_to_string(esx).unwrap();
-    let esx = esexpr_text::parse(&esx).unwrap();
+    let esx = esexpr_text::parse_multi(&esx).unwrap();
 
     let mut json = dir;
     json.push(format!("{}.json", name));
     let json = std::fs::read_to_string(json).unwrap();
     let json: esexpr_json::JsonEncodedESExpr = serde_json::from_str(&json).unwrap();
-    let json = json.into_esexpr();
-
-    println!("{}", serde_json::ser::to_string(&esexpr_json::JsonEncodedESExpr::from_esexpr(esx.clone())).unwrap());
+    let json = match json {
+        esexpr_json::JsonEncodedESExpr::List(items) => items,
+        _ => vec![json],
+    };
+    let json = json.into_iter().map(esexpr_json::JsonEncodedESExpr::into_esexpr).collect::<Vec<_>>();
 
 
     assert_eq!(esx, json);

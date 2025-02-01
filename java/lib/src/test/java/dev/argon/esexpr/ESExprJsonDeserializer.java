@@ -65,10 +65,50 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 				return new ESExpr.Int(new BigInteger(node.get("int").asText()));
 			}
 			else if(node.has("float32")) {
-				return new ESExpr.Float32(node.get("float32").floatValue());
+				var fv = node.get("float32");
+				float value;
+				if(fv.isTextual()) {
+					switch(fv.asText()) {
+						case "+inf":
+							value = Float.POSITIVE_INFINITY;
+							break;
+
+						case "-inf":
+							value = Float.NEGATIVE_INFINITY;
+							break;
+
+						default:
+							throw new RuntimeException("Unexpected float text");
+					}
+				}
+				else {
+					value = fv.floatValue();
+				}
+
+				return new ESExpr.Float32(value);
 			}
 			else if(node.has("float64")) {
-				return new ESExpr.Float64(node.get("float64").doubleValue());
+				var fv = node.get("float64");
+				double value;
+				if(fv.isTextual()) {
+					switch(fv.asText()) {
+						case "+inf":
+							value = Double.POSITIVE_INFINITY;
+							break;
+
+						case "-inf":
+							value = Double.NEGATIVE_INFINITY;
+							break;
+
+						default:
+							throw new RuntimeException("Unexpected float text");
+					}
+				}
+				else {
+					value = fv.doubleValue();
+				}
+
+				return new ESExpr.Float64(value);
 			}
 			else if(node.has("base64")) {
 				return new ESExpr.Binary(Base64.getDecoder().decode(node.get("base64").asText()));

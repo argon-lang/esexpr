@@ -70,6 +70,15 @@ function json2esexpr(json: ESExprJson): ESExpr {
     }
 }
 
+function json2esexprMany(json: ESExprJson): ESExpr[] {
+    if(json instanceof Array) {
+        return json.map(json2esexpr);
+    }
+    else {
+        return [ json2esexpr(json) ];
+    }
+}
+
 function absurd(_x: never, message: string): never {
     throw new Error(message);
 }
@@ -90,21 +99,19 @@ async function arrayFromAsync<T>(iter: AsyncIterable<T>): Promise<T[]> {
 
 
 async function* encodeBin(expr: ESExpr): AsyncIterable<Uint8Array> {
-    const spb = new esxb.StringPoolBuilder();
-    const encoded = await arrayFromAsync(esxb.writeExpr(expr, spb.adapter()));
-
-    const sp = spb.toStringPool().toEncoded();
-
-    yield* esxb.writeExpr(esxb.StringPoolEncoded.codec.encode(sp), new esxb.ArrayStringPool([]));
-    yield* encoded;
+    yield* esxb.writeExprs([ expr ]);
 }
 
-async function decodeBin(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
-    const esxbArray = await arrayFromAsync({
+async function decodeBinMany(data: AsyncIterable<Uint8Array>): Promise<ESExpr[]> {
+    return await arrayFromAsync({
         [Symbol.asyncIterator]() {
-            return esxb.readExprStreamEmbeddedStringPool(data);
+            return esxb.readExprStream(data);
         }
     });
+}
+
+async function decodeBin1(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
+    const esxbArray = await decodeBinMany(data);
 
     if(esxbArray.length !== 1) {
         throw new Error("Expected a single expr");
@@ -116,14 +123,19 @@ async function decodeBin(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
 
 async function run_test_case(esxbFile: string): Promise<void> {
     const esxbData: Uint8Array = await fs.readFile(esxbFile);
-    const expr = await decodeBin(arrayToAsyncIterable([ esxbData ]));
+    const exprs = await decodeBinMany(arrayToAsyncIterable([ esxbData ]));
 
     const json: ESExprJson = JSON.parse(
         await fs.readFile(esxbFile.substring(0, esxbFile.length - 4) + "json", { encoding: "utf-8" })
     );
 
-    expect(valuesEqual(json2esexpr(json), expr));
-    expect(valuesEqual(await decodeBin(encodeBin(expr)), expr));
+    const reencoded: ESExpr[] = [];
+    for(const expr of exprs) {
+        reencoded.push(await decodeBin1(encodeBin(expr)))
+    }
+
+    expect(valuesEqual(json2esexprMany(json), exprs));
+    expect(valuesEqual(reencoded, exprs));
     
 }
 

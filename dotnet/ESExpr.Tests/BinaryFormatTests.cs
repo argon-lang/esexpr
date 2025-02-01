@@ -9,83 +9,91 @@ namespace ESExpr.Tests;
 
 public class BinaryFormatTests : TestBase {
 
-	private Expr DecodeJson(JsonElement elem) {
+	private List<Expr> DecodeJson(JsonElement elem) {
 		Expr DecodeConstructor(JsonElement elem, string constructor) {
 			ImmutableList<Expr> args = [];
 			if(elem.TryGetProperty("args", out var argsArray)) {
-				args = argsArray.EnumerateArray().Select(DecodeJson).ToImmutableList();
+				args = argsArray.EnumerateArray().Select(DecodeJsonExpr).ToImmutableList();
 			}
 			
 			ImmutableDictionary<string, Expr> kwargs = ImmutableDictionary<string, Expr>.Empty;
 			if(elem.TryGetProperty("kwargs", out var kwargsObj)) {
 				kwargs = kwargsObj.EnumerateObject().ToImmutableDictionary(
 					field => field.Name,
-					field => DecodeJson(field.Value)
+					field => DecodeJsonExpr(field.Value)
 				);
 			}
 			
 			return new Expr.Constructor(constructor, args, kwargs);
 		}
-		
-		return elem.ValueKind switch {
-			JsonValueKind.True => new Expr.Bool(true),
-			JsonValueKind.False => new Expr.Bool(false),
-			JsonValueKind.String => new Expr.Str(elem.GetString()!),
-			JsonValueKind.Null => new Expr.Null(0),
-			JsonValueKind.Array => new Expr.Constructor(
-				"list",
-				elem.EnumerateArray().Select(DecodeJson).ToImmutableList(),
-				ImmutableDictionary<string, Expr>.Empty
-			),
-			JsonValueKind.Object when elem.TryGetProperty("constructor_name", out var constructor) =>
-				DecodeConstructor(elem, constructor.GetString() ?? throw new InvalidOperationException()),
-			
-			JsonValueKind.Object when elem.TryGetProperty("int", out var intValue) =>
-				new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
-			
-			JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
-				new Expr.Binary(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
-			
-			JsonValueKind.Object when elem.TryGetProperty("float32", out var float32Value) =>
-				new Expr.Float32(float32Value.ValueKind switch {
-					JsonValueKind.String => float32Value.GetString() switch {
-						"+inf" => float.PositiveInfinity,
-						"-inf" => float.NegativeInfinity,
-						"nan" => float.NaN,
+
+		Expr DecodeJsonExpr(JsonElement elem) =>
+			elem.ValueKind switch {
+				JsonValueKind.True => new Expr.Bool(true),
+				JsonValueKind.False => new Expr.Bool(false),
+				JsonValueKind.String => new Expr.Str(elem.GetString()!),
+				JsonValueKind.Null => new Expr.Null(0),
+				JsonValueKind.Array => new Expr.Constructor(
+					"list",
+					elem.EnumerateArray().Select(DecodeJsonExpr).ToImmutableList(),
+					ImmutableDictionary<string, Expr>.Empty
+				),
+				JsonValueKind.Object when elem.TryGetProperty("constructor_name", out var constructor) =>
+					DecodeConstructor(elem, constructor.GetString() ?? throw new InvalidOperationException()),
+				
+				JsonValueKind.Object when elem.TryGetProperty("int", out var intValue) =>
+					new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
+				
+				JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
+					new Expr.Binary(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
+				
+				JsonValueKind.Object when elem.TryGetProperty("float32", out var float32Value) =>
+					new Expr.Float32(float32Value.ValueKind switch {
+						JsonValueKind.String => float32Value.GetString() switch {
+							"+inf" => float.PositiveInfinity,
+							"-inf" => float.NegativeInfinity,
+							"nan" => float.NaN,
+							_ => throw new InvalidOperationException(),
+						},
+						JsonValueKind.Number => float32Value.GetSingle(),
 						_ => throw new InvalidOperationException(),
-					},
-					JsonValueKind.Number => float32Value.GetSingle(),
-					_ => throw new InvalidOperationException(),
-				}),
-			
-			JsonValueKind.Object when elem.TryGetProperty("float64", out var float64Value) =>
-				new Expr.Float64(float64Value.ValueKind switch {
-					JsonValueKind.String => float64Value.GetString() switch {
-						"+inf" => double.PositiveInfinity,
-						"-inf" => double.NegativeInfinity,
-						"nan" => double.NaN,
+					}),
+				
+				JsonValueKind.Object when elem.TryGetProperty("float64", out var float64Value) =>
+					new Expr.Float64(float64Value.ValueKind switch {
+						JsonValueKind.String => float64Value.GetString() switch {
+							"+inf" => double.PositiveInfinity,
+							"-inf" => double.NegativeInfinity,
+							"nan" => double.NaN,
+							_ => throw new InvalidOperationException()
+						},
+						JsonValueKind.Number => float64Value.GetDouble(),
 						_ => throw new InvalidOperationException()
-					},
-					JsonValueKind.Number => float64Value.GetDouble(),
-					_ => throw new InvalidOperationException()
-				}),
-			
-			JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
-				new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
-			
-			_ => throw new ArgumentException(nameof(elem)),
-		};
+					}),
+				
+				JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
+					new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
+				
+				_ => throw new ArgumentException(nameof(elem)),
+			};
+
+		if(elem.ValueKind == JsonValueKind.Array) {
+			return elem.EnumerateArray().Select(DecodeJsonExpr).ToList();
+		}
+		else {
+			return [ DecodeJsonExpr(elem) ];
+		}
 	}
 
-	private async ValueTask<Expr> ReadJsonFile(string path) {
+	private async ValueTask<List<Expr>> ReadJsonFile(string path) {
 		var text = await File.ReadAllTextAsync(path);
 		var doc = JsonDocument.Parse(text);
 		return DecodeJson(doc.RootElement);
 	}
 
-	private async ValueTask<Expr> ReadEsxbFile(string path) {
+	private async ValueTask<List<Expr>> ReadEsxbFile(string path) {
 		await using var stream = File.OpenRead(path);
-		return await ESExprBinaryReader.ReadEmbeddedStringTable(stream).SingleAsync();
+		return await new ESExprBinaryReader(stream).ReadAll().ToListAsync();
 	}
 
 	[TestCaseSource(nameof(ListTestJsonFiles))]
@@ -93,7 +101,9 @@ public class BinaryFormatTests : TestBase {
 		var jsonValue = await ReadJsonFile(file);
 		var esxbValue = await ReadEsxbFile(Path.Join(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file) + ".esxb"));
 
-		var rewrittenValue = await ParseEsxb(await EncodeEsxb(esxbValue));
+		var rewrittenValue = await esxbValue.ToAsyncEnumerable()
+			.SelectAwait(async expr => await ParseEsxb(await EncodeEsxb(expr)))
+			.ToListAsync();
 		
 		Assert.That(esxbValue, Is.EqualTo(jsonValue));
 		Assert.That(rewrittenValue, Is.EqualTo(esxbValue));
@@ -105,15 +115,11 @@ public class BinaryFormatTests : TestBase {
 	
 
 	private ValueTask<Expr> ParseEsxb(byte[] value) =>
-		ESExprBinaryReader.ReadEmbeddedStringTable(new MemoryStream(value)).SingleAsync();
+		new ESExprBinaryReader(new MemoryStream(value)).ReadAll().SingleAsync();
 
 	private async ValueTask<byte[]> EncodeEsxb(Expr expr) {
-		var st = ESExprBinaryWriter.BuildSymbolTable(expr);
 		var stream = new MemoryStream();
-
-		await new ESExprBinaryWriter([], stream).Write(new StringTable.Codec().Encode(st));
-		await new ESExprBinaryWriter(st.strings.ImmutableList, stream).Write(expr);
-
+		await new ESExprBinaryWriter(stream).Write(expr);
 		return stream.ToArray();
 	}
 }

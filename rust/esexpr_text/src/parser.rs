@@ -333,4 +333,8 @@ pub fn expr_file(input: &str) -> IResult<&str, ESExpr> {
     terminated(terminated(expr, skip_ws),  eof)(input)
 }
 
+pub fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr>> {
+    terminated(terminated(many0(expr), skip_ws),  eof)(input)
+}
+
 

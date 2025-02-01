@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,12 +12,17 @@ using System.Threading.Tasks;
 namespace ESExpr.Runtime;
 
 public class ESExprBinaryReader {
+	public ESExprBinaryReader(Stream stream) {
+		symbolTable = new List<string>();
+		this.stream = stream;
+	}
+
 	public ESExprBinaryReader(IImmutableList<string> symbolTable, Stream stream) {
-		this.symbolTable = symbolTable;
+		this.symbolTable = symbolTable.ToList();
 		this.stream = stream;
 	}
 	
-	private readonly IImmutableList<string> symbolTable;
+	private readonly List<string> symbolTable;
 	private readonly Stream stream;
 
 	private readonly byte[] byteBuffer = new byte[1];
@@ -40,17 +46,6 @@ public class ESExprBinaryReader {
 			}
 
 			yield return expr;
-		}
-	}
-
-	public static async IAsyncEnumerable<Expr> ReadEmbeddedStringTable(Stream stream, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-		IESExprCodec<StringTable> stCodec = new StringTable.Codec();
-		
-		var stExpr = await new ESExprBinaryReader(ImmutableList<string>.Empty, stream).ReadExpr(cancellationToken).ConfigureAwait(false);
-		var stringTable = stCodec.Decode(stExpr);
-
-		await foreach(var expr in new ESExprBinaryReader(stringTable.strings.ImmutableList, stream).ReadAll(cancellationToken).ConfigureAwait(false)) {
-			yield return expr;	
 		}
 	}
 
@@ -177,6 +172,29 @@ public class ESExprBinaryReader {
 				
 			case BinToken.TokenType.ConstructorStartList:
 				return await ReadConstructor(VList<int>.Codec.ListConstructor, cancellationToken).ConfigureAwait(false);
+
+			case BinToken.TokenType.AppendStringTable:
+			{
+				var newStringTableExpr = await ReadExpr(cancellationToken).ConfigureAwait(false);
+				
+				if(newStringTableExpr is Expr.Str s) {
+					symbolTable.Add(s.value);
+				}
+				else {
+					StringTable newStringTable;
+					try {
+						IESExprCodec<StringTable> codec = new StringTable.Codec();
+						newStringTable = codec.Decode(newStringTableExpr);
+					}
+					catch(DecodeException ex) {
+						throw new SyntaxException("Could not decode string table", ex);
+					}
+					
+					symbolTable.AddRange(newStringTable.strings);
+				}
+				
+				return await ReadExpr(cancellationToken).ConfigureAwait(false);
+			}
 			
 			default:
 				throw new SyntaxException();
@@ -257,6 +275,7 @@ public class ESExprBinaryReader {
 				0xE8 => BinToken.TokenType.Null1,
 				0xE9 => BinToken.TokenType.Null2,
 				0xEA => BinToken.TokenType.NullN,
+				0xEB => BinToken.TokenType.AppendStringTable,
 				_ => throw new SyntaxException(),
 			};
 

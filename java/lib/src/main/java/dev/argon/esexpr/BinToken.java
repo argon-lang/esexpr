@@ -49,6 +49,7 @@ sealed interface BinToken {
 		NULL1,
 		NULL2,
 		NULLN,
+		APPEND_STRING_TABLE,
 	}
 
 	static final String StringTableName = "string-table";

@@ -11,11 +11,8 @@ import zio.stream.ZStream
 import scala.reflect.TypeTest
 
 object ESExprBinaryDecoder {
-  def readAll[R, E](data: ZStream[R, E, Byte])(stringTable: Seq[String])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
-    readWith(data) { is => new ESExprBinaryReader(stringTable.asJava, is).readAll() }
-
-  def readEmbeddedStringTable[R, E](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
-    readWith(data)(ESExprBinaryReader.readEmbeddedStringTable)
+  def readAll[R, E](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
+    readWith(data) { is => new ESExprBinaryReader(is).readAll() }
 
 
 

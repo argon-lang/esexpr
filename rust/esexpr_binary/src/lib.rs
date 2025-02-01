@@ -1,10 +1,9 @@
 
-use itertools::Itertools;
 use num_bigint::{BigInt, BigUint, Sign};
 
 use derive_more::From;
 
-use std::{borrow::Cow, collections::HashMap, io::{Read, Write}};
+use std::{borrow::Borrow, collections::HashMap, io::{Read, Write}};
 
 use esexpr::{ESExpr, ESExprCodec};
 
@@ -59,6 +58,7 @@ enum ExprToken {
     Float64Value(f64),
     BooleanValue(bool),
     NullValue(BigUint),
+    AppendStringTable,
 }
 
 
@@ -82,6 +82,7 @@ const TAG_CONSTRUCTOR_START_LIST: u8 = 0xE7;
 const TAG_NULL1: u8 = 0xE8;
 const TAG_NULL2: u8 = 0xE9;
 const TAG_NULLN: u8 = 0xEA;
+const TAG_APPEND_STRING_TABLE: u8 = 0xEB;
 
 
 
@@ -129,6 +130,7 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
                 },
                 TAG_CONSTRUCTOR_START_STRING_TABLE => ExprToken::ConstructorStartKnown("string-table"),
                 TAG_CONSTRUCTOR_START_LIST => ExprToken::ConstructorStartKnown("list"),
+                TAG_APPEND_STRING_TABLE => ExprToken::AppendStringTable,
                 _ => {
                     return Err(ParseError::InvalidTokenByte(b));
                 },
@@ -242,12 +244,12 @@ fn get_length(i: BigUint) -> Result<usize, ParseError> {
 }
 
 
-struct ExprParser<'a, S, I> where [S]: ToOwned<Owned = Vec<S>> {
-    string_pool: Cow<'a, [S]>,
+struct ExprParser<I> {
+    string_pool: Vec<String>,
     iter: I,
 }
 
-impl <'a, S: AsRef<str>, I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser<'a, S, I> where [S]: ToOwned<Owned = Vec<S>> {
+impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser<I> {
     fn try_read_next_expr(&mut self) -> Result<Option<ESExpr>, ParseError> {
         let Some(token) = self.iter.next().transpose()? else {
             return Ok(None);
@@ -279,6 +281,21 @@ impl <'a, S: AsRef<str>, I: Iterator<Item=Result<ExprToken, ParseError>>> ExprPa
             ExprToken::Float64Value(d) => Ok(ESExpr::Float64(d)),
             ExprToken::BooleanValue(b) => Ok(ESExpr::Bool(b)),
             ExprToken::NullValue(level) => Ok(ESExpr::Null(level)),
+            ExprToken::AppendStringTable => {
+                let new_string_table = self.read_next_expr()?;
+                let new_string_table = AppendedStringPool::decode_esexpr(new_string_table)
+                    .map_err(ParseError::InvalidStringPool)?;
+
+                match new_string_table {
+                    AppendedStringPool::Fixed(mut fixed_string_pool) =>
+                        self.string_pool.append(&mut fixed_string_pool.strings),
+
+                    AppendedStringPool::Single(s) =>
+                        self.string_pool.push(s),
+                }
+
+                self.read_next_expr()
+            }
         }
     }
 
@@ -307,12 +324,12 @@ impl <'a, S: AsRef<str>, I: Iterator<Item=Result<ExprToken, ParseError>>> ExprPa
 
     fn get_string(&self, i: usize) -> Result<String, ParseError> {
         self.string_pool.get(i)
-            .map(|s| s.as_ref().to_owned())
+            .map(|s| s.as_str().to_owned())
             .ok_or(ParseError::InvalidStringTableIndex)
     }
 }
 
-impl <'a, S: AsRef<str>, I: Iterator<Item=Result<ExprToken, ParseError>>> Iterator for ExprParser<'a, S, I> where [S]: ToOwned<Owned = Vec<S>> {
+impl <I: Iterator<Item=Result<ExprToken, ParseError>>> Iterator for ExprParser<I> {
     type Item = Result<ESExpr, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -320,27 +337,15 @@ impl <'a, S: AsRef<str>, I: Iterator<Item=Result<ExprToken, ParseError>>> Iterat
     }
 }
 
-pub fn parse<'a, F: Read + 'a, S: AsRef<str>>(f: F, string_pool: &'a [S]) -> impl Iterator<Item=Result<ESExpr, ParseError>> + 'a where [S]: ToOwned<Owned = Vec<S>> {
+pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl Iterator<Item=Result<ESExpr, ParseError>> + 'a {
     ExprParser {
         iter: TokenReader { read: f },
-        string_pool: Cow::Borrowed(string_pool),
+        string_pool,
     }
 }
 
-pub fn parse_embedded_string_pool<'a, F: Read + 'a>(f: F) -> Result<impl Iterator<Item=Result<ESExpr, ParseError>> + 'a, ParseError> {
-    let mut parser = ExprParser {
-        iter: TokenReader { read: f },
-        string_pool: Cow::Owned(Vec::new()),
-    };
-
-    let Some(sp) = parser.next() else { return Err(ParseError::UnexpectedEndOfFile) };
-    let sp = sp?;
-
-    let sp = FixedStringPool::decode_esexpr(sp).map_err(ParseError::InvalidStringPool)?;
-
-    parser.string_pool = Cow::Owned(sp.strings);
-
-    Ok(parser)
+pub fn parse<'a, F: Read + 'a>(f: F) -> impl Iterator<Item=Result<ESExpr, ParseError>> + 'a {
+    parse_existing_string_pool(f, Vec::new())
 }
 
 
@@ -358,12 +363,12 @@ pub trait StringPool {
 }
 
 
-struct ExprGenerator<'a, SP, W> {
+struct ExprGenerator<'a, W> {
     out: &'a mut W,
-    string_pool: &'a mut SP,
+    string_pool: Vec<String>,
 }
 
-impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
+impl <'a, W: Write> ExprGenerator<'a, W> {
     fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
         match expr {
             ESExpr::Constructor { name, args, kwargs } => {
@@ -445,7 +450,17 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
     }
 
     fn get_string_pool_index(&mut self, s: &str) -> Result<usize, GeneratorError> {
-        self.string_pool.lookup(s).ok_or(GeneratorError::StringNotInStringPool)
+        if let Some(index) = self.string_pool.iter().position(|s2| s2 == s) {
+            return Ok(index);
+        }
+
+        let index = self.string_pool.len();
+        self.string_pool.push(s.to_owned());
+
+        self.write(TAG_APPEND_STRING_TABLE)?;
+        self.generate_expr(&ESExpr::Str(s.to_owned()))?;
+
+        Ok(index)
     }
 
     fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
@@ -514,54 +529,71 @@ impl <'a, SP: StringPool, W: Write> ExprGenerator<'a, SP, W> {
     }
 }
 
-pub fn generate<SP: StringPool, W: Write>(out: &mut W, string_pool: &mut SP, expr: &ESExpr) -> Result<(), GeneratorError> {
+pub fn generate_existing_string_pool<W: Write>(out: &mut W, string_pool: &mut Vec<String>, expr: &ESExpr) -> Result<(), GeneratorError> {
     let mut generator = ExprGenerator {
         out,
-        string_pool,
+        string_pool: Vec::new(),
     };
 
-    generator.generate_expr(expr)
+    std::mem::swap(&mut generator.string_pool, string_pool);
+
+    generator.generate_expr(expr)?;
+
+    std::mem::swap(&mut generator.string_pool, string_pool);
+
+    Ok(())
 }
 
-pub struct StringPoolBuilder {
-    strings: HashMap<String, usize>,
-}
+pub fn generate<E: Borrow<ESExpr>, W: Write>(out: &mut W, exprs: impl Iterator<Item=E>) -> Result<(), GeneratorError> {
+    let mut string_pool = Vec::new();
 
-impl StringPoolBuilder {
-    pub fn new() -> Self {
-        Self {
-            strings: HashMap::new(),
-        }
-    }
+    for expr in exprs {
+        let old_string_pool_end = string_pool.len();
 
-    pub fn add(&mut self, expr: &ESExpr) {
         let mut generator = ExprGenerator {
             out: &mut std::io::sink(),
-            string_pool: &mut StringPoolBuilderAdapter(self),
+            string_pool,
         };
-        generator.generate_expr(expr).unwrap();
-    }
 
-    pub fn into_fixed_string_pool(self) -> FixedStringPool {
-        FixedStringPool {
-            strings: self.strings
-                .into_iter()
-                .sorted_by_key(|(_, v)| *v)
-                .map(|(k, _)| k)
-                .collect(),
+        // Dummy generator to catch new strings
+        generator.generate_expr(expr.borrow())?;
+
+        let mut generator = ExprGenerator {
+            out,
+            string_pool: generator.string_pool,
+        }; 
+    
+        match &generator.string_pool[old_string_pool_end..] {
+            [] => {},
+            [ s ] => {
+                let s = s.to_owned();
+                generator.write(TAG_APPEND_STRING_TABLE)?;
+                generator.generate_expr(&ESExpr::Str(s.to_owned()))?;
+            },
+            new_strings => {
+                let sp_expr = FixedStringPool {
+                    strings: new_strings.to_vec(),
+                }.encode_esexpr();
+
+                generator.write(TAG_APPEND_STRING_TABLE)?;
+                generator.generate_expr(&sp_expr)?;
+            }
         }
+        
+       
+    
+        generator.generate_expr(expr.borrow())?;
+
+        string_pool = generator.string_pool;
     }
+
+    Ok(())
 }
 
-pub struct StringPoolBuilderAdapter<'a>(&'a mut StringPoolBuilder);
-
-impl <'a> StringPool for StringPoolBuilderAdapter<'a> {
-    fn lookup(&mut self, s: &str) -> Option<usize> {
-        let count = self.0.strings.entry(s.to_owned()).or_default();
-        *count += 1;
-        Some(0)
-    }
+pub fn generate_single<W: Write>(out: &mut W, expr: &ESExpr) -> Result<(), GeneratorError> {
+    generate(out, [expr].into_iter())
 }
+
 
 #[derive(ESExprCodec, Debug, PartialEq, Clone)]
 #[constructor = "string-table"]
@@ -574,6 +606,15 @@ impl StringPool for FixedStringPool {
     fn lookup(&mut self, s: &str) -> Option<usize> {
         self.strings.iter().position(|a| a == s)
     }
+}
+
+#[derive(ESExprCodec, Debug, PartialEq, Clone)]
+pub enum AppendedStringPool {
+    #[inline_value]
+    Fixed(FixedStringPool),
+
+    #[inline_value]
+    Single(String),
 }
 
 
@@ -593,7 +634,7 @@ mod test {
             let mut buff: Vec<u8> = Vec::new();
             let mut gen = ExprGenerator {
                 out: &mut buff,
-                string_pool: &mut FixedStringPool { strings: vec![], },
+                string_pool: vec![],
             };
 
             gen.write_int_tag(TAG_VARINT_NON_NEG_INT, &n).unwrap();

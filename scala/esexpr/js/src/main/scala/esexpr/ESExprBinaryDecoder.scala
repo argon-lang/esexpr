@@ -26,31 +26,12 @@ object ESExprBinaryDecoder {
 
   @JSImport("@argon-lang/esexpr/binary_format.js")
   @js.native
-  private def readExprStream(data: AsyncIterable[Uint8Array], stringPool: StringPool): AsyncIterable[esexpr.sjs.ESExpr] = js.native
+  private def readExprStream(data: AsyncIterable[Uint8Array]): AsyncIterable[esexpr.sjs.ESExpr] = js.native
 
 
-  @JSImport("@argon-lang/esexpr/binary_format.js")
-  @js.native
-  private def readExprStreamEmbeddedStringPool(data: AsyncIterable[Uint8Array]): AsyncIterable[esexpr.sjs.ESExpr] = js.native
+  def readAll[R, E](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
+    readWith(data) { b => readExprStream(b) }
 
-  @js.native
-  private trait StringPool extends js.Object {
-    def get(i: Int): String
-    def lookup(s: String): Int
-  }
-
-  @JSImport("@argon-lang/esexpr/binary_format.js")
-  @js.native
-  private object StringPool extends js.Object {
-    def fromArray(values: js.Array[String]): StringPool = js.native
-  }
-
-
-  def readAll[R, E](data: ZStream[R, E, Byte])(stringTable: Seq[String])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
-    readWith(data) { b => readExprStream(b, StringPool.fromArray(stringTable.toJSArray)) }
-
-  def readEmbeddedStringTable[R, E](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =
-    readWith(data)(readExprStreamEmbeddedStringPool)
     
 
 

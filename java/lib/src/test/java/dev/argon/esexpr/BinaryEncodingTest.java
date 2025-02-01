@@ -3,8 +3,10 @@
  */
 package dev.argon.esexpr;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.FilenameUtils;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,7 +19,7 @@ import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -30,41 +32,58 @@ class BinaryEncodingTest {
 
 		var jsonValue = parseJson(Files.readString(jsonPath));
 		var esxbValue = parseEsxb(Files.readAllBytes(esxbPath));
+		var reencodedValue = new ArrayList<ESExpr>();
+		for(var expr : esxbValue) {
+			reencodedValue.add(parseEsxb1(encodeEsxb(expr)));
+		}
 
 		assertEquals(jsonValue, esxbValue);
-		assertEquals(esxbValue, parseEsxb(encodeEsxb(esxbValue)));
+		assertEquals(esxbValue, reencodedValue);
 	}
 
-	private ESExpr parseJson(String value) throws Exception {
+	private List<ESExpr> parseJson(String value) throws Exception {
 		var mapper = new ObjectMapper();
 
 		var module = new SimpleModule();
 		module.addDeserializer(ESExpr.class, new ESExprJsonDeserializer());
 		mapper.registerModule(module);
 
-		var res = mapper.readValue(value, ESExpr.class);
-		if(res == null) {
-			return new ESExpr.Null(BigInteger.ZERO);
+		List<ESExpr> res;
+		try {
+			res = mapper.readValue(value, new TypeReference<List<ESExpr>>() {});
 		}
-		else {
-			return res;
+		catch(JsonMappingException _) {
+			res = List.of(mapper.readValue(value, ESExpr.class));
 		}
+
+		return res.stream()
+			.map(e -> {
+				if(e == null) {
+					return new ESExpr.Null(BigInteger.ZERO);
+				}
+				else {
+					return e;
+				}
+			})
+			.toList();
 	}
 
-	private ESExpr parseEsxb(byte[] value) throws Exception {
-		var exprs = ESExprBinaryReader.readEmbeddedStringTable(new ByteArrayInputStream(value)).toList();
+	private List<ESExpr> parseEsxb(byte[] value) throws Exception {
+		var reader = new ESExprBinaryReader(new ByteArrayInputStream(value));
+		return reader.readAll().toList();
+	}
+
+	private ESExpr parseEsxb1(byte[] value) throws Exception {
+		var exprs = parseEsxb(value);
 
 		assertEquals(1, exprs.size());
 		return exprs.getFirst();
 	}
 
 	private byte[] encodeEsxb(ESExpr expr) throws Exception {
-		var st = ESExprBinaryWriter.buildSymbolTable(expr);
 		var os = new ByteArrayOutputStream();
-
-		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec().encode(st));
-		new ESExprBinaryWriter(st.values(), os).write(expr);
-
+		var writer = new ESExprBinaryWriter(os);
+		writer.write(expr);
 		return os.toByteArray();
 	}
 

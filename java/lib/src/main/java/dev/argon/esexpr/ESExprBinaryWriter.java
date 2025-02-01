@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,16 +18,27 @@ public class ESExprBinaryWriter {
 
 	/**
 	 * Creates an encoder.
-	 * @param symbolTable The symbol table used when parsing.
+	 * @param symbolTable The initial symbol table used when writing.
 	 * @param os The stream.
 	 */
 	public ESExprBinaryWriter(@NotNull List<? extends @NotNull String> symbolTable, OutputStream os) {
-
-		this.symbolTable = symbolTable;
+		this.symbolTable = new ArrayList<>(symbolTable);
+		symbolSet = new HashSet<>(symbolTable);
 		this.os = os;
 	}
 
-	private final List<? extends @NotNull String> symbolTable;
+	/**
+	 * Creates an encoder.
+	 * @param os The stream.
+	 */
+	public ESExprBinaryWriter(OutputStream os) {
+		symbolTable = new ArrayList<>();
+		symbolSet = new HashSet<>();
+		this.os = os;
+	}
+
+	private final List<@NotNull String> symbolTable;
+	private final Set<@NotNull String> symbolSet;
 	private final OutputStream os;
 
 	/**
@@ -35,6 +47,24 @@ public class ESExprBinaryWriter {
 	 * @throws IOException when an error occurs in the underlying stream.
 	 */
 	public void write(ESExpr expr) throws IOException {
+		int oldSize = symbolTable.size();
+		addSymbols(expr);
+		if(symbolTable.size() > oldSize) {
+			writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
+
+			if(oldSize + 1 == symbolTable.size()) {
+				writeExprRaw(new ESExpr.Str(symbolTable.get(oldSize)));
+			}
+			else {
+				var appendTable = new StringTable(symbolTable.subList(oldSize, symbolTable.size()));
+				writeExprRaw(StringTable.codec().encode(appendTable));
+			}
+		}
+
+		writeExprRaw(expr);
+	}
+
+	private void writeExprRaw(ESExpr expr) throws IOException {
 		switch(expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {
 				switch(constructor) {
@@ -46,11 +76,12 @@ public class ESExprBinaryWriter {
 					}
 				}
 				for(var arg : args) {
-					write(arg);
+					writeExprRaw(arg);
 				}
 				for(var pair : kwargs.entrySet()) {
-					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.KEYWORD, getSymbolIndex(pair.getKey())));
-					write(pair.getValue());
+					var index = getSymbolIndex(pair.getKey());
+					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.KEYWORD, index));
+					writeExprRaw(pair.getValue());
 				}
 				writeToken(BinToken.Fixed.CONSTRUCTOR_END);
 			}
@@ -158,16 +189,19 @@ public class ESExprBinaryWriter {
 					case NULL1 -> 0xE8;
 					case NULL2 -> 0xE9;
 					case NULLN -> 0xEA;
+					case APPEND_STRING_TABLE -> 0xEB;
 				};
 				os.write(b);
 			}
 		}
 	}
 
-	private BigInteger getSymbolIndex(String symbol) {
+	private BigInteger getSymbolIndex(String symbol) throws IOException {
 		int index = symbolTable.indexOf(symbol);
 		if(index < 0) {
-			throw new IndexOutOfBoundsException();
+			index = symbolTable.size();
+			writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
+			writeExprRaw(new ESExpr.Str(symbol));
 		}
 		return BigInteger.valueOf(index);
 	}
@@ -185,70 +219,27 @@ public class ESExprBinaryWriter {
 	}
 
 
-	/**
-	 * Creates a string table with the required values for an expression.
-	 * @param expr The expression to scan.
-	 * @return The string table for expr.
-	 */
-	public static @NotNull StringTable buildSymbolTable(@NotNull ESExpr expr) {
-		var builder = new SymbolTableBuilder();
-		builder.add(expr);
-		return builder.build();
-	}
+	private void addSymbols(@NotNull ESExpr expr) {
+		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
+			if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
+				addSymbol(name);
+			}
 
-	/**
-	 * Builds a string table from expressions.
-	 */
-	public static final class SymbolTableBuilder {
+			for(var arg : args) {
+				addSymbols(arg);
+			}
 
-		/**
-		 * Creates a SymbolTableBuilder.
-		 */
-		public SymbolTableBuilder() {}
-
-		private final Set<String> st = new HashSet<>();
-
-		/**
-		 * Add any required strings to the string table.
-		 * @param expr The expression to scan.
-		 */
-		public void add(@NotNull ESExpr expr) {
-			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
-				if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
-					st.add(name);
-				}
-
-				for(var arg : args) {
-					add(arg);
-				}
-
-				for(var kwarg : kwargs.entrySet()) {
-					st.add(kwarg.getKey());
-					add(kwarg.getValue());
-				}
+			for(var kwarg : kwargs.entrySet()) {
+				addSymbol(kwarg.getKey());
+				addSymbols(kwarg.getValue());
 			}
 		}
-
-		/**
-		 * Builds the string table.
-		 * @return The string table.
-		 */
-		public @NotNull StringTable build() {
-			return new StringTable(st.stream().toList());
-		}
 	}
 
-	/**
-	 * Write an expression with an embedded string table.
-	 * @param os The stream to write to.
-	 * @param expr The expression to write.
-	 * @throws IOException If an IO error occurs.
-	 */
-	public static void writeWithSymbolTable(@NotNull OutputStream os, @NotNull ESExpr expr) throws IOException {
-		var st = buildSymbolTable(expr);
-
-		new ESExprBinaryWriter(List.of(), os).write(StringTable.codec().encode(st));
-		new ESExprBinaryWriter(st.values(), os).write(expr);
+	private void addSymbol(@NotNull String symbol) {
+		if(symbolSet.add(symbol)) {
+			symbolTable.add(symbol);
+		}
 	}
 
 }

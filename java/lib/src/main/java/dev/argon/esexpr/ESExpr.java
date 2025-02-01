@@ -3,6 +3,7 @@ package dev.argon.esexpr;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,6 +73,25 @@ public sealed interface ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
 			return new ESExprTag.Binary();
+		}
+
+		@Override
+		public final String toString() {
+			return "Binary[" + Arrays.toString(b) + "]";
+		}
+
+		@Override
+		public final int hashCode() {
+			return Arrays.hashCode(b);
+		}
+
+		@Override
+		public final boolean equals(Object obj) {
+			if(!(obj instanceof Binary other)) {
+				return false;
+			}
+
+			return Arrays.equals(b, other.b());
 		}
 	}
 

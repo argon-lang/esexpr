@@ -7,5 +7,9 @@ pub fn parse<'input>(s: &'input str) -> Result<ESExpr, nom::Err<nom::error::Erro
     Ok(expr)
 }
 
+pub fn parse_multi<'input>(s: &'input str) -> Result<Vec<ESExpr>, nom::Err<nom::error::Error<&'input str>>> {
+    let (_, expr) = parser::multi_expr_file(s)?;
+    Ok(expr)
+}
 
 
