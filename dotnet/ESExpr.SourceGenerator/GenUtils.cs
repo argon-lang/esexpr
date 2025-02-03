@@ -30,4 +30,6 @@ internal static class GenUtils {
 
 	public static bool HasAttribute(MemberDeclarationSyntax decl, string name, SemanticModel semanticModel) =>
 		GetAttribute(decl, name, semanticModel) != null;
+	
+	
 }

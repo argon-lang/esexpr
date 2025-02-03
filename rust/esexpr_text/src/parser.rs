@@ -4,13 +4,14 @@ use std::{collections::HashMap, str::FromStr};
 use esexpr::ESExpr;
 use hexfloat2::{HexFloat32, HexFloat64};
 use nom::{
-    IResult,
     branch::alt,
+    bytes::complete::{escaped_transform, tag, tag_no_case, take_till, take_while, take_while1, take_while_m_n},
     character::complete::{alphanumeric1, char, digit1, hex_digit1, multispace1, none_of, one_of},
-    bytes::complete::{take_while, take_while1, tag, tag_no_case, escaped_transform, take_while_m_n, take_till},
     combinator::{cut, eof, map, map_res, not, opt, peek, recognize, value},
     multi::{many0, many0_count},
-    sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
+    sequence::{delimited, pair, preceded, separated_pair, terminated},
+    IResult,
+    Parser
 };
 use num_bigint::{BigInt, BigUint, Sign};
 
@@ -36,7 +37,7 @@ pub fn skip_ws(input: &str) -> IResult<&str, ()> {
 				comment,
 			))
 		),
-	)(input)
+	).parse(input)
 }
 
 fn comment(input: &str) -> IResult<&str, ()> {
@@ -46,7 +47,7 @@ fn comment(input: &str) -> IResult<&str, ()> {
 			tag("//"),
 			take_till(|c| c == '\n'),
 		),
-	)(input)
+	).parse(input)
 }
 
 
@@ -62,7 +63,7 @@ fn is_alphanum(c: char) -> bool {
 pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
     preceded(
         skip_ws,
-         recognize(tuple((
+         recognize((
             take_while1(is_alpha),
             take_while(is_alphanum),
             many0(
@@ -71,8 +72,8 @@ pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
                     take_while1(is_alphanum),
                 )
             ),
-        )))
-    )(input)
+        ))
+    ).parse(input)
 }
 
 
@@ -81,24 +82,24 @@ pub fn identifier(input: &str) -> IResult<&str, String> {
     alt((
         map(simple_identifier, String::from),
         preceded(skip_ws, string_impl('\'', "'\\")),
-    ))(input)
+    )).parse(input)
 }
 
 
 fn float_decimal(input: &str) -> IResult<&str, ESExpr> {
-    map(recognize(tuple((
+    map(recognize((
         opt(one_of("+-")),
         digit1,
         char('.'),
         cut(digit1),
-        opt(tuple((
+        opt((
             one_of("eE"),
             opt(one_of("+-")),
             digit1,
-        ))),
+        )),
         opt(one_of("fFdD")),
         not(peek(alphanumeric1)),
-    ))), parse_dec_float)(input)
+    )), parse_dec_float).parse(input)
 }
 
 fn parse_dec_float(s: &str) -> ESExpr {
@@ -113,7 +114,7 @@ fn parse_dec_float(s: &str) -> ESExpr {
 }
 
 fn float_hex(input: &str) -> IResult<&str, ESExpr> {
-    map(recognize(tuple((
+    map(recognize((
         opt(one_of("+-")),
         tag_no_case("0x"),
         hex_digit1,
@@ -124,7 +125,7 @@ fn float_hex(input: &str) -> IResult<&str, ESExpr> {
         digit1,
         opt(one_of("fFdD")),
         not(peek(alphanumeric1)),
-    ))), parse_hex_float)(input)
+    )), parse_hex_float).parse(input)
 }
 
 fn parse_hex_float(s: &str) -> ESExpr {
@@ -148,23 +149,23 @@ pub fn float(input: &str) -> IResult<&str, ESExpr> {
         value(ESExpr::Float64(f64::NAN), tag("#float64:nan")),
         value(ESExpr::Float64(f64::INFINITY), tag("#float64:+inf")),
         value(ESExpr::Float64(f64::NEG_INFINITY), tag("#float64:-inf")),
-    )))(input)
+    ))).parse(input)
 }
 
 
 pub fn integer(input: &str) -> IResult<&str, BigInt> {
     preceded(skip_ws, alt((
-        map(recognize(tuple((
+        map(recognize((
             opt(one_of("+-")),
             tag_no_case("0x"),
             hex_digit1,
-        ))), |s: &str| parse_int_base(s, 16)),
+        )), |s: &str| parse_int_base(s, 16)),
 
-        map(recognize(tuple((
+        map(recognize((
             opt(one_of("+-")),
             digit1,
-        ))), |s: &str| s.parse::<BigInt>().unwrap()),
-    )))(input)
+        )), |s: &str| s.parse::<BigInt>().unwrap()),
+    ))).parse(input)
 }
 
 
@@ -193,10 +194,10 @@ pub fn string(input: &str) -> IResult<&str, String> {
     preceded(
         skip_ws,
         string_impl('"', "\"\\")
-    )(input)
+    ).parse(input)
 }
 
-fn string_impl(quote: char, non_normal_chars: &'static str) -> impl Fn(&str) -> IResult<&str, String> {
+fn string_impl<'a>(quote: char, non_normal_chars: &'static str) -> impl Parser<&'a str, Output=String, Error=nom::error::Error<&'a str>> {
     move |input| {
         delimited(
             char(quote),
@@ -222,7 +223,7 @@ fn string_impl(quote: char, non_normal_chars: &'static str) -> impl Fn(&str) -> 
                 ))
             ),
             char(quote),
-        )(input)
+        ).parse(input)
     }    
 }
 
@@ -233,14 +234,14 @@ pub fn binary(input: &str) -> IResult<&str, Vec<u8>> {
         preceded(skip_ws, tag("#\"")),
         many0(hex_byte),
         cut(tag("\"")),
-    )(input)
+    ).parse(input)
 }
 
 pub fn hex_byte(input: &str) -> IResult<&str, u8> {
     map(
         take_while_m_n(2, 2, |c: char| c.is_ascii_hexdigit()),
         |s| u8::from_str_radix(s, 16).unwrap()
-    )(input)
+    ).parse(input)
 }
 
 
@@ -257,7 +258,7 @@ pub fn constructor(input: &str) -> IResult<&str, ESExpr> {
             many0(constructor_arg),
         ),
         preceded(skip_ws, char(')')),
-    ), |(name, args)| build_constructor(name, args))(input)
+    ), |(name, args)| build_constructor(name, args)).parse(input)
 }
 
 fn build_constructor(name: String, ctor_args: Vec<ConstructorArg>) -> ESExpr {
@@ -288,22 +289,22 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
             expr,
         ), |(name, value)| ConstructorArg::Keyword(name.to_owned(), value)),
         map(expr, ConstructorArg::Positional),
-    ))(input)
+    )).parse(input)
 }
 
 fn null_atom(input: &str) -> IResult<&str, ESExpr> {
     map(
-        tuple((
+        (
             skip_ws,
             tag("#null"),
             digit1,
             not(alphanumeric1)
-        )),
+        ),
         |(_, _, n, _)| ESExpr::Null(BigUint::from_str(n).unwrap())
-    )(input)
+    ).parse(input)
 }
 
-fn atom(expr: ESExpr, s: &'static str) -> impl Fn(&str) -> IResult<&str, ESExpr> {
+fn atom<'a>(expr: ESExpr, s: &'static str) -> impl Parser<&'a str, Output=ESExpr, Error=nom::error::Error<&'a str>> {
     move |input| {
         value(
             expr.clone(),
@@ -311,7 +312,7 @@ fn atom(expr: ESExpr, s: &'static str) -> impl Fn(&str) -> IResult<&str, ESExpr>
                 skip_ws,
                 terminated(tag(s), not(alphanumeric1))
             ),
-        )(input)
+        ).parse(input)
     }
 }
 
@@ -326,15 +327,15 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr> {
         null_atom,
         atom(ESExpr::Null(BigUint::ZERO), "#null"),
         constructor,
-    ))(input)
+    )).parse(input)
 }
 
 pub fn expr_file(input: &str) -> IResult<&str, ESExpr> {
-    terminated(terminated(expr, skip_ws),  eof)(input)
+    terminated(terminated(expr, skip_ws),  eof).parse(input)
 }
 
 pub fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr>> {
-    terminated(terminated(many0(expr), skip_ws),  eof)(input)
+    terminated(terminated(many0(expr), skip_ws),  eof).parse(input)
 }
 
 

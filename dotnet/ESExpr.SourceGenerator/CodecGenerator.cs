@@ -13,40 +13,38 @@ using static ESExpr.SourceGenerator.GenUtils;
 
 namespace ESExpr.SourceGenerator;
 
-internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationSyntax {
+internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeModel : ITypeSourceModelDeclaration {
 
-	public required GeneratorExecutionContext Context { get; init; }
-	public required SemanticModel SemanticModel { get; init; }
-	
+	public required SourceProductionContext Context { get; init; }
 	public required CodecOverrideHandler CodecOverrideHandler { get; init; }
-	public required TDecl Decl { get; init; }
+	
+	public required TTypeModel TypeModel { get; init; }
 
 	protected abstract ExpressionSyntax GenerateTagsBody();
 	protected abstract BlockSyntax GenerateEncodeBody();
 	protected abstract BlockSyntax GenerateDecodeBody();
 
-	
-	
-	public void GenerateCodecClass() {
+
+	public void Generate() {
 		var syntaxTree = CompilationUnit()
-			.AddUsings(Decl.SyntaxTree.GetCompilationUnitRoot().Usings.ToArray());
+			.AddUsings(TypeModel.Usings.Select(u => u.Syntax).ToArray());
 			
-		var outerType = GetDeclarationAsType(Decl);
+		TypeSyntax outerType = IdentifierName(TypeModel.TypeName);
 		
 		var members = new List<MemberDeclarationSyntax>();
 
 		{
-			if(Decl is TypeDeclarationSyntax { TypeParameterList: {} typeParams }) {
+			if(TypeModel.TypeParameters.Count != 0) {
 				var constructor = ConstructorDeclaration("Codec")
 					.WithParameterList(ParameterList(SeparatedList(
-						typeParams.Parameters.Select(tp => 
-							Parameter(Identifier(PascalCaseToCamelCase(tp.Identifier.Text) + "Codec"))
-								.WithType(ESExprCodecType(IdentifierName(tp.Identifier.Text)))
+						TypeModel.TypeParameters.Select(tp => 
+							Parameter(Identifier(PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec"))
+								.WithType(ESExprCodecType(IdentifierName(tp.Syntax.Identifier.Text)))
 						)
 					)))
 					.WithBody(Block(List(
-						typeParams.Parameters.Select(tp => {
-							var fieldName = PascalCaseToCamelCase(tp.Identifier.Text) + "Codec";
+						TypeModel.TypeParameters.Select(tp => {
+							var fieldName = PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec";
 							
 							return ExpressionStatement(AssignmentExpression(
 								SyntaxKind.SimpleAssignmentExpression,
@@ -62,17 +60,24 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				
 				members.Add(constructor);
 
-				foreach(var tp in typeParams.Parameters) {
+				foreach(var tp in TypeModel.TypeParameters) {
 					members.Add(
 						FieldDeclaration(
-							VariableDeclaration(ESExprCodecType(IdentifierName(tp.Identifier.Text)))
+							VariableDeclaration(ESExprCodecType(IdentifierName(tp.Syntax.Identifier.Text)))
 								.WithVariables(SeparatedList(new VariableDeclaratorSyntax[] {
-									VariableDeclarator(Identifier(PascalCaseToCamelCase(tp.Identifier.Text) + "Codec")),
+									VariableDeclarator(Identifier(PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec")),
 								}))
 						)
 							.AddModifiers(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.ReadOnlyKeyword))
 					);
 				}
+				
+				outerType = GenericName(TypeModel.TypeName)
+					.AddTypeArgumentListArguments(
+						TypeModel.TypeParameters
+							.Select(tp => IdentifierName(tp.Syntax.Identifier.Text))
+							.ToArray<TypeSyntax>()
+					);
 			}
 		}
 		
@@ -143,7 +148,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 		var outerClass =
 			RecordDeclaration(
 				Token(SyntaxKind.RecordKeyword),
-				Decl.Identifier.ToString()
+				TypeModel.TypeName
 			)
 			.AddModifiers(Token(SyntaxKind.PartialKeyword))
 			.WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken))
@@ -151,13 +156,13 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 			.AddMembers(codecClass);
 
 		{
-			if(Decl is TypeDeclarationSyntax { TypeParameterList: { } typeParams }) {
-				outerClass = outerClass.AddTypeParameterListParameters(typeParams.Parameters.ToArray());
+			if(TypeModel.TypeParameters.Count != 0) {
+				outerClass = outerClass.AddTypeParameterListParameters(TypeModel.TypeParameters.Select(tp => tp.Syntax).ToArray());
 			}
 		}
 
 		// Generate the namespace with the class
-		var nsName = NameFromNamespaceNodes(Decl.Parent);
+		var nsName = GetNamespaceName();
 
 		string fileNamePrefix;
 		if(nsName is not null) {
@@ -165,11 +170,11 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				.AddMembers(outerClass);
 
 			syntaxTree = syntaxTree.AddMembers(namespaceDeclaration);
-			fileNamePrefix = nsName.ToString() + "." + Decl.Identifier.ToString();
+			fileNamePrefix = nsName.ToString() + "." + TypeModel.TypeName;
 		}
 		else {
 			syntaxTree = syntaxTree.AddMembers(outerClass);
-			fileNamePrefix = Decl.Identifier.ToString();
+			fileNamePrefix = TypeModel.TypeName;
 		}
 
 		syntaxTree = syntaxTree.NormalizeWhitespace();
@@ -179,10 +184,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 		Context.AddSource($"{fileNamePrefix}.ESExprCodec.g.cs", syntaxTree.GetText(Encoding.UTF8));
 	}
 
-	protected BlockSyntax WriteEncodeFields(RecordDeclarationSyntax typeDecl, ExpressionSyntax valueExpr) {
-		var constructorName = GetConstructorName(typeDecl);
-		
-		
+	protected BlockSyntax WriteEncodeFields(string constructorName, VList<SourceModelField> fields, ExpressionSyntax valueExpr) {
 		// var args = new global::System.Collections.Generic.List<global::ESExpr.Runtime.ESExpr>();
 		var argsDeclaration = LocalDeclarationStatement(
 			VariableDeclaration(IdentifierName("var"))
@@ -243,35 +245,29 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 		bool hasVararg = false;
 		
 
-		foreach(var prop in typeDecl.Members.OfType<PropertyDeclarationSyntax>()) {
-			var propType = SemanticModel.GetTypeInfo(prop.Type).Type;
-			if(propType == null) {
-				throw new Exception("Could not resolve type.");
-			}
-			
-			
+		foreach(var field in fields) {
 			var propertyValue = MemberAccessExpression(
 				SyntaxKind.SimpleMemberAccessExpression,
 				valueExpr,
-				IdentifierName(prop.Identifier.Text)
+				IdentifierName(field.Name)
 			);
 
-			if(IsKeyword(prop) is {} keyword) {
+			if(field.IsKeyword is {} keyword) {
 				if(hasDict) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.KeywordAfterDict,
-						prop.Identifier.GetLocation(),
+						field.Location,
 						new object?[] {}
 					));
 				}
 				
-				if(IsOptional(prop)) {
+				if(field.IsOptional) {
 					
 					
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(propType),
+							GetOptionalCodecExpr(field.Type),
 							IdentifierName("EncodeOptional")
 						),
 						ArgumentList(SeparatedList([
@@ -316,7 +312,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(propType),
+							GetCodecExpr(field.Type),
 							IdentifierName("Encode")
 						),
 						ArgumentList(SeparatedList([
@@ -324,7 +320,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 						]))
 					);
 
-					if(IsDefaultValue(prop) is { } defaultValue) {
+					if(field.DefaultValue is { } defaultValue) {
 						stmts.Add(Block(							
 							LocalDeclarationStatement(
 								VariableDeclaration(ESExprType)
@@ -348,7 +344,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 											IdentifierName("Equals")
 										),
 										ArgumentList(SeparatedList([
-											Argument(defaultValue),
+											Argument(defaultValue.Syntax),
 										]))
 									)
 								),
@@ -389,11 +385,11 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					}
 				}
 			}
-			else if(IsVararg(prop)) {
+			else if(field.IsVararg) {
 				if(hasVararg) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.MultipleVarargs,
-						prop.Identifier.GetLocation(),
+						field.Location,
 						new object?[] {}
 					));
 				}
@@ -403,7 +399,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				var encodedExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						GetVarargCodecExpr(propType),
+						GetVarargCodecExpr(field.Type),
 						IdentifierName("EncodeVararg")
 					),
 					ArgumentList(SeparatedList([
@@ -424,11 +420,11 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 			
 				stmts.Add(ExpressionStatement(expr));
 			}
-			else if(IsDict(prop)) {
+			else if(field.IsDict) {
 				if(hasDict) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.MultipleDict,
-						prop.Identifier.GetLocation(),
+						field.Location,
 						new object?[] {}
 					));
 				}
@@ -439,7 +435,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				var encodedExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						GetDictCodecExpr(propType),
+						GetDictCodecExpr(field.Type),
 						IdentifierName("EncodeDict")
 					),
 					ArgumentList(SeparatedList([
@@ -472,16 +468,16 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				if(hasVararg) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.PositionalAfterVararg,
-						prop.Identifier.GetLocation(),
+						field.Location,
 						new object?[] {}
 					));
 				}
 
-				if(IsOptional(prop)) {
+				if(field.IsOptional) {
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(propType),
+							GetOptionalCodecExpr(field.Type),
 							IdentifierName("EncodeOptional")
 						),
 						ArgumentList(SeparatedList([
@@ -523,7 +519,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(propType),
+							GetCodecExpr(field.Type),
 							IdentifierName("Encode")
 						),
 						ArgumentList(SeparatedList([
@@ -552,27 +548,19 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 		return Block(stmts);
 	}
 
-	protected BlockSyntax WriteDecodeFields(RecordDeclarationSyntax typeDecl) {
-		var constructorName = GetConstructorName(typeDecl);
-		
+	protected BlockSyntax WriteDecodeFields(string constructorName, VList<SourceModelField> fields, TypeSyntax objectType) {
 		var stmts = new List<StatementSyntax>();
 
 		var fieldInits = new List<ExpressionSyntax>();
 
 		int positionalIndex = 0;
 
-		foreach(var prop in typeDecl.Members.OfType<PropertyDeclarationSyntax>()) {
-			var propType = SemanticModel.GetTypeInfo(prop.Type).Type;
-			if(propType == null) {
-				throw new Exception("Could not resolve type.");
-			}
+		foreach(var field in fields) {
+			var localName = "local_" + field.Name;
 			
-
-			var localName = "local_" + prop.Identifier.Text;
-			
-			if(IsKeyword(prop) is {} keyword) {
+			if(field.IsKeyword is {} keyword) {
 				stmts.Add(LocalDeclarationStatement(
-					VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
 							SingletonSeparatedList(
 								VariableDeclarator(Identifier(localName))
@@ -612,11 +600,11 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				ExpressionSyntax decodedExpr;
 				BlockSyntax falseBody;
 
-				if(IsOptional(prop)) {
+				if(field.IsOptional) {
 					decodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(propType),
+							GetOptionalCodecExpr(field.Type),
 							IdentifierName("DecodeOptional")
 						),
 						ArgumentList(SeparatedList(new[] {
@@ -628,7 +616,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					var emptyExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(propType),
+							GetOptionalCodecExpr(field.Type),
 							IdentifierName("DecodeOptional")
 						),
 						ArgumentList(SeparatedList(new[] {
@@ -649,7 +637,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					decodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(propType),
+							GetCodecExpr(field.Type),
 							IdentifierName("Decode")
 						),
 						ArgumentList(SeparatedList(new[] {
@@ -658,12 +646,12 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 						}))
 					);
 					
-					if(IsDefaultValue(prop) is {} defaultValue) {
+					if(field.DefaultValue is {} defaultValue) {
 						falseBody = Block(
 							ExpressionStatement(AssignmentExpression(
 								SyntaxKind.SimpleAssignmentExpression,
 								IdentifierName(localName),
-								defaultValue
+								defaultValue.Syntax
 							))
 						);
 					}
@@ -714,7 +702,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				)));
 
 			}
-			else if(IsVararg(prop)) {
+			else if(field.IsVararg) {
 				var pathExpr = SimpleLambdaExpression(
 					Parameter(Identifier("i")),
 					InvocationExpression(
@@ -739,7 +727,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				var decodedExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						GetVarargCodecExpr(propType),
+						GetVarargCodecExpr(field.Type),
 						IdentifierName("DecodeVararg")
 					),
 					ArgumentList(SeparatedList([
@@ -749,7 +737,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				);
 			
 				stmts.Add(LocalDeclarationStatement(
-					VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
 							SingletonSeparatedList(
 								VariableDeclarator(Identifier(localName))
@@ -780,7 +768,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				);
 				stmts.Add(sliceStatement);
 			}
-			else if(IsDict(prop)) {
+			else if(field.IsDict) {
 				var pathExpr = SimpleLambdaExpression(
 					Parameter(Identifier("kw")),
 					InvocationExpression(
@@ -805,7 +793,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				var decodedExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						GetDictCodecExpr(propType),
+						GetDictCodecExpr(field.Type),
 						IdentifierName("DecodeDict")
 					),
 					ArgumentList(SeparatedList([
@@ -815,7 +803,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				);
 			
 				stmts.Add(LocalDeclarationStatement(
-					VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
 							SingletonSeparatedList(
 								VariableDeclarator(Identifier(localName))
@@ -886,7 +874,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					)
 				);
 
-				if(IsOptional(prop)) {
+				if(field.IsOptional) {
 					ExpressionSyntax DecodeOptionalExpr(ExpressionSyntax expr) =>
 						AssignmentExpression(
 							SyntaxKind.SimpleAssignmentExpression,
@@ -894,7 +882,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 							InvocationExpression(
 								MemberAccessExpression(
 									SyntaxKind.SimpleMemberAccessExpression,
-									GetOptionalCodecExpr(propType),
+									GetOptionalCodecExpr(field.Type),
 									IdentifierName("DecodeOptional")
 								),
 								ArgumentList(SeparatedList([
@@ -905,7 +893,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 						);
 
 					stmts.Add(LocalDeclarationStatement(
-						VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 							.WithVariables(
 								SingletonSeparatedList(
 									VariableDeclarator(Identifier(localName))
@@ -927,7 +915,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					stmts.Add(ifStatement);
 				}
 				else {
-					var codecExpr = GetCodecExpr(propType);
+					var codecExpr = GetCodecExpr(field.Type);
 					
 					var throwStatement = ThrowStatement(
 						ObjectCreationExpression(
@@ -972,7 +960,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					);
 			
 					stmts.Add(LocalDeclarationStatement(
-						VariableDeclaration(ConvertTypeSymbolToTypeSyntax(propType))
+						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 							.WithVariables(
 								SingletonSeparatedList(
 									VariableDeclarator(Identifier(localName))
@@ -990,12 +978,12 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				
 			fieldInits.Add(AssignmentExpression(
 				SyntaxKind.SimpleAssignmentExpression,
-				IdentifierName(prop.Identifier.Text),
+				IdentifierName(field.Name),
 				IdentifierName(localName)
 			));
 		}
 
-		var objExpr = ObjectCreationExpression(GetDeclarationAsType(typeDecl))
+		var objExpr = ObjectCreationExpression(objectType)
 			.WithInitializer(InitializerExpression(
 				SyntaxKind.ObjectInitializerExpression,
 				SeparatedList(fieldInits)
@@ -1118,23 +1106,37 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 			)
 		);
 	
-	protected static TypeSyntax GetDeclarationAsType(BaseTypeDeclarationSyntax decl) {
-		if(decl is TypeDeclarationSyntax { TypeParameterList: not null } typeDecl) {
-			return GenericName(
-				Identifier(decl.Identifier.ToString()),
-				TypeArgumentList(
-					SeparatedList(
-						typeDecl.TypeParameterList.Parameters.Select(tp => {
-							TypeSyntax tpType = IdentifierName(tp.Identifier.ToString());
-							return tpType;
-						})
-					)
+	protected static TypeSyntax GetDeclarationAsType(string name, VList<SourceModelSyntax<TypeParameterSyntax>> typeParameters) {
+		if(typeParameters.Count == 0) {
+			return IdentifierName(name);
+		}
+
+		return GenericName(
+			Identifier(name),
+			TypeArgumentList(
+				SeparatedList(
+					typeParameters.Select(tp => {
+						TypeSyntax tpType = IdentifierName(tp.Syntax.Identifier.ToString());
+						return tpType;
+					})
 				)
-			);
+			)
+		);
+	}
+
+	private NameSyntax? GetNamespaceName() {
+		NameSyntax? ns = null;
+
+		foreach(var part in TypeModel.Namespace) {
+			if(ns is null) {
+				ns = IdentifierName(part);
+			}
+			else {
+				ns = QualifiedName(ns, IdentifierName(part));
+			}
 		}
-		else {
-			return IdentifierName(decl.Identifier.ToString());	
-		}
+
+		return ns;
 	}
 
 	protected static NameSyntax? NameFromNamespaceNodes(SyntaxNode? syntax) {
@@ -1166,36 +1168,38 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 	}
 
 
-	protected ExpressionSyntax GetCodecExpr(ITypeSymbol t) =>
+	protected ExpressionSyntax GetCodecExpr(SourceModelType t) =>
 		GetCodecLikeExpr(t, "IESExprCodec", "Codec");
 
-	protected ExpressionSyntax GetOptionalCodecExpr(ITypeSymbol t) =>
+	protected ExpressionSyntax GetOptionalCodecExpr(SourceModelType t) =>
 		GetCodecLikeExpr(t, "IOptionalValueCodec", "OptionalValueCodec");
 
-	protected ExpressionSyntax GetVarargCodecExpr(ITypeSymbol t) =>
+	protected ExpressionSyntax GetVarargCodecExpr(SourceModelType t) =>
 		GetCodecLikeExpr(t, "IVarargCodec", "VarargCodec");
 
-	protected ExpressionSyntax GetDictCodecExpr(ITypeSymbol t) =>
+	protected ExpressionSyntax GetDictCodecExpr(SourceModelType t) =>
 		GetCodecLikeExpr(t, "IDictCodec", "DictCodec");
 	
-	protected ExpressionSyntax GetCodecLikeExpr(ITypeSymbol t, string codecTypeName, string nestedClassName) {
-		var codecType = Context.Compilation.GetTypeByMetadataName($"ESExpr.Runtime.{codecTypeName}`1");
-		if(codecType == null) {
-			throw new Exception($"Could not find {codecTypeName}");
-		}
-
-		TypeSyntax concreteCodecType;
-		IEnumerable<ITypeSymbol> typeArgs;
+	protected ExpressionSyntax GetCodecLikeExpr(SourceModelType t, string codecTypeName, string nestedClassName) {
+		SourceModelType codecType = new SourceModelType.NamedSymbol(VList.Of("ESExpr", "Runtime"), codecTypeName) {
+			TypeArguments = VList.Of(t),
+			IsEnum = false,
+		};
 		
-		var overrideCodec = CodecOverrideHandler.GetOverriddenCodec(codecType.Construct(t));
+		
+		TypeSyntax concreteCodecType;
+		IEnumerable<SourceModelType> typeArgs;
+		
+		var overrideCodec = CodecOverrideHandler.GetOverriddenCodec(codecType);
+		
 		if(overrideCodec != null) {
-			concreteCodecType = ConvertTypeSymbolToTypeSyntax(overrideCodec);
+			concreteCodecType = ConvertTypeToTypeSyntax(overrideCodec);
 			typeArgs = overrideCodec switch {
-				INamedTypeSymbol { IsGenericType: true } named => named.TypeArguments,
+				SourceModelType.NamedSymbol named => named.TypeArguments,
 				_ => [],
 			};
 		}
-		else if(t.TypeKind == TypeKind.Enum) {
+		else if(t is SourceModelType.NamedSymbol { IsEnum: true }) {
 			return MemberAccessExpression(
 				SyntaxKind.SimpleMemberAccessExpression,
 				QualifiedName(
@@ -1209,29 +1213,29 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					GenericName(
 						Identifier("SimpleEnumCodec"),
 						TypeArgumentList(
-							SeparatedList([ ConvertTypeSymbolToTypeSyntax(t) ])
+							SeparatedList([ ConvertTypeToTypeSyntax(t) ])
 						)
 					)
 				),
 				IdentifierName("Instance")
 			);
 		}
-		else if(t is ITypeParameterSymbol) {
+		else if(t is SourceModelType.TypeParameter tp) {
 			return MemberAccessExpression(
 				SyntaxKind.SimpleMemberAccessExpression,
 				ThisExpression(),
-				IdentifierName(PascalCaseToCamelCase(t.Name) + "Codec")
+				IdentifierName(PascalCaseToCamelCase(tp.Name) + "Codec")
 			);
 		}
 		else {
-			var tSyntax = ConvertTypeSymbolToTypeSyntax(t);
+			var tSyntax = ConvertTypeToTypeSyntax(t);
 			if(tSyntax is NameSyntax typeName) {
 				concreteCodecType = QualifiedName(
-					(NameSyntax)ConvertTypeSymbolToTypeSyntax(t),
+					typeName,
 					IdentifierName(nestedClassName)
 				);
 				typeArgs = t switch {
-					INamedTypeSymbol { IsGenericType: true } named => named.TypeArguments,
+					SourceModelType.NamedSymbol named => named.TypeArguments,
 					_ => [],
 				};
 			}
@@ -1239,7 +1243,7 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 				throw new AbortGenerationException(
 					Diagnostic.Create(
 						Errors.CouldNotDetermineCodec,
-						Decl.Identifier.GetLocation(),
+						TypeModel.Location,
 						codecTypeName,
 						tSyntax
 					)
@@ -1257,13 +1261,13 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 	
 	
 	
-	protected static TypeSyntax ConvertTypeSymbolToTypeSyntax(ITypeSymbol typeSymbol) {
-		switch (typeSymbol) {
-			case INamedTypeSymbol namedTypeSymbol:
+	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
+		switch (t) {
+			case SourceModelType.NamedSymbol namedTypeSymbol:
 			{
 				SimpleNameSyntax name;
-				if(namedTypeSymbol.IsGenericType) {
-					var genericArguments = namedTypeSymbol.TypeArguments.Select(ConvertTypeSymbolToTypeSyntax);
+				if(namedTypeSymbol.TypeArguments.Count != 0) {
+					var genericArguments = namedTypeSymbol.TypeArguments.Select(ConvertTypeToTypeSyntax);
 					name = GenericName(
 						Identifier(namedTypeSymbol.Name),
 						TypeArgumentList(SeparatedList(genericArguments))
@@ -1273,39 +1277,31 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 					name = IdentifierName(namedTypeSymbol.Name);
 				}
 				
-				if(namedTypeSymbol.ContainingType is {} outerType) {
-					return QualifiedName(
-						(NameSyntax)ConvertTypeSymbolToTypeSyntax(outerType),
-						name
-					);
-				}
-				else if(namedTypeSymbol.ContainingNamespace is { } outerNamespace) {
-					return GetNamespaceMemberSyntax(outerNamespace, name);
-				}
-				else {
-					throw new Exception("Could not determine parent of type " + typeSymbol);
-				}
+				return GetNamespaceMemberSyntax(namedTypeSymbol.Namespace, namedTypeSymbol.Namespace.Count, name);
 			}
 
-			case IArrayTypeSymbol arrayTypeSymbol:
-				var elementTypeSyntax = ConvertTypeSymbolToTypeSyntax(arrayTypeSymbol.ElementType);
+			case SourceModelType.Array arrayTypeSymbol:
+				var elementTypeSyntax = ConvertTypeToTypeSyntax(arrayTypeSymbol.Element);
 				return ArrayType(elementTypeSyntax, SingletonList(ArrayRankSpecifier()));
 
-			case IPointerTypeSymbol pointerTypeSymbol:
-				var pointedAtTypeSyntax = ConvertTypeSymbolToTypeSyntax(pointerTypeSymbol.PointedAtType);
+			case SourceModelType.Pointer pointerTypeSymbol:
+				var pointedAtTypeSyntax = ConvertTypeToTypeSyntax(pointerTypeSymbol.PointedAtType);
 				return PointerType(pointedAtTypeSyntax);
 
-			case ITypeParameterSymbol typeParameterSymbol:
+			case SourceModelType.TypeParameter typeParameterSymbol:
 				return IdentifierName(typeParameterSymbol.Name);
 
+			case SourceModelType.Nullable nullableType:
+				return NullableType(ConvertTypeToTypeSyntax(nullableType.Inner));
+			
 			default:
-				return ParseTypeName(typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+				throw new Exception("Unexpected SourceModelType");
 		}
 	}
 
-	private static NameSyntax GetNamespaceMemberSyntax(INamespaceSymbol ns, SimpleNameSyntax memberName) {
-		if(ns.ContainingNamespace is { } parentNamespace) {
-			return QualifiedName(GetNamespaceMemberSyntax(parentNamespace, IdentifierName(ns.Name)), memberName);
+	private static NameSyntax GetNamespaceMemberSyntax(VList<string> ns, int nsPartCount, SimpleNameSyntax memberName) {
+		if(nsPartCount > 0) {
+			return QualifiedName(GetNamespaceMemberSyntax(ns, nsPartCount - 1, IdentifierName(ns[nsPartCount - 1])), memberName);
 		}
 		else {
 			return AliasQualifiedName(
@@ -1314,73 +1310,6 @@ internal abstract class CodecGenerator<TDecl> where TDecl : BaseTypeDeclarationS
 			);
 		}
 	}
-	
-	protected string GetConstructorName(TypeDeclarationSyntax decl) {
-		if(
-			GetAttribute(decl, "ESExpr.Runtime.ConstructorAttribute", SemanticModel) is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
-		) {
-			return value.Token.ValueText;
-		}
-		else {
-			return NameToKebabCase(decl.Identifier.Text);			
-		}
-	}
-
-	private bool IsVararg(PropertyDeclarationSyntax decl) =>
-		HasAttribute(decl, "ESExpr.Runtime.VarargAttribute", SemanticModel);
-
-	private bool IsDict(PropertyDeclarationSyntax decl) =>
-		HasAttribute(decl, "ESExpr.Runtime.DictAttribute", SemanticModel);
-
-	private bool IsOptional(PropertyDeclarationSyntax decl) =>
-		HasAttribute(decl, "ESExpr.Runtime.OptionalAttribute", SemanticModel);
-
-	private ExpressionSyntax? IsDefaultValue(PropertyDeclarationSyntax decl) {
-		var attr = GetAttribute(decl, "ESExpr.Runtime.DefaultValueAttribute", SemanticModel);
-		if(
-			attr is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
-		) {
-			return ParseExpression(value.Token.ValueText);
-		}
-		else if(decl.Initializer is { Value: var initValue }) {
-			return initValue;
-		}
-		else {
-			return null;
-		}
-	}
-
-	private string? IsKeyword(PropertyDeclarationSyntax decl) {
-		var attr = GetAttribute(decl, "ESExpr.Runtime.KeywordAttribute", SemanticModel);
-		if(attr == null) {
-			return null;
-		}
-		
-		if(
-			attr is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
-		) {
-			return value.Token.ValueText;
-		}
-		else {
-			return NameToKebabCase(decl.Identifier.Text);			
-		}
-	}
-
-	protected bool IsInlineValue(RecordDeclarationSyntax decl) =>
-		HasAttribute(decl, "ESExpr.Runtime.InlineValueAttribute", SemanticModel);
-
-	private string NameToKebabCase(string name) =>
-		string.Join(
-			"-",
-			Regex.Split(name, "(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])_(?=[0-9])")
-				.Select(s => s.ToLowerInvariant())
-		);
 
 	private string PascalCaseToCamelCase(string name) =>
 		name.Length == 0

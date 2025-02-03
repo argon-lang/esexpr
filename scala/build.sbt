@@ -1,6 +1,6 @@
 import org.scalajs.linker.interface.ESVersion
 
-val zioVersion = "2.1.9"
+val zioVersion = "2.1.14"
 
 lazy val commonSettingsNoLibs = Seq(
   scalaVersion := "3.5.1",
@@ -25,7 +25,7 @@ lazy val commonSettings = commonSettingsNoLibs ++ Seq(
 
     "dev.zio" %%% "zio" % zioVersion,
     "dev.zio" %%% "zio-streams" % zioVersion,
-    "org.typelevel" %%% "cats-core" % "2.12.0",
+    "org.typelevel" %%% "cats-core" % "2.13.0",
 
     "dev.zio" %%% "zio-test" % zioVersion % "test",
     "dev.zio" %%% "zio-test-sbt" % zioVersion % "test",

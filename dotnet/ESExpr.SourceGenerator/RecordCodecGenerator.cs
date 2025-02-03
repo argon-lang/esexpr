@@ -5,7 +5,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ESExpr.SourceGenerator;
 
-internal class RecordCodecGenerator : CodecGenerator<RecordDeclarationSyntax> {
+internal class RecordCodecGenerator : CodecGenerator<RecordSourceModel> {
 	protected override ExpressionSyntax GenerateTagsBody() {
 		return CastExpression(
 			QualifiedName(
@@ -35,7 +35,7 @@ internal class RecordCodecGenerator : CodecGenerator<RecordDeclarationSyntax> {
 						)
 						.WithArgumentList(
 							ArgumentList(SingletonSeparatedList(
-								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(GetConstructorName(Decl))))
+								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(TypeModel.ConstructorName)))
 							))
 						)
 				))				
@@ -44,10 +44,10 @@ internal class RecordCodecGenerator : CodecGenerator<RecordDeclarationSyntax> {
 	}
 
 	protected override BlockSyntax GenerateEncodeBody() =>
-		WriteEncodeFields(Decl, IdentifierName("value"));
+		WriteEncodeFields(TypeModel.ConstructorName, TypeModel.Fields, IdentifierName("value"));
 
 	protected override BlockSyntax GenerateDecodeBody() {
-		var constructorName = GetConstructorName(Decl);
+		var constructorName = TypeModel.ConstructorName;
 		
         // if(expr is global::ESExpr.Runtime.ESExpr.Constructor("name", var args0, var kwargs0))
         var ifCondition = IsPatternExpression(
@@ -113,9 +113,10 @@ internal class RecordCodecGenerator : CodecGenerator<RecordDeclarationSyntax> {
                 ]))
             )
         );
-
         
-        var decodeFields = WriteDecodeFields(Decl);
+        var recordType = GetDeclarationAsType(TypeModel.TypeName, TypeModel.TypeParameters);
+        
+        var decodeFields = WriteDecodeFields(constructorName, TypeModel.Fields, recordType);
 
         StatementSyntax[] ifBody = [
 	        argsDeclaration,

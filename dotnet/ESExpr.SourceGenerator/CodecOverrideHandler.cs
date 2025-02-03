@@ -7,52 +7,47 @@ using static ESExpr.SourceGenerator.GenUtils;
 namespace ESExpr.SourceGenerator;
 
 public class CodecOverrideHandler {
-	private CodecOverrideHandler(Compilation compilation, IReadOnlyList<ITypeSymbol> codecOverrides) {
-		this.compilation = compilation;
+	private CodecOverrideHandler(VDictionary<SourceModelType, VList<SourceModelType>> codecOverrides) {
 		this.codecOverrides = codecOverrides;
 	}
 
-	private readonly Compilation compilation;
-	private readonly IReadOnlyList<ITypeSymbol> codecOverrides;
+	private readonly VDictionary<SourceModelType, VList<SourceModelType>> codecOverrides;
 
-	public static CodecOverrideHandler Load(GeneratorExecutionContext context) {
-		var codecOverrides = new List<ITypeSymbol>();
+	public static CodecOverrideHandler Load(Compilation compilation) {
+		var codecOverrides = new List<INamedTypeSymbol>();
 		
 		foreach(var asm in 
-		        context.Compilation.References
-			        .Select(asm => context.Compilation.GetAssemblyOrModuleSymbol(asm))
+		        compilation.References
+			        .Select(compilation.GetAssemblyOrModuleSymbol)
 			        .OfType<IAssemblySymbol>()
 		       ) {
-
-			if(HasAttribute(asm, "ESExpr.Runtime.ESExprEnableCodecOverridesAttribute")) {
-				ScanAssemblyForCodecOverrides(context, asm, codecOverrides);	
-			}
+			ScanAssemblyForCodecOverrides(asm, codecOverrides);
 		}
 		
-		ScanAssemblyForCodecOverrides(context, context.Compilation.Assembly, codecOverrides);
+		ScanAssemblyForCodecOverrides(compilation.Assembly, codecOverrides);
 		
-		return new CodecOverrideHandler(context.Compilation, codecOverrides);
+		var overrideDict = new Dictionary<SourceModelType, VList<SourceModelType>>();
+
+		foreach(var codecOverride in codecOverrides) {
+			var baseTypes = VList.From(GetAllBaseInterfaces(codecOverride).Select(SourceModelType.FromSymbol));
+			overrideDict.Add(SourceModelType.FromSymbol(codecOverride), baseTypes);
+		}
+		
+		return new CodecOverrideHandler(VDictionary.From(overrideDict));
 	}
 
 	private static void ScanAssemblyForCodecOverrides(
-		GeneratorExecutionContext context,
 		IAssemblySymbol assemblySymbol,
-		IList<ITypeSymbol> overrides
+		List<INamedTypeSymbol> overrides
 	) {
+		if(!HasAttribute(assemblySymbol, "ESExpr.Runtime.ESExprEnableCodecOverridesAttribute")) {
+			return;
+		}
+		
 		foreach(var t in GetAllTypes(assemblySymbol.GlobalNamespace)) {
 			if(!HasAttribute(t, "ESExpr.Runtime.ESExprOverrideCodecAttribute")) {
 				continue;
 			}
-
-			// var originalType = mappedTypeAttr.ConstructorArguments.Length > 0 ? mappedTypeAttr.ConstructorArguments[0].Value as ITypeSymbol : null;
-			// if(originalType == null) {
-			// 	context.ReportDiagnostic(Diagnostic.Create(
-			// 		Errors.InvalidMappedType,
-			// 		mappedTypeAttr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
-			// 		t.ToDisplayString()
-			// 	));
-			// 	continue;
-			// }
 			
 			overrides.Add(t);
 		}
@@ -79,22 +74,24 @@ public class CodecOverrideHandler {
 	
 	
 
-	public ITypeSymbol? GetOverriddenCodec(ITypeSymbol codecType) {
-		foreach(var codecOverride in codecOverrides) {
-			foreach(var overrideInterface in GetAllInterfaces(codecOverride)) {
-				var paramMapping = CodecMatches(codecType, overrideInterface);
-				if(paramMapping != null) {
-					return SubstituteTypeParameters(codecOverride, paramMapping);
+	public SourceModelType? GetOverriddenCodec(SourceModelType codecType) {
+		foreach(var codecOverridePair in codecOverrides) {
+			foreach(var codecOverride in codecOverridePair.Value) {
+				var paramMapping = CodecMatches(codecType, codecOverride);
+				if(paramMapping is null) {
+					continue;
 				}
-			}
+
+				return codecOverridePair.Key.Substitute(paramMapping);
+			} 
 		}
 
 		return null;
 	}
 
-	private IEnumerable<INamedTypeSymbol> GetAllInterfaces(ITypeSymbol t) {
+	private static IEnumerable<INamedTypeSymbol> GetAllBaseInterfaces(INamedTypeSymbol t) {
 		if(t.BaseType != null) {
-			foreach(var baseIface in GetAllInterfaces(t.BaseType)) {
+			foreach(var baseIface in GetAllBaseInterfaces(t.BaseType)) {
 				yield return baseIface;
 			}
 		}
@@ -102,18 +99,18 @@ public class CodecOverrideHandler {
 		foreach(var iface in t.Interfaces) {
 			yield return iface;
 
-			foreach(var baseIface in GetAllInterfaces(iface)) {
+			foreach(var baseIface in GetAllBaseInterfaces(iface)) {
 				yield return baseIface;
 			}
 		}
 	}
 
-	private Dictionary<string, ITypeSymbol>? CodecMatches(ITypeSymbol actual, ITypeSymbol expected) {
-		var paramMapping = new Dictionary<string, ITypeSymbol>();
+	private Dictionary<string, SourceModelType>? CodecMatches(SourceModelType actual, SourceModelType expected) {
+		var paramMapping = new Dictionary<string, SourceModelType>();
 
-		bool Unify(ITypeSymbol actual, ITypeSymbol expected) {
+		bool Unify(SourceModelType actual, SourceModelType expected) {
 			switch(expected) {
-				case ITypeParameterSymbol expectedTP:
+				case SourceModelType.TypeParameter expectedTP:
 				{
 					if(paramMapping.TryGetValue(expectedTP.Name, out var matched)) {
 						return Unify( actual, matched);
@@ -124,39 +121,44 @@ public class CodecOverrideHandler {
 					}
 				}
 
-				case INamedTypeSymbol expectedNamed:
+				case SourceModelType.NamedSymbol expectedNamed:
 				{
-					if(actual is not INamedTypeSymbol actualNamed) {
+					if(actual is not SourceModelType.NamedSymbol actualNamed) {
 						return false;
 					}
 
-					if(!SymbolEqualityComparer.IncludeNullability.Equals(
-						   actualNamed.ConstructedFrom,
-						   expectedNamed.ConstructedFrom
-					)) {
+					if(actualNamed.Namespace != expectedNamed.Namespace || actualNamed.Name != expectedNamed.Name) {
 						return false;
 					}
 
-					if(actualNamed.TypeArguments.Length != expectedNamed.TypeArguments.Length) {
+					if(actualNamed.TypeArguments.Count != expectedNamed.TypeArguments.Count) {
 						return false;
 					}
 					
 					return actualNamed.TypeArguments.Zip(expectedNamed.TypeArguments, Unify).All(t => t);
 				}
 				
-				case IArrayTypeSymbol expectedArray:
-					if(actual is not IArrayTypeSymbol actualArray) {
+				case SourceModelType.Array expectedArray:
+					if(actual is not SourceModelType.Array actualArray) {
 						return false;
 					}
 					
-					return Unify(actualArray.ElementType, expectedArray.ElementType);
+					return Unify(actualArray.Element, expectedArray.Element);
 				
-				case IPointerTypeSymbol expectedPointer:
-					if(actual is not IPointerTypeSymbol actualPointer) {
+				case SourceModelType.Pointer expectedPointer:
+					if(actual is not SourceModelType.Pointer actualPointer) {
 						return false;
 					}
 					
 					return Unify(actualPointer.PointedAtType, expectedPointer.PointedAtType);
+				
+				case SourceModelType.Nullable expectedNullable:
+					if(actual is not SourceModelType.Nullable actualNullable) {
+						return false;
+					}
+					
+					return Unify(actualNullable.Inner, expectedNullable.Inner);
+					
 				
 				case IFunctionPointerTypeSymbol:
 					throw new NotSupportedException();
@@ -173,39 +175,4 @@ public class CodecOverrideHandler {
 			return null;
 		}
 	}
-	
-	private ITypeSymbol SubstituteTypeParameters(ITypeSymbol typeSymbol, Dictionary<string, ITypeSymbol> paramMapping) {
-        switch (typeSymbol) {
-	        case INamedTypeSymbol namedTypeSymbol:
-	        {
-		        var typeParameters = namedTypeSymbol.TypeParameters;
-		        if(typeParameters.Length == 0) {
-			        return namedTypeSymbol;
-		        }
-
-		        return namedTypeSymbol.Construct(typeParameters.Select(typeParameter => paramMapping.TryGetValue(typeParameter.Name, out var substitution)
-			        ? substitution
-			        : typeParameter).ToArray());
-	        }
-
-            case IArrayTypeSymbol arrayTypeSymbol:
-                var elementType = SubstituteTypeParameters(arrayTypeSymbol.ElementType, paramMapping);
-                return compilation.CreateArrayTypeSymbol(elementType);
-
-            case IPointerTypeSymbol pointerTypeSymbol:
-                var pointedAtType = SubstituteTypeParameters(pointerTypeSymbol.PointedAtType, paramMapping);
-                return compilation.CreatePointerTypeSymbol(pointedAtType);
-
-            case ITypeParameterSymbol typeParameterSymbol:
-                return paramMapping.TryGetValue(typeParameterSymbol.Name, out var substitution) 
-                    ? substitution 
-                    : typeParameterSymbol;
-				
-            case IFunctionPointerTypeSymbol:
-	            throw new NotSupportedException();
-
-            default:
-                return typeSymbol;
-        }
-    }
 }

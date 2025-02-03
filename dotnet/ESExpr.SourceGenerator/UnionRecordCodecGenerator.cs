@@ -8,32 +8,19 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ESExpr.SourceGenerator;
 
-internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSyntax> {
-	
-	private IEnumerable<RecordDeclarationSyntax> Cases => Decl.Members
-		.OfType<RecordDeclarationSyntax>()
-		.Where(caseDecl => caseDecl.Modifiers.Any(SyntaxKind.PublicKeyword));
-
-	private (PropertyDeclarationSyntax, ITypeSymbol) GetInlineValueProp(RecordDeclarationSyntax c) {
-		var props = c.Members.OfType<PropertyDeclarationSyntax>().ToList();
-
-		if(props.Count != 1) {
+internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel> {
+	private SourceModelField GetInlineValueField(SourceModelEnumCase c) {
+		if(c.Fields.Count != 1) {
 			throw new AbortGenerationException(
 				Diagnostic.Create(
 					Errors.InvalidInlineValue,
-					c.Identifier.GetLocation(),
+					c.Location,
 					new object[] { }
 				)
 			);
 		}
 
-		var prop = props[0];
-		var propType = SemanticModel.GetTypeInfo(prop.Type).Type;
-		if(propType == null) {
-			throw new Exception("Could not resolve type.");
-		}
-		
-		return (prop, propType);
+		return c.Fields[0];
 	}
 	
 	protected override ExpressionSyntax GenerateTagsBody() {
@@ -57,14 +44,14 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 			),
 			CollectionExpression(
 				SeparatedList<CollectionElementSyntax>(
-					Cases.Select<RecordDeclarationSyntax, CollectionElementSyntax>(c => {
-						if(IsInlineValue(c)) {
-							var (_, propType) = GetInlineValueProp(c);
+					TypeModel.Cases.Select<SourceModelEnumCase, CollectionElementSyntax>(c => {
+						if(c.IsInlineValue) {
+							var field = GetInlineValueField(c);
 
 							return SpreadElement(
 								MemberAccessExpression(
 									SyntaxKind.SimpleMemberAccessExpression,
-									GetCodecExpr(propType),
+									GetCodecExpr(field.Type),
 									IdentifierName("Tags")
 								)
 							);
@@ -79,7 +66,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 									)
 									.WithArgumentList(
 										ArgumentList(SingletonSeparatedList(
-											Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(GetConstructorName(c))))
+											Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(c.ConstructorName)))
 										))
 									)
 							);
@@ -93,12 +80,12 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 	protected override BlockSyntax GenerateEncodeBody() {
 		var cases = new List<SwitchSectionSyntax>();
 
-		foreach(var c in Cases) {
+		foreach(var c in TypeModel.Cases) {
 			var identName = "value2";
 
 			var label = CasePatternSwitchLabel(
 				DeclarationPattern(
-					IdentifierName(c.Identifier.Text),
+					IdentifierName(c.Name),
 					SingleVariableDesignation(Identifier(identName))
 				),
 				Token(SyntaxKind.ColonToken)
@@ -106,29 +93,29 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 
 			StatementSyntax switchBody;
 
-			if(IsInlineValue(c)) {
-				var (prop, propType) = GetInlineValueProp(c);
+			if(c.IsInlineValue) {
+				var field = GetInlineValueField(c);
 				
 				
 				switchBody = ReturnStatement(
 					InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(propType),
+							GetCodecExpr(field.Type),
 							IdentifierName("Encode")
 						),
 						ArgumentList(SeparatedList(new ArgumentSyntax[] {
 							Argument(MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
 								IdentifierName(identName),
-								IdentifierName(prop.Identifier.Text)
+								IdentifierName(field.Name)
 							)),
 						}))
 					)
 				);
 			}
 			else {
-				switchBody = WriteEncodeFields(c, IdentifierName(identName));
+				switchBody = WriteEncodeFields(c.ConstructorName, c.Fields, IdentifierName(identName));
 			}
 
 			cases.Add(SwitchSection(
@@ -154,11 +141,11 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 	protected override BlockSyntax GenerateDecodeBody() {
 		var cases = new List<SwitchSectionSyntax>();
 
-		foreach(var c in Cases) {
-			var constructorName = GetConstructorName(c);
+		foreach(var c in TypeModel.Cases) {
+			var constructorName = c.ConstructorName;
 
-			if(IsInlineValue(c)) {
-				var (prop, propType) = GetInlineValueProp(c);
+			if(c.IsInlineValue) {
+				var field = GetInlineValueField(c);
 				
 				var label = CasePatternSwitchLabel(
 					VarPattern(DiscardDesignation()),
@@ -170,7 +157,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 							
 							MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
-								GetCodecExpr(propType),
+								GetCodecExpr(field.Type),
 								IdentifierName("Tags")
 							),
 							IdentifierName("Contains")
@@ -189,17 +176,17 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 					List(new SwitchLabelSyntax[] { label }),
 					List(new StatementSyntax[] {
 						ReturnStatement(
-							ObjectCreationExpression(IdentifierName(c.Identifier.Text))
+							ObjectCreationExpression(IdentifierName(c.Name))
 								.WithInitializer(InitializerExpression(
 									SyntaxKind.ObjectInitializerExpression,
 									SeparatedList(new ExpressionSyntax[] {
 										AssignmentExpression(
 											SyntaxKind.SimpleAssignmentExpression,
-											IdentifierName(prop.Identifier.Text),
+											IdentifierName(field.Name),
 											InvocationExpression(
 												MemberAccessExpression(
 													SyntaxKind.SimpleMemberAccessExpression,
-													GetCodecExpr(propType),
+													GetCodecExpr(field.Type),
 													IdentifierName("Decode")
 												),
 												ArgumentList(SeparatedList(new ArgumentSyntax[] {
@@ -258,9 +245,10 @@ internal class UnionRecordCodecGenerator : CodecGenerator<RecordDeclarationSynta
 
 				var argsDeclaration = ParseStatement("var args = new global::ESExpr.Runtime.SliceList<global::ESExpr.Runtime.Expr>(args0);");
 				var kwargsDeclaration = ParseStatement("var kwargs = new global::System.Collections.Generic.Dictionary<string, global::ESExpr.Runtime.Expr>(kwargs0);");
+
+				var caseType = GetDeclarationAsType(c.Name, TypeModel.TypeParameters);
 			
-			
-				var decodeBlock = WriteDecodeFields(c);
+				var decodeBlock = WriteDecodeFields(c.ConstructorName, c.Fields, caseType);
 
 				cases.Add(SwitchSection(
 					List(new SwitchLabelSyntax[] { label }),
