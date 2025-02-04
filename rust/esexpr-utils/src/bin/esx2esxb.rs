@@ -9,5 +9,5 @@ fn main() {
     let esx = esexpr_text::parse_multi(&esx).unwrap();
 
 
-    esexpr_binary::generate(&mut output, esx.iter()).unwrap();
+    esexpr_binary::generate_all(&mut output, esx.iter()).unwrap();
 }

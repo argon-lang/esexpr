@@ -363,12 +363,61 @@ pub trait StringPool {
 }
 
 
-struct ExprGenerator<'a, W> {
+pub struct ExprGenerator<'a, W> {
     out: &'a mut W,
     string_pool: Vec<String>,
 }
 
 impl <'a, W: Write> ExprGenerator<'a, W> {
+    pub fn new(out: &'a mut W) -> Self {
+        ExprGenerator {
+            out,
+            string_pool: Vec::new(),
+        }
+    }
+
+    pub fn new_with_string_pool(out: &'a mut W, string_pool: Vec<String>) -> Self {
+        ExprGenerator {
+            out,
+            string_pool,
+        }
+    }
+
+    pub fn generate(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
+        let old_string_pool_end = self.string_pool.len();
+
+        let mut generator = ExprGenerator {
+            out: &mut std::io::sink(),
+            string_pool: Vec::new(),
+        };
+
+        std::mem::swap(&mut self.string_pool, &mut generator.string_pool);
+        // Dummy generator to catch new strings
+        generator.generate_expr(expr)?;
+
+        std::mem::swap(&mut self.string_pool, &mut generator.string_pool);
+    
+        match &self.string_pool[old_string_pool_end..] {
+            [] => {},
+            [ s ] => {
+                let s = s.to_owned();
+                self.write(TAG_APPEND_STRING_TABLE)?;
+                self.generate_expr(&ESExpr::Str(s.to_owned()))?;
+            },
+            new_strings => {
+                let sp_expr = FixedStringPool {
+                    strings: new_strings.to_vec(),
+                }.encode_esexpr();
+
+                self.write(TAG_APPEND_STRING_TABLE)?;
+                self.generate_expr(&sp_expr)?;
+            }
+        }
+        
+        self.generate_expr(expr)?;
+        Ok(())
+    }
+
     fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
         match expr {
             ESExpr::Constructor { name, args, kwargs } => {
@@ -544,54 +593,20 @@ pub fn generate_existing_string_pool<W: Write>(out: &mut W, string_pool: &mut Ve
     Ok(())
 }
 
-pub fn generate<E: Borrow<ESExpr>, W: Write>(out: &mut W, exprs: impl Iterator<Item=E>) -> Result<(), GeneratorError> {
-    let mut string_pool = Vec::new();
+pub fn generate_all<E: Borrow<ESExpr>, W: Write>(out: &mut W, exprs: impl Iterator<Item=E>) -> Result<(), GeneratorError> {
+
+    let mut generator = ExprGenerator::new(out);
 
     for expr in exprs {
-        let old_string_pool_end = string_pool.len();
-
-        let mut generator = ExprGenerator {
-            out: &mut std::io::sink(),
-            string_pool,
-        };
-
-        // Dummy generator to catch new strings
-        generator.generate_expr(expr.borrow())?;
-
-        let mut generator = ExprGenerator {
-            out,
-            string_pool: generator.string_pool,
-        }; 
-    
-        match &generator.string_pool[old_string_pool_end..] {
-            [] => {},
-            [ s ] => {
-                let s = s.to_owned();
-                generator.write(TAG_APPEND_STRING_TABLE)?;
-                generator.generate_expr(&ESExpr::Str(s.to_owned()))?;
-            },
-            new_strings => {
-                let sp_expr = FixedStringPool {
-                    strings: new_strings.to_vec(),
-                }.encode_esexpr();
-
-                generator.write(TAG_APPEND_STRING_TABLE)?;
-                generator.generate_expr(&sp_expr)?;
-            }
-        }
-        
-       
-    
-        generator.generate_expr(expr.borrow())?;
-
-        string_pool = generator.string_pool;
+        generator.generate(expr.borrow())?;
     }
 
     Ok(())
 }
 
 pub fn generate_single<W: Write>(out: &mut W, expr: &ESExpr) -> Result<(), GeneratorError> {
-    generate(out, [expr].into_iter())
+    let mut generator = ExprGenerator::new(out);
+    generator.generate(expr)
 }
 
 
