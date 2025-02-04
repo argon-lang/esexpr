@@ -35,4 +35,15 @@ This will place the artifacts into the local maven repository under
 
 Then upload to maven central as in the Java section.
 
+## JavaScript
+
+Run `npm publish`.
+
+## .NET
+
+Run `dotnet pack`.
+
+This will generate nupkg files under
+- `ESExpr.Runtime/bin/Release/ESExpr.Runtime.<version>.nupkg`
+- `ESExpr.SourceGenerator/bin/Release/ESExpr.SourceGenerator.<version>.nupkg`
 
