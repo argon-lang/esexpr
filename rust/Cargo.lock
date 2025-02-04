@@ -62,7 +62,7 @@ checksum = "a47c1c47d2f5964e29c61246e81db715514cd532db6b5116a25ea3c03d6780a2"
 
 [[package]]
 name = "esexpr"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "derive_more",
  "esexpr-derive",
@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-binary"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "derive_more",
  "esexpr",
@@ -84,7 +84,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-derive"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-json"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "base64",
  "esexpr",
@@ -105,7 +105,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-text"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "esexpr",
  "esexpr-json",
