@@ -5,9 +5,6 @@ import * as esxb from "./binary_format.js"
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-import { valuesEqual } from "./util.js";
-
-
 type KWArgs = {
     [K: string]: ESExprJson,
 };
@@ -19,10 +16,10 @@ type ESExprJson =
     | { constructor_name: string, args?: readonly ESExprJson[], kwargs?: KWArgs }
     | readonly ESExprJson[]
     | { int: string }
-    | { float32: number }
-    | { float64: number }
+    | { float32: number | "+inf" | "-inf" }
+    | { float64: number | "+inf" | "-inf" }
     | { base64: string }
-    | { null: bigint }
+    | { null: string }
 
 function json2esexpr(json: ESExprJson): ESExpr {
     if(typeof json === "string" ||  typeof json === "boolean" || json === null) {
@@ -53,16 +50,32 @@ function json2esexpr(json: ESExprJson): ESExpr {
         return BigInt(json.int);
     }
     else if("float32" in json) {
-        return { type: "float32", value: json.float32 };
+        if(json.float32 === "+inf") {
+            return { type: "float32", value: Number.POSITIVE_INFINITY };
+        }
+        else if(json.float32 === "-inf") {
+            return { type: "float32", value: Number.NEGATIVE_INFINITY };
+        }
+        else {
+            return { type: "float32", value: Math.fround(json.float32) };
+        }
     }
     else if("float64" in json) {
-        return json.float64;
+        if(json.float64 === "+inf") {
+            return Number.POSITIVE_INFINITY;
+        }
+        else if(json.float64 === "-inf") {
+            return Number.NEGATIVE_INFINITY;
+        }
+        else {
+            return json.float64;
+        }
     }
     else if("base64" in json) {
-        return Buffer.from(json.base64, "base64");
+        return new Uint8Array(Buffer.from(json.base64, "base64"));
     }
     else if("null" in json) {
-        return { type: "null", level: json.null };
+        return { type: "null", level: BigInt(json.null) };
     }
     else {
         console.error(json);
@@ -134,9 +147,8 @@ async function run_test_case(esxbFile: string): Promise<void> {
         reencoded.push(await decodeBin1(encodeBin(expr)))
     }
 
-    expect(valuesEqual(json2esexprMany(json), exprs));
-    expect(valuesEqual(reencoded, exprs));
-    
+    expect(json2esexprMany(json)).toEqual(exprs);
+    expect(reencoded).toEqual(exprs);
 }
 
 const dir = path.join(import.meta.dirname, "../../tests/");
@@ -156,7 +168,3 @@ for(const file of await fs.readdir(dir, { withFileTypes: true })) {
     });
 
 }
-
-
-
-

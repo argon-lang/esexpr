@@ -333,7 +333,12 @@ async function readExprWith(tokens: AsyncIterator<Token>, startToken: Token, str
             return startToken.value;
 
         case "null_value":
-            return null;
+            if(startToken.level > 0) {
+                return { type: "null", level: startToken.level };
+            }
+            else {
+                return null;
+            }
 
         case "append_string_table":
         {
@@ -458,7 +463,7 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                 yield* writeInt(TAG_VARINT_NON_NEG_INT, e);
             }
             else {
-                yield* writeInt(TAG_VARINT_NEG_INT, -e + 1n);
+                yield* writeInt(TAG_VARINT_NEG_INT, -e - 1n);
             }
             break;
 
