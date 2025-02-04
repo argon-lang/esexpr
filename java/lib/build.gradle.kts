@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.argon.esexpr"
-version = "0.2.0-SNAPSHOT"
+version = "0.2.0"
 
 repositories {
     mavenCentral()
