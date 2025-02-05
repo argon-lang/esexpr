@@ -17,11 +17,13 @@ object ESExprBinaryEncoder {
 
 
   @js.native
-  @JSImport("@argon-lang/esexpr/binary_format.js")
+  @JSImport("@argon-lang/esexpr/binary_format")
   private def writeExprs(e: AsyncIterable[sjs.ESExpr] | js.Iterable[sjs.ESExpr]): AsyncIterable[Uint8Array] = js.native
 
-  def writeAll[R, E](exprs: ZStream[R, E, ESExpr])(using Runtime[R], ErrorWrapper[E]): ZStream[R, E, Byte] =
+  def writeAll[R, E](exprs: ZStream[R, E, ESExpr])(using ErrorWrapper[E]): ZStream[R, E, Byte] =
     ZStream.fromZIO(ZIO.runtime[R]).flatMap { runtime =>
+      given Runtime[R] = runtime
+
       AsyncIterableTools.asyncIterableToZStreamRaw(
         writeExprs(
           AsyncIterableTools.zstreamToAsyncIterable(

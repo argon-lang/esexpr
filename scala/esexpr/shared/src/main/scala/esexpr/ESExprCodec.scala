@@ -11,6 +11,8 @@ import scala.quoted.*
 import scala.compiletime.{constValue, erasedValue, summonInline}
 import scala.deriving.Mirror.ProductOf
 
+import zio.Chunk
+
 trait ESExprCodec[T] {
   lazy val tags: Set[ESExprTag]
   def encode(value: T): ESExpr
@@ -44,9 +46,21 @@ object ESExprCodec {
   given ESExprCodec[IArray[Byte]] with
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Str)
     override def encode(value: IArray[Byte]): ESExpr =
-      ESExpr.Binary(value)
+      ESExpr.Binary(Chunk.fromArray(IArray.genericWrapArray(value).toArray))
 
     override def decode(expr: ESExpr): Either[DecodeError, IArray[Byte]] =
+      expr match {
+        case ESExpr.Binary(b) => Right(IArray.unsafeFromArray(b.toArray))
+        case _ => Left(DecodeError("Expected a binary value", ErrorPath.Current))
+      }
+  end given
+
+  given ESExprCodec[Chunk[Byte]] with
+    override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Str)
+    override def encode(value: Chunk[Byte]): ESExpr =
+      ESExpr.Binary(value)
+
+    override def decode(expr: ESExpr): Either[DecodeError, Chunk[Byte]] =
       expr match {
         case ESExpr.Binary(b) => Right(b)
         case _ => Left(DecodeError("Expected a binary value", ErrorPath.Current))

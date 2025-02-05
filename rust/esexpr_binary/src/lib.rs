@@ -3,7 +3,7 @@ use num_bigint::{BigInt, BigUint, Sign};
 
 use derive_more::From;
 
-use std::{borrow::Borrow, collections::HashMap, io::{Read, Write}};
+use std::{collections::HashMap, io::{Read, Write}};
 
 use esexpr::{ESExpr, ESExprCodec};
 
@@ -84,6 +84,14 @@ const TAG_NULL2: u8 = 0xE9;
 const TAG_NULLN: u8 = 0xEA;
 const TAG_APPEND_STRING_TABLE: u8 = 0xEB;
 
+
+enum ExprPlus {
+    Expr(ESExpr),
+    Keyword(usize),
+    ConstructorEnd,
+    AppendedToStringTable,
+    EndOfFile,
+}
 
 
 struct TokenReader<R> {
@@ -243,44 +251,58 @@ fn get_length(i: BigUint) -> Result<usize, ParseError> {
     i.try_into().map_err(|_| ParseError::InvalidLength)
 }
 
+pub trait ExprParser {
+    fn try_read_next_expr(&mut self) -> Result<Option<ESExpr>, ParseError>;
+    fn read_next_expr(&mut self) -> Result<ESExpr, ParseError>;
+}
 
-struct ExprParser<I> {
+struct ExprParserImpl<I> {
     string_pool: Vec<String>,
     iter: I,
 }
 
-impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser<I> {
+impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser for ExprParserImpl<I> {
     fn try_read_next_expr(&mut self) -> Result<Option<ESExpr>, ParseError> {
-        let Some(token) = self.iter.next().transpose()? else {
-            return Ok(None);
-        };
-    
-        self.read_expr_with(token).map(Some)
+        loop {
+            return match self.read_expr_plus()? {
+                ExprPlus::Expr(expr) => Ok(Some(expr)),
+                ExprPlus::Keyword(_) => Err(ParseError::UnexpectedKeywordToken),
+                ExprPlus::ConstructorEnd => Err(ParseError::UnexpectedConstructorEnd),
+                ExprPlus::AppendedToStringTable => continue,
+                ExprPlus::EndOfFile => Ok(None),
+            }
+        }
     }
 
     fn read_next_expr(&mut self) -> Result<ESExpr, ParseError> {
         self.try_read_next_expr()?.ok_or(ParseError::UnexpectedEndOfFile)
     }
-    
-    fn read_expr_with(&mut self, token: ExprToken) -> Result<ESExpr, ParseError> {
-        match token {
+}
+
+impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParserImpl<I> {
+    fn read_expr_plus(&mut self) -> Result<ExprPlus, ParseError> {
+        let Some(token) = self.iter.next().transpose()? else {
+            return Ok(ExprPlus::EndOfFile)
+        };
+
+        Ok(ExprPlus::Expr(match token {
             ExprToken::ConstructorStart(index) => {
                 let name = self.get_string(index)?;
-                self.read_expr_constructor(name)
+                self.read_expr_constructor(name)?
             },
             ExprToken::ConstructorStartKnown(name) => {
-                self.read_expr_constructor(name.to_owned())
+                self.read_expr_constructor(name.to_owned())?
             }
-            ExprToken::ConstructorEnd => Err(ParseError::UnexpectedConstructorEnd),
-            ExprToken::Keyword(_) => Err(ParseError::UnexpectedKeywordToken),
-            ExprToken::IntValue(i) => Ok(ESExpr::Int(i)),
-            ExprToken::StringValue(s) => Ok(ESExpr::Str(s)),
-            ExprToken::StringPoolValue(index) => Ok(ESExpr::Str(self.get_string(index)?)),
-            ExprToken::BinaryValue(b) => Ok(ESExpr::Binary(b)),
-            ExprToken::Float32Value(f) => Ok(ESExpr::Float32(f)),
-            ExprToken::Float64Value(d) => Ok(ESExpr::Float64(d)),
-            ExprToken::BooleanValue(b) => Ok(ESExpr::Bool(b)),
-            ExprToken::NullValue(level) => Ok(ESExpr::Null(level)),
+            ExprToken::ConstructorEnd => return Ok(ExprPlus::ConstructorEnd),
+            ExprToken::Keyword(index) => return Ok(ExprPlus::Keyword(index)),
+            ExprToken::IntValue(i) => ESExpr::Int(i),
+            ExprToken::StringValue(s) => ESExpr::Str(s),
+            ExprToken::StringPoolValue(index) => ESExpr::Str(self.get_string(index)?),
+            ExprToken::BinaryValue(b) => ESExpr::Binary(b),
+            ExprToken::Float32Value(f) => ESExpr::Float32(f),
+            ExprToken::Float64Value(d) => ESExpr::Float64(d),
+            ExprToken::BooleanValue(b) => ESExpr::Bool(b),
+            ExprToken::NullValue(level) => ESExpr::Null(level),
             ExprToken::AppendStringTable => {
                 let new_string_table = self.read_next_expr()?;
                 let new_string_table = AppendedStringPool::decode_esexpr(new_string_table)
@@ -294,9 +316,9 @@ impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser<I> {
                         self.string_pool.push(s),
                 }
 
-                self.read_next_expr()
+                return Ok(ExprPlus::AppendedToStringTable)
             }
-        }
+        }))
     }
 
     fn read_expr_constructor(&mut self, name: String) -> Result<ESExpr, ParseError> {
@@ -304,22 +326,20 @@ impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser<I> {
         let mut kwargs = HashMap::new();
 
         loop {
-            let token = self.iter.next().transpose()?.ok_or(ParseError::UnexpectedEndOfFile)?;
-
-            match token {
-                ExprToken::ConstructorEnd => break,
-                ExprToken::Keyword(index) => {
+            match self.read_expr_plus()? {
+                ExprPlus::Expr(expr) => args.push(expr),
+                ExprPlus::Keyword(index) => {
                     let kw = self.get_string(index)?;
                     let value = self.read_next_expr()?;
                     kwargs.insert(kw, value);
                 },
-
-                _ => args.push(self.read_expr_with(token)?),
+                ExprPlus::ConstructorEnd => break,
+                ExprPlus::AppendedToStringTable => continue,
+                ExprPlus::EndOfFile => return Err(ParseError::UnexpectedEndOfFile),
             }
         }
 
         Ok(ESExpr::Constructor { name, args, kwargs })
-
     }
 
     fn get_string(&self, i: usize) -> Result<String, ParseError> {
@@ -329,7 +349,7 @@ impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser<I> {
     }
 }
 
-impl <I: Iterator<Item=Result<ExprToken, ParseError>>> Iterator for ExprParser<I> {
+impl <I: Iterator<Item=Result<ExprToken, ParseError>>> Iterator for ExprParserImpl<I> {
     type Item = Result<ESExpr, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -337,14 +357,14 @@ impl <I: Iterator<Item=Result<ExprToken, ParseError>>> Iterator for ExprParser<I
     }
 }
 
-pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl Iterator<Item=Result<ESExpr, ParseError>> + 'a {
-    ExprParser {
+pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl ExprParser + Iterator<Item=Result<ESExpr, ParseError>> + 'a {
+    ExprParserImpl {
         iter: TokenReader { read: f },
         string_pool,
     }
 }
 
-pub fn parse<'a, F: Read + 'a>(f: F) -> impl Iterator<Item=Result<ESExpr, ParseError>> + 'a {
+pub fn parse<'a, F: Read + 'a>(f: F) -> impl ExprParser + Iterator<Item=Result<ESExpr, ParseError>> + 'a {
     parse_existing_string_pool(f, Vec::new())
 }
 
@@ -576,37 +596,6 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
     fn write(&mut self, b: u8) -> Result<(), GeneratorError> {
         Ok(self.out.write_all(std::slice::from_ref(&b))?)
     }
-}
-
-pub fn generate_existing_string_pool<W: Write>(out: &mut W, string_pool: &mut Vec<String>, expr: &ESExpr) -> Result<(), GeneratorError> {
-    let mut generator = ExprGenerator {
-        out,
-        string_pool: Vec::new(),
-    };
-
-    std::mem::swap(&mut generator.string_pool, string_pool);
-
-    generator.generate_expr(expr)?;
-
-    std::mem::swap(&mut generator.string_pool, string_pool);
-
-    Ok(())
-}
-
-pub fn generate_all<E: Borrow<ESExpr>, W: Write>(out: &mut W, exprs: impl Iterator<Item=E>) -> Result<(), GeneratorError> {
-
-    let mut generator = ExprGenerator::new(out);
-
-    for expr in exprs {
-        generator.generate(expr.borrow())?;
-    }
-
-    Ok(())
-}
-
-pub fn generate_single<W: Write>(out: &mut W, expr: &ESExpr) -> Result<(), GeneratorError> {
-    let mut generator = ExprGenerator::new(out);
-    generator.generate(expr)
 }
 
 

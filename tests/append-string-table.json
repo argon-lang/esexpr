@@ -1,0 +1,11 @@
+[
+    {
+        "constructor_name": "a",
+        "kwargs": {
+            "b": true
+        }
+    },
+    {
+        "constructor_name": "c"
+    }
+]

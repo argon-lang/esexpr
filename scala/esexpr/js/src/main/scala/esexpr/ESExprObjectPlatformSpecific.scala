@@ -6,6 +6,8 @@ import scala.scalajs.js.typedarray.{Uint8Array, Int8Array, byteArray2Int8Array, 
 
 import esexpr.sjs.ESExpr as JSESExpr
 
+import zio.Chunk
+
 trait ESExprObjectPlatformSpecific {
 
   def fromJS(expr: JSESExpr): ESExpr =
@@ -19,7 +21,7 @@ trait ESExprObjectPlatformSpecific {
         expr match {
           case expr: Uint8Array =>
             val signedArray = Int8Array(expr.buffer, expr.byteOffset, expr.length)
-            ESExpr.Binary(IArray(int8Array2ByteArray(signedArray)*))
+            ESExpr.Binary(Chunk.fromArray(int8Array2ByteArray(signedArray)))
 
           case _ =>
             expr.asInstanceOf[js.Dictionary[String]]("type") match {
@@ -60,7 +62,7 @@ trait ESExprObjectPlatformSpecific {
       case ESExpr.Int(n) => js.BigInt(n.toString)
       case ESExpr.Str(s) => s
       case ESExpr.Binary(b) =>
-        val signedArray = byteArray2Int8Array(IArray.genericWrapArray(b).toArray)
+        val signedArray = byteArray2Int8Array(b.toArray)
         Uint8Array(signedArray.buffer, signedArray.byteOffset, signedArray.length)
         
       case ESExpr.Float32(f) =>

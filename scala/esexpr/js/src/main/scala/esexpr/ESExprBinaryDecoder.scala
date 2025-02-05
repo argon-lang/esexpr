@@ -17,14 +17,15 @@ import zio.{ZIO, Cause, Runtime}
 import zio.stream.ZStream
 import scala.reflect.TypeTest
 
+
 object ESExprBinaryDecoder {
   
-  @JSImport("@argon-lang/esexpr/binary_format.js")
+  @JSImport("@argon-lang/esexpr/binary_format")
   @js.native
   private class ESExprFormatError(message: String = js.native) extends js.Error
 
 
-  @JSImport("@argon-lang/esexpr/binary_format.js")
+  @JSImport("@argon-lang/esexpr/binary_format")
   @js.native
   private def readExprStream(data: AsyncIterable[Uint8Array]): AsyncIterable[esexpr.sjs.ESExpr] = js.native
 

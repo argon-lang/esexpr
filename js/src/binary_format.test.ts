@@ -116,11 +116,8 @@ async function* encodeBin(expr: ESExpr): AsyncIterable<Uint8Array> {
 }
 
 async function decodeBinMany(data: AsyncIterable<Uint8Array>): Promise<ESExpr[]> {
-    return await arrayFromAsync({
-        [Symbol.asyncIterator]() {
-            return esxb.readExprStream(data);
-        }
-    });
+    const reader = new esxb.ExprReader(data);
+    return await arrayFromAsync(reader.readAll());
 }
 
 async function decodeBin1(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {

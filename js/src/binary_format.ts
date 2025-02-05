@@ -21,6 +21,14 @@ type Token =
     | { type: "append_string_table" }
 ;
 
+type ExprPlus =
+    | ESExpr
+    | { type: "keyword", index: number }
+    | { type: "constructor_end" }
+    | { type: "appended_to_string_table" }
+    | { type: "eof" }
+;
+
 const TAG_VARINT_MASK = 0xE0;
 const TAG_VARINT_CONSTRUCTOR_START = 0x00;
 const TAG_VARINT_NON_NEG_INT = 0x20;
@@ -124,7 +132,186 @@ class ByteReader {
     }
 }
 
-async function* getTokens(reader: ByteReader): AsyncIterable<Token> {
+export class ExprReader {
+    constructor(data: AsyncIterable<Uint8Array>, stringPool?: StringPool) {
+        this.#tokens = getTokens(new ByteReader(data[Symbol.asyncIterator]()));
+        this.#stringPool = stringPool ?? new ArrayStringPool();
+    }
+
+    readonly #tokens: AsyncIterator<Token>;
+    readonly #stringPool: StringPool;
+
+    async tryReadExpr(): Promise<ESExpr | undefined> {
+        read:
+        for(;;) {
+            const expr = await this.#readExprPlus();
+    
+            if(typeof expr === "object" && expr !== null && !(expr instanceof Uint8Array)) {
+                switch(expr.type) {
+                    case "constructor_end":
+                        throw new ESExprFormatError("Unexpected constructor end");
+    
+                    case "keyword":
+                        throw new ESExprFormatError("Unexpected keyword: index=" + expr.index);
+    
+                    case "appended_to_string_table":
+                        continue read;
+    
+                    case "eof":
+                        return undefined;
+    
+                    default:
+                        return expr;
+                }
+            }
+            else {
+                return expr;
+            }
+        }
+    }
+
+    async readExpr(): Promise<ESExpr> {
+        const expr = await this.tryReadExpr();
+        if(expr === undefined) {
+            throw new ESExprFormatError("Unexpected end of file");
+        }
+
+        return expr;
+    }
+
+    async * readAll(): AsyncIterable<ESExpr> {
+        for(;;) {
+            const expr = await this.tryReadExpr();
+            if(expr === undefined) {
+                break;
+            }
+
+            yield expr;
+        }
+    }
+
+    async #readExprPlus(): Promise<ExprPlus> {
+        const startTokenRes = await this.#tokens.next();
+        if(startTokenRes.done) {
+            return { type: "eof" };
+        }
+
+        const startToken = startTokenRes.value;
+
+        switch(startToken.type) {
+            case "constructor_start":
+            {
+                const name = this.#stringPool.get(startToken.index);
+                return await this.#readExprConstructor(name);
+            }
+
+            case "constructor_start_known":
+                return await this.#readExprConstructor(startToken.value);
+
+            case "constructor_end":
+                return { type: "constructor_end" };
+
+            case "keyword":
+                return { type: "keyword", index: startToken.index };
+
+            case "int_value":
+                return startToken.value;
+
+            case "string_value":
+                return startToken.s;
+
+            case "string_pool_value":
+                return this.#stringPool.get(startToken.index);
+
+            case "binary_value":
+                return startToken.value;
+
+            case "float32_value":
+                return { type: "float32", value: startToken.value };
+
+            case "float64_value":
+                return startToken.value;
+
+            case "boolean_value":
+                return startToken.value;
+
+            case "null_value":
+                if(startToken.level > 0) {
+                    return { type: "null", level: startToken.level };
+                }
+                else {
+                    return null;
+                }
+
+            case "append_string_table":
+            {
+                const newStringPool = await this.readExpr();
+
+                if(typeof newStringPool === "string") {
+                    this.#stringPool.append(newStringPool);
+                }
+                else {
+                    const spRes = StringPoolEncoded.codec.decode(newStringPool);
+                    if(!spRes.success) {
+                        throw new ESExprFormatError("Invalid string pool");
+                    }
+        
+                    this.#stringPool.append(spRes.value.values);
+                }
+
+                return { type: "appended_to_string_table" };
+            }
+        }
+    }
+
+    async #readExprConstructor(name: string): Promise<ESExpr> {
+        const args: ESExpr[] = [];
+        const kwargs = new Map<string, ESExpr>();
+
+        args:
+        for(;;) {
+            const expr = await this.#readExprPlus();
+
+            if(typeof expr === "object" && expr !== null && !(expr instanceof Uint8Array)) {
+                switch(expr.type) {
+                    case "constructor_end":
+                        break args;
+
+                    case "keyword":
+                    {
+                        const kw = this.#stringPool.get(expr.index);
+                        const value = await this.readExpr();
+                        kwargs.set(kw, value);
+                        break;
+                    }
+
+                    case "appended_to_string_table":
+                        continue args;
+
+                    case "eof":
+                        throw new ESExprFormatError("Unexpected end of file");
+
+                    default:
+                        args.push(expr);
+                        break;
+                }
+            }
+            else {
+                args.push(expr);
+            }
+        }
+
+        return {
+            type: "constructor",
+            name,
+            args,
+            kwargs,
+        };
+    }
+}
+
+
+async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
     for(;;) {
         const b = await reader.tryReadByte();
         if(b === null) {
@@ -266,159 +453,20 @@ async function readIntRest(reader: ByteReader, n: bigint, bitOffset: bigint, has
     return n;
 }
 
+
+
+export function readExprStream(data: AsyncIterable<Uint8Array>, stringPool?: StringPool): AsyncIterable<ESExpr> {
+    const reader = new ExprReader(data, stringPool);
+    return reader.readAll();
+}
+
+
 function checkIntRange(n: bigint): number {
     if(n > Number.MAX_SAFE_INTEGER) {
         throw new ESExprFormatError("Integer is too large");
     }
 
     return Number(n);
-}
-
-async function* readExprs(tokens: AsyncIterator<Token>, stringPool: StringPool): AsyncIterable<ESExpr> {
-    for(;;) {
-        const token = await tokens.next();
-        if(token.done) {
-            break;
-        }
-
-        yield readExprWith(tokens, token.value, stringPool);
-    }
-}
-
-async function readExpr(tokens: AsyncIterator<Token>, stringPool: StringPool): Promise<ESExpr> {
-    const token = await tokens.next();
-    if(token.done) {
-        throw new ESExprFormatError("Unexpected end of file");
-    }
-
-    return await readExprWith(tokens, token.value, stringPool);
-}
-
-async function readExprWith(tokens: AsyncIterator<Token>, startToken: Token, stringPool: StringPool): Promise<ESExpr> {
-    switch(startToken.type) {
-        case "constructor_start":
-        {
-            const name = stringPool.get(startToken.index);
-            return await readExprConstructor(tokens, stringPool, name);
-        }
-
-        case "constructor_start_known":
-            return await readExprConstructor(tokens, stringPool, startToken.value);
-
-        case "constructor_end":
-            throw new ESExprFormatError("Unexpected constructor end");
-
-        case "keyword":
-            throw new ESExprFormatError("Unexpected constructor end");
-
-        case "int_value":
-            return startToken.value;
-
-        case "string_value":
-            return startToken.s;
-
-        case "string_pool_value":
-            return stringPool.get(startToken.index);
-
-        case "binary_value":
-            return startToken.value;
-
-        case "float32_value":
-            return { type: "float32", value: startToken.value };
-
-        case "float64_value":
-            return startToken.value;
-
-        case "boolean_value":
-            return startToken.value;
-
-        case "null_value":
-            if(startToken.level > 0) {
-                return { type: "null", level: startToken.level };
-            }
-            else {
-                return null;
-            }
-
-        case "append_string_table":
-        {
-            const newStringPool = await readExpr(tokens, stringPool);
-
-            if(typeof newStringPool === "string") {
-                stringPool.append(newStringPool);
-            }
-            else {
-                const spRes = StringPoolEncoded.codec.decode(newStringPool);
-                if(!spRes.success) {
-                    throw new ESExprFormatError("Invalid string pool");
-                }
-    
-                stringPool.append(spRes.value.values);
-            }
-
-            return await readExpr(tokens, stringPool);
-        }
-    }
-}
-
-async function readExprConstructor(tokens: AsyncIterator<Token>, stringPool: StringPool, name: string): Promise<ESExpr> {
-    const args: ESExpr[] = [];
-    const kwargs = new Map<string, ESExpr>();
-
-    args:
-    for(;;) {
-        const token = await tokens.next();
-        if(token.done) {
-            throw new ESExprFormatError("Missing constructor end");
-        }
-
-        switch(token.value.type) {
-            case "constructor_end":
-                break args;
-
-            case "keyword":
-            {
-                const kw = stringPool.get(token.value.index);
-                const value = await readExpr(tokens, stringPool);
-                kwargs.set(kw, value);
-                break;
-            }
-            
-            default:
-                args.push(await readExprWith(tokens, token.value, stringPool));
-                break;
-        }
-    }
-
-    return {
-        type: "constructor",
-        name,
-        args,
-        kwargs,
-    };
-}
-
-
-export async function* readExprStream(data: AsyncIterable<Uint8Array>, stringPool?: StringPool): AsyncIterator<ESExpr> {
-    stringPool ??= new ArrayStringPool();
-
-    const dataIter = data[Symbol.asyncIterator]();
-    try {
-        const reader = new ByteReader(dataIter);
-        const tokens = getTokens(reader);
-        const tokenIter = tokens[Symbol.asyncIterator]();
-        try {
-            yield* readExprs(tokenIter, stringPool);
-        }
-        catch(e) {
-            if(tokenIter.return) await tokenIter.return();
-            throw e;
-        }
-    }
-    catch(e) {
-        if(dataIter.return) await dataIter.return();
-        throw e;
-    }
 }
 
 

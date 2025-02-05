@@ -41,6 +41,11 @@ fn parse_constructor() {
 }
 
 #[test]
+fn parse_append_string_table() {
+    parse_test("append-string-table");
+}
+
+#[test]
 fn parse_str() {
     parse_test("str");
 }
