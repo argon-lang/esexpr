@@ -102,10 +102,12 @@ class ByteReader {
         while(offset < size) {
             const buff = await this.#ensureBuffer();
             const len = Math.min(size - offset, buff.length - this.#index);
-            s += decoder.decode(buff.subarray(this.#index, this.#index + len));
+            s += decoder.decode(buff.subarray(this.#index, this.#index + len), { stream: true });
             this.#index += len;
             offset += len;
         }
+        
+        s += decoder.decode();
         return s;
     }
 

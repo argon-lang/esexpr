@@ -130,6 +130,14 @@ async function decodeBin1(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
     return esxbArray[0]!;
 }
 
+async function* singleByteChunks(data: AsyncIterable<Uint8Array>): AsyncIterable<Uint8Array> {
+    for await(const arr of data) {
+        for(const b of arr) {
+            yield new Uint8Array([ b ]);
+        }
+    }
+}
+
 
 async function run_test_case(esxbFile: string): Promise<void> {
     const esxbData: Uint8Array = await fs.readFile(esxbFile);
@@ -165,3 +173,24 @@ for(const file of await fs.readdir(dir, { withFileTypes: true })) {
     });
 
 }
+
+test("Multi byte strings", async () => {
+    const strings = [
+        "ñ",     // Latin-1 Supplement (U+00F1)
+        "Δ",     // Greek (U+0394)
+        "Я",     // Cyrillic (U+042F)
+        "ש",     // Hebrew (U+05E9)
+        "ك",     // Arabic (U+0643)
+        "漢",    // CJK (Chinese/Japanese/Korean, U+6F22)
+        "❤",    // Emoji (U+2764)
+        "😊",    // Emoji (U+1F60A)
+        "𐎀",    // Historic scripts (U+10380, Ugaritic letter)
+        "𝕏"      // Mathematical symbols (U+1D54F)
+    ];
+      
+    for(const s of strings) {
+        const converted = await decodeBin1(singleByteChunks(encodeBin(s)))
+        expect(converted).toEqual(s);
+    }
+}) 
+
