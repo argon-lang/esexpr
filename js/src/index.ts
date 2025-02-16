@@ -427,25 +427,18 @@ export function listCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<readonly T[
     return new ListCodec(itemCodec);
 }
 
+export const wrappedNullLevelSymbol: unique symbol = Symbol.for("esexpr-wrapped-null-level");
 
-export class WrappedNull {
-    constructor(level: number) {
-        this.#level = level;
-    }
-
-    readonly #level: number;
-
-    get level(): number {
-        return this.#level;
-    }
+export interface WrappedNull {
+    readonly [wrappedNullLevelSymbol]: number;
 }
 
 const wrappedNullMemo: WrappedNull[] = [];
 function getWrappedNull(level: number): WrappedNull {
     let wn = wrappedNullMemo[level];
     if(wn === undefined) {
-       wn = new WrappedNull(level);
-       wrappedNullMemo[level] = wn; 
+       wn = { [wrappedNullLevelSymbol]: level };
+       wrappedNullMemo[level] = wn;
     }
     return wn;
 }
@@ -459,8 +452,9 @@ export namespace Option {
         if(value === null) {
             return getWrappedNull(1) as Some<A>;
         }
-        else if(value instanceof WrappedNull) {
-            return getWrappedNull(value.level + 1) as Some<A>;
+        else if(typeof value === "object" && wrappedNullLevelSymbol in value) {
+            const wrappedNull = value as WrappedNull;
+            return getWrappedNull(wrappedNull[wrappedNullLevelSymbol] + 1) as Some<A>;
         }
         else {
             return value;
@@ -468,9 +462,10 @@ export namespace Option {
     }
 
     export function get<A>(value: Some<A>): A {
-        if(value instanceof WrappedNull) {
-            if(value.level > 1n) {
-                return getWrappedNull(value.level - 1) as A;
+        if(typeof value === "object" && wrappedNullLevelSymbol in value) {
+            const wrappedNull = value as WrappedNull;
+            if(wrappedNull[wrappedNullLevelSymbol] > 1) {
+                return getWrappedNull(wrappedNull[wrappedNullLevelSymbol] - 1) as A;
             }
             else {
                 return null as A;
