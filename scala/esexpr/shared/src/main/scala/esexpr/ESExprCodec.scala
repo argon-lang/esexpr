@@ -31,7 +31,7 @@ object ESExprCodec {
   final case class DecodeError(message: String, path: ErrorPath) extends ESExprDecodeException(message + " " + path.toString)
 
 
-  given ESExprCodec[String] with
+  given ESExprCodec[String]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Str)
     override def encode(value: String): ESExpr =
       ESExpr.Str(value)
@@ -43,7 +43,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[IArray[Byte]] with
+  given ESExprCodec[IArray[Byte]]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Str)
     override def encode(value: IArray[Byte]): ESExpr =
       ESExpr.Binary(Chunk.fromArray(IArray.genericWrapArray(value).toArray))
@@ -55,7 +55,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Chunk[Byte]] with
+  given ESExprCodec[Chunk[Byte]]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Str)
     override def encode(value: Chunk[Byte]): ESExpr =
       ESExpr.Binary(value)
@@ -67,7 +67,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Boolean] with
+  given ESExprCodec[Boolean]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Bool)
     override def encode(value: Boolean): ESExpr =
       ESExpr.Bool(value)
@@ -79,7 +79,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[BigInt] with
+  given ESExprCodec[BigInt]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: BigInt): ESExpr =
       ESExpr.Int(value)
@@ -91,7 +91,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Byte] with
+  given ESExprCodec[Byte]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: Byte): ESExpr =
       ESExpr.Int(BigInt(value))
@@ -103,7 +103,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[UByte] with
+  given ESExprCodec[UByte]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: UByte): ESExpr =
       ESExpr.Int(value.toBigInt)
@@ -115,7 +115,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Short] with
+  given ESExprCodec[Short]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: Short): ESExpr =
       ESExpr.Int(BigInt(value))
@@ -127,7 +127,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[UShort] with
+  given ESExprCodec[UShort]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: UShort): ESExpr =
       ESExpr.Int(value.toBigInt)
@@ -139,7 +139,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Int] with
+  given ESExprCodec[Int]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: Int): ESExpr =
       ESExpr.Int(value)
@@ -151,7 +151,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[UInt] with
+  given ESExprCodec[UInt]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: UInt): ESExpr =
       ESExpr.Int(value.toBigInt)
@@ -163,7 +163,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Long] with
+  given ESExprCodec[Long]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: Long): ESExpr =
       ESExpr.Int(value)
@@ -175,7 +175,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[ULong] with
+  given ESExprCodec[ULong]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Int)
     override def encode(value: ULong): ESExpr =
       ESExpr.Int(value.toBigInt)
@@ -187,7 +187,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Float] with
+  given ESExprCodec[Float]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Float64)
     override def encode(value: Float): ESExpr =
       ESExpr.Float64(value)
@@ -199,7 +199,7 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[Double] with
+  given ESExprCodec[Double]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Float64)
     override def encode(value: Double): ESExpr =
       ESExpr.Float64(value)
@@ -211,13 +211,13 @@ object ESExprCodec {
       }
   end given
 
-  given ESExprCodec[ESExpr] with
+  given ESExprCodec[ESExpr]:
     override lazy val tags: Set[ESExprTag] = Set.empty
     override def encode(value: ESExpr): ESExpr = value
     override def decode(expr: ESExpr): Either[DecodeError, ESExpr] = Right(expr)
   end given
 
-  given [A: ESExprCodec]: ESExprCodec[Seq[A]] with
+  given [A: ESExprCodec] => ESExprCodec[Seq[A]]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Constructor("list"))
 
     override def encode(value: Seq[A]): ESExpr =
@@ -241,7 +241,7 @@ object ESExprCodec {
       }
   end given
 
-  given[A: ESExprCodec]: ESExprCodec[NonEmptySeq[A]] with
+  given [A: ESExprCodec] => ESExprCodec[NonEmptySeq[A]]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Constructor("list"))
 
     override def encode(value: NonEmptySeq[A]): ESExpr =
@@ -253,7 +253,7 @@ object ESExprCodec {
       }
   end given
 
-  given[A: ESExprCodec]: ESExprCodec[NonEmptyList[A]] with
+  given [A: ESExprCodec] => ESExprCodec[NonEmptyList[A]]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Constructor("list"))
 
     override def encode(value: NonEmptyList[A]): ESExpr =
@@ -265,7 +265,7 @@ object ESExprCodec {
       }
   end given
 
-  given[A: ESExprCodec]: ESExprCodec[NonEmptyVector[A]] with
+  given [A: ESExprCodec] => ESExprCodec[NonEmptyVector[A]]:
     override lazy val tags: Set[ESExprTag] = Set(ESExprTag.Constructor("list"))
 
     override def encode(value: NonEmptyVector[A]): ESExpr =
@@ -277,7 +277,7 @@ object ESExprCodec {
       }
   end given
 
-  given[A: ESExprCodec]: ESExprCodec[Option[A]] with
+  given [A: ESExprCodec] => ESExprCodec[Option[A]]:
     override lazy val tags: Set[ESExprTag] = summon[ESExprCodec[A]].tags + ESExprTag.Null
 
     override def encode(value: Option[A]): ESExpr =

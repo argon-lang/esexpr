@@ -11,7 +11,7 @@ trait OptionalValueCodec[A] {
 }
 
 object OptionalValueCodec {
-  given [A: ESExprCodec]: OptionalValueCodec[Option[A]] with
+  given [A: ESExprCodec] => OptionalValueCodec[Option[A]]:
       def encodeOptional(value: Option[A]): Option[ESExpr] =
         value.map(summon[ESExprCodec[A]].encode)
 

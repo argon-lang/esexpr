@@ -11,7 +11,7 @@ trait VarargCodec[A] {
 }
 
 object VarargCodec {
-  given [A: ESExprCodec]: VarargCodec[Seq[A]] with
+  given [A: ESExprCodec] => VarargCodec[Seq[A]]:
     def encodeVararg(value: Seq[A]): Seq[ESExpr] =
       value.map(summon[ESExprCodec[A]].encode)
 
