@@ -25,7 +25,7 @@ lazy val commonSettings = commonSettingsNoLibs ++ Seq(
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 
   libraryDependencies ++= Seq(
-    "dev.argon" %%% "argon-async-util" % "2.0.0-SNAPSHOT",
+    "dev.argon" %%% "argon-async-util" % "2.0.0",
 
     "dev.zio" %%% "zio" % zioVersion,
     "dev.zio" %%% "zio-streams" % zioVersion,
