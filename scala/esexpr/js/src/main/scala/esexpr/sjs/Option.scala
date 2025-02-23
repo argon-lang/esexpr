@@ -6,14 +6,9 @@ import scala.scalajs.js.annotation.JSImport
 type Option[+A] = Option.Some[A] | Null
 object Option {
   opaque type Some[+A] = A | WrappedNull
-  
-  @JSImport("@argon-lang/esexpr")
-  @js.native
-  def some[A](value: A): Some[A] = js.native
-  
-  @JSImport("@argon-lang/esexpr")
-  @js.native
-  def get[A](value: Some[A]): A = js.native
+
+  def some[A](value: A): Some[A] = JSOptionObject.some(value)
+  def get[A](value: Some[A]): A = JSOptionObject.get(value)
   
   def fromScalaOption[A](o: scala.Option[A]): Option[A] =
     o.orNull
@@ -23,5 +18,12 @@ object Option {
       None
     else
       Some(get(o.asInstanceOf[Some[A]]))
-      
+
+  @JSImport("@argon-lang/esexpr", "Option")
+  @js.native
+  private object JSOptionObject extends js.Object {
+    def some[A](value: A): Some[A] = js.native
+    def get[A](value: Some[A]): A = js.native
+  }
+
 }
