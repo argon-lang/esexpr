@@ -1,3 +1,4 @@
+use esexpr_binary::ExprParser;
 use std::path::PathBuf;
 
 
@@ -9,6 +10,7 @@ fn parse_test(name: &str) {
     let mut esx = dir.clone();
     esx.push(format!("{}.esxb", name));
     let esx = esexpr_binary::parse(&std::fs::File::open(esx).unwrap())
+        .iter_static()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
 

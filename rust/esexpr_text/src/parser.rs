@@ -1,6 +1,6 @@
 use core::f32;
 use std::{collections::HashMap, str::FromStr};
-
+use std::borrow::Cow;
 use esexpr::ESExpr;
 use hexfloat2::{HexFloat32, HexFloat64};
 use nom::{
@@ -86,7 +86,7 @@ pub fn identifier(input: &str) -> IResult<&str, String> {
 }
 
 
-fn float_decimal(input: &str) -> IResult<&str, ESExpr> {
+fn float_decimal(input: &str) -> IResult<&str, ESExpr<'static>> {
     map(recognize((
         opt(one_of("+-")),
         digit1,
@@ -102,7 +102,7 @@ fn float_decimal(input: &str) -> IResult<&str, ESExpr> {
     )), parse_dec_float).parse(input)
 }
 
-fn parse_dec_float(s: &str) -> ESExpr {
+fn parse_dec_float(s: &str) -> ESExpr<'static> {
     if s.ends_with("f") || s.ends_with("F") {
         let f = s.trim_end_matches("f").trim_end_matches("F").parse::<f32>().unwrap();
         ESExpr::Float32(f)
@@ -113,7 +113,7 @@ fn parse_dec_float(s: &str) -> ESExpr {
     }
 }
 
-fn float_hex(input: &str) -> IResult<&str, ESExpr> {
+fn float_hex(input: &str) -> IResult<&str, ESExpr<'static>> {
     map(recognize((
         opt(one_of("+-")),
         tag_no_case("0x"),
@@ -128,7 +128,7 @@ fn float_hex(input: &str) -> IResult<&str, ESExpr> {
     )), parse_hex_float).parse(input)
 }
 
-fn parse_hex_float(s: &str) -> ESExpr {
+fn parse_hex_float(s: &str) -> ESExpr<'static> {
     if s.ends_with("f") || s.ends_with("F") {
         let f = s.trim_end_matches("f").trim_end_matches("F").parse::<HexFloat32>().unwrap();
         ESExpr::Float32(*f)
@@ -139,7 +139,7 @@ fn parse_hex_float(s: &str) -> ESExpr {
     }
 }
 
-pub fn float(input: &str) -> IResult<&str, ESExpr> {
+pub fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
     preceded(skip_ws, alt((
         float_decimal,
         float_hex,
@@ -246,11 +246,11 @@ pub fn hex_byte(input: &str) -> IResult<&str, u8> {
 
 
 enum ConstructorArg {
-    Positional(ESExpr),
-    Keyword(String, ESExpr),
+    Positional(ESExpr<'static>),
+    Keyword(String, ESExpr<'static>),
 }
 
-pub fn constructor(input: &str) -> IResult<&str, ESExpr> {
+pub fn constructor(input: &str) -> IResult<&str, ESExpr<'static>> {
     map(delimited(
         preceded(skip_ws, char('(')),
         pair(
@@ -261,7 +261,7 @@ pub fn constructor(input: &str) -> IResult<&str, ESExpr> {
     ), |(name, args)| build_constructor(name, args)).parse(input)
 }
 
-fn build_constructor(name: String, ctor_args: Vec<ConstructorArg>) -> ESExpr {
+fn build_constructor(name: String, ctor_args: Vec<ConstructorArg>) -> ESExpr<'static> {
     let mut args = Vec::new();
     let mut kwargs = HashMap::new();
 
@@ -269,15 +269,15 @@ fn build_constructor(name: String, ctor_args: Vec<ConstructorArg>) -> ESExpr {
         match arg {
             ConstructorArg::Positional(value) => args.push(value),
             ConstructorArg::Keyword(name, value) => {
-                kwargs.insert(name, value);
+                kwargs.insert(Cow::Owned(name), value);
             },
         }
     }
 
     ESExpr::Constructor {
-        name,
-        args,
-        kwargs,
+        name: Cow::Owned(name),
+        args: Cow::Owned(args),
+        kwargs: Cow::Owned(kwargs),
     }
 }
 
@@ -292,7 +292,7 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
     )).parse(input)
 }
 
-fn null_atom(input: &str) -> IResult<&str, ESExpr> {
+fn null_atom(input: &str) -> IResult<&str, ESExpr<'static>> {
     map(
         (
             skip_ws,
@@ -300,11 +300,11 @@ fn null_atom(input: &str) -> IResult<&str, ESExpr> {
             digit1,
             not(alphanumeric1)
         ),
-        |(_, _, n, _)| ESExpr::Null(BigUint::from_str(n).unwrap())
+        |(_, _, n, _)| ESExpr::Null(Cow::Owned(BigUint::from_str(n).unwrap()))
     ).parse(input)
 }
 
-fn atom<'a>(expr: ESExpr, s: &'static str) -> impl Parser<&'a str, Output=ESExpr, Error=nom::error::Error<&'a str>> {
+fn atom<'a>(expr: ESExpr<'static>, s: &'static str) -> impl Parser<&'a str, Output=ESExpr<'static>, Error=nom::error::Error<&'a str>> {
     move |input| {
         value(
             expr.clone(),
@@ -316,25 +316,25 @@ fn atom<'a>(expr: ESExpr, s: &'static str) -> impl Parser<&'a str, Output=ESExpr
     }
 }
 
-pub fn expr(input: &str) -> IResult<&str, ESExpr> {
+pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
     alt((
         float,
-        map(integer, ESExpr::Int),
-        map(string, ESExpr::Str),
-        map(binary, ESExpr::Binary),
+        map(integer, |i| ESExpr::Int(Cow::Owned(i))),
+        map(string, |s| ESExpr::Str(Cow::Owned(s))),
+        map(binary, |b| ESExpr::Binary(Cow::Owned(b))),
         atom(ESExpr::Bool(true), "#true"),
         atom(ESExpr::Bool(false), "#false"),
         null_atom,
-        atom(ESExpr::Null(BigUint::ZERO), "#null"),
+        atom(ESExpr::Null(Cow::Owned(BigUint::ZERO)), "#null"),
         constructor,
     )).parse(input)
 }
 
-pub fn expr_file(input: &str) -> IResult<&str, ESExpr> {
+pub fn expr_file(input: &str) -> IResult<&str, ESExpr<'static>> {
     terminated(terminated(expr, skip_ws),  eof).parse(input)
 }
 
-pub fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr>> {
+pub fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr<'static>>> {
     terminated(terminated(many0(expr), skip_ws),  eof).parse(input)
 }
 

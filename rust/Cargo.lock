@@ -33,6 +33,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-syn-parse"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d65d7ce8132b7c0e54497a4d9a55a1c2a0912a0d786cf894472ba818fba45762"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "derive_more"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,12 +91,14 @@ dependencies = [
  "itertools",
  "num-bigint",
  "serde_json",
+ "static_assertions",
 ]
 
 [[package]]
 name = "esexpr-derive"
 version = "0.1.20"
 dependencies = [
+ "derive-syn-parse",
  "proc-macro2",
  "quote",
  "regex",
@@ -273,6 +286,12 @@ dependencies = [
  "ryu",
  "serde",
 ]
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "syn"

@@ -5,6 +5,7 @@ use num_bigint::{BigInt, BigUint};
 
 
 use core::f32;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(ESExprCodec, Debug, PartialEq)]
@@ -79,25 +80,26 @@ pub enum JsonEncodedESExpr {
 
     Bool(bool),
     Int {
-        int: JsonBigIntValue,
+        #[serde(with="serde_bigint")]
+        int: BigInt,
     },
     Str(String),
     Binary {
         base64: Base64Value,
     },
     Float32 {
-        #[serde(deserialize_with="deserialize_f32", serialize_with="serialize_f32")]
+        #[serde(with="serde_f32")]
         float32: f32,
     },
     Float64 {
-        #[serde(deserialize_with="deserialize_f64", serialize_with="serialize_f64")]
+        #[serde(with="serde_f64")]
         float64: f64,
     },
     Null(()),
     NullLevel {
-        null: JsonBigIntValue,
+        #[serde(with="serde_biguint")]
+        null: BigUint,
     },
-
 }
 
 impl JsonEncodedESExpr {
@@ -105,97 +107,84 @@ impl JsonEncodedESExpr {
         match expr {
             ESExpr::Constructor { name, args, kwargs } =>
                 JsonEncodedESExpr::Constructor {
-                    constructor_name: name,
+                    constructor_name: name.into_owned(),
                     args: Some(
-                        args
-                            .into_iter()
-                            .map(Self::from_esexpr)
-                            .collect()
+                        match args {
+                            Cow::Borrowed(args) =>
+                                args
+                                    .iter()
+                                    .cloned()
+                                    .map(Self::from_esexpr)
+                                    .collect(),
+                            Cow::Owned(args) =>
+                                args
+                                    .into_iter()
+                                    .map(Self::from_esexpr)
+                                    .collect(),
+                        }
                     ),
                     kwargs: Some(
-                        kwargs
-                            .into_iter()
-                            .map(|(k, v)| (k, Self::from_esexpr(v)))
-                            .collect()
+                        match kwargs {
+                            Cow::Borrowed(kwargs) =>
+                                kwargs
+                                    .iter()
+                                    .map(|(k, v)| (k.as_ref().to_owned(), Self::from_esexpr(v.clone())))
+                                    .collect(),
+                            Cow::Owned(kwargs) =>
+                                kwargs
+                                    .into_iter()
+                                    .map(|(k, v)| (k.into_owned(), Self::from_esexpr(v)))
+                                    .collect()
+                        }
                     ),
                 },
             ESExpr::Bool(b) => JsonEncodedESExpr::Bool(b),
-            ESExpr::Int(i) => JsonEncodedESExpr::Int { int: JsonBigIntValue(i) },
-            ESExpr::Str(s) => JsonEncodedESExpr::Str(s),
-            ESExpr::Binary(b) => JsonEncodedESExpr::Binary { base64: Base64Value(b) },
+            ESExpr::Int(i) => JsonEncodedESExpr::Int { int: i.into_owned() },
+            ESExpr::Str(s) => JsonEncodedESExpr::Str(s.into_owned()),
+            ESExpr::Binary(b) => JsonEncodedESExpr::Binary { base64: Base64Value(b.into_owned()) },
             ESExpr::Float32(float32) => JsonEncodedESExpr::Float32 { float32 },
             ESExpr::Float64(float64) => JsonEncodedESExpr::Float64 { float64 },
-            ESExpr::Null(level) if level == BigUint::ZERO => JsonEncodedESExpr::Null(()),
-            ESExpr::Null(level) => JsonEncodedESExpr::NullLevel { null: JsonBigIntValue(level.into()) },
+            ESExpr::Null(level) if *level == BigUint::ZERO => JsonEncodedESExpr::Null(()),
+            ESExpr::Null(level) => JsonEncodedESExpr::NullLevel { null: level.into_owned() },
         }
     } 
 
-    pub fn into_esexpr(self) -> ESExpr {
+    pub fn into_esexpr(self) -> ESExpr<'static> {
         match self {
             JsonEncodedESExpr::Constructor { constructor_name, args, kwargs } =>
                 ESExpr::Constructor {
-                    name: constructor_name,
-                    args: args.unwrap_or_default()
-                        .into_iter()
-                        .map(Self::into_esexpr)
-                        .collect(),
-                    kwargs: kwargs.unwrap_or_default()
-                        .into_iter()
-                        .map(|(k, v)| (k, v.into_esexpr()))
-                        .collect()
+                    name: Cow::Owned(constructor_name),
+                    args: Cow::Owned(
+                        args.unwrap_or_default()
+                            .into_iter()
+                            .map(Self::into_esexpr)
+                            .collect()
+                    ),
+                    kwargs: Cow::Owned(
+                        kwargs.unwrap_or_default()
+                            .into_iter()
+                            .map(|(k, v)| (Cow::Owned(k), v.into_esexpr()))
+                            .collect()
+                    ),
                 },
             JsonEncodedESExpr::List(l) =>
                 ESExpr::Constructor {
-                    name: "list".to_owned(),
+                    name: Cow::Borrowed("list"),
                     args: l.into_iter().map(Self::into_esexpr).collect(),
                     kwargs: Default::default(),
                 },
 
             JsonEncodedESExpr::Bool(b) => ESExpr::Bool(b),
-            JsonEncodedESExpr::Int { int } => ESExpr::Int(int.0),
-            JsonEncodedESExpr::Str(s) => ESExpr::Str(s),
-            JsonEncodedESExpr::Binary { base64 } => ESExpr::Binary(base64.0),
+            JsonEncodedESExpr::Int { int } => ESExpr::Int(Cow::Owned(int)),
+            JsonEncodedESExpr::Str(s) => ESExpr::Str(Cow::Owned(s)),
+            JsonEncodedESExpr::Binary { base64 } => ESExpr::Binary(Cow::Owned(base64.0)),
             JsonEncodedESExpr::Float32 { float32 } => ESExpr::Float32(float32),
             JsonEncodedESExpr::Float64 { float64 } => ESExpr::Float64(float64),
-            JsonEncodedESExpr::Null(_) => ESExpr::Null(BigUint::ZERO),
-            JsonEncodedESExpr::NullLevel { null } => ESExpr::Null(null.0.to_biguint().unwrap())
+            JsonEncodedESExpr::Null(_) => ESExpr::Null(Cow::Owned(BigUint::ZERO)),
+            JsonEncodedESExpr::NullLevel { null } => ESExpr::Null(Cow::Owned(null))
         }
     } 
 }
-
-#[derive(Debug, PartialEq)]
-pub struct JsonBigIntValue(BigInt);
-
-
-impl serde::Serialize for JsonBigIntValue {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.0.to_string())
-    }
-}
-
-struct BigIntVisitor;
-
-impl<'de> serde::de::Visitor<'de> for BigIntVisitor {
-    type Value = BigInt;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a string containing a big integer")
-    }
-
-    fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<BigInt, E> {
-        BigInt::parse_bytes(value.as_bytes(), 10)
-            .ok_or_else(|| serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self))
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for JsonBigIntValue {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let int = deserializer.deserialize_str(BigIntVisitor)?;
-        Ok(JsonBigIntValue(int))
-    }
-}
-
-
 
 #[derive(Debug, PartialEq)]
 pub struct Base64Value(Vec<u8>);
@@ -230,96 +219,127 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
 }
 
 
-
-fn serialize_f32<S: serde::Serializer>(f: &f32, serializer: S) -> Result<S::Ok, S::Error> {
-    match *f {
-        f if f.is_nan() => serializer.serialize_str("nan"),
-        f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
-        f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
-        f => serializer.serialize_f32(f)
+mod serde_f32 {
+    pub fn serialize<S: serde::Serializer>(f: &f32, serializer: S) -> Result<S::Ok, S::Error> {
+        match *f {
+            f if f.is_nan() => serializer.serialize_str("nan"),
+            f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
+            f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
+            f => serializer.serialize_f32(f)
+        }
     }
-}
 
-fn deserialize_f32<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f32, D::Error> {
-    struct Float32ValueVisitor;
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f32, D::Error> {
+        struct Float32ValueVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for Float32ValueVisitor {
-        type Value = f32;
+        impl<'de> serde::de::Visitor<'de> for Float32ValueVisitor {
+            type Value = f32;
 
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a number or a string containing nan, +inf, or -inf")
-        }
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or a string containing nan, +inf, or -inf")
+            }
 
-        fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f32, E> {
-            Ok(v as f32)
-        }
+            fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f32, E> {
+                Ok(v as f32)
+            }
 
-        fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f32, E> {
-            Ok(v as f32)
-        }
+            fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f32, E> {
+                Ok(v as f32)
+            }
 
-        fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f32, E> {
-            Ok(v as f32)
-        }
+            fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f32, E> {
+                Ok(v as f32)
+            }
 
-        fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f32, E> {
-            match value {
-                "nan" => Ok(f32::NAN),
-                "+inf" => Ok(f32::INFINITY),
-                "-inf" => Ok(f32::NEG_INFINITY),
-                _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)),
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f32, E> {
+                match value {
+                    "nan" => Ok(f32::NAN),
+                    "+inf" => Ok(f32::INFINITY),
+                    "-inf" => Ok(f32::NEG_INFINITY),
+                    _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)),
+                }
             }
         }
+
+        deserializer.deserialize_any(Float32ValueVisitor)
     }
 
-    deserializer.deserialize_any(Float32ValueVisitor)
 }
 
 
-fn serialize_f64<S: serde::Serializer>(f: &f64, serializer: S) -> Result<S::Ok, S::Error> {
-    match *f {
-        f if f.is_nan() => serializer.serialize_str("nan"),
-        f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
-        f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
-        f => serializer.serialize_f64(f)
+mod serde_f64 {
+    pub fn serialize<S: serde::Serializer>(f: &f64, serializer: S) -> Result<S::Ok, S::Error> {
+        match *f {
+            f if f.is_nan() => serializer.serialize_str("nan"),
+            f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
+            f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
+            f => serializer.serialize_f64(f)
+        }
     }
-}
 
-fn deserialize_f64<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
-    struct Float64ValueVisitor;
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
+        struct Float64ValueVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
-        type Value = f64;
+        impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
+            type Value = f64;
 
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a number or a string containing nan, +inf, or -inf")
-        }
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or a string containing nan, +inf, or -inf")
+            }
 
-        fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f64, E> {
-            Ok(v as f64)
-        }
+            fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f64, E> {
+                Ok(v as f64)
+            }
 
-        fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f64, E> {
-            Ok(v as f64)
-        }
+            fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f64, E> {
+                Ok(v as f64)
+            }
 
-        fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f64, E> {
-            Ok(v)
-        }
+            fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f64, E> {
+                Ok(v)
+            }
 
-        fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f64, E> {
-            match value {
-                "nan" => Ok(f64::NAN),
-                "+inf" => Ok(f64::INFINITY),
-                "-inf" => Ok(f64::NEG_INFINITY),
-                _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)),
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f64, E> {
+                match value {
+                    "nan" => Ok(f64::NAN),
+                    "+inf" => Ok(f64::INFINITY),
+                    "-inf" => Ok(f64::NEG_INFINITY),
+                    _ => Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)),
+                }
             }
         }
-    }
 
-    deserializer.deserialize_any(Float64ValueVisitor)
+        deserializer.deserialize_any(Float64ValueVisitor)
+    }
 }
 
+mod serde_bigint {
+    use serde::Deserialize;
+    use num_bigint::BigInt;
 
+    pub fn serialize<S: serde::Serializer>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&value.to_string())
+    }
 
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<BigInt, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        BigInt::parse_bytes(s.as_bytes(), 10)
+            .ok_or_else(|| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"a string containing a big integer"))
+    }
+}
+
+mod serde_biguint {
+    use serde::Deserialize;
+    use num_bigint::BigUint;
+
+    pub fn serialize<S: serde::Serializer>(value: &BigUint, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&value.to_string())
+    }
+
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<BigUint, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        BigUint::parse_bytes(s.as_bytes(), 10)
+            .ok_or_else(|| serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"a string containing an unsigned big integer"))
+    }
+}
 

@@ -1,11 +1,13 @@
+mod append_only_string_list;
 
 use num_bigint::{BigInt, BigUint, Sign};
 
 use derive_more::From;
 
 use std::{collections::HashMap, io::{Read, Write}};
-
+use std::borrow::Cow;
 use esexpr::{ESExpr, ESExprCodec};
+use crate::append_only_string_list::AppendOnlyStringList;
 
 #[derive(From, Debug)]
 pub enum ParseError {
@@ -85,8 +87,8 @@ const TAG_NULLN: u8 = 0xEA;
 const TAG_APPEND_STRING_TABLE: u8 = 0xEB;
 
 
-enum ExprPlus {
-    Expr(ESExpr),
+enum ExprPlus<'a> {
+    Expr(ESExpr<'a>),
     Keyword(usize),
     ConstructorEnd,
     AppendedToStringTable,
@@ -252,119 +254,125 @@ fn get_length(i: BigUint) -> Result<usize, ParseError> {
 }
 
 pub trait ExprParser {
-    fn try_read_next_expr(&mut self) -> Result<Option<ESExpr>, ParseError>;
-    fn read_next_expr(&mut self) -> Result<ESExpr, ParseError>;
+    fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError>;
+    fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError>;
+    
+    fn iter_static(&mut self) -> impl Iterator<Item=Result<ESExpr<'static>, ParseError>> {
+        std::iter::from_fn(move || self.try_read_next_expr().map(|res| res.map(ESExpr::into_owned)).transpose())
+    }
 }
 
+
+
 struct ExprParserImpl<I> {
-    string_pool: Vec<String>,
+    string_pool: AppendOnlyStringList,
     iter: I,
 }
 
 impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParser for ExprParserImpl<I> {
-    fn try_read_next_expr(&mut self) -> Result<Option<ESExpr>, ParseError> {
-        loop {
-            return match self.read_expr_plus()? {
-                ExprPlus::Expr(expr) => Ok(Some(expr)),
-                ExprPlus::Keyword(_) => Err(ParseError::UnexpectedKeywordToken),
-                ExprPlus::ConstructorEnd => Err(ParseError::UnexpectedConstructorEnd),
-                ExprPlus::AppendedToStringTable => continue,
-                ExprPlus::EndOfFile => Ok(None),
-            }
-        }
+    fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError> {
+        try_read_next_expr_impl(&mut self.iter, &self.string_pool)
     }
 
-    fn read_next_expr(&mut self) -> Result<ESExpr, ParseError> {
-        self.try_read_next_expr()?.ok_or(ParseError::UnexpectedEndOfFile)
+    fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError> {
+        read_next_expr_impl(&mut self.iter, &self.string_pool)
     }
 }
 
-impl <I: Iterator<Item=Result<ExprToken, ParseError>>> ExprParserImpl<I> {
-    fn read_expr_plus(&mut self) -> Result<ExprPlus, ParseError> {
-        let Some(token) = self.iter.next().transpose()? else {
-            return Ok(ExprPlus::EndOfFile)
-        };
+fn try_read_next_expr_impl<'a>(iter: &mut impl Iterator<Item=Result<ExprToken, ParseError>>, string_pool: &'a AppendOnlyStringList) -> Result<Option<ESExpr<'a>>, ParseError> {
+    loop {
+        return match read_expr_plus(iter, string_pool)? {
+            ExprPlus::Expr(expr) => Ok(Some(expr)),
+            ExprPlus::Keyword(_) => Err(ParseError::UnexpectedKeywordToken),
+            ExprPlus::ConstructorEnd => Err(ParseError::UnexpectedConstructorEnd),
+            ExprPlus::AppendedToStringTable => continue,
+            ExprPlus::EndOfFile => Ok(None),
+        }
+    }
+}
 
-        Ok(ExprPlus::Expr(match token {
-            ExprToken::ConstructorStart(index) => {
-                let name = self.get_string(index)?;
-                self.read_expr_constructor(name)?
+fn read_next_expr_impl<'a>(iter: &mut impl Iterator<Item=Result<ExprToken, ParseError>>, string_pool: &'a AppendOnlyStringList) -> Result<ESExpr<'a>, ParseError> {
+    try_read_next_expr_impl(iter, string_pool)?.ok_or(ParseError::UnexpectedEndOfFile)
+}
+
+fn read_expr_plus<'a>(iter: &mut impl Iterator<Item=Result<ExprToken, ParseError>>, string_pool: &'a AppendOnlyStringList) -> Result<ExprPlus<'a>, ParseError> {
+    let Some(token) = iter.next().transpose()? else {
+        return Ok(ExprPlus::EndOfFile)
+    };
+
+    Ok(ExprPlus::Expr(match token {
+        ExprToken::ConstructorStart(index) => {
+            let name = get_string(string_pool, index)?;
+            read_expr_constructor(iter, string_pool, name)?
+        },
+        ExprToken::ConstructorStartKnown(name) => {
+            read_expr_constructor(iter, string_pool, name)?
+        }
+        ExprToken::ConstructorEnd => return Ok(ExprPlus::ConstructorEnd),
+        ExprToken::Keyword(index) => return Ok(ExprPlus::Keyword(index)),
+        ExprToken::IntValue(i) => ESExpr::Int(Cow::Owned(i)),
+        ExprToken::StringValue(s) => ESExpr::Str(Cow::Owned(s)),
+        ExprToken::StringPoolValue(index) => ESExpr::Str(Cow::Borrowed(get_string(string_pool, index)?)),
+        ExprToken::BinaryValue(b) => ESExpr::Binary(Cow::Owned(b)),
+        ExprToken::Float32Value(f) => ESExpr::Float32(f),
+        ExprToken::Float64Value(d) => ESExpr::Float64(d),
+        ExprToken::BooleanValue(b) => ESExpr::Bool(b),
+        ExprToken::NullValue(level) => ESExpr::Null(Cow::Owned(level)),
+        ExprToken::AppendStringTable => {
+            let new_string_table = read_next_expr_impl(iter, string_pool)?;
+            let new_string_table = AppendedStringPool::decode_esexpr(new_string_table)
+                .map_err(ParseError::InvalidStringPool)?;
+
+            match new_string_table {
+                AppendedStringPool::Fixed(mut fixed_string_pool) =>
+                    string_pool.append(&mut fixed_string_pool.strings),
+
+                AppendedStringPool::Single(s) =>
+                    string_pool.push(s),
+            }
+
+            return Ok(ExprPlus::AppendedToStringTable)
+        }
+    }))
+}
+fn read_expr_constructor<'a>(iter: &mut impl Iterator<Item=Result<ExprToken, ParseError>>, string_pool: &'a AppendOnlyStringList, name: &'a str) -> Result<ESExpr<'a>, ParseError> {
+    let mut args = Vec::new();
+    let mut kwargs = HashMap::new();
+
+    loop {
+        match read_expr_plus(iter, string_pool)? {
+            ExprPlus::Expr(expr) => args.push(expr),
+            ExprPlus::Keyword(index) => {
+                let kw = get_string(string_pool, index)?;
+                let value = read_next_expr_impl(iter, string_pool)?;
+                kwargs.insert(Cow::Borrowed(kw), value);
             },
-            ExprToken::ConstructorStartKnown(name) => {
-                self.read_expr_constructor(name.to_owned())?
-            }
-            ExprToken::ConstructorEnd => return Ok(ExprPlus::ConstructorEnd),
-            ExprToken::Keyword(index) => return Ok(ExprPlus::Keyword(index)),
-            ExprToken::IntValue(i) => ESExpr::Int(i),
-            ExprToken::StringValue(s) => ESExpr::Str(s),
-            ExprToken::StringPoolValue(index) => ESExpr::Str(self.get_string(index)?),
-            ExprToken::BinaryValue(b) => ESExpr::Binary(b),
-            ExprToken::Float32Value(f) => ESExpr::Float32(f),
-            ExprToken::Float64Value(d) => ESExpr::Float64(d),
-            ExprToken::BooleanValue(b) => ESExpr::Bool(b),
-            ExprToken::NullValue(level) => ESExpr::Null(level),
-            ExprToken::AppendStringTable => {
-                let new_string_table = self.read_next_expr()?;
-                let new_string_table = AppendedStringPool::decode_esexpr(new_string_table)
-                    .map_err(ParseError::InvalidStringPool)?;
-
-                match new_string_table {
-                    AppendedStringPool::Fixed(mut fixed_string_pool) =>
-                        self.string_pool.append(&mut fixed_string_pool.strings),
-
-                    AppendedStringPool::Single(s) =>
-                        self.string_pool.push(s),
-                }
-
-                return Ok(ExprPlus::AppendedToStringTable)
-            }
-        }))
-    }
-
-    fn read_expr_constructor(&mut self, name: String) -> Result<ESExpr, ParseError> {
-        let mut args = Vec::new();
-        let mut kwargs = HashMap::new();
-
-        loop {
-            match self.read_expr_plus()? {
-                ExprPlus::Expr(expr) => args.push(expr),
-                ExprPlus::Keyword(index) => {
-                    let kw = self.get_string(index)?;
-                    let value = self.read_next_expr()?;
-                    kwargs.insert(kw, value);
-                },
-                ExprPlus::ConstructorEnd => break,
-                ExprPlus::AppendedToStringTable => continue,
-                ExprPlus::EndOfFile => return Err(ParseError::UnexpectedEndOfFile),
-            }
+            ExprPlus::ConstructorEnd => break,
+            ExprPlus::AppendedToStringTable => continue,
+            ExprPlus::EndOfFile => return Err(ParseError::UnexpectedEndOfFile),
         }
-
-        Ok(ESExpr::Constructor { name, args, kwargs })
     }
 
-    fn get_string(&self, i: usize) -> Result<String, ParseError> {
-        self.string_pool.get(i)
-            .map(|s| s.as_str().to_owned())
-            .ok_or(ParseError::InvalidStringTableIndex)
-    }
+    Ok(ESExpr::Constructor {
+        name: Cow::Borrowed(name),
+        args: Cow::Owned(args),
+        kwargs: Cow::Owned(kwargs),
+    })
 }
 
-impl <I: Iterator<Item=Result<ExprToken, ParseError>>> Iterator for ExprParserImpl<I> {
-    type Item = Result<ESExpr, ParseError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.try_read_next_expr().transpose()
-    }
+fn get_string<'a>(string_pool: &'a AppendOnlyStringList, i: usize) -> Result<&'a str, ParseError> {
+    string_pool.get(i)
+        .ok_or(ParseError::InvalidStringTableIndex)
 }
 
-pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl ExprParser + Iterator<Item=Result<ESExpr, ParseError>> + 'a {
+pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl ExprParser + 'a {
     ExprParserImpl {
         iter: TokenReader { read: f },
-        string_pool,
+        string_pool: AppendOnlyStringList::from(string_pool),
     }
 }
 
-pub fn parse<'a, F: Read + 'a>(f: F) -> impl ExprParser + Iterator<Item=Result<ESExpr, ParseError>> + 'a {
+pub fn parse<'a, F: Read + 'a>(f: F) -> impl ExprParser + 'a {
     parse_existing_string_pool(f, Vec::new())
 }
 
@@ -416,24 +424,23 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
         generator.generate_expr(expr)?;
 
         std::mem::swap(&mut self.string_pool, &mut generator.string_pool);
-    
+
         match &self.string_pool[old_string_pool_end..] {
             [] => {},
             [ s ] => {
-                let s = s.to_owned();
-                self.write(TAG_APPEND_STRING_TABLE)?;
-                self.generate_expr(&ESExpr::Str(s.to_owned()))?;
+                Self::write_out(self.out, TAG_APPEND_STRING_TABLE)?;
+                Self::write_string_expr(self.out, s.as_str())?;
             },
             new_strings => {
-                let sp_expr = FixedStringPool {
-                    strings: new_strings.to_vec(),
-                }.encode_esexpr();
-
-                self.write(TAG_APPEND_STRING_TABLE)?;
-                self.generate_expr(&sp_expr)?;
+                Self::write_out(self.out, TAG_APPEND_STRING_TABLE)?;
+                Self::write_out(self.out, TAG_CONSTRUCTOR_START_STRING_TABLE)?;
+                for s in new_strings {
+                    Self::write_string_expr(self.out, s)?;
+                }
+                Self::write_out(self.out, TAG_CONSTRUCTOR_END)?;
             }
         }
-        
+
         self.generate_expr(expr)?;
         Ok(())
     }
@@ -441,7 +448,7 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
     fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
         match expr {
             ESExpr::Constructor { name, args, kwargs } => {
-                match name.as_str() {
+                match &**name {
                     "string-table" => self.write(TAG_CONSTRUCTOR_START_STRING_TABLE)?,
                     "list" => self.write(TAG_CONSTRUCTOR_START_LIST)?,
                     _ => {
@@ -450,11 +457,11 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
                     }
                 }
 
-                for arg in args {
+                for arg in args.iter() {
                     self.generate_expr(arg)?;
                 }
 
-                for (kw, value) in kwargs {
+                for (kw, value) in kwargs.iter() {
                     let index = self.get_string_pool_index(&kw)?;
                     self.write_int_tag(TAG_VARINT_KEYWORD, &BigUint::from(index))?;
                     self.generate_expr(value)?;
@@ -469,7 +476,7 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
                 self.write(TAG_FALSE)?;
             },
             ESExpr::Int(i) => {
-                let (sign, mut magnitude) = i.clone().into_parts();
+                let (sign, mut magnitude) = i.as_ref().clone().into_parts();
 
                 match sign {
                     Sign::NoSign | Sign::Plus => {
@@ -499,18 +506,18 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
                 self.out.write_all(&f64::to_le_bytes(*d))?;
             },
             ESExpr::Null(level) => {
-                if *level == BigUint::ZERO {
+                if **level == BigUint::ZERO {
                     self.write(TAG_NULL0)?;
                 }
-                else if *level == BigUint::from(1u32) {
+                else if **level == BigUint::from(1u32) {
                     self.write(TAG_NULL1)?;
                 }
-                else if *level == BigUint::from(2u32) {
+                else if **level == BigUint::from(2u32) {
                     self.write(TAG_NULL2)?;
                 }
                 else {
                     self.write(TAG_NULLN)?;
-                    self.write_int_full(&(level - 3u32))?;
+                    Self::write_int_full(self.out, &(&**level - 3u32))?;
                 }
             },
         }
@@ -527,33 +534,37 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
         self.string_pool.push(s.to_owned());
 
         self.write(TAG_APPEND_STRING_TABLE)?;
-        self.generate_expr(&ESExpr::Str(s.to_owned()))?;
+        Self::write_string_expr(self.out, s)?;
 
         Ok(index)
     }
 
     fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
+        Self::write_int_tag_out(self.out, tag, i)
+    }
+
+    fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
         let buff = i.to_bytes_le();
 
         let b0 = *buff.get(0).unwrap_or(&0);
         let mut current = tag | (b0 & 0x0F);
         if buff.len() < 2 && (b0 & 0xF0) == 0 {
-            self.write(current)?;
+            Self::write_out(out, current)?;
             return Ok(());
         }
 
         current |= 0x10;
-        self.write(current)?;
+        Self::write_out(out, current)?;
 
         current = b0 >> 4;
         let bit_index = 4;
 
-        self.write_int_rest(&buff[1..], current, bit_index)
+        Self::write_int_rest(out, &buff[1..], current, bit_index)
     }
 
-    fn write_int_full(&mut self, i: &BigUint) -> Result<(), GeneratorError> {
+    fn write_int_full(out: &mut W, i: &BigUint) -> Result<(), GeneratorError> {
         if *i == BigUint::ZERO {
-            self.write(0)?;
+            Self::write_out(out, 0)?;
             return Ok(());
         }
 
@@ -561,10 +572,10 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
         let current = 0;
         let bit_index = 0;
 
-        self.write_int_rest(&buff, current, bit_index)
+        Self::write_int_rest(out, &buff, current, bit_index)
     }
 
-    fn write_int_rest(&mut self, buff: &[u8], mut current: u8, mut bit_index: i32) -> Result<(), GeneratorError> {
+    fn write_int_rest(out: &mut W, buff: &[u8], mut current: u8, mut bit_index: i32) -> Result<(), GeneratorError> {
         for (i, b) in buff.iter().copied().enumerate() {            
             let mut bit_index2 = 0;
             while bit_index2 < 8 {
@@ -579,7 +590,7 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
                         current |= 0x80;
                     }
 
-                    self.write(current)?;
+                    Self::write_out(out, current)?;
                     bit_index = 0;
                     current = 0;
                 }
@@ -587,14 +598,24 @@ impl <'a, W: Write> ExprGenerator<'a, W> {
         }
 
         if current != 0 {
-            self.write(current)?;
+            Self::write_out(out, current)?;
         }
 
         Ok(())
     }
 
+    fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError> {
+        Self::write_int_tag_out(out, TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))?;
+        out.write_all(&s.as_bytes())?;
+        Ok(())
+    }
+
     fn write(&mut self, b: u8) -> Result<(), GeneratorError> {
-        Ok(self.out.write_all(std::slice::from_ref(&b))?)
+        Self::write_out(self.out, b)
+    }
+
+    fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError> {
+        Ok(out.write_all(std::slice::from_ref(&b))?)
     }
 }
 
@@ -605,6 +626,8 @@ pub struct FixedStringPool {
     #[vararg]
     pub strings: Vec<String>,
 }
+
+
 
 impl StringPool for FixedStringPool {
     fn lookup(&mut self, s: &str) -> Option<usize> {
