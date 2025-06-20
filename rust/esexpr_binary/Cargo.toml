@@ -11,11 +11,11 @@ categories = [ "encoding" ]
 readme = "README.md"
 
 [dependencies]
-esexpr = { path = "../esexpr", version = "0.1.20" }
+esexpr = { workspace = true }
 num-bigint = { workspace = true }
 derive_more = { workspace = true }
 static_assertions = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
-esexpr-json = { version = "0.1.20", path = "../esexpr_json" }
+esexpr-json = { workspace = true }

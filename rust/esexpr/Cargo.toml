@@ -15,6 +15,4 @@ default = []
 
 [dependencies]
 num-bigint = { workspace = true }
-num-integer = { workspace = true }
-esexpr-derive = { version = "0.1.20", path = "../esexpr_derive" }
-derive_more = { version = "1.0.0", features = [ "full" ] }
+esexpr-derive = { workspace = true }

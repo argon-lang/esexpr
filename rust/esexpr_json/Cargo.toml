@@ -13,6 +13,6 @@ readme = "README.md"
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-esexpr = { path = "../esexpr", version = "0.1.20" }
+esexpr = { workspace = true }
 num-bigint = { workspace = true }
 base64 = { workspace = true }
