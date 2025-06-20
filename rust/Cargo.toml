@@ -2,8 +2,8 @@
 resolver = "2"
 
 members = [
-    "esexpr", "esexpr-utils", "esexpr_binary",
-    "esexpr_derive", "esexpr_json", "esexpr_text",
+    "esexpr", "esexpr-utils", "esexpr-binary",
+    "esexpr-derive", "esexpr-json", "esexpr-text",
 ]
 
 [workspace.dependencies]
@@ -11,10 +11,10 @@ base64 = "0.22.1"
 derive_more = { version = "2.0.1", features = [ "full" ] }
 derive-syn-parse = "0.2.0"
 esexpr = { version = "0.1.20", path = "esexpr" }
-esexpr-binary = { version = "0.1.20", path = "esexpr_binary" }
-esexpr-derive = { version = "0.1.20", path = "esexpr_derive" }
-esexpr-json = { version = "0.1.20", path = "esexpr_json" }
-esexpr-text = { version = "0.1.20", path = "esexpr_text" }
+esexpr-binary = { version = "0.1.20", path = "esexpr-binary" }
+esexpr-derive = { version = "0.1.20", path = "esexpr-derive" }
+esexpr-json = { version = "0.1.20", path = "esexpr-json" }
+esexpr-text = { version = "0.1.20", path = "esexpr-text" }
 hexfloat2 = "0.1.3"
 nom = "8.0.0"
 num-bigint = "0.4.6"
