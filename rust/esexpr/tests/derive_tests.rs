@@ -2,396 +2,362 @@ use std::borrow::Cow;
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 struct ConstructorName123Conversion {
-    a: i32,
+	a: i32,
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 enum ConstructorNameEnum {
-    MyName123Test,
+	MyName123Test,
 
-    #[constructor = "my-ctor"]
-    CustomName,
+	#[constructor = "my-ctor"]
+	CustomName,
 }
-
 
 #[test]
 fn constructor_name_conversion() {
-    use std::collections::HashSet;
-    use esexpr::{esexpr, ESExprTag, ESExprCodec};
+	use std::collections::HashSet;
 
-    let expr = esexpr! {
-        ("constructor-name123-conversion" 5)
-    };
+	use esexpr::{ESExprCodec, ESExprTag, esexpr};
 
-    let value = ConstructorName123Conversion {
-        a: 5,
-    };
+	let expr = esexpr! {
+		("constructor-name123-conversion" 5)
+	};
 
-    assert_eq!(HashSet::from([ESExprTag::Constructor(Cow::Borrowed("constructor-name123-conversion"))]), ConstructorName123Conversion::tags());
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, ConstructorName123Conversion::decode_esexpr(expr).unwrap());
+	let value = ConstructorName123Conversion { a: 5 };
 
+	assert_eq!(
+		HashSet::from([ESExprTag::Constructor(Cow::Borrowed("constructor-name123-conversion"))]),
+		ConstructorName123Conversion::tags()
+	);
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, ConstructorName123Conversion::decode_esexpr(expr).unwrap());
 
-    let expr = esexpr! { ("bad-name" 5) };
+	let expr = esexpr! { ("bad-name" 5) };
 
-    assert!(ConstructorName123Conversion::decode_esexpr(expr).is_err());
+	assert!(ConstructorName123Conversion::decode_esexpr(expr).is_err());
 
+	let expr = esexpr! { ("my-name123-test") };
 
-    let expr = esexpr! { ("my-name123-test") };
+	let value = ConstructorNameEnum::MyName123Test;
 
-    let value = ConstructorNameEnum::MyName123Test;
+	assert_eq!(
+		HashSet::from([
+			ESExprTag::Constructor(Cow::Borrowed("my-name123-test")),
+			ESExprTag::Constructor(Cow::Borrowed("my-ctor"))
+		]),
+		ConstructorNameEnum::tags()
+	);
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
 
-    assert_eq!(HashSet::from([ESExprTag::Constructor(Cow::Borrowed("my-name123-test")), ESExprTag::Constructor(Cow::Borrowed("my-ctor"))]), ConstructorNameEnum::tags());
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
+	let expr = esexpr! { ("bad-name") };
 
-
-    let expr = esexpr! { ("bad-name") };
-
-    assert!(ConstructorNameEnum::decode_esexpr(expr).is_err());
-
-
+	assert!(ConstructorNameEnum::decode_esexpr(expr).is_err());
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 #[constructor = "my-ctor"]
 struct CustomConstructorName {
-    a: i32,
+	a: i32,
 }
 
 #[test]
 fn custom_constructor_name() {
-    use esexpr::{esexpr, ESExprCodec};
+	use esexpr::{ESExprCodec, esexpr};
 
-    let expr = esexpr! { ("my-ctor" 5) };
+	let expr = esexpr! { ("my-ctor" 5) };
 
-    let value = CustomConstructorName {
-        a: 5,
-    };
+	let value = CustomConstructorName { a: 5 };
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, CustomConstructorName::decode_esexpr(expr).unwrap());
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, CustomConstructorName::decode_esexpr(expr).unwrap());
 
-    let expr = esexpr! { ("bad-name" 5) };
+	let expr = esexpr! { ("bad-name" 5) };
 
-    assert!(ConstructorName123Conversion::decode_esexpr(expr).is_err());
+	assert!(ConstructorName123Conversion::decode_esexpr(expr).is_err());
 
+	let expr = esexpr! { ("my-ctor") };
 
-    let expr = esexpr! { ("my-ctor") };
+	let value = ConstructorNameEnum::CustomName;
 
-    let value = ConstructorNameEnum::CustomName;
-
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
 }
-
-
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 enum InlineValueTest {
-    #[inline_value]
-    Flag(bool),
+	#[inline_value]
+	Flag(bool),
 
-    NormalCase(bool),
+	NormalCase(bool),
 }
-
 
 #[test]
 fn inline_value_case() {
-    use std::collections::{HashSet};
-    use esexpr::{esexpr, ESExprTag, ESExprCodec};
+	use std::collections::HashSet;
 
-    let expr = esexpr!(true);
-    let value = InlineValueTest::Flag(true);
+	use esexpr::{ESExprCodec, ESExprTag, esexpr};
 
-    assert_eq!(HashSet::from([ESExprTag::Bool, ESExprTag::Constructor(Cow::Borrowed("normal-case"))]), InlineValueTest::tags());
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
+	let expr = esexpr!(true);
+	let value = InlineValueTest::Flag(true);
 
+	assert_eq!(
+		HashSet::from([ESExprTag::Bool, ESExprTag::Constructor(Cow::Borrowed("normal-case"))]),
+		InlineValueTest::tags()
+	);
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
 
-    let expr = esexpr! { (flag true) };
+	let expr = esexpr! { (flag true) };
 
-    assert!(InlineValueTest::decode_esexpr(expr).is_err());
+	assert!(InlineValueTest::decode_esexpr(expr).is_err());
 
-    let expr = esexpr! { ("normal-case" true) };
-    let value = InlineValueTest::NormalCase(true);
+	let expr = esexpr! { ("normal-case" true) };
+	let value = InlineValueTest::NormalCase(true);
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
-
-
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
 }
-
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 #[constructor = "optional-args"]
 struct PositionalArgsOptional1(bool, bool, #[optional] Option<bool>);
 
-
 #[test]
 fn positional_optional_args() {
-    use esexpr::{esexpr, ESExprCodec};
+	use esexpr::{ESExprCodec, esexpr};
 
+	let expr2 = esexpr! { ("optional-args" true false) };
+	let expr3 = esexpr! { ("optional-args" true false true) };
 
-    let expr2 = esexpr! { ("optional-args" true false) };
-    let expr3 = esexpr! { ("optional-args" true false true) };
+	let value = PositionalArgsOptional1(true, false, None);
+	assert_eq!(expr2, value.encode_esexpr());
+	assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr2.clone()).unwrap());
 
-
-    let value = PositionalArgsOptional1(true, false, None);
-    assert_eq!(expr2, value.encode_esexpr());
-    assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr2.clone()).unwrap());
-
-    let value = PositionalArgsOptional1(true, false, Some(true));
-    assert_eq!(expr3, value.encode_esexpr());
-    assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap());    
+	let value = PositionalArgsOptional1(true, false, Some(true));
+	assert_eq!(expr3, value.encode_esexpr());
+	assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap());
 }
-
-
-
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 #[constructor = "keywords"]
 struct KeywordStruct {
-    #[keyword]
-    a: bool,
+	#[keyword]
+	a: bool,
 
-    #[keyword = "b2"]
-    b: bool,
+	#[keyword = "b2"]
+	b: bool,
 
-    #[keyword = "c2"]
-    #[optional]
-    c: Option<bool>,
+	#[keyword = "c2"]
+	#[optional]
+	c: Option<bool>,
 
-    #[keyword]
-    #[optional]
-    d: Option<bool>,
+	#[keyword]
+	#[optional]
+	d: Option<bool>,
 
-    #[keyword]
-    #[default_value = "false"]
-    e: bool,
+	#[keyword]
+	#[default_value = "false"]
+	e: bool,
 
-    #[keyword]
-    f: Option<bool>,
+	#[keyword]
+	f: Option<bool>,
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 enum KeywordEnum {
-    #[constructor = "keywords"]
-    Value {
-        #[keyword]
-        a: bool,
+	#[constructor = "keywords"]
+	Value {
+		#[keyword]
+		a: bool,
 
-        #[keyword = "b2"]
-        b: bool,
+		#[keyword = "b2"]
+		b: bool,
 
-        #[keyword = "c2"]
-        #[optional]
-        c: Option<bool>,
+		#[keyword = "c2"]
+		#[optional]
+		c: Option<bool>,
 
-        #[keyword]
-        #[optional]
-        d: Option<bool>,
+		#[keyword]
+		#[optional]
+		d: Option<bool>,
 
-        #[keyword]
-        #[default_value = "false"]
-        e: bool,
+		#[keyword]
+		#[default_value = "false"]
+		e: bool,
 
-        #[keyword]
-        f: Option<bool>,
-    },
+		#[keyword]
+		f: Option<bool>,
+	},
 }
-
 
 #[test]
 fn keyword_args() {
-    use std::collections::HashSet;
-    use esexpr::{esexpr, ESExprTag, ESExprCodec};
+	use std::collections::HashSet;
 
-    let expr = esexpr! { (keywords a: true b2: true c2: true d: true e: true f: true) };
+	use esexpr::{ESExprCodec, ESExprTag, esexpr};
 
-    let value = KeywordStruct {
-        a: true,
-        b: true,
-        c: Some(true),
-        d: Some(true),
-        e: true,
-        f: Some(true),
-    };
+	let expr = esexpr! { (keywords a: true b2: true c2: true d: true e: true f: true) };
 
-    let tags = HashSet::from([ESExprTag::Constructor(Cow::Borrowed("keywords"))]);
+	let value = KeywordStruct {
+		a: true,
+		b: true,
+		c: Some(true),
+		d: Some(true),
+		e: true,
+		f: Some(true),
+	};
 
-    assert_eq!(tags, KeywordStruct::tags());
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
+	let tags = HashSet::from([ESExprTag::Constructor(Cow::Borrowed("keywords"))]);
 
-    let value = KeywordEnum::Value {
-        a: true,
-        b: true,
-        c: Some(true),
-        d: Some(true),
-        e: true,
-        f: Some(true),
-    };
+	assert_eq!(tags, KeywordStruct::tags());
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
 
-    assert_eq!(tags, KeywordEnum::tags());
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
+	let value = KeywordEnum::Value {
+		a: true,
+		b: true,
+		c: Some(true),
+		d: Some(true),
+		e: true,
+		f: Some(true),
+	};
 
+	assert_eq!(tags, KeywordEnum::tags());
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
 
+	let expr = esexpr! { (keywords a: true b2: true f: #null) };
 
-    let expr = esexpr! { (keywords a: true b2: true f: #null) };
+	let value = KeywordStruct {
+		a: true,
+		b: true,
+		c: None,
+		d: None,
+		e: false,
+		f: None,
+	};
 
-    let value = KeywordStruct {
-        a: true,
-        b: true,
-        c: None,
-        d: None,
-        e: false,
-        f: None,
-    };
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
+	let value = KeywordEnum::Value {
+		a: true,
+		b: true,
+		c: None,
+		d: None,
+		e: false,
+		f: None,
+	};
 
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
 
+	let expr = esexpr! {
+		(keywords a: true b2: true)
+	};
 
-    let value = KeywordEnum::Value {
-        a: true,
-        b: true,
-        c: None,
-        d: None,
-        e: false,
-        f: None,
-    };
-
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
-
-    
-    let expr = esexpr! {
-        (keywords a: true b2: true)
-    };
-
-    assert!(KeywordEnum::decode_esexpr(expr).is_err());
-
+	assert!(KeywordEnum::decode_esexpr(expr).is_err());
 }
-
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 #[simple_enum]
 enum SimpleEnum {
-    A,
-    B,
-    #[constructor = "my-c"]
-    C,
+	A,
+	B,
+	#[constructor = "my-c"]
+	C,
 }
-
 
 #[test]
 fn simple_enum_test() {
-    use std::collections::HashSet;
-    use esexpr::{esexpr, ESExprTag, ESExprCodec};
+	use std::collections::HashSet;
 
-    let expr = esexpr!("a");
-    let value = SimpleEnum::A;
+	use esexpr::{ESExprCodec, ESExprTag, esexpr};
 
-    assert_eq!(HashSet::from([ESExprTag::Str]), SimpleEnum::tags());
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
+	let expr = esexpr!("a");
+	let value = SimpleEnum::A;
 
-    let expr = esexpr!("b");
-    let value = SimpleEnum::B;
+	assert_eq!(HashSet::from([ESExprTag::Str]), SimpleEnum::tags());
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
+	let expr = esexpr!("b");
+	let value = SimpleEnum::B;
 
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
 
-    let expr = esexpr!("my-c");
-    let value = SimpleEnum::C;
+	let expr = esexpr!("my-c");
+	let value = SimpleEnum::C;
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
 
+	let expr = esexpr!("d");
 
-    let expr = esexpr!("d");
-
-    assert!(ConstructorNameEnum::decode_esexpr(expr).is_err());
-
-
+	assert!(ConstructorNameEnum::decode_esexpr(expr).is_err());
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 #[constructor = "many"]
 struct ManyArgsStruct {
-    #[vararg]
-    args: Vec<bool>,
+	#[vararg]
+	args: Vec<bool>,
 
-    #[dict]
-    kwargs: std::collections::HashMap<String, bool>,
+	#[dict]
+	kwargs: std::collections::HashMap<String, bool>,
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
 enum ManyArgsEnum {
-    #[constructor = "many"]
-    Value {
-        #[vararg]
-        args: Vec<bool>,
+	#[constructor = "many"]
+	Value {
+		#[vararg]
+		args: Vec<bool>,
 
-        #[dict]
-        kwargs: std::collections::HashMap<String, bool>,
-    },
+		#[dict]
+		kwargs: std::collections::HashMap<String, bool>,
+	},
 }
-
 
 #[test]
 fn many_args_test() {
-    use std::collections::HashMap;
-    use esexpr::{esexpr, ESExprCodec};
+	use std::collections::HashMap;
 
-    let expr = esexpr! {
-        (many true true false a: true b: true z: false)
-    };
-    let value = ManyArgsStruct {
-        args: vec!(true, true, false),
-        kwargs: HashMap::from([
-            ("a".to_owned(), true),
-            ("b".to_owned(), true),
-            ("z".to_owned(), false),
-        ])
-    };
+	use esexpr::{ESExprCodec, esexpr};
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, ManyArgsStruct::decode_esexpr(expr.clone()).unwrap());
+	let expr = esexpr! {
+		(many true true false a: true b: true z: false)
+	};
+	let value = ManyArgsStruct {
+		args: vec![true, true, false],
+		kwargs: HashMap::from([("a".to_owned(), true), ("b".to_owned(), true), ("z".to_owned(), false)]),
+	};
 
-    let value = ManyArgsEnum::Value {
-        args: vec!(true, true, false),
-        kwargs: HashMap::from([
-            ("a".to_owned(), true),
-            ("b".to_owned(), true),
-            ("z".to_owned(), false),
-        ])
-    };
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, ManyArgsStruct::decode_esexpr(expr.clone()).unwrap());
 
-    assert_eq!(expr, value.encode_esexpr());
-    assert_eq!(value, ManyArgsEnum::decode_esexpr(expr).unwrap());
+	let value = ManyArgsEnum::Value {
+		args: vec![true, true, false],
+		kwargs: HashMap::from([("a".to_owned(), true), ("b".to_owned(), true), ("z".to_owned(), false)]),
+	};
 
-
+	assert_eq!(expr, value.encode_esexpr());
+	assert_eq!(value, ManyArgsEnum::decode_esexpr(expr).unwrap());
 }
-
-
 
 #[derive(esexpr::ESExprCodec, Clone)]
 struct GenericTest<A>(A);
 
-
 #[test]
 fn generic_tests() {
-    use esexpr::{esexpr, ESExprCodec};
+	use esexpr::{ESExprCodec, esexpr};
 
-    let expr = esexpr! {
-        ("generic-test" 5)
-    };
+	let expr = esexpr! {
+		("generic-test" 5)
+	};
 
-    assert_eq!(expr, GenericTest(5).encode_esexpr());
-    assert_eq!(5, GenericTest::decode_esexpr(expr).unwrap().0);
+	assert_eq!(expr, GenericTest(5).encode_esexpr());
+	assert_eq!(5, GenericTest::decode_esexpr(expr).unwrap().0);
 }
