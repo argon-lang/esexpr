@@ -1,3 +1,5 @@
+//! Derive macros for `ESExpr`
+
 use proc_macro::TokenStream;
 
 mod derive;
@@ -16,11 +18,13 @@ mod literal;
 		vararg
 	)
 )]
+/// Derive macro for `ESExprCodec`
 pub fn derive_esexpr_codec(input: TokenStream) -> TokenStream {
 	TokenStream::from(derive::derive_esexpr_codec_impl(proc_macro2::TokenStream::from(input)))
 }
 
 #[proc_macro]
+/// Macro for `ESExpr` literal
 pub fn esexpr_literal(input: TokenStream) -> TokenStream {
 	TokenStream::from(literal::esexpr_literal_impl(proc_macro2::TokenStream::from(input)))
 }

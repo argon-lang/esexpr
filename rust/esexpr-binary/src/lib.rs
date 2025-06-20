@@ -1,3 +1,5 @@
+//! Binary format for `ESExpr`.
+
 mod append_only_string_list;
 
 use std::borrow::Cow;
@@ -10,30 +12,41 @@ use num_bigint::{BigInt, BigUint, Sign};
 
 use crate::append_only_string_list::AppendOnlyStringList;
 
+/// `ESExpr` binary format parse error.
 #[derive(From, Debug)]
 pub enum ParseError {
+	/// Invalid token byte.
 	#[from(ignore)]
 	InvalidTokenByte(u8),
 
+	/// Invalid string table index.
 	#[from(ignore)]
 	InvalidStringTableIndex,
 
+	/// Invalid length.
 	#[from(ignore)]
 	InvalidLength,
 
+	/// Unexpected keyword token.
 	#[from(ignore)]
 	UnexpectedKeywordToken,
 
+	/// Unexpected constructor end.
 	#[from(ignore)]
 	UnexpectedConstructorEnd,
 
+	/// Unexpected end of file.
 	#[from(ignore)]
 	UnexpectedEndOfFile,
 
+	/// Invalid string pool.
 	#[from(ignore)]
 	InvalidStringPool(esexpr::DecodeError),
 
+	/// IO error.
 	IOError(std::io::Error),
+	
+	/// Utf8 error.
 	Utf8Error(std::str::Utf8Error),
 }
 
@@ -248,10 +261,21 @@ fn get_length(i: BigUint) -> Result<usize, ParseError> {
 	i.try_into().map_err(|_| ParseError::InvalidLength)
 }
 
+/// An expression parser
 pub trait ExprParser {
+	/// Try to read the next expression.
+	///
+	/// # Errors
+	/// Returns `Err` if an error occurs during parsing.
 	fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError>;
+	
+	/// Read the next expression
+	///
+	/// # Errors
+	/// Returns `Err` if an error occurs during parsing, or if the end of the input is reached.
 	fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError>;
 
+	/// Read all expressions, copying values when needed.
 	fn iter_static(&mut self) -> impl Iterator<Item = Result<ESExpr<'static>, ParseError>> {
 		std::iter::from_fn(move || {
 			self.try_read_next_expr()
@@ -355,7 +379,7 @@ fn read_expr_constructor<'a>(
 				kwargs.insert(Cow::Borrowed(kw), value);
 			},
 			ExprPlus::ConstructorEnd => break,
-			ExprPlus::AppendedToStringTable => continue,
+			ExprPlus::AppendedToStringTable => {},
 			ExprPlus::EndOfFile => return Err(ParseError::UnexpectedEndOfFile),
 		}
 	}
@@ -371,6 +395,7 @@ fn get_string<'a>(string_pool: &'a AppendOnlyStringList, i: usize) -> Result<&'a
 	string_pool.get(i).ok_or(ParseError::InvalidStringTableIndex)
 }
 
+/// Parse binary input as `ESExpr` using an existing string pool
 pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl ExprParser + 'a {
 	ExprParserImpl {
 		iter: TokenReader { read: f },
@@ -378,28 +403,26 @@ pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<Strin
 	}
 }
 
+/// Parse binary input as `ESExpr`
 pub fn parse<'a, F: Read + 'a>(f: F) -> impl ExprParser + 'a {
 	parse_existing_string_pool(f, Vec::new())
 }
 
+/// Error type for `ExprGenerator`
 #[derive(From, Debug)]
 pub enum GeneratorError {
-	#[from(ignore)]
-	StringNotInStringPool,
-
+	/// An IO error occurred
 	IOError(std::io::Error),
 }
 
-pub trait StringPool {
-	fn lookup(&mut self, s: &str) -> Option<usize>;
-}
-
+/// Generator for `ESExpr`'s binary format
 pub struct ExprGenerator<'a, W> {
 	out: &'a mut W,
 	string_pool: Vec<String>,
 }
 
 impl<'a, W: Write> ExprGenerator<'a, W> {
+	/// Create an `ExprGenerator`
 	pub fn new(out: &'a mut W) -> Self {
 		ExprGenerator {
 			out,
@@ -407,10 +430,15 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		}
 	}
 
+	/// Create an `ExprGenerator` with an existing string pool
 	pub fn new_with_string_pool(out: &'a mut W, string_pool: Vec<String>) -> Self {
 		ExprGenerator { out, string_pool }
 	}
 
+	/// Generate output for an expression
+	/// 
+	/// # Errors
+	/// Returns `Err` if an error occurs during generation.
 	pub fn generate(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
 		let old_string_pool_end = self.string_pool.len();
 
@@ -452,7 +480,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 					"string-table" => self.write(TAG_CONSTRUCTOR_START_STRING_TABLE)?,
 					"list" => self.write(TAG_CONSTRUCTOR_START_LIST)?,
 					_ => {
-						let index = self.get_string_pool_index(&name)?;
+						let index = self.get_string_pool_index(name)?;
 						self.write_int_tag(TAG_VARINT_CONSTRUCTOR_START, &BigUint::from(index))?;
 					},
 				}
@@ -462,7 +490,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 				}
 
 				for (kw, value) in kwargs.iter() {
-					let index = self.get_string_pool_index(&kw)?;
+					let index = self.get_string_pool_index(kw)?;
 					self.write_int_tag(TAG_VARINT_KEYWORD, &BigUint::from(index))?;
 					self.generate_expr(value)?;
 				}
@@ -491,11 +519,11 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 			},
 			ESExpr::Str(s) => {
 				self.write_int_tag(TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))?;
-				self.out.write_all(&s.as_bytes())?;
+				self.out.write_all(s.as_bytes())?;
 			},
 			ESExpr::Binary(b) => {
 				self.write_int_tag(TAG_VARINT_BYTES_LENGTH, &BigUint::from(b.len()))?;
-				self.out.write_all(&b)?;
+				self.out.write_all(b)?;
 			},
 			ESExpr::Float32(f) => {
 				self.write(TAG_FLOAT32)?;
@@ -546,7 +574,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 	fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
 		let buff = i.to_bytes_le();
 
-		let b0 = *buff.get(0).unwrap_or(&0);
+		let b0 = buff.first().copied().unwrap_or_default();
 		let mut current = tag | (b0 & 0x0F);
 		if buff.len() < 2 && (b0 & 0xF0) == 0 {
 			Self::write_out(out, current)?;
@@ -605,7 +633,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 
 	fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError> {
 		Self::write_int_tag_out(out, TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))?;
-		out.write_all(&s.as_bytes())?;
+		out.write_all(s.as_bytes())?;
 		Ok(())
 	}
 
@@ -620,19 +648,13 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 
 #[derive(ESExprCodec, Debug, PartialEq, Clone)]
 #[constructor = "string-table"]
-pub struct FixedStringPool {
+struct FixedStringPool {
 	#[vararg]
 	pub strings: Vec<String>,
 }
 
-impl StringPool for FixedStringPool {
-	fn lookup(&mut self, s: &str) -> Option<usize> {
-		self.strings.iter().position(|a| a == s)
-	}
-}
-
 #[derive(ESExprCodec, Debug, PartialEq, Clone)]
-pub enum AppendedStringPool {
+enum AppendedStringPool {
 	#[inline_value]
 	Fixed(FixedStringPool),
 

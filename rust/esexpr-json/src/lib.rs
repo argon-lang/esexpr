@@ -1,3 +1,5 @@
+//! Representations of `ESExpr` as JSON and vice versa.
+
 use core::f32;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -7,96 +9,133 @@ use base64::prelude::BASE64_STANDARD;
 use esexpr::{ESExpr, ESExprCodec};
 use num_bigint::{BigInt, BigUint};
 
+/// An `ESExpr` representation of a JSON value.
 #[derive(ESExprCodec, Debug, PartialEq)]
 pub enum JsonExpr {
-	Obj {
-		#[dict]
-		values: HashMap<String, JsonExpr>,
-	},
+	/// A JSON Object
+    Obj {
+		/// The fields of the object. 
+        #[dict]
+        values: HashMap<String, JsonExpr>,
+    },
 
-	#[inline_value]
-	Arr(Vec<JsonExpr>),
+	/// A JSON Array
+    #[inline_value]
+    Arr(Vec<JsonExpr>),
 
-	#[inline_value]
-	Str(String),
+	/// A JSON String
+    #[inline_value]
+    Str(String),
 
-	#[inline_value]
-	Num(f64),
+	/// A JSON Number
+    #[inline_value]
+    Num(f64),
 
-	#[inline_value]
-	Bool(bool),
+	/// A JSON Boolean
+    #[inline_value]
+    Bool(bool),
 
-	#[inline_value]
-	Null(()),
+	/// A JSON Null value
+    #[inline_value]
+    Null(()),
 }
 
 impl JsonExpr {
-	pub fn from_json(value: serde_json::Value) -> JsonExpr {
-		match value {
+    /// Converts a `serde_json::Value` into a `JsonExpr`
+    pub fn from_json(value: serde_json::Value) -> Option<JsonExpr> {
+		Some(match value {
 			serde_json::Value::Null => JsonExpr::Null(()),
 			serde_json::Value::Bool(b) => JsonExpr::Bool(b),
-			serde_json::Value::Number(n) => JsonExpr::Num(n.as_f64().unwrap()),
+			serde_json::Value::Number(n) => JsonExpr::Num(n.as_f64()?),
 			serde_json::Value::String(s) => JsonExpr::Str(s),
-			serde_json::Value::Array(arr) => JsonExpr::Arr(arr.into_iter().map(Self::from_json).collect()),
+			serde_json::Value::Array(arr) => JsonExpr::Arr(arr.into_iter().map(Self::from_json).collect::<Option<Vec<_>>>()?),
 			serde_json::Value::Object(obj) => {
-				let values: HashMap<_, _> = obj.into_iter().map(|(k, v)| (k, Self::from_json(v))).collect();
+				let values = obj.into_iter().map(|(k, v)| Some((k, Self::from_json(v)?))).collect::<Option<HashMap<_, _>>>()?;
 
 				JsonExpr::Obj { values }
 			},
-		}
-	}
+		})
+    }
 
-	pub fn into_json(self) -> serde_json::Value {
-		match self {
+    /// Converts a `JsonExpr` into a `serde_json::Value`
+    pub fn into_json(self) -> Option<serde_json::Value> {
+		Some(match self {
 			JsonExpr::Obj { values } => {
-				let obj: serde_json::Map<_, _> = values.into_iter().map(|(k, v)| (k, v.into_json())).collect();
+				let obj = values.into_iter().map(|(k, v)| Some((k, v.into_json()?))).collect::<Option<serde_json::Map<_, _>>>()?;
 
 				serde_json::Value::Object(obj)
 			},
-			JsonExpr::Arr(arr) => serde_json::Value::Array(arr.into_iter().map(Self::into_json).collect()),
+			JsonExpr::Arr(arr) => serde_json::Value::Array(arr.into_iter().map(Self::into_json).collect::<Option<Vec<_>>>()?),
 			JsonExpr::Str(s) => serde_json::Value::String(s),
-			JsonExpr::Num(n) => serde_json::Value::Number(serde_json::Number::from_f64(n).unwrap()),
+			JsonExpr::Num(n) => serde_json::Value::Number(serde_json::Number::from_f64(n)?),
 			JsonExpr::Bool(b) => serde_json::Value::Bool(b),
 			JsonExpr::Null(_) => serde_json::Value::Null,
-		}
-	}
+		})
+    }
 }
 
+/// Represents an `ESExpr` encoded as JSON with type information
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum JsonEncodedESExpr {
-	Constructor {
-		constructor_name: String,
-		args: Option<Vec<JsonEncodedESExpr>>,
-		kwargs: Option<HashMap<String, JsonEncodedESExpr>>,
-	},
-	List(Vec<JsonEncodedESExpr>),
+    /// A constructor with a name and optional arguments
+    Constructor {
+		/// The name of the constructor
+        constructor_name: String,
+		/// The positional arguments
+        args: Option<Vec<JsonEncodedESExpr>>,
+		/// The keyword arguments
+        kwargs: Option<HashMap<String, JsonEncodedESExpr>>,
+    },
+    /// A list of expressions
+    List(Vec<JsonEncodedESExpr>),
 
-	Bool(bool),
-	Int {
-		#[serde(with = "serde_bigint")]
-		int: BigInt,
-	},
-	Str(String),
-	Binary {
-		base64: Base64Value,
-	},
-	Float32 {
-		#[serde(with = "serde_f32")]
-		float32: f32,
-	},
-	Float64 {
-		#[serde(with = "serde_f64")]
-		float64: f64,
-	},
-	Null(()),
-	NullLevel {
-		#[serde(with = "serde_biguint")]
-		null: BigUint,
-	},
+    /// A bool value
+    Bool(bool),
+    
+	/// An arbitrary-precision integer
+    Int {
+		/// The integer value
+        #[serde(with = "serde_bigint")]
+        int: BigInt,
+    },
+    
+	/// A string value
+    Str(String),
+    
+	/// Binary data encoded as base64
+    Binary {
+		/// The base64 encoded data
+        base64: Base64Value,
+    },
+    
+	/// A 32-bit floating point number
+    Float32 {
+		/// The float32 value
+        #[serde(with = "serde_f32")]
+        float32: f32,
+    },
+	
+    /// A 64-bit floating point number
+    Float64 {
+		/// The float64 value
+        #[serde(with = "serde_f64")]
+        float64: f64,
+    },
+	
+    /// A null value
+    Null(()),
+    
+	/// A null value with a level
+    NullLevel {
+		/// The level of the null value
+        #[serde(with = "serde_biguint")]
+        null: BigUint,
+    },
 }
 
 impl JsonEncodedESExpr {
+	/// Converts an `ESExpr` into a `JsonEncodedESExpr`
 	pub fn from_esexpr(expr: ESExpr) -> Self {
 		match expr {
 			ESExpr::Constructor { name, args, kwargs } => JsonEncodedESExpr::Constructor {
@@ -131,6 +170,7 @@ impl JsonEncodedESExpr {
 		}
 	}
 
+	/// Converts a `JsonEncodedESExpr` into an `ESExpr`
 	pub fn into_esexpr(self) -> ESExpr<'static> {
 		match self {
 			JsonEncodedESExpr::Constructor {
@@ -151,7 +191,7 @@ impl JsonEncodedESExpr {
 			JsonEncodedESExpr::List(l) => ESExpr::Constructor {
 				name: Cow::Borrowed("list"),
 				args: l.into_iter().map(Self::into_esexpr).collect(),
-				kwargs: Default::default(),
+				kwargs: Cow::default(),
 			},
 
 			JsonEncodedESExpr::Bool(b) => ESExpr::Bool(b),
@@ -166,6 +206,7 @@ impl JsonEncodedESExpr {
 	}
 }
 
+/// Wrapper type for base64-encoded binary data
 #[derive(Debug, PartialEq)]
 pub struct Base64Value(Vec<u8>);
 
@@ -199,7 +240,11 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
 	}
 }
 
+// Helper modules for serialization/deserialization
+
+/// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
 mod serde_f32 {
+	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
 	pub fn serialize<S: serde::Serializer>(f: &f32, serializer: S) -> Result<S::Ok, S::Error> {
 		match *f {
 			f if f.is_nan() => serializer.serialize_str("nan"),
@@ -219,14 +264,17 @@ mod serde_f32 {
 				formatter.write_str("a number or a string containing nan, +inf, or -inf")
 			}
 
+			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f32")]
 			fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f32, E> {
 				Ok(v as f32)
 			}
 
+			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f32")]
 			fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f32, E> {
 				Ok(v as f32)
 			}
 
+			#[expect(clippy::cast_possible_truncation, reason = "The format makes it explicit this is a f64")]
 			fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f32, E> {
 				Ok(v as f32)
 			}
@@ -248,7 +296,9 @@ mod serde_f32 {
 	}
 }
 
+/// Module for serializing and deserializing f64 values, handling special cases like NaN and infinities
 mod serde_f64 {
+	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
 	pub fn serialize<S: serde::Serializer>(f: &f64, serializer: S) -> Result<S::Ok, S::Error> {
 		match *f {
 			f if f.is_nan() => serializer.serialize_str("nan"),
@@ -260,7 +310,7 @@ mod serde_f64 {
 
 	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
 		struct Float64ValueVisitor;
-
+		
 		impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
 			type Value = f64;
 
@@ -268,10 +318,12 @@ mod serde_f64 {
 				formatter.write_str("a number or a string containing nan, +inf, or -inf")
 			}
 
+			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f64")]
 			fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f64, E> {
 				Ok(v as f64)
 			}
 
+			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f64")]
 			fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f64, E> {
 				Ok(v as f64)
 			}
@@ -297,6 +349,7 @@ mod serde_f64 {
 	}
 }
 
+/// Module for serializing and deserializing arbitrary-precision integers
 mod serde_bigint {
 	use num_bigint::BigInt;
 	use serde::Deserialize;
@@ -313,6 +366,7 @@ mod serde_bigint {
 	}
 }
 
+/// Module for serializing and deserializing arbitrary-precision unsigned integers
 mod serde_biguint {
 	use num_bigint::BigUint;
 	use serde::Deserialize;

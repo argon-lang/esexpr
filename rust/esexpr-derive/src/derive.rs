@@ -33,8 +33,7 @@ type TokenRes = Result<proc_macro2::TokenStream, proc_macro2::TokenStream>;
 
 fn flatten_token_res(res: TokenRes) -> proc_macro2::TokenStream {
 	match res {
-		Ok(ts) => ts,
-		Err(ts) => ts,
+		Ok(ts) | Err(ts) => ts,
 	}
 }
 
@@ -62,12 +61,11 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 			.map(|mut p| {
 				match &mut p {
 					GenericParam::Type(p) => {
-						p.colon_token.get_or_insert(Default::default());
+						p.colon_token.get_or_insert_default();
 						p.bounds.push(parse_quote! { ::esexpr::ESExprCodec<'esexpr_lifetime> });
 					},
 
-					GenericParam::Lifetime(_) => {},
-					GenericParam::Const(_) => {},
+					GenericParam::Lifetime(_) | GenericParam::Const(_) => {},
 				}
 
 				p
@@ -291,20 +289,21 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 
 		Data::Enum(e) => {
 			let cases: proc_macro2::TokenStream = e.variants.iter().map(|c| -> TokenRes {
-                let case_name = &c.ident;
-
                 fn make_field_name<'a>(name: Option<&'a Ident>, i: usize) -> proc_macro2::TokenStream {
                     let name =
-                        if let Some(name) = name { format!("field_{}", name) }
-                        else { format!("field_{}", i) };
+                        if let Some(name) = name { format!("field_{name}") }
+                        else { format!("field_{i}") };
 
                     let name = Ident::new(&name, Span::mixed_site());
                     quote! { #name }
                 }
 
+				let case_name = &c.ident;
+
                 let pattern = match &c.fields {
                     Fields::Named(fields) => {
                         let field_patterns: proc_macro2::TokenStream = fields.named.iter().enumerate().map(|(i, field)| {
+							#[expect(clippy::unwrap_used, reason = "This is a named field, so it must have a name.")]
                             let orig_name = field.ident.as_ref().unwrap();
                             let mapped_name = make_field_name(field.ident.as_ref(), i);
                             quote! { #orig_name: #mapped_name, }
@@ -316,7 +315,7 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                     },
 
                     Fields::Unnamed(fields) => {
-                        let field_patterns: proc_macro2::TokenStream = (0..fields.unnamed.len()).into_iter().map(|i| {
+                        let field_patterns: proc_macro2::TokenStream = (0..fields.unnamed.len()).map(|i| {
                             let mapped_name = make_field_name(None, i);
                             quote! { #mapped_name, }
                         }).collect();
@@ -394,13 +393,13 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
         Ok(
             if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
                 if has_dict_field {
-                    Err(quote! { compile_error!("Keyword arguments must preceed dict arguments"); })?;
+                    Err(quote! { compile_error!("Keyword arguments must precede dict arguments"); })?;
                 }
 
-                let kw = make_kwarg_name(keyword_attr.as_deref(), field.ident.as_ref())?;
+                let kw = make_kwarg_name(keyword_attr.name, field.ident.as_ref())?;
                 let kw_name = get_string_expr_value(&kw)?;
                 if kwarg_names.contains(&kw_name) {
-                    let message = make_str_expr(&format!("Duplicate keyword argument \"{}\"", kw_name));
+                    let message = make_str_expr(&format!("Duplicate keyword argument \"{kw_name}\""));
                     Err(quote! { compile_error!(#message); })?;
                 }
 
@@ -494,7 +493,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						Ok(#decode_fields)
 					}
 					else {
-						Err(::esexpr::DecodeError(
+						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
 								expected_tags: Self::tags(),
 								actual_tag: ::esexpr::ESExprTag::Constructor(::std::borrow::Cow::Owned(name.into_owned())),
@@ -504,7 +503,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					}
 				}
 				else {
-					Err(::esexpr::DecodeError(
+					Err(::esexpr::DecodeError::new(
 						::esexpr::DecodeErrorType::UnexpectedExpr {
 							expected_tags: Self::tags(),
 							actual_tag: ::esexpr::ESExprTag::into_owned(::esexpr::ESExpr::tag(&expr)),
@@ -535,13 +534,13 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 				match expr {
 					::esexpr::ESExpr::Str(s) => match s.as_ref() {
 						#decode_cases
-						_ => Err(::esexpr::DecodeError(
+						_ => Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::OutOfRange(format!("Invalid value for simple enum {}: {}", #type_name_str, s)),
 							::esexpr::DecodeErrorPath::Current,
 						)),
 					},
 					_ => {
-						Err(::esexpr::DecodeError(
+						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
 								expected_tags: Self::tags(),
 								actual_tag: ::esexpr::ESExprTag::into_owned(::esexpr::ESExpr::tag(&expr)),
@@ -596,7 +595,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 				match expr {
 					#decode_cases
 					_ => {
-						Err(::esexpr::DecodeError(
+						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
 								expected_tags: Self::tags(),
 								actual_tag: ::esexpr::ESExprTag::into_owned(::esexpr::ESExpr::tag(&expr)),
@@ -620,6 +619,7 @@ fn make_decode_fields(fields: &Fields, constructor_name: &Expr, constructor: pro
 				.named
 				.iter()
 				.map(|field| -> TokenRes {
+					#[expect(clippy::unwrap_used, reason = "This is a named field, so it must have a name.")]
 					let field_name = field.ident.as_ref().unwrap();
 					let field_value = make_decode_field(field, &mut arg_index, constructor_name)?;
 					Ok(quote! { #field_name: #field_value, })
@@ -644,6 +644,7 @@ fn make_decode_fields(fields: &Fields, constructor_name: &Expr, constructor: pro
 	})
 }
 
+#[derive(Copy, Clone)]
 enum FieldPath<'a> {
 	Positional(usize),
 	Keyword(&'a Expr),
@@ -653,7 +654,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 	let field_type = &field.ty;
 
 	Ok(if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
-		let kw = make_kwarg_name(keyword_attr.as_deref(), field.ident.as_ref())?;
+		let kw = make_kwarg_name(keyword_attr.name, field.ident.as_ref())?;
 		let error_mapping = make_error_mapping(constructor_name, FieldPath::Keyword(&kw));
 
 		if has_optional_attribute(&field.attrs)? {
@@ -674,7 +675,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 		else {
 			quote! {
 				<#field_type as ::esexpr::ESExprCodec>::decode_esexpr(
-					kwargs.remove(#kw).ok_or_else(|| ::esexpr::DecodeError(
+					kwargs.remove(#kw).ok_or_else(|| ::esexpr::DecodeError::new(
 						::esexpr::DecodeErrorType::MissingKeyword(#kw.to_owned()),
 						::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
 					))?
@@ -717,7 +718,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 					<#field_type as ::esexpr::ESExprCodec>::decode_esexpr(arg).map_err(#error_mapping)?
 				}
 				else {
-					Err(::esexpr::DecodeError(
+					Err(::esexpr::DecodeError::new(
 						::esexpr::DecodeErrorType::MissingPositional,
 						::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
 					))?
@@ -783,31 +784,31 @@ fn decode_attr<'a>(
 	fn try_decode_attr<'a>(
 		name: &str,
 		attr: &'a Attribute,
-	) -> Result<Option<DecodedAttribute<'a>>, proc_macro2::TokenStream> {
+	) -> Option<DecodedAttribute<'a>> {
 		match &attr.meta {
 			Meta::NameValue(MetaNameValue { path, value, .. })
-				if path.get_ident().is_some_and(|i| i.to_string() == name) =>
+				if path.get_ident().is_some_and(|i| *i == name) =>
 			{
-				Ok(Some(DecodedAttribute::NameValue(value)))
+				Some(DecodedAttribute::NameValue(value))
 			},
 
-			Meta::List(MetaList { path, .. }) if path.get_ident().is_some_and(|i| i.to_string() == name) => {
-				Ok(Some(DecodedAttribute::ArgList))
+			Meta::List(MetaList { path, .. }) if path.get_ident().is_some_and(|i| *i == name) => {
+				Some(DecodedAttribute::ArgList)
 			},
 
-			Meta::Path(p) if p.get_ident().is_some_and(|i| i.to_string() == name) => Ok(Some(DecodedAttribute::Simple)),
+			Meta::Path(p) if p.get_ident().is_some_and(|i| *i == name) => Some(DecodedAttribute::Simple),
 
-			_ => Ok(None),
+			_ => None,
 		}
 	}
 
 	let mut attrs = attrs
 		.iter()
-		.filter_map(|attr| try_decode_attr(name, attr).transpose())
-		.collect::<Result<Vec<_>, _>>()?;
+		.filter_map(|attr| try_decode_attr(name, attr))
+		.collect::<Vec<_>>();
 
 	if attrs.len() > 1 {
-		let msg = make_str_expr(&format!("Attribute {} may only be specified once.", name));
+		let msg = make_str_expr(&format!("Attribute {name} may only be specified once."));
 		Err(quote! { compile_error!(#msg); })
 	}
 	else {
@@ -820,7 +821,7 @@ fn has_simple_attribute(name: &str, attrs: &[Attribute]) -> Result<bool, proc_ma
 		.map(|attr| match attr {
 			DecodedAttribute::Simple => Ok(()),
 			_ => {
-				let msg = make_str_expr(&format!("Attribute {} must be a simple attribute", name));
+				let msg = make_str_expr(&format!("Attribute {name} must be a simple attribute"));
 				Err(quote! { compile_error!(#msg); })?
 			},
 		})
@@ -836,23 +837,7 @@ fn get_name_value_attribute<'a>(
 		.map(|attr| match attr {
 			DecodedAttribute::NameValue(value) => Ok(value),
 			_ => {
-				let msg = make_str_expr(&format!("Attribute {} must be a name-value attribute", name));
-				Err(quote! { compile_error!(#msg); })?
-			},
-		})
-		.transpose()
-}
-
-fn get_name_optional_value_attribute<'a>(
-	name: &str,
-	attrs: &'a [Attribute],
-) -> Result<Option<Option<&'a Expr>>, proc_macro2::TokenStream> {
-	decode_attr(name, attrs)?
-		.map(|attr| match attr {
-			DecodedAttribute::Simple => Ok(None),
-			DecodedAttribute::NameValue(value) => Ok(Some(value)),
-			_ => {
-				let msg = make_str_expr(&format!("Attribute {} must be a simple or name-value attribute", name));
+				let msg = make_str_expr(&format!("Attribute {name} must be a name-value attribute"));
 				Err(quote! { compile_error!(#msg); })?
 			},
 		})
@@ -863,8 +848,21 @@ fn constructor_attribute(attrs: &[Attribute]) -> Result<Option<&Expr>, proc_macr
 	get_name_value_attribute("constructor", attrs)
 }
 
-fn keyword_attribute(attrs: &[Attribute]) -> Result<Option<Option<&Expr>>, proc_macro2::TokenStream> {
-	get_name_optional_value_attribute("keyword", attrs)
+struct KeywordAttributeInfo<'a> {
+	name: Option<&'a Expr>,
+}
+
+fn keyword_attribute(attrs: &[Attribute]) -> Result<Option<KeywordAttributeInfo>, proc_macro2::TokenStream> {
+	decode_attr("keyword", attrs)?
+		.map(|attr| match attr {
+			DecodedAttribute::Simple => Ok(KeywordAttributeInfo { name: None }),
+			DecodedAttribute::NameValue(value) => Ok(KeywordAttributeInfo { name: Some(value) }),
+			_ => {
+				let msg = "Attribute keyword must be a simple or name-value attribute";
+				Err(quote! { compile_error!(#msg); })?
+			},
+		})
+		.transpose()
 }
 
 fn has_simple_enum_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
@@ -969,7 +967,7 @@ fn reformat_type_name(name: &str) -> String {
 }
 
 fn reformat_field_name(name: &str) -> String {
-	name.replace("_", "-")
+	name.replace('_', "-")
 }
 
 fn make_str_expr(s: &str) -> Expr {

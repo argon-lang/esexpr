@@ -1,12 +1,12 @@
-//! esexpr is a library that implements the ESExpr format.
+//! esexpr is a library that implements the `ESExpr` format.
 
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet, VecDeque};
-
+use std::hash::BuildHasher;
 pub use esexpr_derive::{ESExprCodec, esexpr_literal as esexpr};
 use num_bigint::{BigInt, BigUint};
 
-/// Representation of an ESExpr value.
+/// Representation of an `ESExpr` value.
 /// Must be one of a constructor, bool, int, string, binary, float32, float64, or null.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ESExpr<'a> {
@@ -47,6 +47,7 @@ pub enum ESExpr<'a> {
 
 impl<'a> ESExpr<'a> {
 	/// Get the tag of an expression.
+	#[must_use]
 	pub fn tag(&self) -> ESExprTag {
 		match self {
 			ESExpr::Constructor { name, .. } => ESExprTag::Constructor(Cow::Borrowed(name)),
@@ -60,6 +61,8 @@ impl<'a> ESExpr<'a> {
 		}
 	}
 
+	/// Performs a deep clone of the value.
+	#[must_use]
 	pub fn as_owned(&self) -> ESExpr<'static> {
 		match self {
 			ESExpr::Constructor { name, args, kwargs } => ESExpr::Constructor {
@@ -82,6 +85,8 @@ impl<'a> ESExpr<'a> {
 		}
 	}
 
+	/// Ensures that any borrowed values are converted to owned values.
+	#[must_use]
 	pub fn into_owned(self) -> ESExpr<'static> {
 		match self {
 			ESExpr::Constructor { name, args, kwargs } => {
@@ -118,20 +123,22 @@ impl<'a> ESExpr<'a> {
 		}
 	}
 
+	/// Creates an `ESExpr` value from a reference without making a deep copy.
+	#[must_use]
 	pub fn as_borrowed(&'a self) -> ESExpr<'a> {
 		match self {
 			ESExpr::Constructor { name, args, kwargs } => ESExpr::Constructor {
-				name: name.to_owned(),
-				args: args.into_iter().map(Self::to_owned).collect(),
+				name: Cow::Borrowed(name.as_ref()),
+				args: Cow::Borrowed(args.as_ref()),
 				kwargs: Cow::Borrowed(kwargs.as_ref()),
 			},
 			&ESExpr::Bool(b) => ESExpr::Bool(b),
-			ESExpr::Int(i) => ESExpr::Int(i.to_owned()),
-			ESExpr::Str(s) => ESExpr::Str(s.to_owned()),
-			ESExpr::Binary(b) => ESExpr::Binary(b.to_owned()),
+			ESExpr::Int(i) => ESExpr::Int(Cow::Borrowed(i.as_ref())),
+			ESExpr::Str(s) => ESExpr::Str(Cow::Borrowed(s.as_ref())),
+			ESExpr::Binary(b) => ESExpr::Binary(Cow::Borrowed(b.as_ref())),
 			&ESExpr::Float32(f) => ESExpr::Float32(f),
 			&ESExpr::Float64(f) => ESExpr::Float64(f),
-			ESExpr::Null(level) => ESExpr::Null(level.to_owned()),
+			ESExpr::Null(level) => ESExpr::Null(Cow::Borrowed(level.as_ref())),
 		}
 	}
 }
@@ -166,6 +173,7 @@ pub enum ESExprTag<'a> {
 
 impl<'a> ESExprTag<'a> {
 	/// Checks whether the tag is for a constructor value.
+	#[must_use]
 	pub fn is_constructor(&self, s: &str) -> bool {
 		match self {
 			ESExprTag::Constructor(name) => name == s,
@@ -173,6 +181,8 @@ impl<'a> ESExprTag<'a> {
 		}
 	}
 
+	/// Creates a copy of a tag without referencing the original.
+	#[must_use]
 	pub fn into_owned(self) -> ESExprTag<'static> {
 		match self {
 			ESExprTag::Constructor(name) => ESExprTag::Constructor(Cow::Owned(name.into_owned())),
@@ -186,6 +196,8 @@ impl<'a> ESExprTag<'a> {
 		}
 	}
 
+	/// Ensures that a tag does not reference any external data.
+	#[must_use]
 	pub fn as_owned(&self) -> ESExprTag<'static> {
 		match self {
 			ESExprTag::Constructor(name) => ESExprTag::Constructor(Cow::Owned(name.as_ref().to_owned())),
@@ -199,6 +211,8 @@ impl<'a> ESExprTag<'a> {
 		}
 	}
 
+	/// Creates a copy of a tag without making a deep copy.
+	#[must_use]
 	pub fn as_borrowed<'b>(&'b self) -> ESExprTag<'b>
 	where
 		'a: 'b,
@@ -216,7 +230,7 @@ impl<'a> ESExprTag<'a> {
 	}
 }
 
-/// A codec that encodes and decodes ESExpr values.
+/// A codec that encodes and decodes `ESExpr` values.
 pub trait ESExprCodec<'a>
 where
 	Self: Sized + 'a,
@@ -228,6 +242,9 @@ where
 	fn encode_esexpr(&'a self) -> ESExpr<'a>;
 
 	/// Decode an expression into a value.
+	///
+	/// # Errors
+	/// Will return `Err` if decoding fails.
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError>;
 }
 
@@ -271,7 +288,7 @@ impl<'a> ESExprCodec<'a> for bool {
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
 			ESExpr::Bool(b) => Ok(b),
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Bool]),
 					actual_tag: expr.tag().into_owned(),
@@ -294,7 +311,7 @@ impl<'a> ESExprCodec<'a> for BigInt {
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
 			ESExpr::Int(i) => Ok(i.into_owned()),
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Int]),
 					actual_tag: expr.tag().into_owned(),
@@ -318,12 +335,12 @@ impl<'a> ESExprCodec<'a> for BigUint {
 		match expr {
 			ESExpr::Int(i) => match BigUint::try_from(i.into_owned()) {
 				Ok(i) => Ok(i),
-				Err(_) => Err(DecodeError(
+				Err(_) => Err(DecodeError::new(
 					DecodeErrorType::OutOfRange(format!("Unexpected integer value for {}", stringify!($T))),
 					DecodeErrorPath::Current,
 				)),
 			},
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Int]),
 					actual_tag: expr.tag().into_owned(),
@@ -349,12 +366,12 @@ macro_rules! int_codec {
 				match expr {
 					ESExpr::Int(i) => match <$T>::try_from(i.into_owned()) {
 						Ok(i) => Ok(i),
-						Err(_) => Err(DecodeError(
+						Err(_) => Err(DecodeError::new(
 							DecodeErrorType::OutOfRange(format!("Unexpected integer value for {}", stringify!($T))),
 							DecodeErrorPath::Current,
 						)),
 					},
-					_ => Err(DecodeError(
+					_ => Err(DecodeError::new(
 						DecodeErrorType::UnexpectedExpr {
 							expected_tags: HashSet::from([ESExprTag::Int]),
 							actual_tag: expr.tag().into_owned(),
@@ -392,7 +409,7 @@ impl<'a> ESExprCodec<'a> for String {
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
 			ESExpr::Str(s) => Ok(s.into_owned()),
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Str]),
 					actual_tag: expr.tag().into_owned(),
@@ -415,7 +432,7 @@ impl<'a> ESExprCodec<'a> for f32 {
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
 			ESExpr::Float32(f) => Ok(f),
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Float32]),
 					actual_tag: expr.tag().into_owned(),
@@ -438,7 +455,7 @@ impl<'a> ESExprCodec<'a> for f64 {
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
 			ESExpr::Float64(f) => Ok(f),
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Float64]),
 					actual_tag: expr.tag().into_owned(),
@@ -461,7 +478,7 @@ impl<'a> ESExprCodec<'a> for () {
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
 			ESExpr::Null(level) if *level == BigUint::ZERO => Ok(()),
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: HashSet::from([ESExprTag::Null]),
 					actual_tag: expr.tag().into_owned(),
@@ -489,7 +506,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 		match expr {
 			ESExpr::Constructor { name, args, kwargs } if name == "list" => {
 				if !kwargs.is_empty() {
-					return Err(DecodeError(
+					return Err(DecodeError::new(
 						DecodeErrorType::OutOfRange("List must not have keyword arguments".to_owned()),
 						DecodeErrorPath::Constructor(name.into_owned()),
 					));
@@ -503,7 +520,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 					Cow::Owned(args) => args.into_iter().map(A::decode_esexpr).collect::<Result<Vec<_>, _>>()?,
 				})
 			},
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: Self::tags(),
 					actual_tag: expr.tag().into_owned(),
@@ -548,7 +565,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Option<A> {
 	}
 }
 
-impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for HashMap<String, A> {
+impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<String, A, S> {
 	fn tags() -> HashSet<ESExprTag<'static>> {
 		HashSet::from([ESExprTag::Constructor(Cow::Borrowed("dict"))])
 	}
@@ -571,13 +588,13 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for HashMap<String, A> {
 		match expr {
 			ESExpr::Constructor { name, args, kwargs } if name == "dict" => {
 				if !args.is_empty() {
-					return Err(DecodeError(
+					return Err(DecodeError::new(
 						DecodeErrorType::OutOfRange("Dict must not have positional arguments".to_owned()),
 						DecodeErrorPath::Constructor(name.as_ref().to_owned()),
 					));
 				}
 
-				let mut dict = HashMap::new();
+				let mut dict = HashMap::default();
 
 				match kwargs {
 					Cow::Borrowed(kwargs) => {
@@ -594,7 +611,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for HashMap<String, A> {
 
 				Ok(dict)
 			},
-			_ => Err(DecodeError(
+			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: Self::tags(),
 					actual_tag: expr.tag().into_owned(),
@@ -614,6 +631,9 @@ where
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>>;
 
 	/// Decode an optional field value.
+	///
+	/// # Errors
+	/// Will return `Err` if decoding fails.
 	fn decode_optional_field(value: Option<ESExpr<'a>>) -> Result<Self, DecodeError>;
 }
 
@@ -629,7 +649,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
 
 impl<'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F> {
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
-		(&**self).encode_optional_field()
+		(**self).encode_optional_field()
 	}
 
 	fn decode_optional_field(value: Option<ESExpr<'a>>) -> Result<Self, DecodeError> {
@@ -646,6 +666,9 @@ where
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>);
 
 	/// Decode variable arguments.
+	///
+	/// # Errors
+	/// Will return `Err` if decoding fails.
 	fn decode_vararg_element(
 		args: &mut VecDeque<ESExpr<'a>>,
 		constructor_name: &str,
@@ -669,7 +692,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 			.enumerate()
 			.map(|(i, a)| {
 				A::decode_esexpr(a).map_err(|mut e| {
-					e.1 = DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + i, Box::new(e.1));
+					e.error_path_with(|old_path| DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + i, Box::new(old_path)));
 					e
 				})
 			})
@@ -679,7 +702,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 
 impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
-		(&**self).encode_vararg_element(args)
+		(**self).encode_vararg_element(args);
 	}
 
 	fn decode_vararg_element(
@@ -700,6 +723,9 @@ where
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>);
 
 	/// Decode dictionary arguments.
+	///
+	/// # Errors
+	/// Will return `Err` if decoding fails.
 	fn decode_dict_element(
 		kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>,
 		constructor_name: &str,
@@ -708,7 +734,7 @@ where
 
 impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
-		(&**self).encode_dict_element(kwargs)
+		(**self).encode_dict_element(kwargs);
 	}
 
 	fn decode_dict_element(
@@ -719,7 +745,7 @@ impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 	}
 }
 
-impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for HashMap<String, A> {
+impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<String, A, S> {
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		for (k, v) in self {
 			kwargs.insert(Cow::Borrowed(k), v.encode_esexpr());
@@ -734,7 +760,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for HashMap<String, A> {
 			.drain()
 			.map(|(k, v)| {
 				let value = A::decode_esexpr(v).map_err(|mut e| {
-					e.1 = DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(e.1));
+					e.error_path_with(|old_path| DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path)));
 					e
 				})?;
 
@@ -744,7 +770,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for HashMap<String, A> {
 	}
 }
 
-impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A> {
+impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A, S> {
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		for (k, v) in self {
 			kwargs.insert(Cow::Borrowed(k.as_ref()), v.encode_esexpr());
@@ -759,7 +785,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A> {
 			.drain()
 			.map(|(k, v)| {
 				let value = A::decode_esexpr(v).map_err(|mut e| {
-					e.1 = DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(e.1));
+					e.error_path_with(|old_path| DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path)));
 					e
 				})?;
 
@@ -771,7 +797,34 @@ impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A> {
 
 /// An error that occurs when decoding expressions.
 #[derive(Debug, Clone, PartialEq)]
-pub struct DecodeError(pub DecodeErrorType, pub DecodeErrorPath);
+pub struct DecodeError(pub Box<(DecodeErrorType, DecodeErrorPath)>);
+
+impl DecodeError {
+	/// Create a `DecodeError`.
+	#[must_use]
+	pub fn new(error_type: DecodeErrorType, path: DecodeErrorPath) -> Self {
+		DecodeError(Box::new((error_type, path)))
+	}
+
+	/// Gets the error type.
+	#[must_use]
+	pub fn error_type(&self) -> &DecodeErrorType {
+		&self.0.0
+	}
+
+	/// Gets the error path.
+	#[must_use]
+	pub fn error_path(&self) -> &DecodeErrorPath {
+		&self.0.1
+	}
+
+	/// Updates the error path, based on the original.
+	pub fn error_path_with(&mut self, f: impl FnOnce(DecodeErrorPath) -> DecodeErrorPath) {
+		let mut old_path = DecodeErrorPath::Current;
+		std::mem::swap(&mut old_path, &mut self.0.1);
+		self.0.1 = f(old_path);
+	}
+}
 
 /// The type of error that occurred while decoding.
 #[derive(Debug, Clone, PartialEq)]

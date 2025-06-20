@@ -6,7 +6,7 @@ use std::str::FromStr;
 use esexpr::ESExpr;
 use hexfloat2::{HexFloat32, HexFloat64};
 use nom::branch::alt;
-use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_till, take_while, take_while_m_n, take_while1};
+use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_while, take_while_m_n, take_while1, take_until};
 use nom::character::complete::{alphanumeric1, char, digit1, hex_digit1, multispace1, none_of, one_of};
 use nom::combinator::{cut, eof, map, map_res, not, opt, peek, recognize, value};
 use nom::multi::{many0, many0_count};
@@ -14,21 +14,32 @@ use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
 use nom::{IResult, Parser};
 use num_bigint::{BigInt, BigUint, Sign};
 
+/// Represents a lexer error.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexErrorType {
+	/// Unexpected token.
 	UnexpectedToken,
+	
+	/// Unterminated string.
 	UnterminatedString,
+	
+	/// Unterminated identifier string.
 	UnterminatedIdentifierString,
 
+	/// Invalid unicode codepoint.
 	InvalidUnicodeCodePoint(u32),
 }
 
+/// Parser that skips whitespace and comments.
+///
+/// # Errors
+/// Returns `Err` when parsing fails.
 pub fn skip_ws(input: &str) -> IResult<&str, ()> {
 	value((), many0_count(alt((value((), multispace1), comment)))).parse(input)
 }
 
 fn comment(input: &str) -> IResult<&str, ()> {
-	value((), pair(tag("//"), take_till(|c| c == '\n'))).parse(input)
+	value((), pair(tag("//"), take_until("\n"))).parse(input)
 }
 
 fn is_alpha(c: char) -> bool {
@@ -39,6 +50,10 @@ fn is_alphanum(c: char) -> bool {
 	c.is_ascii_lowercase() || c.is_ascii_digit()
 }
 
+/// Parser for a simple identifier.
+///
+/// # Errors
+/// Returns `Err` when parsing fails.
 pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
 	preceded(
 		skip_ws,
@@ -51,7 +66,7 @@ pub fn simple_identifier(input: &str) -> IResult<&str, &str> {
 	.parse(input)
 }
 
-pub fn identifier(input: &str) -> IResult<&str, String> {
+fn identifier(input: &str) -> IResult<&str, String> {
 	alt((
 		map(simple_identifier, String::from),
 		preceded(skip_ws, string_impl('\'', "'\\")),
@@ -76,12 +91,14 @@ fn float_decimal(input: &str) -> IResult<&str, ESExpr<'static>> {
 }
 
 fn parse_dec_float(s: &str) -> ESExpr<'static> {
-	if s.ends_with("f") || s.ends_with("F") {
-		let f = s.trim_end_matches("f").trim_end_matches("F").parse::<f32>().unwrap();
+	if s.ends_with('f') || s.ends_with('F') {
+		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+		let f = s.trim_end_matches('f').trim_end_matches('F').parse::<f32>().unwrap();
 		ESExpr::Float32(f)
 	}
 	else {
-		let d = s.trim_end_matches("f").trim_end_matches("F").parse::<f64>().unwrap();
+		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+		let d = s.trim_end_matches('f').trim_end_matches('F').parse::<f64>().unwrap();
 		ESExpr::Float64(d)
 	}
 }
@@ -106,25 +123,27 @@ fn float_hex(input: &str) -> IResult<&str, ESExpr<'static>> {
 }
 
 fn parse_hex_float(s: &str) -> ESExpr<'static> {
-	if s.ends_with("f") || s.ends_with("F") {
+	if s.ends_with('f') || s.ends_with('F') {
+		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 		let f = s
-			.trim_end_matches("f")
-			.trim_end_matches("F")
+			.trim_end_matches('f')
+			.trim_end_matches('F')
 			.parse::<HexFloat32>()
 			.unwrap();
 		ESExpr::Float32(*f)
 	}
 	else {
+		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 		let d = s
-			.trim_end_matches("f")
-			.trim_end_matches("F")
+			.trim_end_matches('f')
+			.trim_end_matches('F')
 			.parse::<HexFloat64>()
 			.unwrap();
 		ESExpr::Float64(*d)
 	}
 }
 
-pub fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
+fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
 	preceded(
 		skip_ws,
 		alt((
@@ -141,7 +160,7 @@ pub fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
 	.parse(input)
 }
 
-pub fn integer(input: &str) -> IResult<&str, BigInt> {
+fn integer(input: &str) -> IResult<&str, BigInt> {
 	preceded(
 		skip_ws,
 		alt((
@@ -150,6 +169,7 @@ pub fn integer(input: &str) -> IResult<&str, BigInt> {
 				|s: &str| parse_int_base(s, 16),
 			),
 			map(recognize((opt(one_of("+-")), digit1)), |s: &str| {
+				#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 				s.parse::<BigInt>().unwrap()
 			}),
 		)),
@@ -158,7 +178,7 @@ pub fn integer(input: &str) -> IResult<&str, BigInt> {
 }
 
 fn parse_int_base(s: &str, radix: u32) -> BigInt {
-	let sign = if s.starts_with("-") { Sign::Minus } else { Sign::Plus };
+	let sign = if s.starts_with('-') { Sign::Minus } else { Sign::Plus };
 
 	let s = s
 		.trim_start_matches('+')
@@ -166,12 +186,23 @@ fn parse_int_base(s: &str, radix: u32) -> BigInt {
 		.trim_start_matches("0x")
 		.trim_start_matches("0X");
 
-	let b: Vec<u8> = s.chars().map(|c| c.to_digit(radix).unwrap() as u8).collect();
+	let b: Vec<u8> = s.chars().map(|c| {
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
+		#[expect(
+			clippy::cast_possible_truncation,
+			reason = "Shouldn't be out of range because it is a single digit" 
+		)]
+		{ c.to_digit(radix).unwrap() as u8 }
+	}).collect();
 
+	#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 	BigInt::from_radix_be(sign, &b, radix).unwrap()
 }
 
-pub fn string(input: &str) -> IResult<&str, String> {
+fn string(input: &str) -> IResult<&str, String> {
 	preceded(skip_ws, string_impl('"', "\"\\")).parse(input)
 }
 
@@ -196,6 +227,7 @@ fn string_impl<'a>(
 					delimited(
 						tag("u{"),
 						map_res(hex_digit1, |codepoint| {
+							#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 							let codepoint = u32::from_str_radix(codepoint, 16).unwrap();
 							char::from_u32(codepoint).ok_or(LexErrorType::InvalidUnicodeCodePoint(codepoint))
 						}),
@@ -209,12 +241,13 @@ fn string_impl<'a>(
 	}
 }
 
-pub fn binary(input: &str) -> IResult<&str, Vec<u8>> {
+fn binary(input: &str) -> IResult<&str, Vec<u8>> {
 	delimited(preceded(skip_ws, tag("#\"")), many0(hex_byte), cut(tag("\""))).parse(input)
 }
 
-pub fn hex_byte(input: &str) -> IResult<&str, u8> {
+fn hex_byte(input: &str) -> IResult<&str, u8> {
 	map(take_while_m_n(2, 2, |c: char| c.is_ascii_hexdigit()), |s| {
+		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 		u8::from_str_radix(s, 16).unwrap()
 	})
 	.parse(input)
@@ -225,7 +258,7 @@ enum ConstructorArg {
 	Keyword(String, ESExpr<'static>),
 }
 
-pub fn constructor(input: &str) -> IResult<&str, ESExpr<'static>> {
+fn constructor(input: &str) -> IResult<&str, ESExpr<'static>> {
 	map(
 		delimited(
 			preceded(skip_ws, char('(')),
@@ -261,7 +294,7 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
 	alt((
 		map(
 			separated_pair(preceded(skip_ws, identifier), preceded(skip_ws, char(':')), expr),
-			|(name, value)| ConstructorArg::Keyword(name.to_owned(), value),
+			|(name, value)| ConstructorArg::Keyword(name, value),
 		),
 		map(expr, ConstructorArg::Positional),
 	))
@@ -270,6 +303,7 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
 
 fn null_atom(input: &str) -> IResult<&str, ESExpr<'static>> {
 	map((skip_ws, tag("#null"), digit1, not(alphanumeric1)), |(_, _, n, _)| {
+		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
 		ESExpr::Null(Cow::Owned(BigUint::from_str(n).unwrap()))
 	})
 	.parse(input)
@@ -282,6 +316,10 @@ fn atom<'a>(
 	move |input| value(expr.clone(), preceded(skip_ws, terminated(tag(s), not(alphanumeric1)))).parse(input)
 }
 
+/// Parser for an `ESExpr` expression.
+///
+/// # Errors
+/// Returns `Err` when parsing fails.
 pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
 	alt((
 		float,
@@ -297,10 +335,11 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
 	.parse(input)
 }
 
-pub fn expr_file(input: &str) -> IResult<&str, ESExpr<'static>> {
+pub(crate) fn expr_file(input: &str) -> IResult<&str, ESExpr<'static>> {
 	terminated(terminated(expr, skip_ws), eof).parse(input)
 }
 
-pub fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr<'static>>> {
+
+pub(crate) fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr<'static>>> {
 	terminated(terminated(many0(expr), skip_ws), eof).parse(input)
 }

@@ -16,3 +16,6 @@ default = []
 [dependencies]
 num-bigint = { workspace = true }
 esexpr-derive = { workspace = true }
+
+[lints]
+workspace = true

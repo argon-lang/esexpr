@@ -1,11 +1,18 @@
-use derive_syn_parse::Parse;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Parser};
 use syn::{Ident, LitBool, LitFloat, LitInt, LitStr, token};
 
 pub fn esexpr_literal_impl(input: TokenStream) -> TokenStream {
-	let literal = Parser::parse2(ESExprLiteral::parse, input).unwrap();
+	let literal = match Parser::parse2(ESExprLiteral::parse, input) {
+		Ok(literal) => literal,
+		Err(e) => {
+			let msg = format!("Error parsing ESExpr literal: {e:?}");
+			return quote! {
+				compile_error!(#msg);
+			};
+		} 
+	};
 
 	generate_literal(literal)
 }
@@ -35,13 +42,18 @@ impl Parse for ESExprLiteral {
 	}
 }
 
-#[derive(Parse)]
 struct ESExprConstructorLiteral {
-	#[paren]
 	_parens: token::Paren,
-
-	#[inside(_parens)]
 	body: ESExprConstructorBody,
+}
+
+impl Parse for ESExprConstructorLiteral {
+	fn parse(input: ParseStream) -> syn::Result<Self> {
+		let tokens;
+		let parens: token::Paren = ::syn::parenthesized!(tokens in input);
+		let body: ESExprConstructorBody = tokens.parse()?;
+		Ok(ESExprConstructorLiteral { _parens: parens, body })
+	}
 }
 
 struct ESExprConstructorBody {
@@ -61,7 +73,7 @@ impl Parse for ESExprConstructorBody {
 
 		let mut args: Vec<ESExprConstructorArgument> = Vec::new();
 		while !input.is_empty() {
-			args.push(input.parse()?)
+			args.push(input.parse()?);
 		}
 
 		Ok(ESExprConstructorBody { name, args })
@@ -94,19 +106,33 @@ impl Parse for ESExprConstructorArgument {
 	}
 }
 
-#[derive(Parse)]
 enum ESExprScalarLiteral {
-	#[peek(LitBool, name = "bool")]
 	Bool(LitBool),
-
-	#[peek(LitStr, name = "str")]
 	Str(LitStr),
-
-	#[peek(LitInt, name = "int")]
 	Int(LitInt),
-
-	#[peek(LitFloat, name = "float")]
 	Float(LitFloat),
+}
+
+impl Parse for ESExprScalarLiteral {
+	fn parse(input: ParseStream) -> syn::Result<Self> {
+		if input.peek(LitBool) {
+			let value: LitBool = input.parse()?;
+			return Ok(Self::Bool(value));
+		}
+		if input.peek(LitStr) {
+			let value: LitStr = input.parse()?;
+			return Ok(Self::Str(value));
+		}
+		if input.peek(LitInt) {
+			let value: LitInt = input.parse()?;
+			return Ok(Self::Int(value));
+		}
+		if input.peek(LitFloat) {
+			let value: LitFloat = input.parse()?;
+			return Ok(Self::Float(value));
+		}
+		Err(input.error("expected one of bool, str, int, or float"))
+	}
 }
 
 fn generate_literal(literal: ESExprLiteral) -> TokenStream {

@@ -6,11 +6,12 @@ pub struct AppendOnlyStringList {
 	values: UnsafeCell<Vec<String>>,
 }
 
+#[expect(clippy::unwrap_used, reason = "UnsafeCell does not give null pointers")]
 impl AppendOnlyStringList {
 	pub fn get(&self, i: usize) -> Option<&str> {
 		unsafe { self.values.get().as_ref().unwrap() }
 			.get(i)
-			.map(|s| s.as_str())
+			.map(String::as_str)
 	}
 
 	pub fn append(&self, values: &mut Vec<String>) {

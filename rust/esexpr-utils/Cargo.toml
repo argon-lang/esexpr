@@ -6,4 +6,3 @@ edition = "2024"
 [dependencies]
 esexpr-text = { workspace = true }
 esexpr-binary = { workspace = true }
-
