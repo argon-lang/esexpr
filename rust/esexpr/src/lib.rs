@@ -548,7 +548,7 @@ impl <'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
 }
 
 impl <'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F> {
-    fn encode_optional_field(&'a self) -> Option<ESExpr> {
+    fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
         (&**self).encode_optional_field()
     }
 

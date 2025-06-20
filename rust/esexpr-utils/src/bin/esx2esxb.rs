@@ -9,9 +9,9 @@ fn main() {
     let esx = esexpr_text::parse_multi(&esx).unwrap();
 
 
-    let mut gen = esexpr_binary::ExprGenerator::new(&mut output);
+    let mut eg = esexpr_binary::ExprGenerator::new(&mut output);
     
     for expr in &esx {
-        gen.generate(expr).unwrap();
+        eg.generate(expr).unwrap();
     }
 }

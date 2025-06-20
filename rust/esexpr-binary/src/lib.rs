@@ -659,12 +659,12 @@ mod test {
             let n = BigUint::from_str(n).unwrap();
             
             let mut buff: Vec<u8> = Vec::new();
-            let mut gen = ExprGenerator {
+            let mut eg = ExprGenerator {
                 out: &mut buff,
                 string_pool: vec![],
             };
 
-            gen.write_int_tag(TAG_VARINT_NON_NEG_INT, &n).unwrap();
+            eg.write_int_tag(TAG_VARINT_NON_NEG_INT, &n).unwrap();
 
             assert_eq!(enc, &buff);
 

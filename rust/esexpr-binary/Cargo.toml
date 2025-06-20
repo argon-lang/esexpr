@@ -1,7 +1,7 @@
 [package]
 name = "esexpr-binary"
 version = "0.1.20"
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 description = "ESExpr serialization binary format."
 documentation = "https://docs.rs/esexpr-binary"
