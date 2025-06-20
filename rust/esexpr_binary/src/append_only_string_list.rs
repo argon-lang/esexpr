@@ -80,20 +80,22 @@ mod tests {
             values.reserve_exact(1);
         }
         list.push("A".to_string());
-        let a1 = list.get(0).unwrap().as_ptr();
+        let a1 = list.get(0).unwrap() as *const str;
         let sp1: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };
 
-        let old_capacity = unsafe { list.values.get().as_ref().unwrap().capacity() };
-        
-        while unsafe { list.values.get().as_ref().unwrap().capacity() } <= old_capacity {
+        let mut a2;
+        loop {
             list.push("B".to_string());
+            
+            a2 = list.get(0).unwrap() as *const str;
+            let sp2: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };
+            
+            if sp1 != sp2 {
+                break;
+            }
         }
         
-        let a2 = list.get(0).unwrap().as_ptr();
-        let sp2: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };
-        
         assert_eq!(a1, a2);
-        assert_ne!(sp1, sp2);
     }
 }
 

@@ -12,11 +12,10 @@ readme = "README.md"
 
 [dependencies]
 esexpr = { path = "../esexpr", version = "0.1.20" }
-num-bigint = "0.4.6"
-derive_more = { version = "1.0.0", features = [ "full" ] }
-itertools = "0.14.0"
-static_assertions = "1.1.0"
+num-bigint = { workspace = true }
+derive_more = { workspace = true }
+static_assertions = { workspace = true }
 
 [dev-dependencies]
-serde_json = { version = "1.0.138", features = ["float_roundtrip"] }
+serde_json = { workspace = true }
 esexpr-json = { version = "0.1.20", path = "../esexpr_json" }
