@@ -1,7 +1,7 @@
 //! esexpr is a library that implements the `ESExpr` format.
 
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::hash::BuildHasher;
 
 pub use esexpr_derive::{ESExprCodec, esexpr_literal as esexpr};
@@ -274,6 +274,9 @@ const fn compare_str_bytes(s1: &[u8], s2: &[u8]) -> bool {
 /// Used over standard collections to support const operations.
 #[derive(Clone, Copy, Debug)]
 pub enum ESExprTagCollection {
+	/// The set of all tags.
+	All,
+
 	/// A collection of tags.
 	Tags(&'static [ESExprTag<'static>]),
 
@@ -286,6 +289,7 @@ impl ESExprTagCollection {
 	#[must_use]
 	pub const fn is_empty(self) -> bool {
 		match self {
+			ESExprTagCollection::All => false,
 			ESExprTagCollection::Tags(tags) => tags.is_empty(),
 			ESExprTagCollection::Concat(mut collections) => loop {
 				let Some((&head, tail)) = collections.split_first()
@@ -301,11 +305,33 @@ impl ESExprTagCollection {
 			},
 		}
 	}
+	
+	/// Check if a tag collection is the set of all tags.
+	#[must_use]
+	pub const fn is_all(self) -> bool {
+		match self {
+			ESExprTagCollection::All => true,
+			ESExprTagCollection::Tags(_) => false,
+			ESExprTagCollection::Concat(mut collections) => loop {
+				let Some((&head, tail)) = collections.split_first()
+				else {
+					return false;
+				};
+
+				if head.is_all() {
+					return true;
+				}
+
+				collections = tail;
+			},
+		}
+	}
 
 	/// Check if a tag collection contains a tag.
 	#[must_use]
-	pub const fn contains(self, tag: &ESExprTag<'static>) -> bool {
+	pub const fn contains(self, tag: &ESExprTag) -> bool {
 		match self {
+			ESExprTagCollection::All => true,
 			ESExprTagCollection::Tags(mut tags) => loop {
 				let Some((head, tail)) = tags.split_first()
 				else {
@@ -337,6 +363,7 @@ impl ESExprTagCollection {
 	#[must_use]
 	pub const fn is_disjoint(self, other: ESExprTagCollection) -> bool {
 		match other {
+			ESExprTagCollection::All => self.is_empty(),
 			ESExprTagCollection::Tags(mut tags) => loop {
 				let Some((head, tail)) = tags.split_first()
 				else {
@@ -363,55 +390,54 @@ impl ESExprTagCollection {
 			},
 		}
 	}
-}
-
-impl IntoIterator for ESExprTagCollection {
-	type Item = &'static ESExprTag<'static>;
-	type IntoIter = ESExprTagCollectionIter;
-
-	fn into_iter(self) -> Self::IntoIter {
-		ESExprTagCollectionIter {
-			collections: vec![self],
+	
+	/// Check if a tag collection is a subset of another tag collection.
+	#[must_use]
+	pub const fn is_subset(self, other: ESExprTagCollection) -> bool {
+		match self {
+			ESExprTagCollection::All => other.is_all(),
+			ESExprTagCollection::Tags(mut tags) => loop {
+				let Some((head, tail)) = tags.split_first()
+				else {
+					return true;
+				};
+				
+				if !other.contains(head) {
+					return false;
+				}
+				
+				tags = tail;
+			},
+			ESExprTagCollection::Concat(mut collections) => loop {
+				let Some((&head, tail)) = collections.split_first()
+				else {
+					return true;
+				};
+				
+				if !head.is_subset(other) {
+					return false;
+				}
+				
+				collections = tail;
+			},
 		}
+	}
+	
+	/// Check if a tag collection is equal to another tag collection.
+	#[must_use]
+	pub const fn is_equal(self, other: ESExprTagCollection) -> bool {
+		self.is_subset(other) && other.is_subset(self)
 	}
 }
 
-/// An iterator over a collection of tags.
-pub struct ESExprTagCollectionIter {
-	collections: Vec<ESExprTagCollection>,
-}
-
-impl Iterator for ESExprTagCollectionIter {
-	type Item = &'static ESExprTag<'static>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			let collection = self.collections.pop()?;
-
-			match collection {
-				ESExprTagCollection::Tags(tags) => {
-					let Some((head, tail)) = tags.split_first()
-					else {
-						continue;
-					};
-
-					self.collections.push(ESExprTagCollection::Tags(tail));
-					return Some(head);
-				},
-				ESExprTagCollection::Concat(collections) => {
-					let Some((&collection, remaining_collections)) = collections.split_first()
-					else {
-						continue;
-					};
-
-					self.collections
-						.push(ESExprTagCollection::Concat(remaining_collections));
-					self.collections.push(collection);
-				},
-			}
-		}
+impl PartialEq for ESExprTagCollection {
+	#[inline]
+	fn eq(&self, other: &Self) -> bool {
+		self.is_equal(*other)
 	}
 }
+
+impl Eq for ESExprTagCollection {}
 
 /// A codec that encodes and decodes `ESExpr` values.
 pub trait ESExprCodec<'a>
@@ -420,12 +446,6 @@ where
 {
 	/// The tags of the encoded expressions that this type can produce.
 	const TAGS: ESExprTagCollection;
-
-	/// The tags of the encoded expressions that this type can produce.
-	#[must_use]
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		Self::TAGS.into_iter().cloned().collect()
-	}
 
 	/// Encode this value into an expression.
 	fn encode_esexpr(&'a self) -> ESExpr<'a>;
@@ -473,7 +493,7 @@ impl<'a> ESExprCodec<'a> for bool {
 			ESExpr::Bool(b) => Ok(b),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Bool]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -494,7 +514,7 @@ impl<'a> ESExprCodec<'a> for BigInt {
 			ESExpr::Int(i) => Ok(i.into_owned()),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Int]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -521,7 +541,7 @@ impl<'a> ESExprCodec<'a> for BigUint {
 			},
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Int]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -550,7 +570,7 @@ macro_rules! int_codec {
 					},
 					_ => Err(DecodeError::new(
 						DecodeErrorType::UnexpectedExpr {
-							expected_tags: HashSet::from([ESExprTag::Int]),
+							expected_tags: Self::TAGS,
 							actual_tag: expr.tag().into_owned(),
 						},
 						DecodeErrorPath::Current,
@@ -586,7 +606,7 @@ impl<'a> ESExprCodec<'a> for String {
 			ESExpr::Str(s) => Ok(s.into_owned()),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Str]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -607,7 +627,7 @@ impl<'a> ESExprCodec<'a> for f32 {
 			ESExpr::Float32(f) => Ok(f),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Float32]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -628,7 +648,7 @@ impl<'a> ESExprCodec<'a> for f64 {
 			ESExpr::Float64(f) => Ok(f),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Float64]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -649,7 +669,7 @@ impl<'a> ESExprCodec<'a> for () {
 			ESExpr::Null(level) if *level == BigUint::ZERO => Ok(()),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: HashSet::from([ESExprTag::Null]),
+					expected_tags: Self::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -689,7 +709,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 			},
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: <Self as ESExprCodec>::tags(),
+					expected_tags: <Self as ESExprCodec>::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -781,7 +801,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 			},
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: <Self as ESExprCodec>::tags(),
+					expected_tags: <Self as ESExprCodec>::TAGS,
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -798,9 +818,6 @@ where
 	/// The tags of the encoded expressions that this type can produce.
 	const TAGS: ESExprTagCollection;
 
-	/// The tags of the encoded expressions that this type can produce.
-	fn tags() -> HashSet<ESExprTag<'static>>;
-
 	/// Encode an optional field or None when the value should be excluded.
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>>;
 
@@ -814,10 +831,6 @@ where
 impl<'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
 	const TAGS: ESExprTagCollection = A::TAGS;
 
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		A::tags()
-	}
-
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		self.as_ref().map(A::encode_esexpr)
 	}
@@ -829,10 +842,6 @@ impl<'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
 
 impl<'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F> {
 	const TAGS: ESExprTagCollection = F::TAGS;
-
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		F::tags()
-	}
 
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		(**self).encode_optional_field()
@@ -851,9 +860,6 @@ where
 	/// The tags of the encoded expressions that this type can produce.
 	const TAGS: ESExprTagCollection;
 
-	/// The tags of the encoded expressions that this type can produce.
-	fn tags() -> HashSet<ESExprTag<'static>>;
-
 	/// Encode variable arguments
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>);
 
@@ -870,10 +876,6 @@ where
 
 impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 	const TAGS: ESExprTagCollection = A::TAGS;
-
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		A::tags()
-	}
 
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
 		for arg in self {
@@ -903,10 +905,6 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
 	const TAGS: ESExprTagCollection = F::TAGS;
 
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		F::tags()
-	}
-
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
 		(**self).encode_vararg_element(args);
 	}
@@ -928,9 +926,6 @@ where
 	/// The tags of the encoded expressions that this type can produce.
 	const TAGS: ESExprTagCollection;
 
-	/// The tags of the encoded expressions that this type can produce.
-	fn tags() -> HashSet<ESExprTag<'static>>;
-
 	/// Encode dictionary arguments.
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>);
 
@@ -947,10 +942,6 @@ where
 impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 	const TAGS: ESExprTagCollection = F::TAGS;
 
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		F::tags()
-	}
-
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		(**self).encode_dict_element(kwargs);
 	}
@@ -965,10 +956,6 @@ impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<String, A, S> {
 	const TAGS: ESExprTagCollection = A::TAGS;
-
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		A::tags()
-	}
 
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		for (k, v) in self {
@@ -999,10 +986,6 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A, S> {
 	const TAGS: ESExprTagCollection = A::TAGS;
 
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		A::tags()
-	}
-
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		for (k, v) in self {
 			kwargs.insert(Cow::Borrowed(k.as_ref()), v.encode_esexpr());
@@ -1030,7 +1013,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 }
 
 /// An error that occurs when decoding expressions.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct DecodeError(pub Box<(DecodeErrorType, DecodeErrorPath)>);
 
 impl DecodeError {
@@ -1061,12 +1044,12 @@ impl DecodeError {
 }
 
 /// The type of error that occurred while decoding.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum DecodeErrorType {
 	/// An expression had a different tag than expected.
 	UnexpectedExpr {
 		/// The tags that were expected.
-		expected_tags: HashSet<ESExprTag<'static>>,
+		expected_tags: ESExprTagCollection,
 
 		/// The actual tag of the expression.
 		actual_tag: ESExprTag<'static>,
@@ -1083,7 +1066,7 @@ pub enum DecodeErrorType {
 }
 
 /// Specifies where in an expression an error occurred.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum DecodeErrorPath {
 	/// Error occurred at the current position in the object.
 	Current,

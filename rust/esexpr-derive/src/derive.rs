@@ -557,7 +557,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					else {
 						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
-								expected_tags: Self::tags(),
+								expected_tags: <Self as ::esexpr::ESExprCodec>::TAGS,
 								actual_tag: ::esexpr::ESExprTag::Constructor(::std::borrow::Cow::Owned(name.into_owned())),
 							},
 							::esexpr::DecodeErrorPath::Current,
@@ -567,7 +567,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 				else {
 					Err(::esexpr::DecodeError::new(
 						::esexpr::DecodeErrorType::UnexpectedExpr {
-							expected_tags: Self::tags(),
+								expected_tags: <Self as ::esexpr::ESExprCodec>::TAGS,
 							actual_tag: ::esexpr::ESExprTag::into_owned(::esexpr::ESExpr::tag(&expr)),
 						},
 						::esexpr::DecodeErrorPath::Current,
@@ -604,7 +604,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					_ => {
 						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
-								expected_tags: Self::tags(),
+								expected_tags: <Self as ::esexpr::ESExprCodec>::TAGS,
 								actual_tag: ::esexpr::ESExprTag::into_owned(::esexpr::ESExpr::tag(&expr)),
 							},
 							::esexpr::DecodeErrorPath::Current,
@@ -634,7 +634,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						};
 
 						Ok(quote! {
-							_ if <#field_type as ::esexpr::ESExprCodec>::tags().contains(&expr.tag()) => {
+							_ if <#field_type as ::esexpr::ESExprCodec>::TAGS.contains(&expr.tag()) => {
 								::std::result::Result::Ok(#case_value)
 							},
 						})
@@ -659,7 +659,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					_ => {
 						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
-								expected_tags: Self::tags(),
+								expected_tags: <Self as ::esexpr::ESExprCodec>::TAGS,
 								actual_tag: ::esexpr::ESExprTag::into_owned(::esexpr::ESExpr::tag(&expr)),
 							},
 							::esexpr::DecodeErrorPath::Current,
@@ -758,7 +758,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 		if has_optional_attribute(&field.attrs)? {
 			quote! {
 				<#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(
-					if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::tags().contains(&e.tag())) {
+					if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS.contains(&e.tag())) {
 						args.pop_front()
 					}
 					else {
@@ -770,7 +770,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 		}
 		else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
 			quote! {
-				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::tags().contains(&e.tag())) {
+				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS.contains(&e.tag())) {
 					args.pop_front()
 				}
 				else {

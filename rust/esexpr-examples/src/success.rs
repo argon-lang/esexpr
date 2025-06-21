@@ -154,9 +154,9 @@ struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] Vec<f32>);
 #[cfg(test)]
 mod tests {
 	use std::borrow::Cow;
-	use std::collections::{HashMap, HashSet};
+	use std::collections::HashMap;
 
-	use esexpr::{ESExprCodec, ESExprTag, esexpr};
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, esexpr};
 
 	use super::*;
 
@@ -169,8 +169,8 @@ mod tests {
 		let value = ConstructorName123Conversion { a: 5 };
 
 		assert_eq!(
-			HashSet::from([ESExprTag::Constructor(Cow::Borrowed("constructor-name123-conversion"))]),
-			ConstructorName123Conversion::tags()
+			ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("constructor-name123-conversion"))]),
+			ConstructorName123Conversion::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, ConstructorName123Conversion::decode_esexpr(expr).unwrap());
@@ -184,11 +184,11 @@ mod tests {
 		let value = ConstructorNameEnum::MyName123Test;
 
 		assert_eq!(
-			HashSet::from([
+			ESExprTagCollection::Tags(&[
 				ESExprTag::Constructor(Cow::Borrowed("my-name123-test")),
-				ESExprTag::Constructor(Cow::Borrowed("my-ctor"))
+				ESExprTag::Constructor(Cow::Borrowed("my-ctor")),
 			]),
-			ConstructorNameEnum::tags()
+			ConstructorNameEnum::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
@@ -225,8 +225,8 @@ mod tests {
 		let value = InlineValueTest::Flag(true);
 
 		assert_eq!(
-			HashSet::from([ESExprTag::Bool, ESExprTag::Constructor(Cow::Borrowed("normal-case"))]),
-			InlineValueTest::tags()
+			ESExprTagCollection::Tags(&[ESExprTag::Bool, ESExprTag::Constructor(Cow::Borrowed("normal-case"))]),
+			InlineValueTest::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
@@ -269,9 +269,9 @@ mod tests {
 			f: Some(true),
 		};
 
-		let tags = HashSet::from([ESExprTag::Constructor(Cow::Borrowed("keywords"))]);
+		let tags = ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("keywords"))]);
 
-		assert_eq!(tags, KeywordStruct::tags());
+		assert_eq!(tags, KeywordStruct::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
 
@@ -284,7 +284,7 @@ mod tests {
 			f: Some(true),
 		};
 
-		assert_eq!(tags, KeywordEnum::tags());
+		assert_eq!(tags, KeywordEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
 
@@ -326,7 +326,7 @@ mod tests {
 		let expr = esexpr!("a");
 		let value = SimpleEnum::A;
 
-		assert_eq!(HashSet::from([ESExprTag::Str]), SimpleEnum::tags());
+		assert_eq!(ESExprTagCollection::Tags(&[ESExprTag::Str]), SimpleEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
 
