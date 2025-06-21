@@ -85,10 +85,10 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 	quote! {
 		impl #type_params ::esexpr::ESExprCodec<'esexpr_lifetime> for #type_name #generics_lt #type_args #generics_gt {
 
-			fn tags() -> ::std::collections::HashSet<::esexpr::ESExprTag<'static>> {
+			const TAGS: ::esexpr::ESExprTagCollection = {
 				#validate
 				#tags
-			}
+			};
 
 			fn encode_esexpr(&'esexpr_lifetime self) -> ::esexpr::ESExpr<'esexpr_lifetime> {
 				#encode
@@ -203,7 +203,7 @@ fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenR
 
 	fn make_set_of(e: Expr) -> proc_macro2::TokenStream {
 		quote! {
-			::std::collections::HashSet::from([#e])
+			::esexpr::ESExprTagCollection::Tags(&[#e])
 		}
 	}
 
@@ -213,25 +213,23 @@ fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenR
 		Data::Enum(_) if has_simple_enum_attribute(attrs)? => make_set_of(parse_quote! { ::esexpr::ESExprTag::Str }),
 
 		Data::Enum(e) => {
-			let case_tags: proc_macro2::TokenStream = e
+			let case_tags: Vec<proc_macro2::TokenStream> = e
 				.variants
 				.iter()
 				.map(|c| -> TokenRes {
 					if has_inline_value_attribute(&c.attrs)? {
 						let t = &get_inline_value_field(c)?.ty;
-						Ok(quote! { tags.extend(<#t as ::esexpr::ESExprCodec>::tags()); })
+						Ok(quote! { <#t as ::esexpr::ESExprCodec>::TAGS })
 					}
 					else {
 						let tag = make_constructor_expr(&make_constructor_name(&c.attrs, &c.ident)?);
-						Ok(quote! { tags.insert(#tag); })
+						Ok(make_set_of(tag))
 					}
 				})
 				.collect::<Result<_, _>>()?;
 
 			quote! {
-				let mut tags = ::std::collections::HashSet::new();
-				#case_tags
-				tags
+				::esexpr::ESExprTagCollection::Concat(&[ #(#case_tags,)* ])
 			}
 		},
 
@@ -375,6 +373,50 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 	fields: &'a Fields,
 	make_field_expr: F,
 ) -> TokenRes {
+	fn make_pos_tag_check(
+		field_name: &str,
+		field_tags: &proc_macro2::TokenStream,
+		prev_optional_positional_tags: &[proc_macro2::TokenStream],
+		is_optional: bool,
+	) -> proc_macro2::TokenStream {
+		let non_empty_tag_check = if !prev_optional_positional_tags.is_empty() || is_optional {
+			let message = if is_optional {
+				format!("Optional field '{field_name}' must have non-empty tags")
+			}
+			else {
+				format!(
+					"Field '{field_name}' following optional positional arguments must have non-empty tags"
+				)
+			};
+
+			quote! {
+				const { assert!(!#field_tags.is_empty(), #message); }
+			}
+		}
+		else {
+			quote! {}
+		};
+
+		let prev_tag_check = if prev_optional_positional_tags.is_empty() {
+			quote! {}
+		}
+		else {
+			let message = format!(
+				"Field '{field_name}' must have distinct tags from immediately preceding optional positional arguments"
+			);
+
+			quote! {
+				const { assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message); }
+			}
+		};
+
+		quote! {
+			#non_empty_tag_check
+			#prev_tag_check
+		}
+	}
+	
+	
 	let fields = match fields {
 		Fields::Named(fields) => fields.named.iter().collect(),
 		Fields::Unnamed(fields) => fields.unnamed.iter().collect(),
@@ -384,9 +426,16 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 	let mut has_dict_field = false;
 	let mut has_vararg_field = false;
 	let mut kwarg_names = HashSet::new();
-	let mut has_optional_positional = false;
+
+	let mut prev_optional_positional_tags = Vec::new();
+
 
 	fields.into_iter().enumerate().map(|(i, field)| -> TokenRes {
+		let field_name = match field.ident {
+			Some(ref ident) => ident.to_string(),
+			None => i.to_string(),
+		};
+
         let field_expr = make_field_expr(field.ident.as_ref(), i);
         let field_type = &field.ty;
 
@@ -436,11 +485,14 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 }
                 has_vararg_field = true;
 
-                if has_optional_positional {
-                    Err(quote! { compile_error!("Variable arguments cannot follow optional positional arguments."); })?;
-                }
+				let tags = quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::TAGS };
+				let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, true);
+				prev_optional_positional_tags.push(tags);
 
-                quote! { ::esexpr::ESExprVarArgCodec::encode_vararg_element(#field_expr, &mut args); }
+                quote! {
+					#checks
+					::esexpr::ESExprVarArgCodec::encode_vararg_element(#field_expr, &mut args);
+				}
             }
             else {
                 if has_vararg_field {
@@ -448,16 +500,24 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 }
 
                 if has_optional_attribute(&field.attrs)? {
-                    if has_optional_positional {
-                        Err(quote! { compile_error!("Only a single optional positional argument is allowed."); })?;
-                    }
+					let tags = quote! { <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS };
+					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, true);
+					prev_optional_positional_tags.push(tags);
 
-                    has_optional_positional = true;
-                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { args.push(value); } }
+                    quote! {
+						#checks
+						if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) {
+							args.push(value);
+						}
+					}
                 }
                 else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
-                    has_optional_positional = true;
+					let tags = quote! { <#field_type as ::esexpr::ESExprCodec>::TAGS };
+					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, true);
+					prev_optional_positional_tags.push(tags);
+
                     quote! {
+						#checks
                         {
                             let value = #field_expr;
                             if value != #default_value {
@@ -467,11 +527,13 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     }
                 }
                 else {
-                    if has_optional_positional {
-                        Err(quote! { compile_error!("Required positional arguments cannot follow optional positional arguments."); })?;
-                    }
-
-                    quote! { args.push(::esexpr::ESExprCodec::encode_esexpr(#field_expr)); }
+					let tags = quote! { <#field_type as ::esexpr::ESExprCodec>::TAGS };
+					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, false);
+					prev_optional_positional_tags.clear();
+                    quote! {
+						#checks
+						args.push(::esexpr::ESExprCodec::encode_esexpr(#field_expr));
+					}
                 }
             }
         )
@@ -696,14 +758,24 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 		if has_optional_attribute(&field.attrs)? {
 			quote! {
 				<#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(
-					args.pop_front()
+					if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::tags().contains(&e.tag())) {
+						args.pop_front()
+					}
+					else {
+						None
+					}
 				).map_err(#error_mapping)?
 
 			}
 		}
 		else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
 			quote! {
-				args.pop_front()
+				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::tags().contains(&e.tag())) {
+					args.pop_front()
+				}
+				else {
+					None
+				}
 					.map(
 						|arg| <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(arg)
 							.map_err(#error_mapping)
@@ -732,11 +804,11 @@ fn make_error_mapping(constructor_name: &Expr, path: FieldPath) -> proc_macro2::
 	match path {
 		FieldPath::Positional(i) => {
 			let i_expr = Literal::usize_suffixed(i);
-			quote! { |mut e| { e.1 = ::esexpr::DecodeErrorPath::Positional(#constructor_name.to_owned(), #i_expr, Box::new(e.1)); e } }
+			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Positional(#constructor_name.to_owned(), #i_expr, Box::new(p))); e } }
 		},
 
 		FieldPath::Keyword(name) => {
-			quote! { |mut e| { e.1 = ::esexpr::DecodeErrorPath::Keyword(#constructor_name.to_owned(), #name.to_owned(), Box::new(e.1)); e } }
+			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Keyword(#constructor_name.to_owned(), #name.to_owned(), Box::new(p))); e } }
 		},
 	}
 }
@@ -781,14 +853,9 @@ fn decode_attr<'a>(
 	name: &str,
 	attrs: &'a [Attribute],
 ) -> Result<Option<DecodedAttribute<'a>>, proc_macro2::TokenStream> {
-	fn try_decode_attr<'a>(
-		name: &str,
-		attr: &'a Attribute,
-	) -> Option<DecodedAttribute<'a>> {
+	fn try_decode_attr<'a>(name: &str, attr: &'a Attribute) -> Option<DecodedAttribute<'a>> {
 		match &attr.meta {
-			Meta::NameValue(MetaNameValue { path, value, .. })
-				if path.get_ident().is_some_and(|i| *i == name) =>
-			{
+			Meta::NameValue(MetaNameValue { path, value, .. }) if path.get_ident().is_some_and(|i| *i == name) => {
 				Some(DecodedAttribute::NameValue(value))
 			},
 
@@ -1096,7 +1163,7 @@ mod test {
 	#[test]
 	fn kwarg_after_dict() {
 		ensure_error!(
-			"Keyword arguments must preceed dict arguments",
+			"Keyword arguments must precede dict arguments",
 			struct MyStruct {
 				#[dict]
 				a: HashMap<String, String>,
@@ -1204,30 +1271,6 @@ mod test {
 		ensure_error!(
 			"Positional arguments cannot have default values.",
 			struct MyStruct(#[default_value = "4"] u32);
-		);
-	}
-
-	#[test]
-	fn required_after_optional_positional() {
-		ensure_error!(
-			"Required positional arguments cannot follow optional positional arguments.",
-			struct MyStruct(#[optional] u32, u32);
-		);
-	}
-
-	#[test]
-	fn multiple_optional_positional() {
-		ensure_error!(
-			"Only a single optional positional argument is allowed.",
-			struct MyStruct(#[optional] u32, #[optional] u32);
-		);
-	}
-
-	#[test]
-	fn vararg_after_optional_positional() {
-		ensure_error!(
-			"Variable arguments cannot follow optional positional arguments.",
-			struct MyStruct(#[optional] u32, #[vararg] u32);
 		);
 	}
 

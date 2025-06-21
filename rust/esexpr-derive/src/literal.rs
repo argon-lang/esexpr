@@ -11,7 +11,7 @@ pub fn esexpr_literal_impl(input: TokenStream) -> TokenStream {
 			return quote! {
 				compile_error!(#msg);
 			};
-		} 
+		},
 	};
 
 	generate_literal(literal)

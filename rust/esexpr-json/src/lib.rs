@@ -13,125 +13,135 @@ use num_bigint::{BigInt, BigUint};
 #[derive(ESExprCodec, Debug, PartialEq)]
 pub enum JsonExpr {
 	/// A JSON Object
-    Obj {
-		/// The fields of the object. 
-        #[dict]
-        values: HashMap<String, JsonExpr>,
-    },
+	Obj {
+		/// The fields of the object.
+		#[dict]
+		values: HashMap<String, JsonExpr>,
+	},
 
 	/// A JSON Array
-    #[inline_value]
-    Arr(Vec<JsonExpr>),
+	#[inline_value]
+	Arr(Vec<JsonExpr>),
 
 	/// A JSON String
-    #[inline_value]
-    Str(String),
+	#[inline_value]
+	Str(String),
 
 	/// A JSON Number
-    #[inline_value]
-    Num(f64),
+	#[inline_value]
+	Num(f64),
 
 	/// A JSON Boolean
-    #[inline_value]
-    Bool(bool),
+	#[inline_value]
+	Bool(bool),
 
 	/// A JSON Null value
-    #[inline_value]
-    Null(()),
+	#[inline_value]
+	Null(()),
 }
 
 impl JsonExpr {
-    /// Converts a `serde_json::Value` into a `JsonExpr`
-    pub fn from_json(value: serde_json::Value) -> Option<JsonExpr> {
+	/// Converts a `serde_json::Value` into a `JsonExpr`
+	pub fn from_json(value: serde_json::Value) -> Option<JsonExpr> {
 		Some(match value {
 			serde_json::Value::Null => JsonExpr::Null(()),
 			serde_json::Value::Bool(b) => JsonExpr::Bool(b),
 			serde_json::Value::Number(n) => JsonExpr::Num(n.as_f64()?),
 			serde_json::Value::String(s) => JsonExpr::Str(s),
-			serde_json::Value::Array(arr) => JsonExpr::Arr(arr.into_iter().map(Self::from_json).collect::<Option<Vec<_>>>()?),
+			serde_json::Value::Array(arr) => {
+				JsonExpr::Arr(arr.into_iter().map(Self::from_json).collect::<Option<Vec<_>>>()?)
+			},
 			serde_json::Value::Object(obj) => {
-				let values = obj.into_iter().map(|(k, v)| Some((k, Self::from_json(v)?))).collect::<Option<HashMap<_, _>>>()?;
+				let values = obj
+					.into_iter()
+					.map(|(k, v)| Some((k, Self::from_json(v)?)))
+					.collect::<Option<HashMap<_, _>>>()?;
 
 				JsonExpr::Obj { values }
 			},
 		})
-    }
+	}
 
-    /// Converts a `JsonExpr` into a `serde_json::Value`
-    pub fn into_json(self) -> Option<serde_json::Value> {
+	/// Converts a `JsonExpr` into a `serde_json::Value`
+	pub fn into_json(self) -> Option<serde_json::Value> {
 		Some(match self {
 			JsonExpr::Obj { values } => {
-				let obj = values.into_iter().map(|(k, v)| Some((k, v.into_json()?))).collect::<Option<serde_json::Map<_, _>>>()?;
+				let obj = values
+					.into_iter()
+					.map(|(k, v)| Some((k, v.into_json()?)))
+					.collect::<Option<serde_json::Map<_, _>>>()?;
 
 				serde_json::Value::Object(obj)
 			},
-			JsonExpr::Arr(arr) => serde_json::Value::Array(arr.into_iter().map(Self::into_json).collect::<Option<Vec<_>>>()?),
+			JsonExpr::Arr(arr) => {
+				serde_json::Value::Array(arr.into_iter().map(Self::into_json).collect::<Option<Vec<_>>>()?)
+			},
 			JsonExpr::Str(s) => serde_json::Value::String(s),
 			JsonExpr::Num(n) => serde_json::Value::Number(serde_json::Number::from_f64(n)?),
 			JsonExpr::Bool(b) => serde_json::Value::Bool(b),
 			JsonExpr::Null(_) => serde_json::Value::Null,
 		})
-    }
+	}
 }
 
 /// Represents an `ESExpr` encoded as JSON with type information
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum JsonEncodedESExpr {
-    /// A constructor with a name and optional arguments
-    Constructor {
+	/// A constructor with a name and optional arguments
+	Constructor {
 		/// The name of the constructor
-        constructor_name: String,
+		constructor_name: String,
 		/// The positional arguments
-        args: Option<Vec<JsonEncodedESExpr>>,
+		args: Option<Vec<JsonEncodedESExpr>>,
 		/// The keyword arguments
-        kwargs: Option<HashMap<String, JsonEncodedESExpr>>,
-    },
-    /// A list of expressions
-    List(Vec<JsonEncodedESExpr>),
+		kwargs: Option<HashMap<String, JsonEncodedESExpr>>,
+	},
+	/// A list of expressions
+	List(Vec<JsonEncodedESExpr>),
 
-    /// A bool value
-    Bool(bool),
-    
+	/// A bool value
+	Bool(bool),
+
 	/// An arbitrary-precision integer
-    Int {
+	Int {
 		/// The integer value
-        #[serde(with = "serde_bigint")]
-        int: BigInt,
-    },
-    
+		#[serde(with = "serde_bigint")]
+		int: BigInt,
+	},
+
 	/// A string value
-    Str(String),
-    
+	Str(String),
+
 	/// Binary data encoded as base64
-    Binary {
+	Binary {
 		/// The base64 encoded data
-        base64: Base64Value,
-    },
-    
+		base64: Base64Value,
+	},
+
 	/// A 32-bit floating point number
-    Float32 {
+	Float32 {
 		/// The float32 value
-        #[serde(with = "serde_f32")]
-        float32: f32,
-    },
-	
-    /// A 64-bit floating point number
-    Float64 {
+		#[serde(with = "serde_f32")]
+		float32: f32,
+	},
+
+	/// A 64-bit floating point number
+	Float64 {
 		/// The float64 value
-        #[serde(with = "serde_f64")]
-        float64: f64,
-    },
-	
-    /// A null value
-    Null(()),
-    
+		#[serde(with = "serde_f64")]
+		float64: f64,
+	},
+
+	/// A null value
+	Null(()),
+
 	/// A null value with a level
-    NullLevel {
+	NullLevel {
 		/// The level of the null value
-        #[serde(with = "serde_biguint")]
-        null: BigUint,
-    },
+		#[serde(with = "serde_biguint")]
+		null: BigUint,
+	},
 }
 
 impl JsonEncodedESExpr {
@@ -274,7 +284,10 @@ mod serde_f32 {
 				Ok(v as f32)
 			}
 
-			#[expect(clippy::cast_possible_truncation, reason = "The format makes it explicit this is a f64")]
+			#[expect(
+				clippy::cast_possible_truncation,
+				reason = "The format makes it explicit this is a f64"
+			)]
 			fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f32, E> {
 				Ok(v as f32)
 			}
@@ -310,7 +323,7 @@ mod serde_f64 {
 
 	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
 		struct Float64ValueVisitor;
-		
+
 		impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
 			type Value = f64;
 

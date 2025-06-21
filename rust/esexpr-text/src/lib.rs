@@ -14,7 +14,7 @@ pub fn parse<'input>(s: &'input str) -> Result<ESExpr<'static>, nom::Err<nom::er
 }
 
 /// Parse a string into multiple `ESExpr`s.
-/// 
+///
 /// # Errors
 /// Returns `Err` when parsing fails.
 pub fn parse_multi<'input>(s: &'input str) -> Result<Vec<ESExpr<'static>>, nom::Err<nom::error::Error<&'input str>>> {

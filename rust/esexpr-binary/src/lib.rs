@@ -45,7 +45,7 @@ pub enum ParseError {
 
 	/// IO error.
 	IOError(std::io::Error),
-	
+
 	/// Utf8 error.
 	Utf8Error(std::str::Utf8Error),
 }
@@ -268,7 +268,7 @@ pub trait ExprParser {
 	/// # Errors
 	/// Returns `Err` if an error occurs during parsing.
 	fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError>;
-	
+
 	/// Read the next expression
 	///
 	/// # Errors
@@ -436,7 +436,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 	}
 
 	/// Generate output for an expression
-	/// 
+	///
 	/// # Errors
 	/// Returns `Err` if an error occurs during generation.
 	pub fn generate(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {

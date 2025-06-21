@@ -3,6 +3,7 @@
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::BuildHasher;
+
 pub use esexpr_derive::{ESExprCodec, esexpr_literal as esexpr};
 use num_bigint::{BigInt, BigUint};
 
@@ -228,6 +229,188 @@ impl<'a> ESExprTag<'a> {
 			ESExprTag::Null => ESExprTag::Null,
 		}
 	}
+
+	const fn is_equal(&self, b: &ESExprTag) -> bool {
+		match self {
+			ESExprTag::Constructor(Cow::Borrowed(c1)) => match b {
+				ESExprTag::Constructor(Cow::Borrowed(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				ESExprTag::Constructor(Cow::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				_ => false,
+			},
+			ESExprTag::Constructor(Cow::Owned(c1)) => match b {
+				ESExprTag::Constructor(Cow::Borrowed(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				ESExprTag::Constructor(Cow::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				_ => false,
+			},
+			ESExprTag::Bool => matches!(b, ESExprTag::Bool),
+			ESExprTag::Int => matches!(b, ESExprTag::Int),
+			ESExprTag::Str => matches!(b, ESExprTag::Str),
+			ESExprTag::Binary => matches!(b, ESExprTag::Binary),
+			ESExprTag::Float32 => matches!(b, ESExprTag::Float32),
+			ESExprTag::Float64 => matches!(b, ESExprTag::Float64),
+			ESExprTag::Null => matches!(b, ESExprTag::Null),
+		}
+	}
+}
+
+const fn compare_str_bytes(s1: &[u8], s2: &[u8]) -> bool {
+	if s1.len() != s1.len() {
+		return false;
+	}
+
+	let mut i = 0;
+	while i < s1.len() {
+		if s1[i] != s2[i] {
+			return false;
+		}
+
+		i += 1;
+	}
+
+	true
+}
+
+/// A collection of tags.
+/// Used over standard collections to support const operations.
+#[derive(Clone, Copy, Debug)]
+pub enum ESExprTagCollection {
+	/// A collection of tags.
+	Tags(&'static [ESExprTag<'static>]),
+
+	/// A compound collection of tags.
+	Concat(&'static [ESExprTagCollection]),
+}
+
+impl ESExprTagCollection {
+	/// Check if a tag collection is empty.
+	#[must_use]
+	pub const fn is_empty(self) -> bool {
+		match self {
+			ESExprTagCollection::Tags(tags) => tags.is_empty(),
+			ESExprTagCollection::Concat(mut collections) => loop {
+				let Some((&head, tail)) = collections.split_first()
+				else {
+					return true;
+				};
+
+				if !head.is_empty() {
+					return false;
+				}
+
+				collections = tail;
+			},
+		}
+	}
+
+	/// Check if a tag collection contains a tag.
+	#[must_use]
+	pub const fn contains(self, tag: &ESExprTag<'static>) -> bool {
+		match self {
+			ESExprTagCollection::Tags(mut tags) => loop {
+				let Some((head, tail)) = tags.split_first()
+				else {
+					return false;
+				};
+
+				if head.is_equal(tag) {
+					return true;
+				}
+
+				tags = tail;
+			},
+			ESExprTagCollection::Concat(mut collections) => loop {
+				let Some((&head, tail)) = collections.split_first()
+				else {
+					return false;
+				};
+
+				if head.contains(tag) {
+					return true;
+				}
+
+				collections = tail;
+			},
+		}
+	}
+
+	/// Check if a tag collection is disjoint from another tag collection.
+	#[must_use]
+	pub const fn is_disjoint(self, other: ESExprTagCollection) -> bool {
+		match other {
+			ESExprTagCollection::Tags(mut tags) => loop {
+				let Some((head, tail)) = tags.split_first()
+				else {
+					return true;
+				};
+
+				if self.contains(head) {
+					return false;
+				}
+
+				tags = tail;
+			},
+			ESExprTagCollection::Concat(mut collections) => loop {
+				let Some((&head, tail)) = collections.split_first()
+				else {
+					return true;
+				};
+
+				if !self.is_disjoint(head) {
+					return false;
+				}
+
+				collections = tail;
+			},
+		}
+	}
+}
+
+impl IntoIterator for ESExprTagCollection {
+	type Item = &'static ESExprTag<'static>;
+	type IntoIter = ESExprTagCollectionIter;
+
+	fn into_iter(self) -> Self::IntoIter {
+		ESExprTagCollectionIter {
+			collections: vec![self],
+		}
+	}
+}
+
+/// An iterator over a collection of tags.
+pub struct ESExprTagCollectionIter {
+	collections: Vec<ESExprTagCollection>,
+}
+
+impl Iterator for ESExprTagCollectionIter {
+	type Item = &'static ESExprTag<'static>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		loop {
+			let collection = self.collections.pop()?;
+
+			match collection {
+				ESExprTagCollection::Tags(tags) => {
+					let Some((head, tail)) = tags.split_first()
+					else {
+						continue;
+					};
+
+					self.collections.push(ESExprTagCollection::Tags(tail));
+					return Some(head);
+				},
+				ESExprTagCollection::Concat(collections) => {
+					let Some((&collection, remaining_collections)) = collections.split_first()
+					else {
+						continue;
+					};
+
+					self.collections
+						.push(ESExprTagCollection::Concat(remaining_collections));
+					self.collections.push(collection);
+				},
+			}
+		}
+	}
 }
 
 /// A codec that encodes and decodes `ESExpr` values.
@@ -235,8 +418,14 @@ pub trait ESExprCodec<'a>
 where
 	Self: Sized + 'a,
 {
-	/// The tags that this type is expected to be encoded as.
-	fn tags() -> HashSet<ESExprTag<'static>>;
+	/// The tags of the encoded expressions that this type can produce.
+	const TAGS: ESExprTagCollection;
+
+	/// The tags of the encoded expressions that this type can produce.
+	#[must_use]
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		Self::TAGS.into_iter().cloned().collect()
+	}
 
 	/// Encode this value into an expression.
 	fn encode_esexpr(&'a self) -> ESExpr<'a>;
@@ -249,9 +438,7 @@ where
 }
 
 impl<'a> ESExprCodec<'a> for ESExpr<'a> {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::new()
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		self.as_borrowed()
@@ -263,9 +450,7 @@ impl<'a> ESExprCodec<'a> for ESExpr<'a> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		A::tags()
-	}
+	const TAGS: ESExprTagCollection = A::TAGS;
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		A::encode_esexpr(&**self)
@@ -277,9 +462,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
 }
 
 impl<'a> ESExprCodec<'a> for bool {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Bool])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Bool]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Bool(*self)
@@ -300,9 +483,7 @@ impl<'a> ESExprCodec<'a> for bool {
 }
 
 impl<'a> ESExprCodec<'a> for BigInt {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Int])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Int]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Int(Cow::Borrowed(self))
@@ -323,9 +504,7 @@ impl<'a> ESExprCodec<'a> for BigInt {
 }
 
 impl<'a> ESExprCodec<'a> for BigUint {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Int])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Int]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Int(Cow::Owned(BigInt::from(self.clone())))
@@ -354,9 +533,7 @@ impl<'a> ESExprCodec<'a> for BigUint {
 macro_rules! int_codec {
 	($T: ty) => {
 		impl<'a> ESExprCodec<'a> for $T {
-			fn tags() -> HashSet<ESExprTag<'static>> {
-				HashSet::from([ESExprTag::Int])
-			}
+			const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Int]);
 
 			fn encode_esexpr(&self) -> ESExpr<'a> {
 				ESExpr::Int(Cow::Owned(BigInt::from(*self)))
@@ -398,9 +575,7 @@ int_codec!(i8);
 int_codec!(u8);
 
 impl<'a> ESExprCodec<'a> for String {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Str])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Str(Cow::Borrowed(self))
@@ -421,9 +596,7 @@ impl<'a> ESExprCodec<'a> for String {
 }
 
 impl<'a> ESExprCodec<'a> for f32 {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Float32])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Float32]);
 
 	fn encode_esexpr(&self) -> ESExpr<'a> {
 		ESExpr::Float32(*self)
@@ -444,9 +617,7 @@ impl<'a> ESExprCodec<'a> for f32 {
 }
 
 impl<'a> ESExprCodec<'a> for f64 {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Float64])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Float64]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Float64(*self)
@@ -467,9 +638,7 @@ impl<'a> ESExprCodec<'a> for f64 {
 }
 
 impl<'a> ESExprCodec<'a> for () {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Null])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Null]);
 
 	fn encode_esexpr(&self) -> ESExpr {
 		ESExpr::Null(Cow::Owned(BigUint::ZERO))
@@ -490,9 +659,7 @@ impl<'a> ESExprCodec<'a> for () {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Constructor(Cow::Borrowed("list"))])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("list"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Constructor {
@@ -522,7 +689,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 			},
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: Self::tags(),
+					expected_tags: <Self as ESExprCodec>::tags(),
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -532,11 +699,14 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Option<A> {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		let mut tags = A::tags();
-		tags.insert(ESExprTag::Null);
-		tags
-	}
+	const TAGS: ESExprTagCollection = {
+		if A::TAGS.is_empty() {
+			ESExprTagCollection::Tags(&[])
+		}
+		else {
+			ESExprTagCollection::Concat(&[ESExprTagCollection::Tags(&[ESExprTag::Null]), A::TAGS])
+		}
+	};
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		match self {
@@ -566,9 +736,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Option<A> {
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<String, A, S> {
-	fn tags() -> HashSet<ESExprTag<'static>> {
-		HashSet::from([ESExprTag::Constructor(Cow::Borrowed("dict"))])
-	}
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		let mut kwargs = HashMap::new();
@@ -613,7 +781,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 			},
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
-					expected_tags: Self::tags(),
+					expected_tags: <Self as ESExprCodec>::tags(),
 					actual_tag: expr.tag().into_owned(),
 				},
 				DecodeErrorPath::Current,
@@ -627,6 +795,12 @@ pub trait ESExprOptionalFieldCodec<'a>
 where
 	Self: Sized + 'a,
 {
+	/// The tags of the encoded expressions that this type can produce.
+	const TAGS: ESExprTagCollection;
+
+	/// The tags of the encoded expressions that this type can produce.
+	fn tags() -> HashSet<ESExprTag<'static>>;
+
 	/// Encode an optional field or None when the value should be excluded.
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>>;
 
@@ -638,6 +812,12 @@ where
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
+	const TAGS: ESExprTagCollection = A::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		A::tags()
+	}
+
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		self.as_ref().map(A::encode_esexpr)
 	}
@@ -648,6 +828,12 @@ impl<'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
 }
 
 impl<'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F> {
+	const TAGS: ESExprTagCollection = F::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		F::tags()
+	}
+
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		(**self).encode_optional_field()
 	}
@@ -662,6 +848,12 @@ pub trait ESExprVarArgCodec<'a>
 where
 	Self: Sized + 'a,
 {
+	/// The tags of the encoded expressions that this type can produce.
+	const TAGS: ESExprTagCollection;
+
+	/// The tags of the encoded expressions that this type can produce.
+	fn tags() -> HashSet<ESExprTag<'static>>;
+
 	/// Encode variable arguments
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>);
 
@@ -677,6 +869,12 @@ where
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
+	const TAGS: ESExprTagCollection = A::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		A::tags()
+	}
+
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
 		for arg in self {
 			args.push(arg.encode_esexpr());
@@ -692,7 +890,9 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 			.enumerate()
 			.map(|(i, a)| {
 				A::decode_esexpr(a).map_err(|mut e| {
-					e.error_path_with(|old_path| DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + i, Box::new(old_path)));
+					e.error_path_with(|old_path| {
+						DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + i, Box::new(old_path))
+					});
 					e
 				})
 			})
@@ -701,6 +901,12 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 }
 
 impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
+	const TAGS: ESExprTagCollection = F::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		F::tags()
+	}
+
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
 		(**self).encode_vararg_element(args);
 	}
@@ -719,6 +925,12 @@ pub trait ESExprDictCodec<'a>
 where
 	Self: Sized + 'a,
 {
+	/// The tags of the encoded expressions that this type can produce.
+	const TAGS: ESExprTagCollection;
+
+	/// The tags of the encoded expressions that this type can produce.
+	fn tags() -> HashSet<ESExprTag<'static>>;
+
 	/// Encode dictionary arguments.
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>);
 
@@ -733,6 +945,12 @@ where
 }
 
 impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
+	const TAGS: ESExprTagCollection = F::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		F::tags()
+	}
+
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		(**self).encode_dict_element(kwargs);
 	}
@@ -746,6 +964,12 @@ impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<String, A, S> {
+	const TAGS: ESExprTagCollection = A::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		A::tags()
+	}
+
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		for (k, v) in self {
 			kwargs.insert(Cow::Borrowed(k), v.encode_esexpr());
@@ -760,7 +984,9 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 			.drain()
 			.map(|(k, v)| {
 				let value = A::decode_esexpr(v).map_err(|mut e| {
-					e.error_path_with(|old_path| DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path)));
+					e.error_path_with(|old_path| {
+						DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path))
+					});
 					e
 				})?;
 
@@ -771,6 +997,12 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A, S> {
+	const TAGS: ESExprTagCollection = A::TAGS;
+
+	fn tags() -> HashSet<ESExprTag<'static>> {
+		A::tags()
+	}
+
 	fn encode_dict_element(&'a self, kwargs: &mut HashMap<Cow<'a, str>, ESExpr<'a>>) {
 		for (k, v) in self {
 			kwargs.insert(Cow::Borrowed(k.as_ref()), v.encode_esexpr());
@@ -785,7 +1017,9 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 			.drain()
 			.map(|(k, v)| {
 				let value = A::decode_esexpr(v).map_err(|mut e| {
-					e.error_path_with(|old_path| DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path)));
+					e.error_path_with(|old_path| {
+						DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path))
+					});
 					e
 				})?;
 
@@ -862,4 +1096,24 @@ pub enum DecodeErrorPath {
 
 	/// Error occurred under a keyword argument.
 	Keyword(String, String, Box<DecodeErrorPath>),
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn tag_collection_disjoint() {
+		assert!(
+			ESExprTagCollection::Tags(&[ESExprTag::Int]).is_disjoint(ESExprTagCollection::Tags(&[ESExprTag::Float32])),
+		);
+
+		assert!(
+			ESExprTagCollection::Concat(&[
+				<Option<i32> as ESExprOptionalFieldCodec>::TAGS,
+				<Option<f32> as ESExprOptionalFieldCodec>::TAGS,
+			],)
+			.is_disjoint(<String as ESExprCodec>::TAGS)
+		);
+	}
 }

@@ -6,7 +6,7 @@ use std::str::FromStr;
 use esexpr::ESExpr;
 use hexfloat2::{HexFloat32, HexFloat64};
 use nom::branch::alt;
-use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_while, take_while_m_n, take_while1, take_until};
+use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_until, take_while, take_while_m_n, take_while1};
 use nom::character::complete::{alphanumeric1, char, digit1, hex_digit1, multispace1, none_of, one_of};
 use nom::combinator::{cut, eof, map, map_res, not, opt, peek, recognize, value};
 use nom::multi::{many0, many0_count};
@@ -19,10 +19,10 @@ use num_bigint::{BigInt, BigUint, Sign};
 pub enum LexErrorType {
 	/// Unexpected token.
 	UnexpectedToken,
-	
+
 	/// Unterminated string.
 	UnterminatedString,
-	
+
 	/// Unterminated identifier string.
 	UnterminatedIdentifierString,
 
@@ -92,12 +92,18 @@ fn float_decimal(input: &str) -> IResult<&str, ESExpr<'static>> {
 
 fn parse_dec_float(s: &str) -> ESExpr<'static> {
 	if s.ends_with('f') || s.ends_with('F') {
-		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
 		let f = s.trim_end_matches('f').trim_end_matches('F').parse::<f32>().unwrap();
 		ESExpr::Float32(f)
 	}
 	else {
-		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
 		let d = s.trim_end_matches('f').trim_end_matches('F').parse::<f64>().unwrap();
 		ESExpr::Float64(d)
 	}
@@ -124,18 +130,22 @@ fn float_hex(input: &str) -> IResult<&str, ESExpr<'static>> {
 
 fn parse_hex_float(s: &str) -> ESExpr<'static> {
 	if s.ends_with('f') || s.ends_with('F') {
-		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
-		let f = s
-			.trim_end_matches('f')
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
+		let f = s.trim_end_matches('f')
 			.trim_end_matches('F')
 			.parse::<HexFloat32>()
 			.unwrap();
 		ESExpr::Float32(*f)
 	}
 	else {
-		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
-		let d = s
-			.trim_end_matches('f')
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
+		let d = s.trim_end_matches('f')
 			.trim_end_matches('F')
 			.parse::<HexFloat64>()
 			.unwrap();
@@ -169,7 +179,10 @@ fn integer(input: &str) -> IResult<&str, BigInt> {
 				|s: &str| parse_int_base(s, 16),
 			),
 			map(recognize((opt(one_of("+-")), digit1)), |s: &str| {
-				#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+				#[expect(
+					clippy::unwrap_used,
+					reason = "Shouldn't fail because the parser should ensure the format is valid."
+				)]
 				s.parse::<BigInt>().unwrap()
 			}),
 		)),
@@ -186,19 +199,27 @@ fn parse_int_base(s: &str, radix: u32) -> BigInt {
 		.trim_start_matches("0x")
 		.trim_start_matches("0X");
 
-	let b: Vec<u8> = s.chars().map(|c| {
-		#[expect(
-			clippy::unwrap_used,
-			reason = "Shouldn't fail because the parser should ensure the format is valid."
-		)]
-		#[expect(
-			clippy::cast_possible_truncation,
-			reason = "Shouldn't be out of range because it is a single digit" 
-		)]
-		{ c.to_digit(radix).unwrap() as u8 }
-	}).collect();
+	let b: Vec<u8> = s
+		.chars()
+		.map(|c| {
+			#[expect(
+				clippy::unwrap_used,
+				reason = "Shouldn't fail because the parser should ensure the format is valid."
+			)]
+			#[expect(
+				clippy::cast_possible_truncation,
+				reason = "Shouldn't be out of range because it is a single digit"
+			)]
+			{
+				c.to_digit(radix).unwrap() as u8
+			}
+		})
+		.collect();
 
-	#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+	#[expect(
+		clippy::unwrap_used,
+		reason = "Shouldn't fail because the parser should ensure the format is valid."
+	)]
 	BigInt::from_radix_be(sign, &b, radix).unwrap()
 }
 
@@ -227,7 +248,10 @@ fn string_impl<'a>(
 					delimited(
 						tag("u{"),
 						map_res(hex_digit1, |codepoint| {
-							#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+							#[expect(
+								clippy::unwrap_used,
+								reason = "Shouldn't fail because the parser should ensure the format is valid."
+							)]
 							let codepoint = u32::from_str_radix(codepoint, 16).unwrap();
 							char::from_u32(codepoint).ok_or(LexErrorType::InvalidUnicodeCodePoint(codepoint))
 						}),
@@ -247,7 +271,10 @@ fn binary(input: &str) -> IResult<&str, Vec<u8>> {
 
 fn hex_byte(input: &str) -> IResult<&str, u8> {
 	map(take_while_m_n(2, 2, |c: char| c.is_ascii_hexdigit()), |s| {
-		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
 		u8::from_str_radix(s, 16).unwrap()
 	})
 	.parse(input)
@@ -303,7 +330,10 @@ fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
 
 fn null_atom(input: &str) -> IResult<&str, ESExpr<'static>> {
 	map((skip_ws, tag("#null"), digit1, not(alphanumeric1)), |(_, _, n, _)| {
-		#[expect(clippy::unwrap_used, reason = "Shouldn't fail because the parser should ensure the format is valid.")]
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
 		ESExpr::Null(Cow::Owned(BigUint::from_str(n).unwrap()))
 	})
 	.parse(input)
@@ -338,7 +368,6 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
 pub(crate) fn expr_file(input: &str) -> IResult<&str, ESExpr<'static>> {
 	terminated(terminated(expr, skip_ws), eof).parse(input)
 }
-
 
 pub(crate) fn multi_expr_file(input: &str) -> IResult<&str, Vec<ESExpr<'static>>> {
 	terminated(terminated(many0(expr), skip_ws), eof).parse(input)

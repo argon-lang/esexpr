@@ -2,8 +2,13 @@
 resolver = "2"
 
 members = [
-    "esexpr", "esexpr-utils", "esexpr-binary",
-    "esexpr-derive", "esexpr-json", "esexpr-text",
+    "esexpr",
+    "esexpr-binary",
+    "esexpr-derive",
+    "esexpr-examples",
+    "esexpr-json",
+    "esexpr-text",
+    "esexpr-utils",
 ]
 
 [workspace.dependencies]
@@ -24,6 +29,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140", features = ["float_roundtrip"] }
 static_assertions = "1.1.0"
 syn = { version = "2.0.103", features = ["derive", "full"] }
+ui_test = "0.30.1"
 
 [workspace.lints.rust]
 macro_use_extern_crate = "deny"
@@ -52,4 +58,5 @@ collapsible_else_if = "allow"
 similar_names = "allow"
 mismatching_type_param_order = "allow"
 ignored_unit_patterns = "allow"
+tabs_in_doc_comments = "allow"
 
