@@ -1,6 +1,9 @@
-use std::cell::UnsafeCell;
+use core::cell::UnsafeCell;
 
 use static_assertions::assert_not_impl_any;
+
+use alloc::string::String;
+use alloc::vec::Vec;
 
 pub struct AppendOnlyStringList {
 	values: UnsafeCell<Vec<String>>,
@@ -38,6 +41,8 @@ assert_not_impl_any!(AppendOnlyStringList: Sync);
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use alloc::vec;
+	use alloc::borrow::ToOwned;
 
 	#[test]
 	fn test_new_list_is_empty() {
@@ -48,7 +53,7 @@ mod tests {
 	#[test]
 	fn test_append_and_get() {
 		let list = AppendOnlyStringList::from(vec![]);
-		list.push("Hello".to_string());
+		list.push("Hello".to_owned());
 
 		assert_eq!(list.get(0), Some("Hello"));
 		assert_eq!(list.get(1), None);
@@ -57,9 +62,9 @@ mod tests {
 	#[test]
 	fn test_multiple_appends() {
 		let list = AppendOnlyStringList::from(vec![]);
-		list.push("First".to_string());
-		list.push("Second".to_string());
-		list.push("Third".to_string());
+		list.push("First".to_owned());
+		list.push("Second".to_owned());
+		list.push("Third".to_owned());
 
 		assert_eq!(list.get(0), Some("First"));
 		assert_eq!(list.get(1), Some("Second"));
@@ -70,7 +75,7 @@ mod tests {
 	#[test]
 	fn test_out_of_bounds() {
 		let list = AppendOnlyStringList::from(vec![]);
-		list.push("Test".to_string());
+		list.push("Test".to_owned());
 
 		assert_eq!(list.get(100), None);
 	}
@@ -83,13 +88,13 @@ mod tests {
 			let values = list.values.get().as_mut().unwrap();
 			values.reserve_exact(1);
 		}
-		list.push("A".to_string());
+		list.push("A".to_owned());
 		let a1 = list.get(0).unwrap() as *const str;
 		let sp1: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };
 
 		let mut a2;
 		loop {
-			list.push("B".to_string());
+			list.push("B".to_owned());
 
 			a2 = list.get(0).unwrap() as *const str;
 			let sp2: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };

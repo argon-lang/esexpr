@@ -94,10 +94,10 @@ enum SimpleEnum {
 #[constructor = "many"]
 struct ManyArgsStruct {
 	#[vararg]
-	args: Vec<bool>,
+	args: alloc::vec::Vec<bool>,
 
 	#[dict]
-	kwargs: std::collections::HashMap<String, bool>,
+	kwargs: alloc::collections::BTreeMap<alloc::string::String, bool>,
 }
 
 #[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
@@ -105,10 +105,10 @@ enum ManyArgsEnum {
 	#[constructor = "many"]
 	Value {
 		#[vararg]
-		args: Vec<bool>,
+		args: alloc::vec::Vec<bool>,
 
 		#[dict]
-		kwargs: std::collections::HashMap<String, bool>,
+		kwargs: alloc::collections::BTreeMap<alloc::string::String, bool>,
 	},
 }
 
@@ -132,7 +132,7 @@ pub struct RequiredAfterOptionalPositional1 {
 	#[optional]
 	pub b: Option<f32>,
 
-	pub c: String,
+	pub c: alloc::string::String,
 }
 
 #[derive(esexpr::ESExprCodec)]
@@ -143,18 +143,20 @@ pub struct RequiredAfterOptionalPositional2 {
 	#[optional]
 	pub b: Option<f32>,
 
-	pub c: String,
+	pub c: alloc::string::String,
 
 	pub d: i32,
 }
 
 #[derive(esexpr::ESExprCodec)]
-struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] Vec<f32>);
+struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] alloc::vec::Vec<f32>);
 
 #[cfg(test)]
 mod tests {
-	use std::borrow::Cow;
-	use std::collections::HashMap;
+	use alloc::borrow::Cow;
+	use alloc::collections::BTreeMap;
+	use alloc::borrow::ToOwned;
+	use alloc::vec;
 
 	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, esexpr};
 
@@ -354,7 +356,7 @@ mod tests {
 		};
 		let value = ManyArgsStruct {
 			args: vec![true, true, false],
-			kwargs: HashMap::from([("a".to_owned(), true), ("b".to_owned(), true), ("z".to_owned(), false)]),
+			kwargs: BTreeMap::from([("a".to_owned(), true), ("b".to_owned(), true), ("z".to_owned(), false)]),
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
@@ -362,7 +364,7 @@ mod tests {
 
 		let value = ManyArgsEnum::Value {
 			args: vec![true, true, false],
-			kwargs: HashMap::from([("a".to_owned(), true), ("b".to_owned(), true), ("z".to_owned(), false)]),
+			kwargs: BTreeMap::from([("a".to_owned(), true), ("b".to_owned(), true), ("z".to_owned(), false)]),
 		};
 
 		assert_eq!(expr, value.encode_esexpr());

@@ -1,8 +1,14 @@
 //! Representations of `ESExpr` as JSON and vice versa.
+#![no_std]
+
+extern crate core;
+extern crate alloc;
 
 use core::f32;
-use std::borrow::Cow;
-use std::collections::HashMap;
+use alloc::borrow::{Cow, ToOwned};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
@@ -16,7 +22,7 @@ pub enum JsonExpr {
 	Obj {
 		/// The fields of the object.
 		#[dict]
-		values: HashMap<String, JsonExpr>,
+		values: BTreeMap<String, JsonExpr>,
 	},
 
 	/// A JSON Array
@@ -55,7 +61,7 @@ impl JsonExpr {
 				let values = obj
 					.into_iter()
 					.map(|(k, v)| Some((k, Self::from_json(v)?)))
-					.collect::<Option<HashMap<_, _>>>()?;
+					.collect::<Option<BTreeMap<_, _>>>()?;
 
 				JsonExpr::Obj { values }
 			},
@@ -95,7 +101,7 @@ pub enum JsonEncodedESExpr {
 		/// The positional arguments
 		args: Option<Vec<JsonEncodedESExpr>>,
 		/// The keyword arguments
-		kwargs: Option<HashMap<String, JsonEncodedESExpr>>,
+		kwargs: Option<BTreeMap<String, JsonEncodedESExpr>>,
 	},
 	/// A list of expressions
 	List(Vec<JsonEncodedESExpr>),
@@ -232,7 +238,7 @@ struct Base64Visitor;
 impl<'de> serde::de::Visitor<'de> for Base64Visitor {
 	type Value = Vec<u8>;
 
-	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+	fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
 		formatter.write_str("a base64 encoded string")
 	}
 
@@ -270,7 +276,7 @@ mod serde_f32 {
 		impl<'de> serde::de::Visitor<'de> for Float32ValueVisitor {
 			type Value = f32;
 
-			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+			fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
 				formatter.write_str("a number or a string containing nan, +inf, or -inf")
 			}
 
@@ -327,7 +333,7 @@ mod serde_f64 {
 		impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
 			type Value = f64;
 
-			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+			fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
 				formatter.write_str("a number or a string containing nan, +inf, or -inf")
 			}
 
@@ -366,6 +372,7 @@ mod serde_f64 {
 mod serde_bigint {
 	use num_bigint::BigInt;
 	use serde::Deserialize;
+	use alloc::string::{String, ToString};
 
 	pub fn serialize<S: serde::Serializer>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error> {
 		serializer.serialize_str(&value.to_string())
@@ -383,6 +390,7 @@ mod serde_bigint {
 mod serde_biguint {
 	use num_bigint::BigUint;
 	use serde::Deserialize;
+	use alloc::string::{String, ToString};
 
 	pub fn serialize<S: serde::Serializer>(value: &BigUint, serializer: S) -> Result<S::Ok, S::Error> {
 		serializer.serialize_str(&value.to_string())

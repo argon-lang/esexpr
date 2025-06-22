@@ -155,7 +155,7 @@ fn generate_constructor(constructor: ESExprConstructorLiteral) -> TokenStream {
 			ESExprConstructorArgument::Keyword(name, literal) => {
 				let literal_expr = generate_literal(literal);
 				kwargs.push(quote! {
-					(::std::borrow::Cow::Borrowed(#name), #literal_expr),
+					(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#name), #literal_expr),
 				});
 			},
 		}
@@ -163,11 +163,11 @@ fn generate_constructor(constructor: ESExprConstructorLiteral) -> TokenStream {
 
 	quote! {
 		::esexpr::ESExpr::Constructor {
-			name: ::std::borrow::Cow::Borrowed(#name),
-			args: ::std::borrow::Cow::Owned(vec![
+			name: ::esexpr::core_types::alloc::borrow::Cow::Borrowed(#name),
+			args: ::esexpr::core_types::alloc::borrow::Cow::Owned(::esexpr::core_types::alloc::vec![
 				#(#args,)*
 			]),
-			kwargs: ::std::borrow::Cow::Owned(::std::collections::HashMap::from([
+			kwargs: ::esexpr::core_types::alloc::borrow::Cow::Owned(::esexpr::core_types::alloc::collections::BTreeMap::from([
 				#(#kwargs)*
 			]))
 		}
@@ -180,10 +180,10 @@ fn generate_scalar(scalar: ESExprScalarLiteral) -> TokenStream {
 			::esexpr::ESExpr::Bool(#bool)
 		},
 		ESExprScalarLiteral::Str(str) => quote! {
-			::esexpr::ESExpr::Str(::std::borrow::Cow::Borrowed(#str))
+			::esexpr::ESExpr::Str(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#str))
 		},
 		ESExprScalarLiteral::Int(int) => quote! {
-			::esexpr::ESExpr::Int(::std::borrow::Cow::Owned(::num_bigint::BigInt::from(#int)))
+			::esexpr::ESExpr::Int(::esexpr::core_types::alloc::borrow::Cow::Owned(::num_bigint::BigInt::from(#int)))
 		},
 		ESExprScalarLiteral::Float(float) => {
 			if float.suffix().eq_ignore_ascii_case("f32") {
@@ -202,6 +202,6 @@ fn generate_scalar(scalar: ESExprScalarLiteral) -> TokenStream {
 
 fn generate_null(level: u32) -> TokenStream {
 	quote! {
-		::esexpr::ESExpr::Null(::std::borrow::Cow::Owned(::num_bigint::BigUint::from(#level)))
+		::esexpr::ESExpr::Null(::esexpr::core_types::alloc::borrow::Cow::Owned(::num_bigint::BigUint::from(#level)))
 	}
 }

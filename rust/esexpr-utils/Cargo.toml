@@ -2,7 +2,8 @@
 name = "esexpr-utils"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.87.0"
 
 [dependencies]
 esexpr-text = { workspace = true }
-esexpr-binary = { workspace = true }
+esexpr-binary = { workspace = true, features = ["std"] }

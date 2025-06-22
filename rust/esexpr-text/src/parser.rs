@@ -1,7 +1,9 @@
 use core::f32;
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::str::FromStr;
+use alloc::borrow::Cow;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use alloc::string::String;
+use core::str::FromStr;
 
 use esexpr::ESExpr;
 use hexfloat2::{HexFloat32, HexFloat64};
@@ -13,6 +15,7 @@ use nom::multi::{many0, many0_count};
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
 use nom::{IResult, Parser};
 use num_bigint::{BigInt, BigUint, Sign};
+
 
 /// Represents a lexer error.
 #[derive(Debug, Clone, PartialEq)]
@@ -299,7 +302,7 @@ fn constructor(input: &str) -> IResult<&str, ESExpr<'static>> {
 
 fn build_constructor(name: String, ctor_args: Vec<ConstructorArg>) -> ESExpr<'static> {
 	let mut args = Vec::new();
-	let mut kwargs = HashMap::new();
+	let mut kwargs = BTreeMap::new();
 
 	for arg in ctor_args {
 		match arg {

@@ -2,8 +2,8 @@
 name = "esexpr"
 version = "0.1.20"
 edition = "2024"
-license = "Apache-2.0"
 rust-version = "1.87.0"
+license = "Apache-2.0"
 description = "ESExpr serialization format and related utilities."
 documentation = "https://docs.rs/esexpr"
 homepage = "https://github.com/argon-lang/esexpr"
@@ -12,7 +12,8 @@ categories = [ "encoding" ]
 readme = "README.md"
 
 [features]
-default = []
+default = ["std"]
+std = ["esexpr-derive/macro_std", "num-bigint/std"]
 
 [dependencies]
 num-bigint = { workspace = true }

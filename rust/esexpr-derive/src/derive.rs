@@ -94,7 +94,7 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 				#encode
 			}
 
-			fn decode_esexpr(expr: ::esexpr::ESExpr<'esexpr_lifetime>) -> ::core::result::Result<Self, ::esexpr::DecodeError> {
+			fn decode_esexpr(expr: ::esexpr::ESExpr<'esexpr_lifetime>) -> ::esexpr::core_types::core::result::Result<Self, ::esexpr::DecodeError> {
 				#decode
 			}
 		}
@@ -198,7 +198,7 @@ fn param_to_arg(p: &GenericParam) -> GenericArgument {
 
 fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenRes {
 	fn make_constructor_expr(name: &Expr) -> Expr {
-		parse_quote! { ::esexpr::ESExprTag::Constructor(::std::borrow::Cow::Borrowed(#name)) }
+		parse_quote! { ::esexpr::ESExprTag::Constructor(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#name)) }
 	}
 
 	fn make_set_of(e: Expr) -> proc_macro2::TokenStream {
@@ -253,13 +253,13 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 			})?;
 
 			quote! {
-				let mut args = ::std::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
-				let mut kwargs = ::std::collections::HashMap::<::std::borrow::Cow<'esexpr_lifetime, ::std::primitive::str>, ::esexpr::ESExpr>::new();
+				let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
+				let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::core_types::alloc::borrow::Cow<'esexpr_lifetime, ::core::primitive::str>, ::esexpr::ESExpr>::new();
 				#encode_fields
 				::esexpr::ESExpr::Constructor {
-					name: ::std::borrow::Cow::Borrowed(#constructor_name),
-					args: ::std::borrow::Cow::Owned(args),
-					kwargs: ::std::borrow::Cow::Owned(kwargs),
+					name: ::esexpr::core_types::alloc::borrow::Cow::Borrowed(#constructor_name),
+					args: ::esexpr::core_types::alloc::borrow::Cow::Owned(args),
+					kwargs: ::esexpr::core_types::alloc::borrow::Cow::Owned(kwargs),
 				}
 			}
 		},
@@ -273,7 +273,7 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					let case_name_str = &make_constructor_name(&c.attrs, case_name)?;
 
 					Ok(quote! {
-						#type_name::#case_name => ::esexpr::ESExpr::Str(::std::borrow::Cow::Borrowed(#case_name_str)),
+						#type_name::#case_name => ::esexpr::ESExpr::Str(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#case_name_str)),
 					})
 				})
 				.collect::<Result<_, _>>()?;
@@ -344,13 +344,13 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 
                     Ok(quote! {
                         #pattern => {
-                            let mut args = ::std::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
-                            let mut kwargs = ::std::collections::HashMap::<::std::borrow::Cow<'esexpr_lifetime, ::std::primitive::str>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
+                            let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
+                            let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::core_types::alloc::borrow::Cow<'esexpr_lifetime, ::esexpr::core_types::core::primitive::str>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
                             #encode_fields
                             ::esexpr::ESExpr::Constructor {
-                                name: ::std::borrow::Cow::Borrowed(#constructor_name),
-                                args: ::std::borrow::Cow::Owned(args),
-                                kwargs: ::std::borrow::Cow::Owned(kwargs),
+                                name: ::esexpr::core_types::alloc::borrow::Cow::Borrowed(#constructor_name),
+                                args: ::esexpr::core_types::alloc::borrow::Cow::Owned(args),
+                                kwargs: ::esexpr::core_types::alloc::borrow::Cow::Owned(kwargs),
                             }
                         }
                     })
@@ -455,20 +455,20 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 kwarg_names.insert(kw_name);
 
                 if has_optional_attribute(&field.attrs)? {
-                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(::std::borrow::Cow::Borrowed(#kw), value); } }
+                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), value); } }
                 }
                 else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
                     quote! {
                         {
                             let value = #field_expr;
                             if *value != #default_value {
-                                kwargs.insert(::std::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
+                                kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
                             }
                         }
                     }
                 }
                 else {
-                    quote! { kwargs.insert(::std::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
+                    quote! { kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
                 }
             }
             else if has_dict_attribute(&field.attrs)? {
@@ -549,7 +549,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 
 			quote! {
 				if let (::esexpr::ESExpr::Constructor { name, args, kwargs }) = expr {
-					let mut args = ::std::collections::VecDeque::from(args.into_owned());
+					let mut args = ::esexpr::core_types::alloc::collections::VecDeque::from(args.into_owned());
 					let mut kwargs = kwargs.into_owned();
 					if name == #constructor_name {
 						Ok(#decode_fields)
@@ -558,7 +558,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
 								expected_tags: <Self as ::esexpr::ESExprCodec>::TAGS,
-								actual_tag: ::esexpr::ESExprTag::Constructor(::std::borrow::Cow::Owned(name.into_owned())),
+								actual_tag: ::esexpr::ESExprTag::Constructor(::esexpr::core_types::alloc::borrow::Cow::Owned(name.into_owned())),
 							},
 							::esexpr::DecodeErrorPath::Current,
 						))?
@@ -597,7 +597,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					::esexpr::ESExpr::Str(s) => match s.as_ref() {
 						#decode_cases
 						_ => Err(::esexpr::DecodeError::new(
-							::esexpr::DecodeErrorType::OutOfRange(format!("Invalid value for simple enum {}: {}", #type_name_str, s)),
+							::esexpr::DecodeErrorType::OutOfRange(::esexpr::core_types::alloc::format!("Invalid value for simple enum {}: {}", #type_name_str, s)),
 							::esexpr::DecodeErrorPath::Current,
 						)),
 					},
@@ -635,7 +635,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 
 						Ok(quote! {
 							_ if <#field_type as ::esexpr::ESExprCodec>::TAGS.contains(&expr.tag()) => {
-								::std::result::Result::Ok(#case_value)
+								::esexpr::core_types::core::result::Result::Ok(#case_value)
 							},
 						})
 					}
@@ -644,9 +644,9 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						let decode_fields = make_decode_fields(&c.fields, &name, quote! { #type_name::#case_name })?;
 						Ok(quote! {
 							::esexpr::ESExpr::Constructor { name, args, kwargs } if name == #name => {
-								let mut args = ::std::collections::VecDeque::from(args.into_owned());
+								let mut args = ::esexpr::core_types::alloc::collections::VecDeque::from(args.into_owned());
 								let mut kwargs = kwargs.into_owned();
-								::std::result::Result::Ok(#decode_fields)
+								::esexpr::core_types::core::result::Result::Ok(#decode_fields)
 							},
 						})
 					}
@@ -738,8 +738,8 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 			quote! {
 				<#field_type as ::esexpr::ESExprCodec>::decode_esexpr(
 					kwargs.remove(#kw).ok_or_else(|| ::esexpr::DecodeError::new(
-						::esexpr::DecodeErrorType::MissingKeyword(#kw.to_owned()),
-						::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
+						::esexpr::DecodeErrorType::MissingKeyword(::esexpr::core_types::alloc::string::String::from(#kw)),
+						::esexpr::DecodeErrorPath::Constructor(::esexpr::core_types::alloc::string::String::from(#constructor_name))
 					))?
 				).map_err(#error_mapping)?
 			}
@@ -792,7 +792,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 				else {
 					Err(::esexpr::DecodeError::new(
 						::esexpr::DecodeErrorType::MissingPositional,
-						::esexpr::DecodeErrorPath::Constructor(#constructor_name.to_owned())
+						::esexpr::DecodeErrorPath::Constructor(::esexpr::core_types::alloc::string::String::from(#constructor_name))
 					))?
 				}
 			}
@@ -804,11 +804,11 @@ fn make_error_mapping(constructor_name: &Expr, path: FieldPath) -> proc_macro2::
 	match path {
 		FieldPath::Positional(i) => {
 			let i_expr = Literal::usize_suffixed(i);
-			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Positional(#constructor_name.to_owned(), #i_expr, Box::new(p))); e } }
+			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Positional(::esexpr::core_types::alloc::string::String::from(#constructor_name), #i_expr, ::esexpr::core_types::alloc::boxed::Box::new(p))); e } }
 		},
 
 		FieldPath::Keyword(name) => {
-			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Keyword(#constructor_name.to_owned(), #name.to_owned(), Box::new(p))); e } }
+			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Keyword(::esexpr::core_types::alloc::string::String::from(#constructor_name), ::esexpr::core_types::alloc::string::String::from(#name), ::esexpr::core_types::alloc::boxed::Box::new(p))); e } }
 		},
 	}
 }

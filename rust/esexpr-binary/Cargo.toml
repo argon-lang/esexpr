@@ -2,8 +2,8 @@
 name = "esexpr-binary"
 version = "0.1.20"
 edition = "2024"
-license = "Apache-2.0"
 rust-version = "1.87.0"
+license = "Apache-2.0"
 description = "ESExpr serialization binary format."
 documentation = "https://docs.rs/esexpr-binary"
 homepage = "https://github.com/argon-lang/esexpr"
@@ -11,8 +11,11 @@ repository = "https://github.com/argon-lang/esexpr"
 categories = [ "encoding" ]
 readme = "README.md"
 
+[features]
+std = []
+
 [dependencies]
-esexpr = { workspace = true }
+esexpr = { workspace = true, features = ["std"] }
 num-bigint = { workspace = true }
 derive_more = { workspace = true }
 static_assertions = { workspace = true }

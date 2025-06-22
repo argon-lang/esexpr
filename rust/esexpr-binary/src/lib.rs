@@ -1,53 +1,77 @@
 //! Binary format for `ESExpr`.
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+extern crate core;
+extern crate alloc;
 
 mod append_only_string_list;
+mod io;
 
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::io::{Read, Write};
+use alloc::borrow::{Cow, ToOwned};
+use alloc::collections::BTreeMap;
+use io::{Read, Write};
 
 use derive_more::From;
 use esexpr::{ESExpr, ESExprCodec};
 use num_bigint::{BigInt, BigUint, Sign};
-
+use alloc::string::String;
+use alloc::vec::Vec;
+use alloc::vec;
+use core::marker::PhantomData;
+use core::convert::Infallible;
 use crate::append_only_string_list::AppendOnlyStringList;
 
 /// `ESExpr` binary format parse error.
-#[derive(From, Debug)]
-pub enum ParseError {
+#[derive(Debug)]
+pub enum ParseError<IOError> {
 	/// Invalid token byte.
-	#[from(ignore)]
 	InvalidTokenByte(u8),
 
 	/// Invalid string table index.
-	#[from(ignore)]
 	InvalidStringTableIndex,
 
 	/// Invalid length.
-	#[from(ignore)]
 	InvalidLength,
 
 	/// Unexpected keyword token.
-	#[from(ignore)]
 	UnexpectedKeywordToken,
 
 	/// Unexpected constructor end.
-	#[from(ignore)]
 	UnexpectedConstructorEnd,
 
 	/// Unexpected end of file.
-	#[from(ignore)]
 	UnexpectedEndOfFile,
 
 	/// Invalid string pool.
-	#[from(ignore)]
 	InvalidStringPool(esexpr::DecodeError),
 
 	/// IO error.
-	IOError(std::io::Error),
+	IOError(IOError),
 
 	/// Utf8 error.
-	Utf8Error(std::str::Utf8Error),
+	Utf8Error(core::str::Utf8Error),
+}
+
+#[cfg(feature = "std")]
+impl From<std::io::Error> for ParseError<std::io::Error> {
+	fn from(value: std::io::Error) -> Self {
+		ParseError::IOError(value)
+	}
+}
+
+impl <IOError> From<core::str::Utf8Error> for ParseError<IOError> {
+	fn from(err: core::str::Utf8Error) -> Self {
+		ParseError::Utf8Error(err)
+	}
+}
+
+impl <IOError> From<alloc::string::FromUtf8Error> for ParseError<IOError> {
+	fn from(value: alloc::string::FromUtf8Error) -> Self {
+		ParseError::Utf8Error(value.utf8_error())
+	}
 }
 
 enum VarIntTag {
@@ -106,22 +130,23 @@ enum ExprPlus<'a> {
 	EndOfFile,
 }
 
-struct TokenReader<R> {
+struct TokenReader<R, E> {
 	read: R,
+	error: core::marker::PhantomData<E>,
 }
 
-impl<R: Read> Iterator for TokenReader<R> {
-	type Item = Result<ExprToken, ParseError>;
+impl<E, R: Read<E>> Iterator for TokenReader<R, E> {
+	type Item = Result<ExprToken, ParseError<E>>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		read_token_impl(self).transpose()
 	}
 }
 
-fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprToken>, ParseError> {
+fn read_token_impl<E, R: Read<E>>(reader: &mut TokenReader<R, E>) -> Result<Option<ExprToken>, ParseError<E>> {
 	let mut b: [u8; 1] = [0];
 
-	if reader.read.read(&mut b)? == 0 {
+	if reader.read.read(&mut b).map_err(ParseError::IOError)? == 0 {
 		return Ok(None);
 	}
 
@@ -179,14 +204,14 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
 			VarIntTag::StringLengthValue => {
 				let len = get_length(n)?;
 				let mut buff = vec![0u8; len];
-				reader.read.read_exact(&mut buff)?;
-				ExprToken::StringValue(std::str::from_utf8(&buff)?.to_owned())
+				read_exact(reader, &mut buff)?;
+				ExprToken::StringValue(String::from_utf8(buff)?.to_owned())
 			},
 			VarIntTag::StringPoolValue => ExprToken::StringPoolValue(get_string_table_index(n)?),
 			VarIntTag::BytesLengthValue => {
 				let len = get_length(n)?;
 				let mut buff = vec![0u8; len];
-				reader.read.read_exact(&mut buff)?;
+				read_exact(reader, &mut buff)?;
 				ExprToken::BinaryValue(buff)
 			},
 			VarIntTag::KeywordArgument => ExprToken::Keyword(get_string_table_index(n)?),
@@ -194,7 +219,7 @@ fn read_token_impl<R: Read>(reader: &mut TokenReader<R>) -> Result<Option<ExprTo
 	}))
 }
 
-fn read_int<R: Read>(reader: &mut TokenReader<R>, initial: u8) -> Result<BigUint, ParseError> {
+fn read_int<E, R: Read<E>>(reader: &mut TokenReader<R, E>, initial: u8) -> Result<BigUint, ParseError<E>> {
 	let current = initial & 0x0F;
 	let bit_offset = 4;
 	let has_next = (initial & 0x10) == 0x10;
@@ -202,7 +227,7 @@ fn read_int<R: Read>(reader: &mut TokenReader<R>, initial: u8) -> Result<BigUint
 	read_int_rest(reader, current, bit_offset, has_next)
 }
 
-fn read_int_full<R: Read>(reader: &mut TokenReader<R>) -> Result<BigUint, ParseError> {
+fn read_int_full<E, R: Read<E>>(reader: &mut TokenReader<R, E>) -> Result<BigUint, ParseError<E>> {
 	let current = 0;
 	let bit_offset = 0;
 	let has_next = true;
@@ -210,12 +235,12 @@ fn read_int_full<R: Read>(reader: &mut TokenReader<R>) -> Result<BigUint, ParseE
 	read_int_rest(reader, current, bit_offset, has_next)
 }
 
-fn read_int_rest<R: Read>(
-	reader: &mut TokenReader<R>,
+fn read_int_rest<E, R: Read<E>>(
+	reader: &mut TokenReader<R, E>,
 	mut current: u8,
 	mut bit_offset: i32,
 	mut has_next: bool,
-) -> Result<BigUint, ParseError> {
+) -> Result<BigUint, ParseError<E>> {
 	let mut buffer = Vec::new();
 
 	while has_next {
@@ -243,41 +268,54 @@ fn read_int_rest<R: Read>(
 	Ok(BigUint::from_bytes_le(&buffer))
 }
 
-fn read_bytes<R: Read, const N: usize>(reader: &mut TokenReader<R>) -> Result<[u8; N], std::io::Error> {
+fn read_bytes<E, R: Read<E>, const N: usize>(reader: &mut TokenReader<R, E>) -> Result<[u8; N], ParseError<E>> {
 	let mut b: [u8; N] = [0; N];
-	reader.read.read_exact(&mut b)?;
+	read_exact(reader, &mut b)?;
 	Ok(b)
 }
 
-fn read_byte<R: Read>(reader: &mut TokenReader<R>) -> Result<u8, std::io::Error> {
-	Ok(read_bytes::<R, 1>(reader)?[0])
+fn read_exact<E, R: Read<E>>(reader: &mut TokenReader<R, E>, mut buf: &mut [u8]) -> Result<(), ParseError<E>> {
+	while !buf.is_empty() {
+		let n = reader.read.read(buf).map_err(ParseError::IOError)?;
+		if n == 0 {
+			return Err(ParseError::UnexpectedEndOfFile);
+		}
+
+		buf = &mut buf[n..];
+	}
+
+	Ok(())
 }
 
-fn get_string_table_index(i: BigUint) -> Result<usize, ParseError> {
+fn read_byte<E, R: Read<E>>(reader: &mut TokenReader<R, E>) -> Result<u8, ParseError<E>> {
+	Ok(read_bytes::<E, R, 1>(reader)?[0])
+}
+
+fn get_string_table_index<E>(i: BigUint) -> Result<usize, ParseError<E>> {
 	i.try_into().map_err(|_| ParseError::InvalidStringTableIndex)
 }
 
-fn get_length(i: BigUint) -> Result<usize, ParseError> {
+fn get_length<E>(i: BigUint) -> Result<usize, ParseError<E>> {
 	i.try_into().map_err(|_| ParseError::InvalidLength)
 }
 
 /// An expression parser
-pub trait ExprParser {
+pub trait ExprParser<E> {
 	/// Try to read the next expression.
 	///
 	/// # Errors
 	/// Returns `Err` if an error occurs during parsing.
-	fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError>;
+	fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError<E>>;
 
 	/// Read the next expression
 	///
 	/// # Errors
 	/// Returns `Err` if an error occurs during parsing, or if the end of the input is reached.
-	fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError>;
+	fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError<E>>;
 
 	/// Read all expressions, copying values when needed.
-	fn iter_static(&mut self) -> impl Iterator<Item = Result<ESExpr<'static>, ParseError>> {
-		std::iter::from_fn(move || {
+	fn iter_static(&mut self) -> impl Iterator<Item = Result<ESExpr<'static>, ParseError<E>>> {
+		core::iter::from_fn(move || {
 			self.try_read_next_expr()
 				.map(|res| res.map(ESExpr::into_owned))
 				.transpose()
@@ -290,20 +328,20 @@ struct ExprParserImpl<I> {
 	iter: I,
 }
 
-impl<I: Iterator<Item = Result<ExprToken, ParseError>>> ExprParser for ExprParserImpl<I> {
-	fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError> {
+impl<E, I: Iterator<Item = Result<ExprToken, ParseError<E>>>> ExprParser<E> for ExprParserImpl<I> {
+	fn try_read_next_expr<'a>(&'a mut self) -> Result<Option<ESExpr<'a>>, ParseError<E>> {
 		try_read_next_expr_impl(&mut self.iter, &self.string_pool)
 	}
 
-	fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError> {
+	fn read_next_expr<'a>(&'a mut self) -> Result<ESExpr<'a>, ParseError<E>> {
 		read_next_expr_impl(&mut self.iter, &self.string_pool)
 	}
 }
 
-fn try_read_next_expr_impl<'a>(
-	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError>>,
+fn try_read_next_expr_impl<'a, E>(
+	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError<E>>>,
 	string_pool: &'a AppendOnlyStringList,
-) -> Result<Option<ESExpr<'a>>, ParseError> {
+) -> Result<Option<ESExpr<'a>>, ParseError<E>> {
 	loop {
 		return match read_expr_plus(iter, string_pool)? {
 			ExprPlus::Expr(expr) => Ok(Some(expr)),
@@ -315,17 +353,17 @@ fn try_read_next_expr_impl<'a>(
 	}
 }
 
-fn read_next_expr_impl<'a>(
-	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError>>,
+fn read_next_expr_impl<'a, E>(
+	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError<E>>>,
 	string_pool: &'a AppendOnlyStringList,
-) -> Result<ESExpr<'a>, ParseError> {
+) -> Result<ESExpr<'a>, ParseError<E>> {
 	try_read_next_expr_impl(iter, string_pool)?.ok_or(ParseError::UnexpectedEndOfFile)
 }
 
-fn read_expr_plus<'a>(
-	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError>>,
+fn read_expr_plus<'a, E>(
+	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError<E>>>,
 	string_pool: &'a AppendOnlyStringList,
-) -> Result<ExprPlus<'a>, ParseError> {
+) -> Result<ExprPlus<'a>, ParseError<E>> {
 	let Some(token) = iter.next().transpose()?
 	else {
 		return Ok(ExprPlus::EndOfFile);
@@ -362,13 +400,13 @@ fn read_expr_plus<'a>(
 		},
 	}))
 }
-fn read_expr_constructor<'a>(
-	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError>>,
+fn read_expr_constructor<'a, E>(
+	iter: &mut impl Iterator<Item = Result<ExprToken, ParseError<E>>>,
 	string_pool: &'a AppendOnlyStringList,
 	name: &'a str,
-) -> Result<ESExpr<'a>, ParseError> {
+) -> Result<ESExpr<'a>, ParseError<E>> {
 	let mut args = Vec::new();
-	let mut kwargs = HashMap::new();
+	let mut kwargs = BTreeMap::new();
 
 	loop {
 		match read_expr_plus(iter, string_pool)? {
@@ -391,67 +429,79 @@ fn read_expr_constructor<'a>(
 	})
 }
 
-fn get_string<'a>(string_pool: &'a AppendOnlyStringList, i: usize) -> Result<&'a str, ParseError> {
+fn get_string<'a, E>(string_pool: &'a AppendOnlyStringList, i: usize) -> Result<&'a str, ParseError<E>> {
 	string_pool.get(i).ok_or(ParseError::InvalidStringTableIndex)
 }
 
 /// Parse binary input as `ESExpr` using an existing string pool
-pub fn parse_existing_string_pool<'a, F: Read + 'a>(f: F, string_pool: Vec<String>) -> impl ExprParser + 'a {
+pub fn parse_existing_string_pool<'a, E: 'static, F: Read<E> + 'a>(f: F, string_pool: Vec<String>) -> impl ExprParser<E> + 'a {
 	ExprParserImpl {
-		iter: TokenReader { read: f },
+		iter: TokenReader { read: f, error: PhantomData },
 		string_pool: AppendOnlyStringList::from(string_pool),
 	}
 }
 
 /// Parse binary input as `ESExpr`
-pub fn parse<'a, F: Read + 'a>(f: F) -> impl ExprParser + 'a {
+pub fn parse<'a, E: 'static, F: Read<E> + 'a>(f: F) -> impl ExprParser<E> + 'a {
 	parse_existing_string_pool(f, Vec::new())
 }
 
 /// Error type for `ExprGenerator`
 #[derive(From, Debug)]
-pub enum GeneratorError {
+pub enum GeneratorError<E> {
 	/// An IO error occurred
-	IOError(std::io::Error),
+	IOError(E),
+}
+
+impl <E: 'static> GeneratorError<E> {
+	/// Convert from an `Infallible` error
+	pub fn from_infalliable(error: GeneratorError<Infallible>) -> Self {
+		match error {
+			GeneratorError::IOError(e) => match e {},
+		}
+	}
 }
 
 /// Generator for `ESExpr`'s binary format
-pub struct ExprGenerator<'a, W> {
+pub struct ExprGenerator<'a, W, E> {
 	out: &'a mut W,
 	string_pool: Vec<String>,
+	error: PhantomData<E>,
 }
 
-impl<'a, W: Write> ExprGenerator<'a, W> {
+impl<'a, E: 'static, W: Write<E>> ExprGenerator<'a, W, E> {
 	/// Create an `ExprGenerator`
 	pub fn new(out: &'a mut W) -> Self {
 		ExprGenerator {
 			out,
 			string_pool: Vec::new(),
+			error: PhantomData,
 		}
 	}
 
 	/// Create an `ExprGenerator` with an existing string pool
 	pub fn new_with_string_pool(out: &'a mut W, string_pool: Vec<String>) -> Self {
-		ExprGenerator { out, string_pool }
+		ExprGenerator { out, string_pool, error: PhantomData }
 	}
 
 	/// Generate output for an expression
 	///
 	/// # Errors
 	/// Returns `Err` if an error occurs during generation.
-	pub fn generate(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
+	pub fn generate(&mut self, expr: &ESExpr) -> Result<(), GeneratorError<E>> {
 		let old_string_pool_end = self.string_pool.len();
 
 		let mut generator = ExprGenerator {
-			out: &mut std::io::sink(),
+			out: &mut io::sink(),
 			string_pool: Vec::new(),
+			error: PhantomData,
 		};
 
-		std::mem::swap(&mut self.string_pool, &mut generator.string_pool);
+		core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 		// Dummy generator to catch new strings
-		generator.generate_expr(expr)?;
+		generator.generate_expr(expr).map_err(GeneratorError::from_infalliable)?;
 
-		std::mem::swap(&mut self.string_pool, &mut generator.string_pool);
+		core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
 		match &self.string_pool[old_string_pool_end..] {
 			[] => {},
@@ -473,7 +523,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		Ok(())
 	}
 
-	fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError> {
+	fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError<E>> {
 		match expr {
 			ESExpr::Constructor { name, args, kwargs } => {
 				match &**name {
@@ -553,7 +603,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		Ok(())
 	}
 
-	fn get_string_pool_index(&mut self, s: &str) -> Result<usize, GeneratorError> {
+	fn get_string_pool_index(&mut self, s: &str) -> Result<usize, GeneratorError<E>> {
 		if let Some(index) = self.string_pool.iter().position(|s2| s2 == s) {
 			return Ok(index);
 		}
@@ -567,11 +617,11 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		Ok(index)
 	}
 
-	fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
+	fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError<E>> {
 		Self::write_int_tag_out(self.out, tag, i)
 	}
 
-	fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError> {
+	fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError<E>> {
 		let buff = i.to_bytes_le();
 
 		let b0 = buff.first().copied().unwrap_or_default();
@@ -590,7 +640,7 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		Self::write_int_rest(out, &buff[1..], current, bit_index)
 	}
 
-	fn write_int_full(out: &mut W, i: &BigUint) -> Result<(), GeneratorError> {
+	fn write_int_full(out: &mut W, i: &BigUint) -> Result<(), GeneratorError<E>> {
 		if *i == BigUint::ZERO {
 			Self::write_out(out, 0)?;
 			return Ok(());
@@ -603,11 +653,11 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		Self::write_int_rest(out, &buff, current, bit_index)
 	}
 
-	fn write_int_rest(out: &mut W, buff: &[u8], mut current: u8, mut bit_index: i32) -> Result<(), GeneratorError> {
+	fn write_int_rest(out: &mut W, buff: &[u8], mut current: u8, mut bit_index: i32) -> Result<(), GeneratorError<E>> {
 		for (i, b) in buff.iter().copied().enumerate() {
 			let mut bit_index2 = 0;
 			while bit_index2 < 8 {
-				let written_bits = std::cmp::min(7 - bit_index, 8 - bit_index2);
+				let written_bits = core::cmp::min(7 - bit_index, 8 - bit_index2);
 				current |= ((b >> bit_index2) & 0x7F) << bit_index;
 
 				bit_index += written_bits;
@@ -631,18 +681,18 @@ impl<'a, W: Write> ExprGenerator<'a, W> {
 		Ok(())
 	}
 
-	fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError> {
+	fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError<E>> {
 		Self::write_int_tag_out(out, TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))?;
 		out.write_all(s.as_bytes())?;
 		Ok(())
 	}
 
-	fn write(&mut self, b: u8) -> Result<(), GeneratorError> {
+	fn write(&mut self, b: u8) -> Result<(), GeneratorError<E>> {
 		Self::write_out(self.out, b)
 	}
 
-	fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError> {
-		Ok(out.write_all(std::slice::from_ref(&b))?)
+	fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError<E>> {
+		Ok(out.write_all(core::slice::from_ref(&b))?)
 	}
 }
 
@@ -679,13 +729,14 @@ mod test {
 			let mut eg = ExprGenerator {
 				out: &mut buff,
 				string_pool: vec![],
+				error: PhantomData::<Infallible>,
 			};
 
 			eg.write_int_tag(TAG_VARINT_NON_NEG_INT, &n).unwrap();
 
 			assert_eq!(enc, &buff);
 
-			let mut reader = TokenReader { read: &enc[1..] };
+			let mut reader = TokenReader { read: &enc[1..], error: PhantomData::<Infallible> };
 			let m = read_int(&mut reader, enc[0]).unwrap();
 			assert_eq!(n, m);
 		}

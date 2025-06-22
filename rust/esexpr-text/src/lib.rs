@@ -1,5 +1,11 @@
 //! `ESExpr` text format parser.
+#![no_std]
+
+extern crate core;
+extern crate alloc;
+
 use esexpr::ESExpr;
+use alloc::vec::Vec;
 
 /// Underlying nom parser.
 pub mod parser;
