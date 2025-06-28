@@ -1,9 +1,8 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::cell::UnsafeCell;
 
 use static_assertions::assert_not_impl_any;
-
-use alloc::string::String;
-use alloc::vec::Vec;
 
 pub struct AppendOnlyStringList {
 	values: UnsafeCell<Vec<String>>,
@@ -40,9 +39,10 @@ assert_not_impl_any!(AppendOnlyStringList: Sync);
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use alloc::vec;
 	use alloc::borrow::ToOwned;
+	use alloc::vec;
+
+	use super::*;
 
 	#[test]
 	fn test_new_list_is_empty() {

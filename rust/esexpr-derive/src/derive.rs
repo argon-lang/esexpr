@@ -384,9 +384,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 				format!("Optional field '{field_name}' must have non-empty tags")
 			}
 			else {
-				format!(
-					"Field '{field_name}' following optional positional arguments must have non-empty tags"
-				)
+				format!("Field '{field_name}' following optional positional arguments must have non-empty tags")
 			};
 
 			quote! {
@@ -415,8 +413,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 			#prev_tag_check
 		}
 	}
-	
-	
+
 	let fields = match fields {
 		Fields::Named(fields) => fields.named.iter().collect(),
 		Fields::Unnamed(fields) => fields.unnamed.iter().collect(),
@@ -428,7 +425,6 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 	let mut kwarg_names = HashSet::new();
 
 	let mut prev_optional_positional_tags = Vec::new();
-
 
 	fields.into_iter().enumerate().map(|(i, field)| -> TokenRes {
 		let field_name = match field.ident {

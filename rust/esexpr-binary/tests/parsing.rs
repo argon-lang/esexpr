@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use esexpr_binary::ExprParser;
+use esexpr_binary::ExprParserSync;
 
 fn parse_test(name: &str) {
 	let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -10,10 +10,13 @@ fn parse_test(name: &str) {
 
 	let mut esx = dir.clone();
 	esx.push(format!("{}.esxb", name));
-	let esx = esexpr_binary::parse(&std::fs::File::open(esx).unwrap())
-		.iter_static()
-		.collect::<Result<Vec<_>, _>>()
-		.unwrap();
+	let esx = {
+		let mut file = std::fs::File::open(esx).unwrap();
+		esexpr_binary::parse_sync(&mut file)
+			.iter_static()
+			.collect::<Result<Vec<_>, _>>()
+			.unwrap()
+	};
 
 	let mut json = dir;
 	json.push(format!("{}.json", name));

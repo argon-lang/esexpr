@@ -1,3 +1,4 @@
+use esexpr_binary::ExprGeneratorSync;
 use esexpr_utils::parse_io_args;
 
 fn main() {

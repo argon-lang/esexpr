@@ -153,9 +153,8 @@ struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] alloc::vec::Vec<f3
 
 #[cfg(test)]
 mod tests {
-	use alloc::borrow::Cow;
+	use alloc::borrow::{Cow, ToOwned};
 	use alloc::collections::BTreeMap;
-	use alloc::borrow::ToOwned;
 	use alloc::vec;
 
 	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, esexpr};

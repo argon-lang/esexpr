@@ -1,8 +1,8 @@
-use core::f32;
 use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
+use core::f32;
 use core::str::FromStr;
 
 use esexpr::ESExpr;
@@ -15,7 +15,6 @@ use nom::multi::{many0, many0_count};
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
 use nom::{IResult, Parser};
 use num_bigint::{BigInt, BigUint, Sign};
-
 
 /// Represents a lexer error.
 #[derive(Debug, Clone, PartialEq)]

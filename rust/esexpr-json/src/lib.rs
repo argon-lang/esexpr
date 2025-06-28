@@ -1,14 +1,14 @@
 //! Representations of `ESExpr` as JSON and vice versa.
 #![no_std]
 
-extern crate core;
 extern crate alloc;
+extern crate core;
 
-use core::f32;
 use alloc::borrow::{Cow, ToOwned};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::f32;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
@@ -370,9 +370,10 @@ mod serde_f64 {
 
 /// Module for serializing and deserializing arbitrary-precision integers
 mod serde_bigint {
+	use alloc::string::{String, ToString};
+
 	use num_bigint::BigInt;
 	use serde::Deserialize;
-	use alloc::string::{String, ToString};
 
 	pub fn serialize<S: serde::Serializer>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error> {
 		serializer.serialize_str(&value.to_string())
@@ -388,9 +389,10 @@ mod serde_bigint {
 
 /// Module for serializing and deserializing arbitrary-precision unsigned integers
 mod serde_biguint {
+	use alloc::string::{String, ToString};
+
 	use num_bigint::BigUint;
 	use serde::Deserialize;
-	use alloc::string::{String, ToString};
 
 	pub fn serialize<S: serde::Serializer>(value: &BigUint, serializer: S) -> Result<S::Ok, S::Error> {
 		serializer.serialize_str(&value.to_string())

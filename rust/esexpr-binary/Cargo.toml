@@ -12,13 +12,16 @@ categories = [ "encoding" ]
 readme = "README.md"
 
 [features]
-std = []
+std = ["futures/std"]
+default = ["std"]
 
 [dependencies]
 esexpr = { workspace = true, features = ["std"] }
 num-bigint = { workspace = true }
 derive_more = { workspace = true }
+futures = { workspace = true }
 static_assertions = { workspace = true }
+syncify = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

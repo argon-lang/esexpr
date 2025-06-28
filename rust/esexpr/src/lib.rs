@@ -5,32 +5,26 @@
 #[cfg(feature = "std")]
 extern crate std;
 
-extern crate core;
 extern crate alloc;
+extern crate core;
 
-use alloc::format;
-use alloc::boxed::Box;
 use alloc::borrow::{Cow, ToOwned};
+use alloc::boxed::Box;
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::collections::{BTreeMap, VecDeque};
-
 #[cfg(feature = "std")]
-use std::{
-	collections::HashMap,
-	hash::BuildHasher,
-};
+use std::{collections::HashMap, hash::BuildHasher};
 
 pub use esexpr_derive::{ESExprCodec, esexpr_literal as esexpr};
 use num_bigint::{BigInt, BigUint};
 
 /// Exported dependency modules.
 pub mod core_types {
-	pub extern crate core;
 	pub extern crate alloc;
+	pub extern crate core;
 }
-
-
 
 /// Representation of an `ESExpr` value.
 /// Must be one of a constructor, bool, int, string, binary, float32, float64, or null.

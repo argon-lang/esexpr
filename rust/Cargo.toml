@@ -13,14 +13,15 @@ members = [
 
 [workspace.dependencies]
 base64 = "0.22.1"
-derive_more = { version = "2.0.1", features = [ "full" ] }
+derive_more = { version = "2.0.1", default-features = false, features = [ "full" ] }
 esexpr = { version = "0.1.20", path = "esexpr", default-features = false }
 esexpr-binary = { version = "0.1.20", path = "esexpr-binary", default-features = false }
 esexpr-derive = { version = "0.1.20", path = "esexpr-derive", default-features = false }
 esexpr-json = { version = "0.1.20", path = "esexpr-json", default-features = false }
 esexpr-text = { version = "0.1.20", path = "esexpr-text", default-features = false }
-hexfloat2 = "0.1.3"
-nom = "8.0.0"
+futures = { version = "0.3.31", default-features = false }
+hexfloat2 = {  version = "0.1.3", default-features = false }
+nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
 proc-macro2 = "1.0.95"
 quote = "1.0.40"
@@ -28,6 +29,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140", features = ["float_roundtrip"] }
 static_assertions = "1.1.0"
 syn = { version = "2.0.103", features = ["derive", "full"] }
+syncify = "0.1.0"
 
 [workspace.lints.rust]
 macro_use_extern_crate = "deny"
@@ -41,7 +43,6 @@ complexity = { level = "deny", priority = -1 }
 perf = { level = "deny", priority = -1 }
 style = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
-allow_attributes = "deny"
 allow_attributes_without_reason = "deny"
 as_pointer_underscore = "deny"
 as_underscore = "deny"
@@ -57,4 +58,5 @@ similar_names = "allow"
 mismatching_type_param_order = "allow"
 ignored_unit_patterns = "allow"
 tabs_in_doc_comments = "allow"
+wildcard_imports = "allow"
 
