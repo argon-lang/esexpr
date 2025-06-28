@@ -1,7 +1,8 @@
 #![expect(missing_docs, reason = "Tests")]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use esexpr::ESExpr;
 use esexpr_binary::ExprParserSync;
 
 fn parse_test(name: &str) {
@@ -32,6 +33,18 @@ fn parse_test(name: &str) {
 		.collect::<Vec<_>>();
 
 	assert_eq!(esx, json);
+}
+
+fn parse_test_sync(expected: &[ESExpr], path: &Path) {
+	let esx = {
+		let mut file = std::fs::File::open(path).unwrap();
+		esexpr_binary::parse_sync(&mut file)
+			.iter_static()
+			.collect::<Result<Vec<_>, _>>()
+			.unwrap()
+	};
+
+	assert_eq!(expected, esx);
 }
 
 #[test]
