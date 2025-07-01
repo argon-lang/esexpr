@@ -433,11 +433,12 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
         Ok(
             if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
                 if has_dict_field {
-                    Err(quote! { compile_error!("Keyword arguments must precede dict arguments"); })?;
+                    Err(quote! { compile_error!("Keyword arguments cannot be used with dict arguments"); })?;
                 }
 
                 let kw = make_kwarg_name(keyword_attr.name, field.ident.as_ref())?;
                 let kw_name = get_string_expr_value(&kw)?;
+
                 if kwarg_names.contains(&kw_name) {
                     let message = make_str_expr(&format!("Duplicate keyword argument \"{kw_name}\""));
                     Err(quote! { compile_error!(#message); })?;
@@ -467,6 +468,10 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     Err(quote! { compile_error!("Only a single dict argument is allowed"); })?;
                 }
                 has_dict_field = true;
+
+				if !kwarg_names.is_empty() {
+					Err(quote! { compile_error!("Keyword arguments cannot be used with dict arguments"); })?;
+				}
 
                 quote! { ::esexpr::ESExprDictCodec::encode_dict_element(#field_expr, &mut kwargs); }
             }
@@ -1154,7 +1159,7 @@ mod test {
 	#[test]
 	fn kwarg_after_dict() {
 		ensure_error!(
-			"Keyword arguments must precede dict arguments",
+			"Keyword arguments cannot be used with dict arguments",
 			struct MyStruct {
 				#[dict]
 				a: HashMap<String, String>,
