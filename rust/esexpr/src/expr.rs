@@ -1,9 +1,9 @@
 use alloc::borrow::{Cow, ToOwned};
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use num_bigint::{BigInt, BigUint};
 
-use crate::{DecodeError, ESExprCodec, ESExprTag, ESExprTagCollection};
+use crate::{DecodeError, ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq};
 
 /// Representation of an `ESExpr` value.
 /// Must be one of a constructor, bool, int, string, binary, float32, float64, or null.
@@ -61,12 +61,11 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 					return false;
 				};
 
-				name1 == name2 && args1 == args2 && {
-					kwargs1
-						.iter()
-						.all(|(k1, v1)| kwargs2.get(k1).is_some_and(|v2| v1 == v2)) &&
-						kwargs2.keys().all(|k2| kwargs1.contains_key(k2))
-				}
+				name1 == name2 &&
+					args1 == args2 && kwargs1
+					.iter()
+					.zip(kwargs2.iter())
+					.all(|((k1, v1), (k2, v2))| k1 == k2 && v1 == v2)
 			},
 			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
 			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
@@ -74,6 +73,40 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 			ESExpr::Binary(b1) => matches!(other, ESExpr::Binary(b2) if b1 == b2),
 			&ESExpr::Float32(f1) => matches!(other, &ESExpr::Float32(f2) if f1 == f2),
 			&ESExpr::Float64(f1) => matches!(other, &ESExpr::Float64(f2) if f1 == f2),
+			ESExpr::Null(l1) => matches!(other, ESExpr::Null(l2) if l1 == l2),
+		}
+	}
+}
+
+impl<'a, 'b> ValueEq<ESExpr<'b>> for ESExpr<'a> {
+	fn value_eq(&self, other: &ESExpr<'b>) -> bool {
+		match self {
+			ESExpr::Constructor {
+				name: name1,
+				args: args1,
+				kwargs: kwargs1,
+			} => {
+				let ESExpr::Constructor {
+					name: name2,
+					args: args2,
+					kwargs: kwargs2,
+				} = other
+				else {
+					return false;
+				};
+
+				name1 == name2 &&
+					args1 == args2 && kwargs1
+					.iter()
+					.zip(kwargs2.iter())
+					.all(|((k1, v1), (k2, v2))| k1 == k2 && v1.value_eq(v2))
+			},
+			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
+			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
+			ESExpr::Str(s1) => matches!(other, ESExpr::Str(s2) if s1 == s2),
+			ESExpr::Binary(b1) => matches!(other, ESExpr::Binary(b2) if b1 == b2),
+			ESExpr::Float32(f1) => matches!(other, ESExpr::Float32(f2) if f1.value_eq(f2)),
+			ESExpr::Float64(f1) => matches!(other, ESExpr::Float64(f2) if f1.value_eq(f2)),
 			ESExpr::Null(l1) => matches!(other, ESExpr::Null(l2) if l1 == l2),
 		}
 	}

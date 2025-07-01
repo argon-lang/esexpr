@@ -2,8 +2,17 @@
 name = "esexpr-utils"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.88.0"
+
+[features]
+std = ["esexpr-binary/std"]
+default = ["std"]
+
+[[bin]]
+name = "esx2esxb"
+path = "src/bin/esx2esxb.rs"
+required-features = ["std"]
 
 [dependencies]
 esexpr-text = { workspace = true }
-esexpr-binary = { workspace = true, features = ["std"] }
+esexpr-binary = { workspace = true }

@@ -2,7 +2,7 @@
 name = "esexpr-binary"
 version = "0.1.20"
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.88.0"
 license = "Apache-2.0"
 description = "ESExpr serialization binary format."
 documentation = "https://docs.rs/esexpr-binary"
@@ -12,16 +12,15 @@ categories = [ "encoding" ]
 readme = "README.md"
 
 [features]
-std = ["futures/std"]
+std = ["futures/std", "esexpr/std"]
 default = ["std"]
 
 [dependencies]
-esexpr = { workspace = true, features = ["std"] }
+esexpr = { workspace = true }
 num-bigint = { workspace = true }
 derive_more = { workspace = true }
 futures = { workspace = true }
 static_assertions = { workspace = true }
-syncify = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

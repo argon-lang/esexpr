@@ -13,7 +13,7 @@ pub trait Read<Error> {
 impl<'a> Read<Infallible> for &'a [u8] {
 	fn read(&mut self, buf: &mut [u8]) -> Result<usize, Infallible> {
 		let len = core::cmp::min(self.len(), buf.len());
-		buf.copy_from_slice(&self[..len]);
+		buf[..len].copy_from_slice(&self[..len]);
 		*self = &self[len..];
 		Ok(len)
 	}

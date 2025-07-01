@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
-use std::collections::{BTreeMap, VecDeque};
-use std::prelude::rust_2015::Vec;
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::vec::Vec;
 
 use crate::{
 	DecodeError,

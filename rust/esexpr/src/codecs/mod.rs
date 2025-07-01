@@ -7,8 +7,8 @@ mod scalar;
 mod vec;
 
 use alloc::borrow::Cow;
-use std::collections::{BTreeMap, VecDeque};
-use std::prelude::rust_2015::Vec;
+use alloc::collections::{BTreeMap, VecDeque};
+use alloc::vec::Vec;
 
 use crate::{DecodeError, ESExpr, ESExprTagCollection};
 

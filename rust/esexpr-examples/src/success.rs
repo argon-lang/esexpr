@@ -1,9 +1,9 @@
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 struct ConstructorName123Conversion {
 	a: i32,
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum ConstructorNameEnum {
 	MyName123Test,
 
@@ -11,13 +11,13 @@ enum ConstructorNameEnum {
 	CustomName,
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 #[constructor = "my-ctor"]
 struct CustomConstructorName {
 	a: i32,
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum InlineValueTest {
 	#[inline_value]
 	Flag(bool),
@@ -25,11 +25,11 @@ enum InlineValueTest {
 	NormalCase(bool),
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 #[constructor = "optional-args"]
 struct PositionalArgsOptional1(bool, bool, #[optional] Option<bool>);
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 #[constructor = "keywords"]
 struct KeywordStruct {
 	#[keyword]
@@ -54,7 +54,7 @@ struct KeywordStruct {
 	f: Option<bool>,
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum KeywordEnum {
 	#[constructor = "keywords"]
 	Value {
@@ -81,7 +81,7 @@ enum KeywordEnum {
 	},
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 #[simple_enum]
 enum SimpleEnum {
 	A,
@@ -90,7 +90,7 @@ enum SimpleEnum {
 	C,
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 #[constructor = "many"]
 struct ManyArgsStruct {
 	#[vararg]
@@ -100,7 +100,7 @@ struct ManyArgsStruct {
 	kwargs: alloc::collections::BTreeMap<alloc::string::String, bool>,
 }
 
-#[derive(esexpr::ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum ManyArgsEnum {
 	#[constructor = "many"]
 	Value {
@@ -157,7 +157,7 @@ mod tests {
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, esexpr};
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq, esexpr};
 
 	use super::*;
 
@@ -174,7 +174,10 @@ mod tests {
 			ConstructorName123Conversion::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, ConstructorName123Conversion::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&ConstructorName123Conversion::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr! { ("bad-name" 5) };
 
@@ -192,7 +195,10 @@ mod tests {
 			ConstructorNameEnum::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&ConstructorNameEnum::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr! { ("bad-name") };
 
@@ -206,7 +212,10 @@ mod tests {
 		let value = CustomConstructorName { a: 5 };
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, CustomConstructorName::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&CustomConstructorName::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr! { ("bad-name" 5) };
 
@@ -217,7 +226,10 @@ mod tests {
 		let value = ConstructorNameEnum::CustomName;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, ConstructorNameEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&ConstructorNameEnum::decode_esexpr(expr).unwrap()
+		));
 	}
 
 	#[test]
@@ -230,7 +242,10 @@ mod tests {
 			InlineValueTest::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&InlineValueTest::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr! { (flag true) };
 
@@ -240,7 +255,10 @@ mod tests {
 		let value = InlineValueTest::NormalCase(true);
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, InlineValueTest::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&InlineValueTest::decode_esexpr(expr).unwrap()
+		));
 	}
 
 	#[test]
@@ -250,11 +268,17 @@ mod tests {
 
 		let value = PositionalArgsOptional1(true, false, None);
 		assert_eq!(expr2, value.encode_esexpr());
-		assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr2.clone()).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&PositionalArgsOptional1::decode_esexpr(expr2.clone()).unwrap()
+		));
 
 		let value = PositionalArgsOptional1(true, false, Some(true));
 		assert_eq!(expr3, value.encode_esexpr());
-		assert_eq!(value, PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap()
+		));
 	}
 
 	#[test]
@@ -274,7 +298,10 @@ mod tests {
 
 		assert_eq!(tags, KeywordStruct::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&KeywordStruct::decode_esexpr(expr.clone()).unwrap()
+		));
 
 		let value = KeywordEnum::Value {
 			a: true,
@@ -287,7 +314,7 @@ mod tests {
 
 		assert_eq!(tags, KeywordEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr! { (keywords a: true b2: true f: #null) };
 
@@ -301,7 +328,10 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, KeywordStruct::decode_esexpr(expr.clone()).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&KeywordStruct::decode_esexpr(expr.clone()).unwrap()
+		));
 
 		let value = KeywordEnum::Value {
 			a: true,
@@ -313,7 +343,7 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, KeywordEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr! {
 			(keywords a: true b2: true)
@@ -329,19 +359,19 @@ mod tests {
 
 		assert_eq!(ESExprTagCollection::Tags(&[ESExprTag::Str]), SimpleEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr!("b");
 		let value = SimpleEnum::B;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr!("my-c");
 		let value = SimpleEnum::C;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, SimpleEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr!("d");
 
@@ -359,7 +389,10 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, ManyArgsStruct::decode_esexpr(expr.clone()).unwrap());
+		assert!(ValueEq::value_eq(
+			&value,
+			&ManyArgsStruct::decode_esexpr(expr.clone()).unwrap()
+		));
 
 		let value = ManyArgsEnum::Value {
 			args: vec![true, true, false],
@@ -367,7 +400,7 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert_eq!(value, ManyArgsEnum::decode_esexpr(expr).unwrap());
+		assert!(ValueEq::value_eq(&value, &ManyArgsEnum::decode_esexpr(expr).unwrap()));
 	}
 
 	#[test]

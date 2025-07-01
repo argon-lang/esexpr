@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
+use alloc::format;
 use alloc::string::String;
-use std::format;
 
 use num_bigint::{BigInt, BigUint};
 

@@ -6,7 +6,6 @@ use core::f32;
 use core::str::FromStr;
 
 use esexpr::ESExpr;
-use hexfloat2::{HexFloat32, HexFloat64};
 use nom::branch::alt;
 use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_until, take_while, take_while_m_n, take_while1};
 use nom::character::complete::{alphanumeric1, char, digit1, hex_digit1, multispace1, none_of, one_of};
@@ -136,22 +135,31 @@ fn parse_hex_float(s: &str) -> ESExpr<'static> {
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
 		)]
-		let f = s.trim_end_matches('f')
+		let repr: hexponent::FloatLiteral = s
+			.trim_end_matches('f')
 			.trim_end_matches('F')
-			.parse::<HexFloat32>()
+			.parse::<hexponent::FloatLiteral>()
 			.unwrap();
-		ESExpr::Float32(*f)
+		let f = repr.convert().inner();
+
+		ESExpr::Float32(f)
 	}
 	else {
 		#[expect(
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
 		)]
-		let d = s.trim_end_matches('f')
-			.trim_end_matches('F')
-			.parse::<HexFloat64>()
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
+		let repr: hexponent::FloatLiteral = s
+			.trim_end_matches('d')
+			.trim_end_matches('D')
+			.parse::<hexponent::FloatLiteral>()
 			.unwrap();
-		ESExpr::Float64(*d)
+		let d = repr.convert().inner();
+		ESExpr::Float64(d)
 	}
 }
 

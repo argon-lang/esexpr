@@ -2,7 +2,7 @@
 name = "esexpr-examples"
 version = "0.1.20"
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.88.0"
 
 [dependencies]
 esexpr = { workspace = true }

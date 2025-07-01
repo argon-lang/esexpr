@@ -294,3 +294,24 @@ impl PartialEq for ESExprTagCollection {
 }
 
 impl Eq for ESExprTagCollection {}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{ESExprCodec, ESExprOptionalFieldCodec};
+
+	#[test]
+	fn tag_collection_disjoint() {
+		assert!(
+			ESExprTagCollection::Tags(&[ESExprTag::Int]).is_disjoint(ESExprTagCollection::Tags(&[ESExprTag::Float32])),
+		);
+
+		assert!(
+			ESExprTagCollection::Concat(&[
+				<Option<i32> as ESExprOptionalFieldCodec>::TAGS,
+				<Option<f32> as ESExprOptionalFieldCodec>::TAGS,
+			],)
+			.is_disjoint(<alloc::string::String as ESExprCodec>::TAGS)
+		);
+	}
+}

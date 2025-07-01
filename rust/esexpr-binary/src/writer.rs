@@ -132,9 +132,9 @@ macro_rules! writer_mod {
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 					// Dummy generator to catch new strings
 					<ExprGenerator<_, Infallible> as super::writer_sync::ExprGeneratorWriteExt<_, Infallible>>::generate_expr(
-										&mut generator,
-										expr,
-									).map_err(GeneratorError::from_infalliable)?;
+												&mut generator,
+												expr,
+											).map_err(GeneratorError::from_infalliable)?;
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
