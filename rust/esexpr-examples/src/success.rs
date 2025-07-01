@@ -115,7 +115,7 @@ enum ManyArgsEnum {
 #[derive(esexpr::ESExprCodec, Clone)]
 struct GenericTest<A>(A);
 
-#[derive(esexpr::ESExprCodec)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct MultipleOptionalPositional1 {
 	#[optional]
 	pub a: Option<i32>,
@@ -124,7 +124,7 @@ pub struct MultipleOptionalPositional1 {
 	pub b: Option<f32>,
 }
 
-#[derive(esexpr::ESExprCodec)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct RequiredAfterOptionalPositional1 {
 	#[optional]
 	pub a: Option<i32>,
@@ -135,7 +135,7 @@ pub struct RequiredAfterOptionalPositional1 {
 	pub c: alloc::string::String,
 }
 
-#[derive(esexpr::ESExprCodec)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct RequiredAfterOptionalPositional2 {
 	#[optional]
 	pub a: Option<i32>,
@@ -148,7 +148,31 @@ pub struct RequiredAfterOptionalPositional2 {
 	pub d: i32,
 }
 
-#[derive(esexpr::ESExprCodec)]
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+pub struct RequiredAfterOptionalPositional3 {
+	#[default_value = "4"]
+	pub a: i32,
+
+	#[default_value = "4.0"]
+	pub b: f32,
+
+	pub c: alloc::string::String,
+}
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+pub struct RequiredAfterOptionalPositional4 {
+	#[default_value = "4"]
+	pub a: i32,
+
+	#[default_value = "4.0"]
+	pub b: f32,
+
+	pub c: alloc::string::String,
+
+	pub d: i32,
+}
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] alloc::vec::Vec<f32>);
 
 #[cfg(test)]

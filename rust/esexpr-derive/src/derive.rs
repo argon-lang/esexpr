@@ -171,11 +171,6 @@ fn validate_fields(fields: &Fields) -> Result<(), proc_macro2::TokenStream> {
 				return Err(quote! { compile_error!("Variable arguments cannot have default values."); });
 			}
 		}
-		else {
-			if has_default_value_attribute(&field.attrs)?.is_some() {
-				return Err(quote! { compile_error!("Positional arguments cannot have default values."); });
-			}
-		}
 	}
 
 	Ok(())
@@ -381,14 +376,14 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 	) -> proc_macro2::TokenStream {
 		let non_empty_tag_check = if !prev_optional_positional_tags.is_empty() || is_optional {
 			let message = if is_optional {
-				format!("Optional field '{field_name}' must have non-empty tags")
+				format!("Optional field '{field_name}' must not have full tags")
 			}
 			else {
-				format!("Field '{field_name}' following optional positional arguments must have non-empty tags")
+				format!("Field '{field_name}' following optional positional arguments must not have full tags")
 			};
 
 			quote! {
-				const { assert!(!#field_tags.is_empty(), #message); }
+				const { assert!(!#field_tags.is_all(), #message); }
 			}
 		}
 		else {
@@ -457,7 +452,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     quote! {
                         {
                             let value = #field_expr;
-                            if *value != #default_value {
+                            if !<#field_type as ::esexpr::ValueEq>::value_eq(value, &#default_value) {
                                 kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
                             }
                         }
@@ -516,7 +511,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 						#checks
                         {
                             let value = #field_expr;
-                            if value != #default_value {
+                            if !<#field_type as ::esexpr::ValueEq>::value_eq(value, &#default_value) {
                                 args.push(<#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
                             }
                         }
@@ -766,7 +761,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 		}
 		else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
 			quote! {
-				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS.contains(&e.tag())) {
+				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprCodec>::TAGS.contains(&e.tag())) {
 					args.pop_front()
 				}
 				else {
@@ -1259,14 +1254,6 @@ mod test {
 		ensure_error!(
 			"Keyword arguments for unnamed fields must specifiy a name: #[keyword = \"name\"]",
 			struct MyStruct(#[keyword] u32);
-		);
-	}
-
-	#[test]
-	fn default_value_positional() {
-		ensure_error!(
-			"Positional arguments cannot have default values.",
-			struct MyStruct(#[default_value = "4"] u32);
 		);
 	}
 
