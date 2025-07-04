@@ -55,6 +55,7 @@ macro_rules! writer_mod {
 		use alloc::borrow::Borrow;
 
 		use esexpr::{ESExpr, ESExprConstructor};
+		use half::f16;
 		use num_bigint::{BigUint, Sign};
 
 		use super::*;
@@ -217,19 +218,9 @@ macro_rules! writer_mod {
 								},
 							}
 						},
-						ESExpr::Str(s) => {
-							do_await!(
-								$syncness,
-								self.write_int_tag(TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))
-							)?;
-							do_await!($syncness, self.out.write(s.as_bytes()))?;
-						},
-						ESExpr::Binary(b) => {
-							do_await!(
-								$syncness,
-								self.write_int_tag(TAG_VARINT_BYTES_LENGTH, &BigUint::from(b.len()))
-							)?;
-							do_await!($syncness, self.out.write(b.as_ref()))?;
+						ESExpr::Float16(f) => {
+							do_await!($syncness, self.write(TAG_FLOAT16))?;
+							do_await!($syncness, self.out.write(&f16::to_le_bytes(*f)))?;
 						},
 						ESExpr::Float32(f) => {
 							do_await!($syncness, self.write(TAG_FLOAT32))?;
@@ -239,6 +230,55 @@ macro_rules! writer_mod {
 							do_await!($syncness, self.write(TAG_FLOAT64))?;
 							do_await!($syncness, self.out.write(&f64::to_le_bytes(*d)))?;
 						},
+						ESExpr::Str(s) => {
+							do_await!(
+								$syncness,
+								self.write_int_tag(TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))
+							)?;
+							do_await!($syncness, self.out.write(s.as_bytes()))?;
+						},
+						
+						ESExpr::Array8(b) => {
+							do_await!(
+								$syncness,
+								self.write_int_tag(TAG_VARINT_ARRAY8_LENGTH, &BigUint::from(b.len()))
+							)?;
+							do_await!($syncness, self.out.write(b.as_ref()))?;
+						},
+						ESExpr::Array16(b) => {
+							do_await!($syncness, self.write(TAG_ARRAY16))?;
+							do_await!(
+								$syncness,
+								Self::write_int_full(self.out, &BigUint::from(b.len()))
+							)?;
+							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref())))?;
+						},
+						ESExpr::Array32(b) => {
+							do_await!($syncness, self.write(TAG_ARRAY32))?;
+							do_await!(
+								$syncness,
+								Self::write_int_full(self.out, &BigUint::from(b.len()))
+							)?;
+							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref())))?;
+						},
+						ESExpr::Array64(b) => {
+							do_await!($syncness, self.write(TAG_ARRAY64))?;
+							do_await!(
+								$syncness,
+								Self::write_int_full(self.out, &BigUint::from(b.len()))
+							)?;
+							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref())))?;
+						},
+						ESExpr::Array128(b) => {
+							do_await!($syncness, self.write(TAG_ARRAY128))?;
+							do_await!(
+								$syncness,
+								Self::write_int_full(self.out, &BigUint::from(b.len()))
+							)?;
+							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref())))?;
+						},
+						
+						
 						ESExpr::Null(level) => {
 							let level: &BigUint = level.as_ref();
 

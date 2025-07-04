@@ -2,13 +2,14 @@ use alloc::borrow::{Cow, ToOwned};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::fmt::{Debug, Formatter};
+use half::f16;
 use num_bigint::{BigInt, BigUint};
 
 use crate::{DecodeError, ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq};
 use crate::cowstr::CowStr;
 
 /// Representation of an `ESExpr` value.
-/// Must be a constructor, bool, int, string, binary, float32, float64, or null.
+/// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
 #[derive(Debug, Clone)]
 pub enum ESExpr<'a> {
 	/// A constructor expression.
@@ -24,14 +25,29 @@ pub enum ESExpr<'a> {
 	/// A string value.
 	Str(CowStr<'a>),
 
-	/// A binary value.
-	Binary(Cow<'a, [u8]>),
-
+	/// A float16 value.
+	Float16(f16),
+	
 	/// A float32 value.
 	Float32(f32),
 
 	/// A float64 value.
 	Float64(f64),
+
+	/// An array of 8-bit values
+	Array8(Cow<'a, [u8]>),
+
+	/// An array of 16-bit values
+	Array16(Cow<'a, [u16]>),
+
+	/// An array of 32-bit values 
+	Array32(Cow<'a, [u32]>),
+
+	/// An array of 64-bit values
+	Array64(Cow<'a, [u64]>),
+
+	/// An array of 128-bit values
+	Array128(Cow<'a, [u128]>),
 
 	/// A Null value.
 	Null(Cow<'a, BigUint>),
@@ -61,9 +77,14 @@ impl<'a> ESExpr<'a> {
 			ESExpr::Bool(_) => ESExprTag::Bool,
 			ESExpr::Int(_) => ESExprTag::Int,
 			ESExpr::Str(_) => ESExprTag::Str,
-			ESExpr::Binary(_) => ESExprTag::Binary,
+			ESExpr::Float16(_) => ESExprTag::Float16,
 			ESExpr::Float32(_) => ESExprTag::Float32,
 			ESExpr::Float64(_) => ESExprTag::Float64,
+			ESExpr::Array8(_) => ESExprTag::Array8,
+			ESExpr::Array16(_) => ESExprTag::Array16,
+			ESExpr::Array32(_) => ESExprTag::Array32,
+			ESExpr::Array64(_) => ESExprTag::Array64,
+			ESExpr::Array128(_) => ESExprTag::Array128,
 			ESExpr::Null(_) => ESExprTag::Null,
 		}
 	}
@@ -76,9 +97,14 @@ impl<'a> ESExpr<'a> {
 			&ESExpr::Bool(b) => ESExpr::Bool(b),
 			ESExpr::Int(i) => ESExpr::Int(Cow::Owned(i.as_ref().clone())),
 			ESExpr::Str(s) => ESExpr::Str(s.as_owned_cowstr()),
-			ESExpr::Binary(b) => ESExpr::Binary(Cow::Owned(b.as_ref().to_owned())),
+			&ESExpr::Float16(f) => ESExpr::Float16(f),
 			&ESExpr::Float32(f) => ESExpr::Float32(f),
 			&ESExpr::Float64(f) => ESExpr::Float64(f),
+			ESExpr::Array8(b) => ESExpr::Array8(Cow::Owned(b.as_ref().to_owned())),
+			ESExpr::Array16(b) => ESExpr::Array16(Cow::Owned(b.as_ref().to_owned())),
+			ESExpr::Array32(b) => ESExpr::Array32(Cow::Owned(b.as_ref().to_owned())),
+			ESExpr::Array64(b) => ESExpr::Array64(Cow::Owned(b.as_ref().to_owned())),
+			ESExpr::Array128(b) => ESExpr::Array128(Cow::Owned(b.as_ref().to_owned())),
 			ESExpr::Null(level) => ESExpr::Null(Cow::Owned(level.as_ref().clone())),
 		}
 	}
@@ -91,9 +117,14 @@ impl<'a> ESExpr<'a> {
 			ESExpr::Bool(b) => ESExpr::Bool(b),
 			ESExpr::Int(i) => ESExpr::Int(Cow::Owned(i.into_owned())),
 			ESExpr::Str(s) => ESExpr::Str(s.into_owned_cowstr()),
-			ESExpr::Binary(b) => ESExpr::Binary(Cow::Owned(b.into_owned())),
+			ESExpr::Float16(f) => ESExpr::Float16(f),
 			ESExpr::Float32(f) => ESExpr::Float32(f),
 			ESExpr::Float64(f) => ESExpr::Float64(f),
+			ESExpr::Array8(b) => ESExpr::Array8(Cow::Owned(b.into_owned())),
+			ESExpr::Array16(b) => ESExpr::Array16(Cow::Owned(b.into_owned())),
+			ESExpr::Array32(b) => ESExpr::Array32(Cow::Owned(b.into_owned())),
+			ESExpr::Array64(b) => ESExpr::Array64(Cow::Owned(b.into_owned())),
+			ESExpr::Array128(b) => ESExpr::Array128(Cow::Owned(b.into_owned())),
 			ESExpr::Null(level) => ESExpr::Null(Cow::Owned(level.into_owned())),
 		}
 	}
@@ -107,9 +138,14 @@ impl<'a> ESExpr<'a> {
 			&ESExpr::Bool(b) => ESExpr::Bool(b),
 			ESExpr::Int(i) => ESExpr::Int(Cow::Borrowed(i.as_ref())),
 			ESExpr::Str(s) => ESExpr::Str(s.as_borrowed()),
-			ESExpr::Binary(b) => ESExpr::Binary(Cow::Borrowed(b.as_ref())),
+			&ESExpr::Float16(f) => ESExpr::Float16(f),
 			&ESExpr::Float32(f) => ESExpr::Float32(f),
 			&ESExpr::Float64(f) => ESExpr::Float64(f),
+			ESExpr::Array8(b) => ESExpr::Array8(Cow::Borrowed(b.as_ref())),
+			ESExpr::Array16(b) => ESExpr::Array16(Cow::Borrowed(b.as_ref())),
+			ESExpr::Array32(b) => ESExpr::Array32(Cow::Borrowed(b.as_ref())),
+			ESExpr::Array64(b) => ESExpr::Array64(Cow::Borrowed(b.as_ref())),
+			ESExpr::Array128(b) => ESExpr::Array128(Cow::Borrowed(b.as_ref())),
 			ESExpr::Null(level) => ESExpr::Null(Cow::Borrowed(level.as_ref())),
 		}
 	}
@@ -141,9 +177,14 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
 			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
 			ESExpr::Str(s1) => matches!(other, ESExpr::Str(s2) if s1 == s2),
-			ESExpr::Binary(b1) => matches!(other, ESExpr::Binary(b2) if b1 == b2),
+			&ESExpr::Float16(f1) => matches!(other, &ESExpr::Float16(f2) if f1 == f2),
 			&ESExpr::Float32(f1) => matches!(other, &ESExpr::Float32(f2) if f1 == f2),
 			&ESExpr::Float64(f1) => matches!(other, &ESExpr::Float64(f2) if f1 == f2),
+			ESExpr::Array8(a1) => matches!(other, ESExpr::Array8(a2) if a1 == a2),
+			ESExpr::Array16(a1) => matches!(other, ESExpr::Array16(a2) if a1 == a2),
+			ESExpr::Array32(a1) => matches!(other, ESExpr::Array32(a2) if a1 == a2),
+			ESExpr::Array64(a1) => matches!(other, ESExpr::Array64(a2) if a1 == a2),
+			ESExpr::Array128(a1) => matches!(other, ESExpr::Array128(a2) if a1 == a2),
 			ESExpr::Null(l1) => matches!(other, ESExpr::Null(l2) if l1 == l2),
 		}
 	}
@@ -175,9 +216,14 @@ impl<'a, 'b> ValueEq<ESExpr<'b>> for ESExpr<'a> {
 			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
 			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
 			ESExpr::Str(s1) => matches!(other, ESExpr::Str(s2) if s1 == s2),
-			ESExpr::Binary(b1) => matches!(other, ESExpr::Binary(b2) if b1 == b2),
+			ESExpr::Float16(f1) => matches!(other, ESExpr::Float16(f2) if f1.value_eq(f2)),
 			ESExpr::Float32(f1) => matches!(other, ESExpr::Float32(f2) if f1.value_eq(f2)),
 			ESExpr::Float64(f1) => matches!(other, ESExpr::Float64(f2) if f1.value_eq(f2)),
+			ESExpr::Array8(a1) => matches!(other, ESExpr::Array8(a2) if a1 == a2),
+			ESExpr::Array16(a1) => matches!(other, ESExpr::Array16(a2) if a1 == a2),
+			ESExpr::Array32(a1) => matches!(other, ESExpr::Array32(a2) if a1 == a2),
+			ESExpr::Array64(a1) => matches!(other, ESExpr::Array64(a2) if a1 == a2),
+			ESExpr::Array128(a1) => matches!(other, ESExpr::Array128(a2) if a1 == a2),
 			ESExpr::Null(l1) => matches!(other, ESExpr::Null(l2) if l1 == l2),
 		}
 	}
@@ -267,7 +313,7 @@ impl<'a> ConstructorArgs<'a> {
 		self.args.as_slice().len()
 	}
 
-	/// Gets whether there are any arguments. 
+	/// Gets whether there are any arguments.
 	pub fn is_empty(&self) -> bool {
 		self.args.as_slice().is_empty()
 	}
@@ -432,17 +478,17 @@ impl<'a> KeywordArgs<'a> {
 	pub fn iter(&'a self) -> KeywordArgsIntoIter<'a> {
 		self.into_iter()
 	}
-	
+
 	/// The number of keyword arguments.
 	pub fn len(&self) -> usize {
 		self.kwargs.as_map().len()
 	}
-	
-	/// Checks if there are any keyword arguments 
+
+	/// Checks if there are any keyword arguments
 	pub fn is_empty(&self) -> bool {
 		self.kwargs.as_map().is_empty()
 	}
-	
+
 	fn into_owned(self) -> KeywordArgs<'static> {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(
@@ -450,7 +496,7 @@ impl<'a> KeywordArgs<'a> {
 			),
 		}
 	}
-	
+
 	fn as_owned(&self) -> KeywordArgs<'static> {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(
@@ -458,7 +504,7 @@ impl<'a> KeywordArgs<'a> {
 			),
 		}
 	}
-	
+
 	fn as_borrowed(&self) -> KeywordArgs {
 		KeywordArgs {
 			kwargs: match &self.kwargs {
@@ -532,7 +578,7 @@ pub enum KeywordArgsInner<'a> {
 }
 
 impl <'a> KeywordArgsInner<'a> {
-	
+
 	fn as_map(&self) -> &BTreeMap<CowStr<'a>, ESExpr<'a>> {
 		match self {
 			KeywordArgsInner::Owned(kwargs) => kwargs,

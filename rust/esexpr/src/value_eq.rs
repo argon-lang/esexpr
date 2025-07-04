@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use half::f16;
 
 /// Defines value equality.
 /// This is intended to provide an alternative comparison that defines
@@ -51,6 +52,12 @@ impl ValueEq<str> for String {
 
 value_eq_scalar!(num_bigint::BigInt);
 value_eq_scalar!(num_bigint::BigUint);
+
+impl ValueEq for f16 {
+	fn value_eq(&self, other: &Self) -> bool {
+		self.to_bits() == other.to_bits()
+	}
+}
 
 impl ValueEq for f32 {
 	fn value_eq(&self, other: &Self) -> bool {

@@ -12,14 +12,16 @@ categories = [ "encoding" ]
 readme = "README.md"
 
 [features]
-std = ["futures/std", "esexpr/std"]
+std = ["futures/std", "esexpr/std", "bytemuck/extern_crate_std"]
 default = ["std"]
 
 [dependencies]
+bytemuck = { workspace = true }
 esexpr = { workspace = true }
 num-bigint = { workspace = true }
 derive_more = { workspace = true }
 futures = { workspace = true }
+half = { workspace = true }
 static_assertions = { workspace = true }
 
 [dev-dependencies]

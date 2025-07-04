@@ -13,11 +13,12 @@ readme = "README.md"
 
 [features]
 default = ["std"]
-std = ["esexpr-derive/macro_std", "num-bigint/std"]
+std = ["esexpr-derive/macro_std", "num-bigint/std", "half/std"]
 
 [dependencies]
 num-bigint = { workspace = true }
 esexpr-derive = { workspace = true }
+half = { workspace = true }
 
 [lints]
 workspace = true

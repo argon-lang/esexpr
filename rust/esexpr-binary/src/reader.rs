@@ -98,6 +98,8 @@ macro_rules! reader_mod {
 		use alloc::collections::BTreeMap;
 		use alloc::vec;
 
+		use half::f16;
+		
 		use esexpr::cowstr::CowStr;
 		use num_bigint::{BigInt, Sign};
 
@@ -127,6 +129,10 @@ macro_rules! reader_mod {
 							let n = do_await!($syncness, read_int_full(reader))?;
 							ExprToken::NullValue(n + 3u32)
 						},
+						TAG_FLOAT16 => {
+							let buffer: [u8; 2] = do_await!($syncness, read_bytes(reader))?;
+							ExprToken::Float16Value(f16::from_le_bytes(buffer))
+						},
 						TAG_FLOAT32 => {
 							let buffer: [u8; 4] = do_await!($syncness, read_bytes(reader))?;
 							ExprToken::Float32Value(f32::from_le_bytes(buffer))
@@ -138,6 +144,55 @@ macro_rules! reader_mod {
 						TAG_CONSTRUCTOR_START_STRING_TABLE => ExprToken::ConstructorStartKnown("string-table"),
 						TAG_CONSTRUCTOR_START_LIST => ExprToken::ConstructorStartKnown("list"),
 						TAG_APPEND_STRING_TABLE => ExprToken::AppendStringTable,
+						TAG_ARRAY16 => {
+							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
+							let mut buff = vec![0u16; n];
+							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u16, u8>(&mut buff)))?;
+							#[cfg(target_endian = "big")]
+							{
+								for b in buff.iter_mut() {
+									b.swap_bytes();
+								}
+							}
+							ExprToken::Array16Value(buff)
+						},
+						TAG_ARRAY32 => {
+							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
+							let mut buff = vec![0u32; n];
+							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u32, u8>(&mut buff)))?;
+							#[cfg(target_endian = "big")]
+							{
+								for b in buff.iter_mut() {
+									b.swap_bytes();
+								}
+							}
+							ExprToken::Array32Value(buff)
+						},
+						TAG_ARRAY64 => {
+							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
+							let mut buff = vec![0u64; n];
+							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u64, u8>(&mut buff)))?;
+							#[cfg(target_endian = "big")]
+							{
+								for b in buff.iter_mut() {
+									b.swap_bytes();
+								}
+							}
+							ExprToken::Array64Value(buff)
+						},
+						TAG_ARRAY128 => {
+							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
+							let mut buff = vec![0u128; n];
+							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u128, u8>(&mut buff)))?;
+							#[cfg(target_endian = "big")]
+							{
+								for b in buff.iter_mut() {
+									b.swap_bytes();
+								}
+							}
+							ExprToken::Array128Value(buff)
+						},
+						
 						_ => {
 							return Err(ParseError::InvalidTokenByte(b));
 						},
@@ -150,9 +205,9 @@ macro_rules! reader_mod {
 						TAG_VARINT_NEG_INT => VarIntTag::NegIntValue,
 						TAG_VARINT_STRING_LENGTH => VarIntTag::StringLengthValue,
 						TAG_VARINT_STRING_POOL => VarIntTag::StringPoolValue,
-						TAG_VARINT_BYTES_LENGTH => VarIntTag::BytesLengthValue,
+						TAG_VARINT_ARRAY8_LENGTH => VarIntTag::Array8LengthValue,
 						TAG_VARINT_KEYWORD => VarIntTag::KeywordArgument,
-						_ => panic!("Should not be reachable"),
+						_ => unreachable!("remaining bits have been masked"),
 					};
 
 					let mut n = do_await!($syncness, read_int(reader, b))?;
@@ -171,11 +226,11 @@ macro_rules! reader_mod {
 							ExprToken::StringValue(String::from_utf8(buff)?.to_owned())
 						},
 						VarIntTag::StringPoolValue => ExprToken::StringPoolValue(get_string_table_index(n)?),
-						VarIntTag::BytesLengthValue => {
+						VarIntTag::Array8LengthValue => {
 							let len = get_length(n)?;
 							let mut buff = vec![0u8; len];
 							do_await!($syncness, read_exact(reader, &mut buff))?;
-							ExprToken::BinaryValue(buff)
+							ExprToken::Array8Value(buff)
 						},
 						VarIntTag::KeywordArgument => ExprToken::Keyword(get_string_table_index(n)?),
 					}
@@ -403,9 +458,14 @@ macro_rules! reader_mod {
 					ExprToken::IntValue(i) => ESExpr::Int(Cow::Owned(i)),
 					ExprToken::StringValue(s) => ESExpr::Str(CowStr::Owned(s)),
 					ExprToken::StringPoolValue(index) => ESExpr::Str(CowStr::Borrowed(get_string(string_pool, index)?)),
-					ExprToken::BinaryValue(b) => ESExpr::Binary(Cow::Owned(b)),
+					ExprToken::Float16Value(f) => ESExpr::Float16(f),
 					ExprToken::Float32Value(f) => ESExpr::Float32(f),
 					ExprToken::Float64Value(d) => ESExpr::Float64(d),
+					ExprToken::Array8Value(b) => ESExpr::Array8(Cow::Owned(b)),
+					ExprToken::Array16Value(b) => ESExpr::Array16(Cow::Owned(b)),
+					ExprToken::Array32Value(b) => ESExpr::Array32(Cow::Owned(b)),
+					ExprToken::Array64Value(b) => ESExpr::Array64(Cow::Owned(b)),
+					ExprToken::Array128Value(b) => ESExpr::Array128(Cow::Owned(b)),
 					ExprToken::BooleanValue(b) => ESExpr::Bool(b),
 					ExprToken::NullValue(level) => ESExpr::Null(Cow::Owned(level)),
 					ExprToken::AppendStringTable => {

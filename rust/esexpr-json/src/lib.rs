@@ -12,6 +12,7 @@ use core::f32;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use half::f16;
 use esexpr::{ESExpr, ESExprCodec, ESExprConstructor};
 use num_bigint::{BigInt, BigUint};
 use esexpr::cowstr::CowStr;
@@ -121,9 +122,46 @@ pub enum JsonEncodedESExpr {
 	Str(String),
 
 	/// Binary data encoded as base64
-	Binary {
+	BinaryBase64 {
 		/// The base64 encoded data
 		base64: Base64Value,
+	},
+	
+	/// An array of 8-bit values.
+	Array8 {
+		///	The 8-bit values encoded as uint8.
+		array8: Vec<u8>,
+	},
+
+	/// An array of 16-bit values.
+	Array16 {
+		///    The 16-bit values encoded as uint16.
+		array16: Vec<u16>,
+	},
+
+	/// An array of 32-bit values.
+	Array32 {
+		///    The 32-bit values encoded as uint32.
+		array32: Vec<u32>,
+	},
+
+	/// An array of 64-bit values.
+	Array64 {
+		///    The 64-bit values encoded as uint64.
+		array64: Vec<u64>,
+	},
+
+	/// An array of 128-bit values.
+	Array128 {
+		///    The 128-bit values encoded as uint128.
+		array128: Vec<u128>,
+	},
+
+	/// A 16-bit floating point number
+	Float16 {
+		/// The float32 value
+		#[serde(with = "serde_f16")]
+		float16: f16,
 	},
 
 	/// A 32-bit floating point number
@@ -170,11 +208,24 @@ impl JsonEncodedESExpr {
 			ESExpr::Bool(b) => JsonEncodedESExpr::Bool(b),
 			ESExpr::Int(i) => JsonEncodedESExpr::Int { int: i.into_owned() },
 			ESExpr::Str(s) => JsonEncodedESExpr::Str(s.into_string()),
-			ESExpr::Binary(b) => JsonEncodedESExpr::Binary {
-				base64: Base64Value(b.into_owned()),
-			},
+			ESExpr::Float16(float16) => JsonEncodedESExpr::Float16 { float16 },
 			ESExpr::Float32(float32) => JsonEncodedESExpr::Float32 { float32 },
 			ESExpr::Float64(float64) => JsonEncodedESExpr::Float64 { float64 },
+			ESExpr::Array8(b) => JsonEncodedESExpr::BinaryBase64 {
+				base64: Base64Value(b.into_owned()),
+			},
+			ESExpr::Array16(b) => JsonEncodedESExpr::Array16 {
+				array16: b.into_owned(),
+			},
+			ESExpr::Array32(b) => JsonEncodedESExpr::Array32 {
+				array32: b.into_owned(),
+			},
+			ESExpr::Array64(b) => JsonEncodedESExpr::Array64 {
+				array64: b.into_owned(),
+			},
+			ESExpr::Array128(b) => JsonEncodedESExpr::Array128 {
+				array128: b.into_owned(),
+			},
 			ESExpr::Null(level) if *level == BigUint::ZERO => JsonEncodedESExpr::Null(()),
 			ESExpr::Null(level) => JsonEncodedESExpr::NullLevel {
 				null: level.into_owned(),
@@ -207,7 +258,13 @@ impl JsonEncodedESExpr {
 			JsonEncodedESExpr::Bool(b) => ESExpr::Bool(b),
 			JsonEncodedESExpr::Int { int } => ESExpr::Int(Cow::Owned(int)),
 			JsonEncodedESExpr::Str(s) => ESExpr::Str(CowStr::Owned(s)),
-			JsonEncodedESExpr::Binary { base64 } => ESExpr::Binary(Cow::Owned(base64.0)),
+			JsonEncodedESExpr::BinaryBase64 { base64 } => ESExpr::Array8(Cow::Owned(base64.0)),
+			JsonEncodedESExpr::Array8 { array8 } => ESExpr::Array8(Cow::Owned(array8)),
+			JsonEncodedESExpr::Array16 { array16 } => ESExpr::Array16(Cow::Owned(array16)),
+			JsonEncodedESExpr::Array32 { array32 } => ESExpr::Array32(Cow::Owned(array32)),
+			JsonEncodedESExpr::Array64 { array64 } => ESExpr::Array64(Cow::Owned(array64)),
+			JsonEncodedESExpr::Array128 { array128 } => ESExpr::Array128(Cow::Owned(array128)),
+			JsonEncodedESExpr::Float16 { float16 } => ESExpr::Float16(float16),
 			JsonEncodedESExpr::Float32 { float32 } => ESExpr::Float32(float32),
 			JsonEncodedESExpr::Float64 { float64 } => ESExpr::Float64(float64),
 			JsonEncodedESExpr::Null(_) => ESExpr::Null(Cow::Owned(BigUint::ZERO)),
@@ -251,6 +308,22 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
 }
 
 // Helper modules for serialization/deserialization
+
+
+/// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
+mod serde_f16 {
+	use half::f16;
+	use crate::serde_f32;
+
+	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
+	pub fn serialize<S: serde::Serializer>(f: &f16, serializer: S) -> Result<S::Ok, S::Error> {
+		serde_f32::serialize(&f32::from(*f), serializer)
+	}
+
+	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f16, D::Error> {
+		serde_f32::deserialize(deserializer).map(f16::from_f32)
+	}
+}
 
 /// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
 mod serde_f32 {

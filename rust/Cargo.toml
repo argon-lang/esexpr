@@ -13,6 +13,7 @@ members = [
 
 [workspace.dependencies]
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
+bytemuck = { version = "1.23.1", features = ["extern_crate_alloc"] }
 ctrlc = { version = "3.4.7" }
 derive_more = { version = "2.0.1", default-features = false, features = [ "full" ] }
 esexpr = { version = "0.1.20", path = "esexpr", default-features = false }
@@ -21,6 +22,7 @@ esexpr-derive = { version = "0.1.20", path = "esexpr-derive", default-features =
 esexpr-json = { version = "0.1.20", path = "esexpr-json", default-features = false }
 esexpr-text = { version = "0.1.20", path = "esexpr-text", default-features = false }
 futures = { version = "0.3.31", default-features = false }
+half = { version = "2.6.0", features = ["alloc"] }
 hexponent = {version = "0.3.1", default-features = false}
 nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
@@ -29,8 +31,9 @@ quote = "1.0.40"
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["float_roundtrip", "alloc"] }
 static_assertions = "1.1.0"
-syn = { version = "2.0.103", features = ["derive", "full"] }
+syn = { version = "2.0.104", features = ["derive", "full"] }
 ui_test = "0.30.2"
+
 
 [workspace.lints.rust]
 macro_use_extern_crate = "deny"

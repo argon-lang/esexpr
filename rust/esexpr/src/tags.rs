@@ -15,14 +15,29 @@ pub enum ESExprTag<'a> {
 	/// A tag for a str value.
 	Str,
 
-	/// A tag for a binary value.
-	Binary,
+	/// A tag for a float16 value.
+	Float16,
 
 	/// A tag for a float32 value.
 	Float32,
 
 	/// A tag for a float64 value.
 	Float64,
+
+	/// A tag for an array of 8-bit unsigned integers.
+	Array8,
+
+	/// A tag for an array of 16-bit unsigned integers.
+	Array16,
+
+	/// A tag for an array of 32-bit unsigned integers.
+	Array32,
+
+	/// A tag for an array of 64-bit unsigned integers.
+	Array64,
+
+	/// A tag for an array of 128-bit values.
+	Array128,
 
 	/// A tag for a null value.
 	Null,
@@ -46,9 +61,14 @@ impl<'a> ESExprTag<'a> {
 			ESExprTag::Bool => ESExprTag::Bool,
 			ESExprTag::Int => ESExprTag::Int,
 			ESExprTag::Str => ESExprTag::Str,
-			ESExprTag::Binary => ESExprTag::Binary,
+			ESExprTag::Float16 => ESExprTag::Float16,
 			ESExprTag::Float32 => ESExprTag::Float32,
 			ESExprTag::Float64 => ESExprTag::Float64,
+			ESExprTag::Array8 => ESExprTag::Array8,
+			ESExprTag::Array16 => ESExprTag::Array16,
+			ESExprTag::Array32 => ESExprTag::Array32,
+			ESExprTag::Array64 => ESExprTag::Array64,
+			ESExprTag::Array128 => ESExprTag::Array128,
 			ESExprTag::Null => ESExprTag::Null,
 		}
 	}
@@ -61,9 +81,14 @@ impl<'a> ESExprTag<'a> {
 			ESExprTag::Bool => ESExprTag::Bool,
 			ESExprTag::Int => ESExprTag::Int,
 			ESExprTag::Str => ESExprTag::Str,
-			ESExprTag::Binary => ESExprTag::Binary,
+			ESExprTag::Float16 => ESExprTag::Float16,
 			ESExprTag::Float32 => ESExprTag::Float32,
 			ESExprTag::Float64 => ESExprTag::Float64,
+			ESExprTag::Array8 => ESExprTag::Array8,
+			ESExprTag::Array16 => ESExprTag::Array16,
+			ESExprTag::Array32 => ESExprTag::Array32,
+			ESExprTag::Array64 => ESExprTag::Array64,
+			ESExprTag::Array128 => ESExprTag::Array128,
 			ESExprTag::Null => ESExprTag::Null,
 		}
 	}
@@ -79,9 +104,14 @@ impl<'a> ESExprTag<'a> {
 			ESExprTag::Bool => ESExprTag::Bool,
 			ESExprTag::Int => ESExprTag::Int,
 			ESExprTag::Str => ESExprTag::Str,
-			ESExprTag::Binary => ESExprTag::Binary,
+			ESExprTag::Float16 => ESExprTag::Float16,
 			ESExprTag::Float32 => ESExprTag::Float32,
 			ESExprTag::Float64 => ESExprTag::Float64,
+			ESExprTag::Array8 => ESExprTag::Array8,
+			ESExprTag::Array16 => ESExprTag::Array16,
+			ESExprTag::Array32 => ESExprTag::Array32,
+			ESExprTag::Array64 => ESExprTag::Array64,
+			ESExprTag::Array128 => ESExprTag::Array128,
 			ESExprTag::Null => ESExprTag::Null,
 		}
 	}
@@ -101,9 +131,14 @@ impl<'a> ESExprTag<'a> {
 			ESExprTag::Bool => matches!(b, ESExprTag::Bool),
 			ESExprTag::Int => matches!(b, ESExprTag::Int),
 			ESExprTag::Str => matches!(b, ESExprTag::Str),
-			ESExprTag::Binary => matches!(b, ESExprTag::Binary),
+			ESExprTag::Float16 => matches!(b, ESExprTag::Float16),
 			ESExprTag::Float32 => matches!(b, ESExprTag::Float32),
 			ESExprTag::Float64 => matches!(b, ESExprTag::Float64),
+			ESExprTag::Array8 => matches!(b, ESExprTag::Array8),
+			ESExprTag::Array16 => matches!(b, ESExprTag::Array16),
+			ESExprTag::Array32 => matches!(b, ESExprTag::Array32),
+			ESExprTag::Array64 => matches!(b, ESExprTag::Array64),
+			ESExprTag::Array128 => matches!(b, ESExprTag::Array128),
 			ESExprTag::Null => matches!(b, ESExprTag::Null),
 		}
 	}

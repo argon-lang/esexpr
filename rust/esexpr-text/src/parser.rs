@@ -362,7 +362,7 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
 		float,
 		map(integer, |i| ESExpr::Int(Cow::Owned(i))),
 		map(string, |s| ESExpr::Str(CowStr::Owned(s))),
-		map(binary, |b| ESExpr::Binary(Cow::Owned(b))),
+		map(binary, |b| ESExpr::Array8(Cow::Owned(b))),
 		atom(ESExpr::Bool(true), "#true"),
 		atom(ESExpr::Bool(false), "#false"),
 		null_atom,
