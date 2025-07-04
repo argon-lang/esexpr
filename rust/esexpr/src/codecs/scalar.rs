@@ -141,6 +141,48 @@ impl<'a> ESExprCodec<'a> for String {
 	}
 }
 
+impl<'a> ESExprCodec<'a> for Cow<'a, str> {
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
+
+	fn encode_esexpr(&'a self) -> ESExpr<'a> {
+		ESExpr::Str(CowStr::Borrowed(self.as_ref()))
+	}
+
+	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
+		match expr {
+			ESExpr::Str(s) => Ok(Cow::from(s)),
+			_ => Err(DecodeError::new(
+				DecodeErrorType::UnexpectedExpr {
+					expected_tags: Self::TAGS,
+					actual_tag: expr.tag().into_owned(),
+				},
+				DecodeErrorPath::Current,
+			)),
+		}
+	}
+}
+
+impl<'a> ESExprCodec<'a> for CowStr<'a> {
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
+
+	fn encode_esexpr(&'a self) -> ESExpr<'a> {
+		ESExpr::Str(self.as_borrowed())
+	}
+
+	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
+		match expr {
+			ESExpr::Str(s) => Ok(s),
+			_ => Err(DecodeError::new(
+				DecodeErrorType::UnexpectedExpr {
+					expected_tags: Self::TAGS,
+					actual_tag: expr.tag().into_owned(),
+				},
+				DecodeErrorPath::Current,
+			)),
+		}
+	}
+}
+
 impl<'a> ESExprCodec<'a> for f32 {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Float32]);
 

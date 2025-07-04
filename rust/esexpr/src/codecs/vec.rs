@@ -6,6 +6,7 @@ use esexpr::expr::ESExprConstructor;
 use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection, ESExprVarArgCodec};
 use crate::cowstr::CowStr;
 
+
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("list"))]);
 
@@ -19,7 +20,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
-			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if *name == *"list" => {
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if name == "list" => {
 				if !kwargs.is_empty() {
 					return Err(DecodeError::new(
 						DecodeErrorType::OutOfRange("List must not have keyword arguments".to_owned()),

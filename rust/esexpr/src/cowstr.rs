@@ -91,6 +91,15 @@ impl From<String> for CowStr<'static> {
     }
 }
 
+impl <'a> From<Cow<'a, str>> for CowStr<'a> {
+    fn from(value: Cow<'a, str>) -> Self {
+        match value {
+            Cow::Borrowed(s) => CowStr::Borrowed(s),
+            Cow::Owned(s) => CowStr::Owned(s),
+        }
+    }   
+}
+
 impl <'a> From<CowStr<'a>> for Cow<'a, str> {
     fn from(value: CowStr<'a>) -> Self {
         match value {

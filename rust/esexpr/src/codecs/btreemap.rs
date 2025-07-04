@@ -6,6 +6,48 @@ use core::ops::Deref;
 use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprConstructor, ESExprDictCodec, ESExprTag, ESExprTagCollection};
 use crate::cowstr::CowStr;
 
+impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<String, A> {
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+
+	fn encode_esexpr(&'a self) -> ESExpr<'a> {
+		ESExpr::constructor(
+			"dict",
+			[],
+			self.iter()
+				.map(|(k, v)| (CowStr::Borrowed(k), v.encode_esexpr()))
+				.collect::<BTreeMap<_, _>>(),
+		)
+	}
+
+	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
+		match expr {
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if name == "dict" => {
+				if !args.is_empty() {
+					return Err(DecodeError::new(
+						DecodeErrorType::OutOfRange("Dict must not have positional arguments".to_owned()),
+						DecodeErrorPath::Constructor(name.deref().to_owned()),
+					));
+				}
+
+				let mut dict = BTreeMap::default();
+
+				for (k, v) in kwargs {
+					dict.insert(k.into_string(), A::decode_esexpr(v)?);
+				}
+
+				Ok(dict)
+			},
+			_ => Err(DecodeError::new(
+				DecodeErrorType::UnexpectedExpr {
+					expected_tags: <Self as ESExprCodec>::TAGS,
+					actual_tag: expr.tag().into_owned(),
+				},
+				DecodeErrorPath::Current,
+			)),
+		}
+	}
+}
+
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<Cow<'a, str>, A> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
@@ -19,13 +61,15 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<Cow<'a, str>, A> {
 		ESExpr::constructor(
 			"dict",
 			[],
-			kwargs,
+			self.iter()
+				.map(|(k, v)| (CowStr::Borrowed(k.as_ref()), v.encode_esexpr()))
+				.collect::<BTreeMap<_, _>>(),
 		)
 	}
 
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
-			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if *name == *"dict" => {
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if name == "dict" => {
 				if !args.is_empty() {
 					return Err(DecodeError::new(
 						DecodeErrorType::OutOfRange("Dict must not have positional arguments".to_owned()),
@@ -37,6 +81,48 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<Cow<'a, str>, A> {
 
 				for (k, v) in kwargs {
 					dict.insert(Cow::from(k), A::decode_esexpr(v)?);
+				}
+
+				Ok(dict)
+			},
+			_ => Err(DecodeError::new(
+				DecodeErrorType::UnexpectedExpr {
+					expected_tags: <Self as ESExprCodec>::TAGS,
+					actual_tag: expr.tag().into_owned(),
+				},
+				DecodeErrorPath::Current,
+			)),
+		}
+	}
+}
+
+impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<CowStr<'a>, A> {
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+
+	fn encode_esexpr(&'a self) -> ESExpr<'a> {
+		ESExpr::constructor(
+			"dict",
+			[],
+			self.iter()
+				.map(|(k, v)| (CowStr::Borrowed(k.as_ref()), v.encode_esexpr()))
+				.collect::<BTreeMap<_, _>>(),
+		)
+	}
+
+	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
+		match expr {
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if name == "dict" => {
+				if !args.is_empty() {
+					return Err(DecodeError::new(
+						DecodeErrorType::OutOfRange("Dict must not have positional arguments".to_owned()),
+						DecodeErrorPath::Constructor(name.deref().to_owned()),
+					));
+				}
+
+				let mut dict = BTreeMap::default();
+
+				for (k, v) in kwargs {
+					dict.insert(k, A::decode_esexpr(v)?);
 				}
 
 				Ok(dict)
