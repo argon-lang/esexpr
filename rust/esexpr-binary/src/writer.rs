@@ -52,8 +52,9 @@ impl<'a, W, E> ExprGenerator<'a, W, E> {
 macro_rules! writer_mod {
 	($syncness: ident) => {
 		use core::convert::Infallible;
+		use alloc::borrow::Borrow;
 
-		use esexpr::ESExpr;
+		use esexpr::{ESExpr, ESExprConstructor};
 		use num_bigint::{BigUint, Sign};
 
 		use super::*;
@@ -80,7 +81,7 @@ macro_rules! writer_mod {
 			);
 			maybe_async!(
 				$syncness,
-				fn get_string_pool_index(&mut self, s: &str) -> Result<usize, GeneratorError<E>>;
+				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<E>>;
 			);
 			maybe_async!(
 				$syncness,
@@ -168,7 +169,7 @@ macro_rules! writer_mod {
 				$syncness,
 				fn generate_expr(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<E>> {
 					match expr {
-						ESExpr::Constructor { name, args, kwargs } => {
+						ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) => {
 							match &**name {
 								"string-table" => do_await!($syncness, self.write(TAG_CONSTRUCTOR_START_STRING_TABLE))?,
 								"list" => do_await!($syncness, self.write(TAG_CONSTRUCTOR_START_LIST))?,
@@ -182,7 +183,7 @@ macro_rules! writer_mod {
 							}
 
 							for arg in args.iter() {
-								do_await!($syncness, self.generate_expr(arg))?;
+								do_await!($syncness, self.generate_expr(&arg))?;
 							}
 
 							for (kw, value) in kwargs.iter() {
@@ -191,7 +192,7 @@ macro_rules! writer_mod {
 									$syncness,
 									self.write_int_tag(TAG_VARINT_KEYWORD, &BigUint::from(index))
 								)?;
-								do_await!($syncness, self.generate_expr(value))?;
+								do_await!($syncness, self.generate_expr(&value))?;
 							}
 
 							do_await!($syncness, self.write(TAG_CONSTRUCTOR_END))?;
@@ -263,7 +264,8 @@ macro_rules! writer_mod {
 
 			maybe_async!(
 				$syncness,
-				fn get_string_pool_index(&mut self, s: &str) -> Result<usize, GeneratorError<E>> {
+				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<E>> {
+					let s = s.borrow();
 					if let Some(index) = self.string_pool.iter().position(|s2| s2 == s) {
 						return Ok(index);
 					}

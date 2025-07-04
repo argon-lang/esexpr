@@ -1,4 +1,3 @@
-use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
@@ -12,6 +11,7 @@ use crate::{
 	ESExprTagCollection,
 	ESExprVarArgCodec,
 };
+use crate::cowstr::CowStr;
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
 	const TAGS: ESExprTagCollection = A::TAGS;
@@ -56,12 +56,12 @@ impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
 impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 	const TAGS: ESExprTagCollection = F::TAGS;
 
-	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>) {
+	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		(**self).encode_dict_element(kwargs);
 	}
 
 	fn decode_dict_element(
-		kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>,
+		kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>,
 		constructor_name: &str,
 	) -> Result<Self, DecodeError> {
 		F::decode_dict_element(kwargs, constructor_name).map(Box::new)

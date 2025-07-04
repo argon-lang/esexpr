@@ -1,10 +1,10 @@
-use alloc::borrow::{Cow, ToOwned};
+use crate::cowstr::CowStr;
 
 /// An expression tag.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ESExprTag<'a> {
 	/// A tag for a constructor with a specified name.
-	Constructor(Cow<'a, str>),
+	Constructor(CowStr<'a>),
 
 	/// A tag for a bool value.
 	Bool,
@@ -42,7 +42,7 @@ impl<'a> ESExprTag<'a> {
 	#[must_use]
 	pub fn into_owned(self) -> ESExprTag<'static> {
 		match self {
-			ESExprTag::Constructor(name) => ESExprTag::Constructor(Cow::Owned(name.into_owned())),
+			ESExprTag::Constructor(name) => ESExprTag::Constructor(name.into_owned_cowstr()),
 			ESExprTag::Bool => ESExprTag::Bool,
 			ESExprTag::Int => ESExprTag::Int,
 			ESExprTag::Str => ESExprTag::Str,
@@ -57,7 +57,7 @@ impl<'a> ESExprTag<'a> {
 	#[must_use]
 	pub fn as_owned(&self) -> ESExprTag<'static> {
 		match self {
-			ESExprTag::Constructor(name) => ESExprTag::Constructor(Cow::Owned(name.as_ref().to_owned())),
+			ESExprTag::Constructor(name) => ESExprTag::Constructor(name.as_owned_cowstr()),
 			ESExprTag::Bool => ESExprTag::Bool,
 			ESExprTag::Int => ESExprTag::Int,
 			ESExprTag::Str => ESExprTag::Str,
@@ -75,7 +75,7 @@ impl<'a> ESExprTag<'a> {
 		'a: 'b,
 	{
 		match self {
-			ESExprTag::Constructor(name) => ESExprTag::Constructor(Cow::Borrowed(name.as_ref())),
+			ESExprTag::Constructor(name) => ESExprTag::Constructor(name.as_borrowed()),
 			ESExprTag::Bool => ESExprTag::Bool,
 			ESExprTag::Int => ESExprTag::Int,
 			ESExprTag::Str => ESExprTag::Str,
@@ -88,14 +88,14 @@ impl<'a> ESExprTag<'a> {
 
 	const fn is_equal(&self, b: &ESExprTag) -> bool {
 		match self {
-			ESExprTag::Constructor(Cow::Borrowed(c1)) => match b {
-				ESExprTag::Constructor(Cow::Borrowed(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
-				ESExprTag::Constructor(Cow::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+			ESExprTag::Constructor(CowStr::Borrowed(c1) | CowStr::Static(c1)) => match b {
+				ESExprTag::Constructor(CowStr::Borrowed(c2) | CowStr::Static(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				ESExprTag::Constructor(CowStr::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
 				_ => false,
 			},
-			ESExprTag::Constructor(Cow::Owned(c1)) => match b {
-				ESExprTag::Constructor(Cow::Borrowed(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
-				ESExprTag::Constructor(Cow::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+			ESExprTag::Constructor(CowStr::Owned(c1)) => match b {
+				ESExprTag::Constructor(CowStr::Borrowed(c2) | CowStr::Static(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				ESExprTag::Constructor(CowStr::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
 				_ => false,
 			},
 			ESExprTag::Bool => matches!(b, ESExprTag::Bool),

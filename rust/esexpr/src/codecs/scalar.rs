@@ -5,6 +5,7 @@ use alloc::string::String;
 use num_bigint::{BigInt, BigUint};
 
 use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection};
+use crate::cowstr::CowStr;
 
 impl<'a> ESExprCodec<'a> for bool {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Bool]);
@@ -123,12 +124,12 @@ impl<'a> ESExprCodec<'a> for String {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
-		ESExpr::Str(Cow::Borrowed(self))
+		ESExpr::Str(CowStr::Borrowed(self))
 	}
 
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
-			ESExpr::Str(s) => Ok(s.into_owned()),
+			ESExpr::Str(s) => Ok(s.into_string()),
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {
 					expected_tags: Self::TAGS,

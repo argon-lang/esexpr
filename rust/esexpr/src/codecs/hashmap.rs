@@ -2,9 +2,9 @@ use std::borrow::{Cow, ToOwned};
 use std::boxed::Box;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::BuildHasher;
+use std::ops::Deref;
 use std::string::String;
-use std::vec::Vec;
-
+use esexpr::ESExprConstructor;
 use crate::{
 	DecodeError,
 	DecodeErrorPath,
@@ -15,47 +15,39 @@ use crate::{
 	ESExprTag,
 	ESExprTagCollection,
 };
+use crate::cowstr::CowStr;
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<String, A, S> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("dict"))]);
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		let mut kwargs = BTreeMap::new();
 
 		for (k, v) in self {
-			kwargs.insert(Cow::Borrowed(k.as_str()), v.encode_esexpr());
+			kwargs.insert(CowStr::Borrowed(k.as_str()), v.encode_esexpr());
 		}
 
-		ESExpr::Constructor {
-			name: Cow::Borrowed("dict"),
-			args: Cow::Owned(Vec::new()),
-			kwargs: Cow::Owned(kwargs),
-		}
+		ESExpr::constructor(
+			"dict",
+			[],
+			kwargs
+		)
 	}
 
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
-			ESExpr::Constructor { name, args, kwargs } if name == "dict" => {
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if *name == *"dict" => {
 				if !args.is_empty() {
 					return Err(DecodeError::new(
 						DecodeErrorType::OutOfRange("Dict must not have positional arguments".to_owned()),
-						DecodeErrorPath::Constructor(name.as_ref().to_owned()),
+						DecodeErrorPath::Constructor(name.deref().to_owned()),
 					));
 				}
 
 				let mut dict = HashMap::default();
 
-				match kwargs {
-					Cow::Borrowed(kwargs) => {
-						for (k, v) in kwargs {
-							dict.insert(k.as_ref().to_owned(), A::decode_esexpr(v.as_borrowed())?);
-						}
-					},
-					Cow::Owned(kwargs) => {
-						for (k, v) in kwargs {
-							dict.insert(k.into_owned(), A::decode_esexpr(v)?);
-						}
-					},
+				for (k, v) in kwargs {
+					dict.insert(k.into_string(), A::decode_esexpr(v)?);
 				}
 
 				Ok(dict)
@@ -74,14 +66,14 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<String, A, S> {
 	const TAGS: ESExprTagCollection = A::TAGS;
 
-	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>) {
+	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {
-			kwargs.insert(Cow::Borrowed(k), v.encode_esexpr());
+			kwargs.insert(CowStr::Borrowed(k), v.encode_esexpr());
 		}
 	}
 
 	fn decode_dict_element(
-		kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>,
+		kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>,
 		constructor_name: &str,
 	) -> Result<Self, DecodeError> {
 		std::mem::take(kwargs)
@@ -89,12 +81,12 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 			.map(|(k, v)| {
 				let value = A::decode_esexpr(v).map_err(|mut e| {
 					e.error_path_with(|old_path| {
-						DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path))
+						DecodeErrorPath::Keyword(constructor_name.to_owned(), k.deref().to_owned(), Box::new(old_path))
 					});
 					e
 				})?;
 
-				Ok((k.into_owned(), value))
+				Ok((k.into_string(), value))
 			})
 			.collect()
 	}
@@ -103,14 +95,14 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A, S> {
 	const TAGS: ESExprTagCollection = A::TAGS;
 
-	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>) {
+	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {
-			kwargs.insert(Cow::Borrowed(k.as_ref()), v.encode_esexpr());
+			kwargs.insert(CowStr::Borrowed(k.as_ref()), v.encode_esexpr());
 		}
 	}
 
 	fn decode_dict_element(
-		kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>,
+		kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>,
 		constructor_name: &str,
 	) -> Result<Self, DecodeError> {
 		std::mem::take(kwargs)
@@ -118,12 +110,12 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 			.map(|(k, v)| {
 				let value = A::decode_esexpr(v).map_err(|mut e| {
 					e.error_path_with(|old_path| {
-						DecodeErrorPath::Keyword(constructor_name.to_owned(), k.as_ref().to_owned(), Box::new(old_path))
+						DecodeErrorPath::Keyword(constructor_name.to_owned(), k.deref().to_owned(), Box::new(old_path))
 					});
 					e
 				})?;
 
-				Ok((k, value))
+				Ok((Cow::from(k), value))
 			})
 			.collect()
 	}

@@ -155,22 +155,22 @@ fn generate_constructor(constructor: ESExprConstructorLiteral) -> TokenStream {
 			ESExprConstructorArgument::Keyword(name, literal) => {
 				let literal_expr = generate_literal(literal);
 				kwargs.push(quote! {
-					(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#name), #literal_expr),
+					(::esexpr::cowstr::CowStr::Borrowed(#name), #literal_expr),
 				});
 			},
 		}
 	}
 
 	quote! {
-		::esexpr::ESExpr::Constructor {
-			name: ::esexpr::core_types::alloc::borrow::Cow::Borrowed(#name),
-			args: ::esexpr::core_types::alloc::borrow::Cow::Owned(::esexpr::core_types::alloc::vec![
+		::esexpr::ESExpr::constructor(
+			#name,
+			[
 				#(#args,)*
-			]),
-			kwargs: ::esexpr::core_types::alloc::borrow::Cow::Owned(::esexpr::core_types::alloc::collections::BTreeMap::from([
+			],
+			[
 				#(#kwargs)*
-			]))
-		}
+			],
+		)
 	}
 }
 
@@ -180,7 +180,7 @@ fn generate_scalar(scalar: ESExprScalarLiteral) -> TokenStream {
 			::esexpr::ESExpr::Bool(#bool)
 		},
 		ESExprScalarLiteral::Str(str) => quote! {
-			::esexpr::ESExpr::Str(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#str))
+			::esexpr::ESExpr::Str(::esexpr::cowstr::CowStr::Borrowed(#str))
 		},
 		ESExprScalarLiteral::Int(int) => quote! {
 			::esexpr::ESExpr::Int(::esexpr::core_types::alloc::borrow::Cow::Owned(::num_bigint::BigInt::from(#int)))

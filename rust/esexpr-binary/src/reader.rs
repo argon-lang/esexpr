@@ -98,6 +98,7 @@ macro_rules! reader_mod {
 		use alloc::collections::BTreeMap;
 		use alloc::vec;
 
+		use esexpr::cowstr::CowStr;
 		use num_bigint::{BigInt, Sign};
 
 		use crate::async_macros::{do_await, if_async, maybe_async};
@@ -392,16 +393,16 @@ macro_rules! reader_mod {
 				let expr: ExprPlus<'a> = ExprPlus::Expr(match token {
 					ExprToken::ConstructorStart(index) => {
 						let name = get_string(string_pool, index)?;
-						do_await!($syncness, read_expr_constructor(iter, string_pool, name))?
+						do_await!($syncness, read_expr_constructor(iter, string_pool, CowStr::Borrowed(name)))?
 					},
 					ExprToken::ConstructorStartKnown(name) => {
-						do_await!($syncness, read_expr_constructor(iter, string_pool, name))?
+						do_await!($syncness, read_expr_constructor(iter, string_pool, CowStr::Static(name)))?
 					},
 					ExprToken::ConstructorEnd => return Ok(ExprPlus::ConstructorEnd),
 					ExprToken::Keyword(index) => return Ok(ExprPlus::Keyword(index)),
 					ExprToken::IntValue(i) => ESExpr::Int(Cow::Owned(i)),
-					ExprToken::StringValue(s) => ESExpr::Str(Cow::Owned(s)),
-					ExprToken::StringPoolValue(index) => ESExpr::Str(Cow::Borrowed(get_string(string_pool, index)?)),
+					ExprToken::StringValue(s) => ESExpr::Str(CowStr::Owned(s)),
+					ExprToken::StringPoolValue(index) => ESExpr::Str(CowStr::Borrowed(get_string(string_pool, index)?)),
 					ExprToken::BinaryValue(b) => ESExpr::Binary(Cow::Owned(b)),
 					ExprToken::Float32Value(f) => ESExpr::Float32(f),
 					ExprToken::Float64Value(d) => ESExpr::Float64(d),
@@ -433,7 +434,7 @@ macro_rules! reader_mod {
 			fn read_expr_constructor<'a, 'b, E>(
 				iter: &'b mut (impl IterLike<Item = Result<ExprToken, ParseError<E>>> + Unpin),
 				string_pool: &'a AppendOnlyStringList,
-				name: &'a str,
+				name: CowStr<'a>,
 			) -> Result<ESExpr<'a>, ParseError<E>> {
 				let mut args = Vec::new();
 				let mut kwargs = BTreeMap::new();
@@ -444,7 +445,7 @@ macro_rules! reader_mod {
 						ExprPlus::Keyword(index) => {
 							let kw = get_string(string_pool, index)?;
 							let value = do_await!($syncness, read_next_expr_impl(iter, string_pool))?;
-							kwargs.insert(Cow::Borrowed(kw), value);
+							kwargs.insert(CowStr::Borrowed(kw), value);
 						},
 						ExprPlus::ConstructorEnd => break,
 						ExprPlus::AppendedToStringTable => {},
@@ -452,11 +453,7 @@ macro_rules! reader_mod {
 					}
 				}
 
-				Ok(ESExpr::Constructor {
-					name: Cow::Borrowed(name),
-					args: Cow::Owned(args),
-					kwargs: Cow::Owned(kwargs),
-				})
+				Ok(ESExpr::constructor(name, args, kwargs))
 			}
 		);
 

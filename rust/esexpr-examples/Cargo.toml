@@ -4,6 +4,14 @@ version = "0.1.20"
 edition = "2024"
 rust-version = "1.88.0"
 
+[[test]]
+name = "compile_errors"
+harness = false
+
 [dependencies]
 esexpr = { workspace = true }
 num-bigint = { workspace = true }
+
+[dev-dependencies]
+ui_test = { workspace = true }
+ctrlc = { workspace = true }

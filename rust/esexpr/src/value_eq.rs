@@ -124,14 +124,14 @@ impl<T: ValueEq> ValueEq for alloc::boxed::Box<T> {
 	}
 }
 
-impl<'a, T: ValueEq> ValueEq for &'a T {
-	fn value_eq(&self, other: &Self) -> bool {
+impl<'a, 'b, T: ValueEq<U>, U> ValueEq<&'b U> for &'a T {
+	fn value_eq(&self, other: &&'b U) -> bool {
 		T::value_eq(self, other)
 	}
 }
 
-impl<'a, T: ValueEq> ValueEq for &'a mut T {
-	fn value_eq(&self, other: &Self) -> bool {
+impl<'a, 'b, T: ValueEq<U>, U> ValueEq<&'b mut U> for &'a mut T {
+	fn value_eq(&self, other: &&'b mut U) -> bool {
 		T::value_eq(self, other)
 	}
 }

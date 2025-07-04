@@ -82,7 +82,7 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 	let encode = flatten_token_res(get_esexpr_encode(&input.attrs, &type_name, &input.data));
 	let decode = flatten_token_res(get_esexpr_decode(&input.attrs, &type_name, &input.data));
 
-	quote! {
+	let res = quote! {
 		impl #type_params ::esexpr::ESExprCodec<'esexpr_lifetime> for #type_name #generics_lt #type_args #generics_gt {
 
 			const TAGS: ::esexpr::ESExprTagCollection = {
@@ -98,7 +98,11 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 				#decode
 			}
 		}
-	}
+	};
+	
+	// eprintln!("tokens: {res}");
+	
+	res
 }
 
 fn validate_attributes(attrs: &[Attribute], _type_name: &Ident, data: &Data) -> TokenRes {
@@ -193,7 +197,7 @@ fn param_to_arg(p: &GenericParam) -> GenericArgument {
 
 fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenRes {
 	fn make_constructor_expr(name: &Expr) -> Expr {
-		parse_quote! { ::esexpr::ESExprTag::Constructor(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#name)) }
+		parse_quote! { ::esexpr::ESExprTag::Constructor(::esexpr::cowstr::CowStr::Borrowed(#name)) }
 	}
 
 	fn make_set_of(e: Expr) -> proc_macro2::TokenStream {
@@ -249,13 +253,9 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 
 			quote! {
 				let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
-				let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::core_types::alloc::borrow::Cow<'esexpr_lifetime, ::core::primitive::str>, ::esexpr::ESExpr>::new();
+				let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr>::new();
 				#encode_fields
-				::esexpr::ESExpr::Constructor {
-					name: ::esexpr::core_types::alloc::borrow::Cow::Borrowed(#constructor_name),
-					args: ::esexpr::core_types::alloc::borrow::Cow::Owned(args),
-					kwargs: ::esexpr::core_types::alloc::borrow::Cow::Owned(kwargs),
-				}
+				::esexpr::ESExpr::constructor(#constructor_name, args, kwargs)
 			}
 		},
 
@@ -268,7 +268,7 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 					let case_name_str = &make_constructor_name(&c.attrs, case_name)?;
 
 					Ok(quote! {
-						#type_name::#case_name => ::esexpr::ESExpr::Str(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#case_name_str)),
+						#type_name::#case_name => ::esexpr::ESExpr::Str(::esexpr::cowstr::CowStr::Static(#case_name_str)),
 					})
 				})
 				.collect::<Result<_, _>>()?;
@@ -340,13 +340,9 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                     Ok(quote! {
                         #pattern => {
                             let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
-                            let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::core_types::alloc::borrow::Cow<'esexpr_lifetime, ::esexpr::core_types::core::primitive::str>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
+                            let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
                             #encode_fields
-                            ::esexpr::ESExpr::Constructor {
-                                name: ::esexpr::core_types::alloc::borrow::Cow::Borrowed(#constructor_name),
-                                args: ::esexpr::core_types::alloc::borrow::Cow::Owned(args),
-                                kwargs: ::esexpr::core_types::alloc::borrow::Cow::Owned(kwargs),
-                            }
+                            ::esexpr::ESExpr::constructor(#constructor_name, args, kwargs)
                         }
                     })
                 }
@@ -372,40 +368,25 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 		field_name: &str,
 		field_tags: &proc_macro2::TokenStream,
 		prev_optional_positional_tags: &[proc_macro2::TokenStream],
-		is_optional: bool,
 	) -> proc_macro2::TokenStream {
-		let non_empty_tag_check = if !prev_optional_positional_tags.is_empty() || is_optional {
-			let message = if is_optional {
-				format!("Optional field '{field_name}' must not have full tags")
-			}
-			else {
-				format!("Field '{field_name}' following optional positional arguments must not have full tags")
-			};
-
-			quote! {
-				const { assert!(!#field_tags.is_all(), #message); }
-			}
-		}
-		else {
-			quote! {}
-		};
-
-		let prev_tag_check = if prev_optional_positional_tags.is_empty() {
+		if prev_optional_positional_tags.is_empty() {
 			quote! {}
 		}
 		else {
-			let message = format!(
+			let message_nonfull = format!(
+				"Field '{field_name}' cannot follow optional positional arguments with all tags"
+			);
+			
+			let message_disjoint = format!(
 				"Field '{field_name}' must have distinct tags from immediately preceding optional positional arguments"
 			);
 
 			quote! {
-				const { assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message); }
+				const {
+					assert!(!::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_all(), #message_nonfull);
+					assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message_disjoint);
+				}
 			}
-		};
-
-		quote! {
-			#non_empty_tag_check
-			#prev_tag_check
 		}
 	}
 
@@ -447,20 +428,20 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 kwarg_names.insert(kw_name);
 
                 if has_optional_attribute(&field.attrs)? {
-                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), value); } }
+                    quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(::esexpr::cowstr::CowStr::Static(#kw), value); } }
                 }
                 else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
                     quote! {
                         {
                             let value = #field_expr;
                             if !<#field_type as ::esexpr::ValueEq>::value_eq(value, &#default_value) {
-                                kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
+                                kwargs.insert(::esexpr::cowstr::CowStr::Static(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
                             }
                         }
                     }
                 }
                 else {
-                    quote! { kwargs.insert(::esexpr::core_types::alloc::borrow::Cow::Borrowed(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
+                    quote! { kwargs.insert(::esexpr::cowstr::CowStr::Static(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
                 }
             }
             else if has_dict_attribute(&field.attrs)? {
@@ -482,7 +463,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 has_vararg_field = true;
 
 				let tags = quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::TAGS };
-				let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, true);
+				let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 				prev_optional_positional_tags.push(tags);
 
                 quote! {
@@ -497,7 +478,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 
                 if has_optional_attribute(&field.attrs)? {
 					let tags = quote! { <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS };
-					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, true);
+					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 					prev_optional_positional_tags.push(tags);
 
                     quote! {
@@ -509,7 +490,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 }
                 else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
 					let tags = quote! { <#field_type as ::esexpr::ESExprCodec>::TAGS };
-					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, true);
+					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 					prev_optional_positional_tags.push(tags);
 
                     quote! {
@@ -524,7 +505,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 }
                 else {
 					let tags = quote! { <#field_type as ::esexpr::ESExprCodec>::TAGS };
-					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags, false);
+					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 					prev_optional_positional_tags.clear();
                     quote! {
 						#checks
@@ -544,9 +525,11 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 			let decode_fields = make_decode_fields(&s.fields, &constructor_name, quote! { #type_name })?;
 
 			quote! {
-				if let (::esexpr::ESExpr::Constructor { name, args, kwargs }) = expr {
-					let mut args = ::esexpr::core_types::alloc::collections::VecDeque::from(args.into_owned());
-					let mut kwargs = kwargs.into_owned();
+				if let (::esexpr::ESExpr::Constructor(::esexpr::ESExprConstructor { name, args, kwargs })) = expr {
+					let mut args = <::esexpr::core_types::alloc::collections::VecDeque<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>>>>::from(
+						<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::ConstructorArgs<'_>>>::from(args)
+					);
+					let mut kwargs = <::esexpr::core_types::alloc::collections::BTreeMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
 					if name == #constructor_name {
 						Ok(#decode_fields)
 					}
@@ -554,7 +537,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						Err(::esexpr::DecodeError::new(
 							::esexpr::DecodeErrorType::UnexpectedExpr {
 								expected_tags: <Self as ::esexpr::ESExprCodec>::TAGS,
-								actual_tag: ::esexpr::ESExprTag::Constructor(::esexpr::core_types::alloc::borrow::Cow::Owned(name.into_owned())),
+								actual_tag: ::esexpr::ESExprTag::Constructor(name.into_owned_cowstr()),
 							},
 							::esexpr::DecodeErrorPath::Current,
 						))?
@@ -639,9 +622,11 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						let name = make_constructor_name(&c.attrs, case_name)?;
 						let decode_fields = make_decode_fields(&c.fields, &name, quote! { #type_name::#case_name })?;
 						Ok(quote! {
-							::esexpr::ESExpr::Constructor { name, args, kwargs } if name == #name => {
-								let mut args = ::esexpr::core_types::alloc::collections::VecDeque::from(args.into_owned());
-								let mut kwargs = kwargs.into_owned();
+							::esexpr::ESExpr::Constructor(::esexpr::ESExprConstructor { name, args, kwargs }) if name == #name => {
+								let mut args = <::esexpr::core_types::alloc::collections::VecDeque<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>>>>::from(
+									<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::ConstructorArgs<'_>>>::from(args)
+								);
+								let mut kwargs = <::esexpr::core_types::alloc::collections::BTreeMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
 								::esexpr::core_types::core::result::Result::Ok(#decode_fields)
 							},
 						})

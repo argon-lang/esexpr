@@ -173,16 +173,27 @@ pub struct RequiredAfterOptionalPositional4 {
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+pub struct OptionalNoTag1 {
+	#[optional]
+	pub a: Option<esexpr::ESExprStatic>,
+}
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] alloc::vec::Vec<f32>);
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+pub struct AnyExpr {
+	pub a: esexpr::ESExprStatic,
+}
 
 #[cfg(test)]
 mod tests {
-	use alloc::borrow::{Cow, ToOwned};
+	use alloc::borrow::ToOwned;
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 
 	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq, esexpr};
-
+	use esexpr::cowstr::CowStr;
 	use super::*;
 
 	#[test]
@@ -194,7 +205,7 @@ mod tests {
 		let value = ConstructorName123Conversion { a: 5 };
 
 		assert_eq!(
-			ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("constructor-name123-conversion"))]),
+			ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("constructor-name123-conversion"))]),
 			ConstructorName123Conversion::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
@@ -213,8 +224,8 @@ mod tests {
 
 		assert_eq!(
 			ESExprTagCollection::Tags(&[
-				ESExprTag::Constructor(Cow::Borrowed("my-name123-test")),
-				ESExprTag::Constructor(Cow::Borrowed("my-ctor")),
+				ESExprTag::Constructor(CowStr::Static("my-name123-test")),
+				ESExprTag::Constructor(CowStr::Static("my-ctor")),
 			]),
 			ConstructorNameEnum::TAGS
 		);
@@ -262,7 +273,7 @@ mod tests {
 		let value = InlineValueTest::Flag(true);
 
 		assert_eq!(
-			ESExprTagCollection::Tags(&[ESExprTag::Bool, ESExprTag::Constructor(Cow::Borrowed("normal-case"))]),
+			ESExprTagCollection::Tags(&[ESExprTag::Bool, ESExprTag::Constructor(CowStr::Static("normal-case"))]),
 			InlineValueTest::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
@@ -318,7 +329,7 @@ mod tests {
 			f: Some(true),
 		};
 
-		let tags = ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("keywords"))]);
+		let tags = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("keywords"))]);
 
 		assert_eq!(tags, KeywordStruct::TAGS);
 		assert_eq!(expr, value.encode_esexpr());

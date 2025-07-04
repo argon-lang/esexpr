@@ -6,11 +6,11 @@ mod option;
 mod scalar;
 mod vec;
 
-use alloc::borrow::Cow;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 use crate::{DecodeError, ESExpr, ESExprTagCollection};
+use crate::cowstr::CowStr;
 
 /// A codec that encodes and decodes `ESExpr` values.
 pub trait ESExprCodec<'a>
@@ -79,14 +79,14 @@ where
 	const TAGS: ESExprTagCollection;
 
 	/// Encode dictionary arguments.
-	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>);
+	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>);
 
 	/// Decode dictionary arguments.
 	///
 	/// # Errors
 	/// Will return `Err` if decoding fails.
 	fn decode_dict_element(
-		kwargs: &mut BTreeMap<Cow<'a, str>, ESExpr<'a>>,
+		kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>,
 		constructor_name: &str,
 	) -> Result<Self, DecodeError>;
 }

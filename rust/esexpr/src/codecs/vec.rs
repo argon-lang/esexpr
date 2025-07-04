@@ -1,47 +1,33 @@
-use alloc::borrow::{Cow, ToOwned};
+use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
-use alloc::collections::{BTreeMap, VecDeque};
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-
-use crate::{
-	DecodeError,
-	DecodeErrorPath,
-	DecodeErrorType,
-	ESExpr,
-	ESExprCodec,
-	ESExprTag,
-	ESExprTagCollection,
-	ESExprVarArgCodec,
-};
+use esexpr::expr::ESExprConstructor;
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection, ESExprVarArgCodec};
+use crate::cowstr::CowStr;
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(Cow::Borrowed("list"))]);
+	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("list"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
-		ESExpr::Constructor {
-			name: Cow::Borrowed("list"),
-			args: self.iter().map(A::encode_esexpr).collect(),
-			kwargs: Cow::Owned(BTreeMap::new()),
-		}
+		ESExpr::<'a>::constructor(
+			"list",
+			self.iter().map(A::encode_esexpr).collect::<Vec<ESExpr<'a>>>(),
+			[]
+		)
 	}
 
 	fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
 		match expr {
-			ESExpr::Constructor { name, args, kwargs } if name == "list" => {
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if *name == *"list" => {
 				if !kwargs.is_empty() {
 					return Err(DecodeError::new(
 						DecodeErrorType::OutOfRange("List must not have keyword arguments".to_owned()),
-						DecodeErrorPath::Constructor(name.into_owned()),
+						DecodeErrorPath::Constructor(name.into_string()),
 					));
 				}
 
-				Ok(match args {
-					Cow::Borrowed(args) => args
-						.iter()
-						.map(|e| A::decode_esexpr(e.as_borrowed()))
-						.collect::<Result<Vec<_>, _>>()?,
-					Cow::Owned(args) => args.into_iter().map(A::decode_esexpr).collect::<Result<Vec<_>, _>>()?,
-				})
+				args.into_iter().map(A::decode_esexpr).collect::<Result<Vec<_>, _>>()
 			},
 			_ => Err(DecodeError::new(
 				DecodeErrorType::UnexpectedExpr {

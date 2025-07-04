@@ -14,6 +14,7 @@ use nom::multi::{many0, many0_count};
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
 use nom::{IResult, Parser};
 use num_bigint::{BigInt, BigUint, Sign};
+use esexpr::cowstr::CowStr;
 
 /// Represents a lexer error.
 #[derive(Debug, Clone, PartialEq)]
@@ -315,16 +316,12 @@ fn build_constructor(name: String, ctor_args: Vec<ConstructorArg>) -> ESExpr<'st
 		match arg {
 			ConstructorArg::Positional(value) => args.push(value),
 			ConstructorArg::Keyword(name, value) => {
-				kwargs.insert(Cow::Owned(name), value);
+				kwargs.insert(CowStr::Owned(name), value);
 			},
 		}
 	}
 
-	ESExpr::Constructor {
-		name: Cow::Owned(name),
-		args: Cow::Owned(args),
-		kwargs: Cow::Owned(kwargs),
-	}
+	ESExpr::constructor(name, args, kwargs)
 }
 
 fn constructor_arg(input: &str) -> IResult<&str, ConstructorArg> {
@@ -364,7 +361,7 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
 	alt((
 		float,
 		map(integer, |i| ESExpr::Int(Cow::Owned(i))),
-		map(string, |s| ESExpr::Str(Cow::Owned(s))),
+		map(string, |s| ESExpr::Str(CowStr::Owned(s))),
 		map(binary, |b| ESExpr::Binary(Cow::Owned(b))),
 		atom(ESExpr::Bool(true), "#true"),
 		atom(ESExpr::Bool(false), "#false"),

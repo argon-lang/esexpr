@@ -4,7 +4,7 @@
 extern crate alloc;
 extern crate core;
 
-use alloc::borrow::{Cow, ToOwned};
+use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -12,8 +12,9 @@ use core::f32;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use esexpr::{ESExpr, ESExprCodec};
+use esexpr::{ESExpr, ESExprCodec, ESExprConstructor};
 use num_bigint::{BigInt, BigUint};
+use esexpr::cowstr::CowStr;
 
 /// An `ESExpr` representation of a JSON value.
 #[derive(ESExprCodec, Debug, PartialEq)]
@@ -154,26 +155,21 @@ impl JsonEncodedESExpr {
 	/// Converts an `ESExpr` into a `JsonEncodedESExpr`
 	pub fn from_esexpr(expr: ESExpr) -> Self {
 		match expr {
-			ESExpr::Constructor { name, args, kwargs } => JsonEncodedESExpr::Constructor {
-				constructor_name: name.into_owned(),
-				args: Some(match args {
-					Cow::Borrowed(args) => args.iter().cloned().map(Self::from_esexpr).collect(),
-					Cow::Owned(args) => args.into_iter().map(Self::from_esexpr).collect(),
-				}),
-				kwargs: Some(match kwargs {
-					Cow::Borrowed(kwargs) => kwargs
-						.iter()
-						.map(|(k, v)| (k.as_ref().to_owned(), Self::from_esexpr(v.clone())))
-						.collect(),
-					Cow::Owned(kwargs) => kwargs
+			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) => JsonEncodedESExpr::Constructor {
+				constructor_name: name.into_string(),
+				args: Some(
+					args.into_iter().map(Self::from_esexpr).collect()
+				),
+				kwargs: Some(
+					kwargs
 						.into_iter()
-						.map(|(k, v)| (k.into_owned(), Self::from_esexpr(v)))
-						.collect(),
-				}),
+						.map(|(k, v)| (k.into_string(), Self::from_esexpr(v)))
+						.collect()
+				),
 			},
 			ESExpr::Bool(b) => JsonEncodedESExpr::Bool(b),
 			ESExpr::Int(i) => JsonEncodedESExpr::Int { int: i.into_owned() },
-			ESExpr::Str(s) => JsonEncodedESExpr::Str(s.into_owned()),
+			ESExpr::Str(s) => JsonEncodedESExpr::Str(s.into_string()),
 			ESExpr::Binary(b) => JsonEncodedESExpr::Binary {
 				base64: Base64Value(b.into_owned()),
 			},
@@ -193,26 +189,24 @@ impl JsonEncodedESExpr {
 				constructor_name,
 				args,
 				kwargs,
-			} => ESExpr::Constructor {
-				name: Cow::Owned(constructor_name),
-				args: Cow::Owned(args.unwrap_or_default().into_iter().map(Self::into_esexpr).collect()),
-				kwargs: Cow::Owned(
-					kwargs
-						.unwrap_or_default()
-						.into_iter()
-						.map(|(k, v)| (Cow::Owned(k), v.into_esexpr()))
-						.collect(),
-				),
-			},
-			JsonEncodedESExpr::List(l) => ESExpr::Constructor {
-				name: Cow::Borrowed("list"),
-				args: l.into_iter().map(Self::into_esexpr).collect(),
-				kwargs: Cow::default(),
-			},
+			} => ESExpr::constructor(
+				constructor_name,
+				args.unwrap_or_default().into_iter().map(Self::into_esexpr).collect::<Vec<_>>(),
+				kwargs
+					.unwrap_or_default()
+					.into_iter()
+					.map(|(k, v)| (CowStr::Owned(k), v.into_esexpr()))
+					.collect::<BTreeMap<_, _>>(),
+			),
+			JsonEncodedESExpr::List(l) => ESExpr::constructor(
+				"list", 
+				l.into_iter().map(Self::into_esexpr).collect::<Vec<_>>(),
+				[],
+			),
 
 			JsonEncodedESExpr::Bool(b) => ESExpr::Bool(b),
 			JsonEncodedESExpr::Int { int } => ESExpr::Int(Cow::Owned(int)),
-			JsonEncodedESExpr::Str(s) => ESExpr::Str(Cow::Owned(s)),
+			JsonEncodedESExpr::Str(s) => ESExpr::Str(CowStr::Owned(s)),
 			JsonEncodedESExpr::Binary { base64 } => ESExpr::Binary(Cow::Owned(base64.0)),
 			JsonEncodedESExpr::Float32 { float32 } => ESExpr::Float32(float32),
 			JsonEncodedESExpr::Float64 { float64 } => ESExpr::Float64(float64),
