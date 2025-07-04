@@ -2,10 +2,11 @@ use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::f32;
 use core::str::FromStr;
 
 use esexpr::ESExpr;
+use esexpr::cowstr::CowStr;
+use half::f16;
 use nom::branch::alt;
 use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_until, take_while, take_while_m_n, take_while1};
 use nom::character::complete::{alphanumeric1, char, digit1, hex_digit1, multispace1, none_of, one_of};
@@ -14,7 +15,6 @@ use nom::multi::{many0, many0_count};
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
 use nom::{IResult, Parser};
 use num_bigint::{BigInt, BigUint, Sign};
-use esexpr::cowstr::CowStr;
 
 /// Represents a lexer error.
 #[derive(Debug, Clone, PartialEq)]
@@ -84,7 +84,7 @@ fn float_decimal(input: &str) -> IResult<&str, ESExpr<'static>> {
 			char('.'),
 			cut(digit1),
 			opt((one_of("eE"), opt(one_of("+-")), digit1)),
-			opt(one_of("fFdD")),
+			opt(alt((tag("f16"), tag("F16"), tag("f"), tag("F"), tag("d"), tag("D")))),
 			not(peek(alphanumeric1)),
 		)),
 		parse_dec_float,
@@ -93,7 +93,18 @@ fn float_decimal(input: &str) -> IResult<&str, ESExpr<'static>> {
 }
 
 fn parse_dec_float(s: &str) -> ESExpr<'static> {
-	if s.ends_with('f') || s.ends_with('F') {
+	if s.ends_with("f16") || s.ends_with("F16") {
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
+		let f = s.trim_end_matches("f16")
+			.trim_end_matches("F16")
+			.parse::<f16>()
+			.unwrap();
+		ESExpr::Float16(f)
+	}
+	else if s.ends_with('f') || s.ends_with('F') {
 		#[expect(
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
@@ -122,7 +133,7 @@ fn float_hex(input: &str) -> IResult<&str, ESExpr<'static>> {
 			cut(one_of("pP")),
 			opt(one_of("+-")),
 			digit1,
-			opt(one_of("fFdD")),
+			opt(alt((tag("f16"), tag("F16"), tag("f"), tag("F"), tag("d"), tag("D")))),
 			not(peek(alphanumeric1)),
 		)),
 		parse_hex_float,
@@ -131,7 +142,21 @@ fn float_hex(input: &str) -> IResult<&str, ESExpr<'static>> {
 }
 
 fn parse_hex_float(s: &str) -> ESExpr<'static> {
-	if s.ends_with('f') || s.ends_with('F') {
+	if s.ends_with("f16") || s.ends_with("F16") {
+		#[expect(
+			clippy::unwrap_used,
+			reason = "Shouldn't fail because the parser should ensure the format is valid."
+		)]
+		let repr: hexponent::FloatLiteral = s
+			.trim_end_matches("f16")
+			.trim_end_matches("f16")
+			.parse::<hexponent::FloatLiteral>()
+			.unwrap();
+		let f = repr.convert().inner();
+
+		ESExpr::Float16(f16::from_f32(f))
+	}
+	else if s.ends_with('f') || s.ends_with('F') {
 		#[expect(
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
@@ -276,8 +301,54 @@ fn string_impl<'a>(
 	}
 }
 
-fn binary(input: &str) -> IResult<&str, Vec<u8>> {
-	delimited(preceded(skip_ws, tag("#\"")), many0(hex_byte), cut(tag("\""))).parse(input)
+fn binary(input: &str) -> IResult<&str, ESExpr<'static>> {
+	alt((
+		map(
+			delimited(preceded(skip_ws, tag("#\"")), many0(hex_byte), cut(tag("\""))),
+			|b| ESExpr::Array8(Cow::Owned(b)),
+		),
+		map(
+			delimited(
+				preceded(skip_ws, tag("#u8[")),
+				many0(map_res(preceded(skip_ws, integer), |i| u8::try_from(i))),
+				preceded(skip_ws, cut(tag("]"))),
+			),
+			|b| ESExpr::Array8(Cow::Owned(b)),
+		),
+		map(
+			delimited(
+				preceded(skip_ws, tag("#u16[")),
+				many0(map_res(preceded(skip_ws, integer), |i| u16::try_from(i))),
+				preceded(skip_ws, cut(tag("]"))),
+			),
+			|b| ESExpr::Array16(Cow::Owned(b)),
+		),
+		map(
+			delimited(
+				preceded(skip_ws, tag("#u32[")),
+				many0(map_res(preceded(skip_ws, integer), |i| u32::try_from(i))),
+				preceded(skip_ws, cut(tag("]"))),
+			),
+			|b| ESExpr::Array32(Cow::Owned(b)),
+		),
+		map(
+			delimited(
+				preceded(skip_ws, tag("#u64[")),
+				many0(map_res(preceded(skip_ws, integer), |i| u64::try_from(i))),
+				preceded(skip_ws, cut(tag("]"))),
+			),
+			|b| ESExpr::Array64(Cow::Owned(b)),
+		),
+		map(
+			delimited(
+				preceded(skip_ws, tag("#u128[")),
+				many0(map_res(preceded(skip_ws, integer), |i| u128::try_from(i))),
+				preceded(skip_ws, cut(tag("]"))),
+			),
+			|b| ESExpr::Array128(Cow::Owned(b)),
+		),
+	))
+	.parse(input)
 }
 
 fn hex_byte(input: &str) -> IResult<&str, u8> {
@@ -362,7 +433,7 @@ pub fn expr(input: &str) -> IResult<&str, ESExpr<'static>> {
 		float,
 		map(integer, |i| ESExpr::Int(Cow::Owned(i))),
 		map(string, |s| ESExpr::Str(CowStr::Owned(s))),
-		map(binary, |b| ESExpr::Array8(Cow::Owned(b))),
+		binary,
 		atom(ESExpr::Bool(true), "#true"),
 		atom(ESExpr::Bool(false), "#false"),
 		null_atom,

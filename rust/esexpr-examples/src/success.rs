@@ -192,8 +192,9 @@ mod tests {
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq, esexpr};
 	use esexpr::cowstr::CowStr;
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq, esexpr};
+
 	use super::*;
 
 	#[test]

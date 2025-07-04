@@ -3,8 +3,19 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use core::ops::Deref;
-use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprConstructor, ESExprDictCodec, ESExprTag, ESExprTagCollection};
+
 use crate::cowstr::CowStr;
+use crate::{
+	DecodeError,
+	DecodeErrorPath,
+	DecodeErrorType,
+	ESExpr,
+	ESExprCodec,
+	ESExprConstructor,
+	ESExprDictCodec,
+	ESExprTag,
+	ESExprTagCollection,
+};
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<String, A> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);

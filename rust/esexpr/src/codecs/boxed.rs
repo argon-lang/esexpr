@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
+use crate::cowstr::CowStr;
 use crate::{
 	DecodeError,
 	ESExpr,
@@ -11,7 +12,6 @@ use crate::{
 	ESExprTagCollection,
 	ESExprVarArgCodec,
 };
-use crate::cowstr::CowStr;
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
 	const TAGS: ESExprTagCollection = A::TAGS;

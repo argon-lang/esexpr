@@ -1,21 +1,20 @@
 #![expect(missing_docs, reason = "Tests")]
 
 use std::convert::Infallible;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use esexpr::{ESExpr, ValueEq};
 use esexpr_binary::ExprParserSync;
 
-fn encoding_test(name: &str) {
-	let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-	dir.push("../../tests");
+fn encoding_test(esx: &Path) {
+	println!("Executing test case {}", esx.file_stem().unwrap().to_str().unwrap());
 
-	let mut esx = dir.clone();
-	esx.push(format!("{}.esxb", name));
+	let dir = esx.parent().unwrap();
 
-	let mut json = dir;
-	json.push(format!("{}.json", name));
-	let json = std::fs::read_to_string(json).unwrap();
+	let mut json = PathBuf::from(dir);
+	json.push(format!("{}.json", esx.file_stem().unwrap().to_str().unwrap()));
+	let json = fs::read_to_string(json).unwrap();
 	let json: esexpr_json::JsonEncodedESExpr = serde_json::from_str(&json).unwrap();
 	let json = match json {
 		esexpr_json::JsonEncodedESExpr::List(items) => items,
@@ -31,15 +30,18 @@ fn encoding_test(name: &str) {
 
 fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 	use esexpr_binary::ExprGeneratorSync;
+
+	let test_name = path.file_stem().unwrap().to_str().unwrap();
+
 	let esx = {
-		let mut file = std::fs::File::open(path).unwrap();
+		let mut file = fs::File::open(path).unwrap();
 		esexpr_binary::parse_sync(&mut file)
 			.iter_static()
 			.collect::<Result<Vec<_>, _>>()
 			.unwrap()
 	};
 
-	assert!(expected.value_eq(&esx));
+	assert!(expected.value_eq(&esx), "Test case {test_name} did not match. Expected: {expected:?}, actual: {esx:?}");
 
 	let mut reencoded = Vec::with_capacity(esx.len());
 	for e in &esx {
@@ -57,44 +59,13 @@ fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 }
 
 #[test]
-fn encoding_bool() {
-	encoding_test("bool_false");
-	encoding_test("bool_true");
-}
+fn encoding_tests() {
+	for path in fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests")).unwrap() {
+		let path = path.unwrap().path();
+		if path.extension().unwrap() != "esxb" {
+			continue;
+		}
 
-#[test]
-fn encoding_constructor() {
-	encoding_test("constructor");
-	encoding_test("constructor2");
-	encoding_test("constructor-keyword");
-}
-
-#[test]
-fn encoding_append_string_table() {
-	encoding_test("append-string-table");
-}
-
-#[test]
-fn encoding_str() {
-	encoding_test("str");
-}
-
-#[test]
-fn encoding_int() {
-	encoding_test("int");
-}
-
-#[test]
-fn encoding_float32() {
-	encoding_test("float32");
-}
-
-#[test]
-fn encoding_float64() {
-	encoding_test("float64");
-}
-
-#[test]
-fn encoding_null() {
-	encoding_test("null");
+		encoding_test(&path);
+	}
 }

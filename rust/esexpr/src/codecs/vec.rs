@@ -2,10 +2,20 @@ use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
-use esexpr::expr::ESExprConstructor;
-use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection, ESExprVarArgCodec};
-use crate::cowstr::CowStr;
 
+use esexpr::expr::ESExprConstructor;
+
+use crate::cowstr::CowStr;
+use crate::{
+	DecodeError,
+	DecodeErrorPath,
+	DecodeErrorType,
+	ESExpr,
+	ESExprCodec,
+	ESExprTag,
+	ESExprTagCollection,
+	ESExprVarArgCodec,
+};
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("list"))]);
@@ -14,7 +24,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 		ESExpr::<'a>::constructor(
 			"list",
 			self.iter().map(A::encode_esexpr).collect::<Vec<ESExpr<'a>>>(),
-			[]
+			[],
 		)
 	}
 

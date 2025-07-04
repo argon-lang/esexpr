@@ -98,9 +98,8 @@ macro_rules! reader_mod {
 		use alloc::collections::BTreeMap;
 		use alloc::vec;
 
-		use half::f16;
-		
 		use esexpr::cowstr::CowStr;
+		use half::f16;
 		use num_bigint::{BigInt, Sign};
 
 		use crate::async_macros::{do_await, if_async, maybe_async};
@@ -147,7 +146,10 @@ macro_rules! reader_mod {
 						TAG_ARRAY16 => {
 							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
 							let mut buff = vec![0u16; n];
-							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u16, u8>(&mut buff)))?;
+							do_await!(
+								$syncness,
+								read_exact(reader, bytemuck::cast_slice_mut::<u16, u8>(&mut buff))
+							)?;
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
@@ -159,7 +161,10 @@ macro_rules! reader_mod {
 						TAG_ARRAY32 => {
 							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
 							let mut buff = vec![0u32; n];
-							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u32, u8>(&mut buff)))?;
+							do_await!(
+								$syncness,
+								read_exact(reader, bytemuck::cast_slice_mut::<u32, u8>(&mut buff))
+							)?;
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
@@ -171,7 +176,10 @@ macro_rules! reader_mod {
 						TAG_ARRAY64 => {
 							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
 							let mut buff = vec![0u64; n];
-							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u64, u8>(&mut buff)))?;
+							do_await!(
+								$syncness,
+								read_exact(reader, bytemuck::cast_slice_mut::<u64, u8>(&mut buff))
+							)?;
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
@@ -183,7 +191,10 @@ macro_rules! reader_mod {
 						TAG_ARRAY128 => {
 							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;
 							let mut buff = vec![0u128; n];
-							do_await!($syncness, read_exact(reader, bytemuck::cast_slice_mut::<u128, u8>(&mut buff)))?;
+							do_await!(
+								$syncness,
+								read_exact(reader, bytemuck::cast_slice_mut::<u128, u8>(&mut buff))
+							)?;
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
@@ -192,7 +203,7 @@ macro_rules! reader_mod {
 							}
 							ExprToken::Array128Value(buff)
 						},
-						
+
 						_ => {
 							return Err(ParseError::InvalidTokenByte(b));
 						},
@@ -448,11 +459,15 @@ macro_rules! reader_mod {
 				let expr: ExprPlus<'a> = ExprPlus::Expr(match token {
 					ExprToken::ConstructorStart(index) => {
 						let name = get_string(string_pool, index)?;
-						do_await!($syncness, read_expr_constructor(iter, string_pool, CowStr::Borrowed(name)))?
+						do_await!(
+							$syncness,
+							read_expr_constructor(iter, string_pool, CowStr::Borrowed(name))
+						)?
 					},
-					ExprToken::ConstructorStartKnown(name) => {
-						do_await!($syncness, read_expr_constructor(iter, string_pool, CowStr::Static(name)))?
-					},
+					ExprToken::ConstructorStartKnown(name) => do_await!(
+						$syncness,
+						read_expr_constructor(iter, string_pool, CowStr::Static(name))
+					)?,
 					ExprToken::ConstructorEnd => return Ok(ExprPlus::ConstructorEnd),
 					ExprToken::Keyword(index) => return Ok(ExprPlus::Keyword(index)),
 					ExprToken::IntValue(i) => ESExpr::Int(Cow::Owned(i)),

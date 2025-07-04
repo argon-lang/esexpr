@@ -5,11 +5,11 @@
 extern crate self as esexpr;
 
 mod codecs;
+pub mod cowstr;
 mod error;
 mod expr;
 mod tags;
 mod value_eq;
-pub mod cowstr;
 
 #[cfg(feature = "std")]
 extern crate std;
@@ -26,6 +26,6 @@ pub mod core_types {
 pub use codecs::{ESExprCodec, ESExprDictCodec, ESExprOptionalFieldCodec, ESExprVarArgCodec};
 pub use error::{DecodeError, DecodeErrorPath, DecodeErrorType};
 pub use esexpr_derive::{ESExprCodec, ValueEq, esexpr_literal as esexpr};
-pub use expr::{ESExpr, ESExprStatic, ESExprConstructor, ConstructorArgs, KeywordArgs};
+pub use expr::{ConstructorArgs, ESExpr, ESExprConstructor, ESExprStatic, KeywordArgs};
 pub use tags::{ESExprTag, ESExprTagCollection};
 pub use value_eq::ValueEq;

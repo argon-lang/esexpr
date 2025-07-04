@@ -9,8 +9,8 @@ mod vec;
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
-use crate::{DecodeError, ESExpr, ESExprTagCollection};
 use crate::cowstr::CowStr;
+use crate::{DecodeError, ESExpr, ESExprTagCollection};
 
 /// A codec that encodes and decodes `ESExpr` values.
 pub trait ESExprCodec<'a>

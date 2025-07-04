@@ -4,8 +4,8 @@ use alloc::string::String;
 
 use num_bigint::{BigInt, BigUint};
 
-use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection};
 use crate::cowstr::CowStr;
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection};
 
 impl<'a> ESExprCodec<'a> for bool {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Bool]);

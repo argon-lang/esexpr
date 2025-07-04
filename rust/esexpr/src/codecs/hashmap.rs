@@ -4,7 +4,10 @@ use std::collections::{BTreeMap, HashMap};
 use std::hash::BuildHasher;
 use std::ops::Deref;
 use std::string::String;
+
 use esexpr::ESExprConstructor;
+
+use crate::cowstr::CowStr;
 use crate::{
 	DecodeError,
 	DecodeErrorPath,
@@ -15,7 +18,6 @@ use crate::{
 	ESExprTag,
 	ESExprTagCollection,
 };
-use crate::cowstr::CowStr;
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<String, A, S> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
@@ -26,7 +28,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 			[],
 			self.iter()
 				.map(|(k, v)| (CowStr::Borrowed(k.as_str()), v.encode_esexpr()))
-				.collect::<BTreeMap<_, _>>()
+				.collect::<BTreeMap<_, _>>(),
 		)
 	}
 
@@ -68,7 +70,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 			[],
 			self.iter()
 				.map(|(k, v)| (CowStr::Borrowed(k.as_ref()), v.encode_esexpr()))
-				.collect::<BTreeMap<_, _>>()
+				.collect::<BTreeMap<_, _>>(),
 		)
 	}
 
@@ -101,7 +103,6 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 	}
 }
 
-
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<CowStr<'a>, A, S> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
@@ -111,7 +112,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 			[],
 			self.iter()
 				.map(|(k, v)| (k.as_borrowed(), v.encode_esexpr()))
-				.collect::<BTreeMap<_, _>>()
+				.collect::<BTreeMap<_, _>>(),
 		)
 	}
 

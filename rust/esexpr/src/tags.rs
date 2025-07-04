@@ -119,12 +119,16 @@ impl<'a> ESExprTag<'a> {
 	const fn is_equal(&self, b: &ESExprTag) -> bool {
 		match self {
 			ESExprTag::Constructor(CowStr::Borrowed(c1) | CowStr::Static(c1)) => match b {
-				ESExprTag::Constructor(CowStr::Borrowed(c2) | CowStr::Static(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				ESExprTag::Constructor(CowStr::Borrowed(c2) | CowStr::Static(c2)) => {
+					compare_str_bytes(c1.as_bytes(), c2.as_bytes())
+				},
 				ESExprTag::Constructor(CowStr::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
 				_ => false,
 			},
 			ESExprTag::Constructor(CowStr::Owned(c1)) => match b {
-				ESExprTag::Constructor(CowStr::Borrowed(c2) | CowStr::Static(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
+				ESExprTag::Constructor(CowStr::Borrowed(c2) | CowStr::Static(c2)) => {
+					compare_str_bytes(c1.as_bytes(), c2.as_bytes())
+				},
 				ESExprTag::Constructor(CowStr::Owned(c2)) => compare_str_bytes(c1.as_bytes(), c2.as_bytes()),
 				_ => false,
 			},

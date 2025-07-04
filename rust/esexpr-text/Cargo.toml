@@ -13,6 +13,7 @@ readme = "README.md"
 
 [dependencies]
 esexpr = { workspace = true }
+half = { workspace = true }
 hexponent = { workspace = true }
 num-bigint = { workspace = true }
 nom = { workspace = true }

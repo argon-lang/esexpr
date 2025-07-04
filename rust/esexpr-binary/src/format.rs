@@ -58,10 +58,7 @@ pub const TAG_NULL2: u8 = 0xE9;
 pub const TAG_NULLN: u8 = 0xEA;
 pub const TAG_APPEND_STRING_TABLE: u8 = 0xEB;
 
-
 pub const TAG_ARRAY16: u8 = 0xED;
 pub const TAG_ARRAY32: u8 = 0xEE;
 pub const TAG_ARRAY64: u8 = 0xEF;
 pub const TAG_ARRAY128: u8 = 0xF0;
-
-

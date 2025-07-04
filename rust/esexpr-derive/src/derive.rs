@@ -99,9 +99,9 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 			}
 		}
 	};
-	
+
 	// eprintln!("tokens: {res}");
-	
+
 	res
 }
 
@@ -373,10 +373,9 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 			quote! {}
 		}
 		else {
-			let message_nonfull = format!(
-				"Field '{field_name}' cannot follow optional positional arguments with all tags"
-			);
-			
+			let message_nonfull =
+				format!("Field '{field_name}' cannot follow optional positional arguments with all tags");
+
 			let message_disjoint = format!(
 				"Field '{field_name}' must have distinct tags from immediately preceding optional positional arguments"
 			);

@@ -12,10 +12,10 @@ use core::f32;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use half::f16;
-use esexpr::{ESExpr, ESExprCodec, ESExprConstructor};
-use num_bigint::{BigInt, BigUint};
 use esexpr::cowstr::CowStr;
+use esexpr::{ESExpr, ESExprCodec, ESExprConstructor};
+use half::f16;
+use num_bigint::{BigInt, BigUint};
 
 /// An `ESExpr` representation of a JSON value.
 #[derive(ESExprCodec, Debug, PartialEq)]
@@ -126,7 +126,7 @@ pub enum JsonEncodedESExpr {
 		/// The base64 encoded data
 		base64: Base64Value,
 	},
-	
+
 	/// An array of 8-bit values.
 	Array8 {
 		///	The 8-bit values encoded as uint8.
@@ -153,7 +153,8 @@ pub enum JsonEncodedESExpr {
 
 	/// An array of 128-bit values.
 	Array128 {
-		///    The 128-bit values encoded as uint128.
+		/// The 128-bit values encoded as uint128.
+		#[serde(with = "serde_u128_vec")]
 		array128: Vec<u128>,
 	},
 
@@ -195,14 +196,12 @@ impl JsonEncodedESExpr {
 		match expr {
 			ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) => JsonEncodedESExpr::Constructor {
 				constructor_name: name.into_string(),
-				args: Some(
-					args.into_iter().map(Self::from_esexpr).collect()
-				),
+				args: Some(args.into_iter().map(Self::from_esexpr).collect()),
 				kwargs: Some(
 					kwargs
 						.into_iter()
 						.map(|(k, v)| (k.into_string(), Self::from_esexpr(v)))
-						.collect()
+						.collect(),
 				),
 			},
 			ESExpr::Bool(b) => JsonEncodedESExpr::Bool(b),
@@ -242,18 +241,19 @@ impl JsonEncodedESExpr {
 				kwargs,
 			} => ESExpr::constructor(
 				constructor_name,
-				args.unwrap_or_default().into_iter().map(Self::into_esexpr).collect::<Vec<_>>(),
+				args.unwrap_or_default()
+					.into_iter()
+					.map(Self::into_esexpr)
+					.collect::<Vec<_>>(),
 				kwargs
 					.unwrap_or_default()
 					.into_iter()
 					.map(|(k, v)| (CowStr::Owned(k), v.into_esexpr()))
 					.collect::<BTreeMap<_, _>>(),
 			),
-			JsonEncodedESExpr::List(l) => ESExpr::constructor(
-				"list", 
-				l.into_iter().map(Self::into_esexpr).collect::<Vec<_>>(),
-				[],
-			),
+			JsonEncodedESExpr::List(l) => {
+				ESExpr::constructor("list", l.into_iter().map(Self::into_esexpr).collect::<Vec<_>>(), [])
+			},
 
 			JsonEncodedESExpr::Bool(b) => ESExpr::Bool(b),
 			JsonEncodedESExpr::Int { int } => ESExpr::Int(Cow::Owned(int)),
@@ -309,10 +309,30 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
 
 // Helper modules for serialization/deserialization
 
+mod serde_u128_vec {
+	use alloc::format;
+	use alloc::vec::Vec;
+	use serde::{Deserialize, Serialize};
+
+	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
+	pub fn serialize<S: serde::Serializer>(f: &Vec<u128>, serializer: S) -> Result<S::Ok, S::Error> {
+		<Vec<u128>>::serialize(f, serializer)
+	}
+
+	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u128>, D::Error> {
+		let value = serde_json::Value::deserialize(deserializer)?;
+		match serde_json::from_value(value) {
+			Ok(v) => Ok(v),
+			Err(e) => Err(serde::de::Error::custom(format!("{:?}", e))),
+		}
+	}
+}
+
 
 /// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
 mod serde_f16 {
 	use half::f16;
+
 	use crate::serde_f32;
 
 	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]

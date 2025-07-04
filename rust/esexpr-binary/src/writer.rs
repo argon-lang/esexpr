@@ -51,8 +51,8 @@ impl<'a, W, E> ExprGenerator<'a, W, E> {
 
 macro_rules! writer_mod {
 	($syncness: ident) => {
-		use core::convert::Infallible;
 		use alloc::borrow::Borrow;
+		use core::convert::Infallible;
 
 		use esexpr::{ESExpr, ESExprConstructor};
 		use half::f16;
@@ -134,9 +134,9 @@ macro_rules! writer_mod {
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 					// Dummy generator to catch new strings
 					<ExprGenerator<_, Infallible> as super::writer_sync::ExprGeneratorWriteExt<_, Infallible>>::generate_expr(
-												&mut generator,
-												expr,
-											).map_err(GeneratorError::from_infalliable)?;
+														&mut generator,
+														expr,
+													).map_err(GeneratorError::from_infalliable)?;
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
@@ -237,7 +237,7 @@ macro_rules! writer_mod {
 							)?;
 							do_await!($syncness, self.out.write(s.as_bytes()))?;
 						},
-						
+
 						ESExpr::Array8(b) => {
 							do_await!(
 								$syncness,
@@ -247,38 +247,37 @@ macro_rules! writer_mod {
 						},
 						ESExpr::Array16(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY16))?;
+							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
 							do_await!(
 								$syncness,
-								Self::write_int_full(self.out, &BigUint::from(b.len()))
+								self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref()))
 							)?;
-							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref())))?;
 						},
 						ESExpr::Array32(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY32))?;
+							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
 							do_await!(
 								$syncness,
-								Self::write_int_full(self.out, &BigUint::from(b.len()))
+								self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref()))
 							)?;
-							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref())))?;
 						},
 						ESExpr::Array64(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY64))?;
+							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
 							do_await!(
 								$syncness,
-								Self::write_int_full(self.out, &BigUint::from(b.len()))
+								self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref()))
 							)?;
-							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref())))?;
 						},
 						ESExpr::Array128(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY128))?;
+							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
 							do_await!(
 								$syncness,
-								Self::write_int_full(self.out, &BigUint::from(b.len()))
+								self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref()))
 							)?;
-							do_await!($syncness, self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref())))?;
 						},
-						
-						
+
 						ESExpr::Null(level) => {
 							let level: &BigUint = level.as_ref();
 

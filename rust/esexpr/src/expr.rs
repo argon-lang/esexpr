@@ -2,11 +2,12 @@ use alloc::borrow::{Cow, ToOwned};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::fmt::{Debug, Formatter};
+
 use half::f16;
 use num_bigint::{BigInt, BigUint};
 
-use crate::{DecodeError, ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq};
 use crate::cowstr::CowStr;
+use crate::{DecodeError, ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq};
 
 /// Representation of an `ESExpr` value.
 /// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
@@ -27,7 +28,7 @@ pub enum ESExpr<'a> {
 
 	/// A float16 value.
 	Float16(f16),
-	
+
 	/// A float32 value.
 	Float32(f32),
 
@@ -40,7 +41,7 @@ pub enum ESExpr<'a> {
 	/// An array of 16-bit values
 	Array16(Cow<'a, [u16]>),
 
-	/// An array of 32-bit values 
+	/// An array of 32-bit values
 	Array32(Cow<'a, [u32]>),
 
 	/// An array of 64-bit values
@@ -60,7 +61,8 @@ impl<'a> ESExpr<'a> {
 		args: A,
 		kwargs: K,
 	) -> Self
-		where 'b: 'a
+	where
+		'b: 'a,
 	{
 		ESExpr::Constructor(ESExprConstructor {
 			name: name.into(),
@@ -131,10 +133,12 @@ impl<'a> ESExpr<'a> {
 
 	/// Creates an `ESExpr` value from a reference without making a deep copy.
 	#[must_use]
-	pub fn as_borrowed<'b>(&'b self) -> ESExpr<'b> where 'a : 'b {
+	pub fn as_borrowed<'b>(&'b self) -> ESExpr<'b>
+	where
+		'a: 'b,
+	{
 		match self {
-			ESExpr::Constructor(constructor) =>
-				ESExpr::Constructor(constructor.as_borrowed()),
+			ESExpr::Constructor(constructor) => ESExpr::Constructor(constructor.as_borrowed()),
 			&ESExpr::Bool(b) => ESExpr::Bool(b),
 			ESExpr::Int(i) => ESExpr::Int(Cow::Borrowed(i.as_ref())),
 			ESExpr::Str(s) => ESExpr::Str(s.as_borrowed()),
@@ -320,17 +324,13 @@ impl<'a> ConstructorArgs<'a> {
 
 	fn into_owned(self) -> ConstructorArgs<'static> {
 		ConstructorArgs {
-			args: ConstructorArgsInner::Owned(
-				self.into_iter().map(ESExpr::into_owned).collect(),
-			),
+			args: ConstructorArgsInner::Owned(self.into_iter().map(ESExpr::into_owned).collect()),
 		}
 	}
 
 	fn as_owned(&self) -> ConstructorArgs<'static> {
 		ConstructorArgs {
-			args: ConstructorArgsInner::Owned(
-				self.into_iter().map(ESExpr::into_owned).collect(),
-			),
+			args: ConstructorArgsInner::Owned(self.into_iter().map(ESExpr::into_owned).collect()),
 		}
 	}
 
@@ -344,7 +344,7 @@ impl<'a> ConstructorArgs<'a> {
 	}
 }
 
-impl <'a> From<Vec<ESExpr<'a>>> for ConstructorArgs<'a> {
+impl<'a> From<Vec<ESExpr<'a>>> for ConstructorArgs<'a> {
 	fn from(args: Vec<ESExpr<'a>>) -> Self {
 		ConstructorArgs {
 			args: ConstructorArgsInner::Owned(args),
@@ -352,7 +352,7 @@ impl <'a> From<Vec<ESExpr<'a>>> for ConstructorArgs<'a> {
 	}
 }
 
-impl <'a> From<&'a [ESExpr<'a>]> for ConstructorArgs<'a> {
+impl<'a> From<&'a [ESExpr<'a>]> for ConstructorArgs<'a> {
 	fn from(args: &'a [ESExpr<'a>]) -> Self {
 		ConstructorArgs {
 			args: ConstructorArgsInner::Borrowed(args),
@@ -360,7 +360,7 @@ impl <'a> From<&'a [ESExpr<'a>]> for ConstructorArgs<'a> {
 	}
 }
 
-impl <'a, const N: usize> From<[ESExpr<'a>; N]> for ConstructorArgs<'a> {
+impl<'a, const N: usize> From<[ESExpr<'a>; N]> for ConstructorArgs<'a> {
 	fn from(args: [ESExpr<'a>; N]) -> Self {
 		ConstructorArgs {
 			args: ConstructorArgsInner::Owned(args.to_vec()),
@@ -368,16 +368,16 @@ impl <'a, const N: usize> From<[ESExpr<'a>; N]> for ConstructorArgs<'a> {
 	}
 }
 
-impl <'a> From<ConstructorArgs<'a>> for Vec<ESExpr<'a>> {
+impl<'a> From<ConstructorArgs<'a>> for Vec<ESExpr<'a>> {
 	fn from(args: ConstructorArgs<'a>) -> Self {
 		match args.args {
 			ConstructorArgsInner::Owned(args) => args,
-			ConstructorArgsInner::Borrowed(args) => args.into_iter().map(ESExpr::as_borrowed).collect()
+			ConstructorArgsInner::Borrowed(args) => args.into_iter().map(ESExpr::as_borrowed).collect(),
 		}
 	}
 }
 
-impl <'a> IntoIterator for ConstructorArgs<'a> {
+impl<'a> IntoIterator for ConstructorArgs<'a> {
 	type Item = ESExpr<'a>;
 	type IntoIter = ConstructorArgsIntoIter<'a>;
 
@@ -386,12 +386,12 @@ impl <'a> IntoIterator for ConstructorArgs<'a> {
 			inner_iter: match self.args {
 				ConstructorArgsInner::Owned(args) => ConstructorArgsInnerIntoIter::Owned(args.into_iter()),
 				ConstructorArgsInner::Borrowed(args) => ConstructorArgsInnerIntoIter::Borrowed(args.iter()),
-			}
+			},
 		}
 	}
 }
 
-impl <'a> IntoIterator for &'a ConstructorArgs<'a> {
+impl<'a> IntoIterator for &'a ConstructorArgs<'a> {
 	type Item = ESExpr<'a>;
 	type IntoIter = ConstructorArgsIntoIter<'a>;
 
@@ -411,29 +411,28 @@ enum ConstructorArgsInner<'a> {
 	Borrowed(&'a [ESExpr<'a>]),
 }
 
-impl <'a> ConstructorArgsInner<'a> {
+impl<'a> ConstructorArgsInner<'a> {
 	fn as_slice(&self) -> &[ESExpr<'a>] {
 		match self {
 			ConstructorArgsInner::Owned(args) => args,
 			ConstructorArgsInner::Borrowed(args) => args,
 		}
-
 	}
 }
 
-impl <'a> Debug for ConstructorArgsInner<'a> {
+impl<'a> Debug for ConstructorArgsInner<'a> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
 		self.as_slice().fmt(f)
 	}
 }
 
-impl <'a> PartialEq for ConstructorArgsInner<'a> {
+impl<'a> PartialEq for ConstructorArgsInner<'a> {
 	fn eq(&self, other: &Self) -> bool {
 		self.as_slice() == other.as_slice()
 	}
 }
 
-impl <'a> ValueEq for ConstructorArgsInner<'a> {
+impl<'a> ValueEq for ConstructorArgsInner<'a> {
 	fn value_eq(&self, other: &Self) -> bool {
 		self.as_slice() == other.as_slice()
 	}
@@ -443,7 +442,7 @@ pub struct ConstructorArgsIntoIter<'a> {
 	inner_iter: ConstructorArgsInnerIntoIter<'a>,
 }
 
-impl <'a> Iterator for ConstructorArgsIntoIter<'a> {
+impl<'a> Iterator for ConstructorArgsIntoIter<'a> {
 	type Item = ESExpr<'a>;
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -456,7 +455,7 @@ enum ConstructorArgsInnerIntoIter<'a> {
 	Borrowed(alloc::slice::Iter<'a, ESExpr<'a>>),
 }
 
-impl <'a> Iterator for ConstructorArgsInnerIntoIter<'a> {
+impl<'a> Iterator for ConstructorArgsInnerIntoIter<'a> {
 	type Item = ESExpr<'a>;
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -492,7 +491,9 @@ impl<'a> KeywordArgs<'a> {
 	fn into_owned(self) -> KeywordArgs<'static> {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(
-				self.into_iter().map(|(k, v)| (k.into_owned_cowstr(), v.into_owned())).collect()
+				self.into_iter()
+					.map(|(k, v)| (k.into_owned_cowstr(), v.into_owned()))
+					.collect(),
 			),
 		}
 	}
@@ -500,7 +501,9 @@ impl<'a> KeywordArgs<'a> {
 	fn as_owned(&self) -> KeywordArgs<'static> {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(
-				self.iter().map(|(k, v)| (k.into_owned_cowstr(), v.into_owned())).collect()
+				self.iter()
+					.map(|(k, v)| (k.into_owned_cowstr(), v.into_owned()))
+					.collect(),
 			),
 		}
 	}
@@ -515,7 +518,7 @@ impl<'a> KeywordArgs<'a> {
 	}
 }
 
-impl <'a> From<BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
+impl<'a> From<BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	fn from(kwargs: BTreeMap<CowStr<'a>, ESExpr<'a>>) -> Self {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(kwargs),
@@ -523,7 +526,7 @@ impl <'a> From<BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	}
 }
 
-impl <'a> From<&'a BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
+impl<'a> From<&'a BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	fn from(kwargs: &'a BTreeMap<CowStr<'a>, ESExpr<'a>>) -> Self {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Borrowed(kwargs),
@@ -531,7 +534,7 @@ impl <'a> From<&'a BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	}
 }
 
-impl <'a, const N: usize> From<[(CowStr<'a>, ESExpr<'a>); N]> for KeywordArgs<'a> {
+impl<'a, const N: usize> From<[(CowStr<'a>, ESExpr<'a>); N]> for KeywordArgs<'a> {
 	fn from(value: [(CowStr<'a>, ESExpr<'a>); N]) -> Self {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(BTreeMap::from(value)),
@@ -539,16 +542,18 @@ impl <'a, const N: usize> From<[(CowStr<'a>, ESExpr<'a>); N]> for KeywordArgs<'a
 	}
 }
 
-impl <'a> From<KeywordArgs<'a>> for BTreeMap<CowStr<'a>, ESExpr<'a>> {
+impl<'a> From<KeywordArgs<'a>> for BTreeMap<CowStr<'a>, ESExpr<'a>> {
 	fn from(kwargs: KeywordArgs<'a>) -> Self {
 		match kwargs.kwargs {
 			KeywordArgsInner::Owned(kwargs) => kwargs,
-			KeywordArgsInner::Borrowed(kwargs) => kwargs.iter().map(|(k, v)| (k.as_owned_cowstr(), v.clone())).collect()
+			KeywordArgsInner::Borrowed(kwargs) => {
+				kwargs.iter().map(|(k, v)| (k.as_owned_cowstr(), v.clone())).collect()
+			},
 		}
 	}
 }
 
-impl <'a> IntoIterator for KeywordArgs<'a> {
+impl<'a> IntoIterator for KeywordArgs<'a> {
 	type Item = (CowStr<'a>, ESExpr<'a>);
 	type IntoIter = KeywordArgsIntoIter<'a>;
 
@@ -557,12 +562,12 @@ impl <'a> IntoIterator for KeywordArgs<'a> {
 			inner_iter: match self.kwargs {
 				KeywordArgsInner::Owned(kwargs) => KeywordArgsInnerIntoIter::Owned(kwargs.into_iter()),
 				KeywordArgsInner::Borrowed(kwargs) => KeywordArgsInnerIntoIter::Borrowed(kwargs.iter()),
-			}
+			},
 		}
 	}
 }
 
-impl <'a> IntoIterator for &'a KeywordArgs<'a> {
+impl<'a> IntoIterator for &'a KeywordArgs<'a> {
 	type Item = (CowStr<'a>, ESExpr<'a>);
 	type IntoIter = KeywordArgsIntoIter<'a>;
 
@@ -577,8 +582,7 @@ pub enum KeywordArgsInner<'a> {
 	Borrowed(&'a BTreeMap<CowStr<'a>, ESExpr<'a>>),
 }
 
-impl <'a> KeywordArgsInner<'a> {
-
+impl<'a> KeywordArgsInner<'a> {
 	fn as_map(&self) -> &BTreeMap<CowStr<'a>, ESExpr<'a>> {
 		match self {
 			KeywordArgsInner::Owned(kwargs) => kwargs,
@@ -587,19 +591,19 @@ impl <'a> KeywordArgsInner<'a> {
 	}
 }
 
-impl <'a> Debug for KeywordArgsInner<'a> {
+impl<'a> Debug for KeywordArgsInner<'a> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
 		self.as_map().fmt(f)
 	}
 }
 
-impl <'a> PartialEq for KeywordArgsInner<'a> {
+impl<'a> PartialEq for KeywordArgsInner<'a> {
 	fn eq(&self, other: &Self) -> bool {
 		self.as_map() == other.as_map()
 	}
 }
 
-impl <'a> ValueEq for KeywordArgsInner<'a> {
+impl<'a> ValueEq for KeywordArgsInner<'a> {
 	fn value_eq(&self, other: &Self) -> bool {
 		self.as_map() == other.as_map()
 	}
@@ -609,7 +613,7 @@ pub struct KeywordArgsIntoIter<'a> {
 	inner_iter: KeywordArgsInnerIntoIter<'a>,
 }
 
-impl <'a> Iterator for KeywordArgsIntoIter<'a> {
+impl<'a> Iterator for KeywordArgsIntoIter<'a> {
 	type Item = (CowStr<'a>, ESExpr<'a>);
 
 	fn next(&mut self) -> Option<Self::Item> {
@@ -622,15 +626,15 @@ enum KeywordArgsInnerIntoIter<'a> {
 	Borrowed(alloc::collections::btree_map::Iter<'a, CowStr<'a>, ESExpr<'a>>),
 }
 
-impl <'a> Iterator for KeywordArgsInnerIntoIter<'a> {
+impl<'a> Iterator for KeywordArgsInnerIntoIter<'a> {
 	type Item = (CowStr<'a>, ESExpr<'a>);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self {
 			KeywordArgsInnerIntoIter::Owned(iter) => iter.next(),
-			KeywordArgsInnerIntoIter::Borrowed(iter) =>
-				iter.next().map(|(k, v)| (k.as_borrowed(), ESExpr::as_borrowed(v))),
+			KeywordArgsInnerIntoIter::Borrowed(iter) => {
+				iter.next().map(|(k, v)| (k.as_borrowed(), ESExpr::as_borrowed(v)))
+			},
 		}
 	}
 }
-
