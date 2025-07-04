@@ -13,7 +13,7 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 
 	// Add ValueEq bounds to type parameters
 	let mut generics_with_bounds = generics.clone();
-	for param in generics_with_bounds.params.iter_mut() {
+	for param in &mut generics_with_bounds.params {
 		if let GenericParam::Type(type_param) = param {
 			type_param
 				.bounds
@@ -23,10 +23,11 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 	let (bounded_impl_generics, _, bounded_where_clause) = generics_with_bounds.split_for_impl();
 
 	// Generate the implementation based on the data type
-	let expanded = match input.data {
+	match input.data {
 		Data::Struct(data_struct) => match data_struct.fields {
 			Fields::Named(ref fields) => {
 				let field_eq = fields.named.iter().map(|field| {
+					#[expect(clippy::unwrap_used, reason = "We know this is a named field")]
 					let field_name = field.ident.as_ref().unwrap();
 					let field_type = &field.ty;
 					quote! {
@@ -80,9 +81,10 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
                 let variant_name = &variant.ident;
                 match &variant.fields {
                     Fields::Named(fields) => {
+						#[expect(clippy::unwrap_used, reason = "We know this is a named field")]
                         let field_names = fields.named.iter().map(|field| field.ident.as_ref().unwrap()).collect::<Vec<_>>();
-                        let self_fields = field_names.iter().map(|field| syn::Ident::new(&format!("self_{}", field), field.span())).collect::<Vec<_>>();
-                        let other_fields = field_names.iter().map(|field| syn::Ident::new(&format!("other_{}", field), field.span())).collect::<Vec<_>>();
+                        let self_fields = field_names.iter().map(|field| syn::Ident::new(&format!("self_{field}"), field.span())).collect::<Vec<_>>();
+                        let other_fields = field_names.iter().map(|field| syn::Ident::new(&format!("other_{field}"), field.span())).collect::<Vec<_>>();
 
                         let field_eq = fields.named.iter().zip(self_fields.iter()).zip(other_fields.iter()).map(|((field, self_field), other_field)| {
                             let field_type = &field.ty;
@@ -102,8 +104,8 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
                     }
                     Fields::Unnamed(fields) => {
                         let field_count = fields.unnamed.len();
-                        let self_fields = (0..field_count).map(|i| syn::Ident::new(&format!("self_field_{}", i), variant.ident.span())).collect::<Vec<_>>();
-                        let other_fields = (0..field_count).map(|i| syn::Ident::new(&format!("other_field_{}", i), variant.ident.span())).collect::<Vec<_>>();
+                        let self_fields = (0..field_count).map(|i| syn::Ident::new(&format!("self_field_{i}"), variant.ident.span())).collect::<Vec<_>>();
+                        let other_fields = (0..field_count).map(|i| syn::Ident::new(&format!("other_field_{i}"), variant.ident.span())).collect::<Vec<_>>();
 
                         let field_eq = fields.unnamed.iter().zip(self_fields.iter()).zip(other_fields.iter()).map(|((field, self_field), other_field)| {
                             let field_type = &field.ty;
@@ -141,11 +143,7 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 			}
 		},
 		Data::Union(_) => {
-			return syn::Error::new(input.ident.span(), "ValueEq derive is not supported for unions")
-				.to_compile_error()
-				.into();
+			syn::Error::new(input.ident.span(), "ValueEq derive is not supported for unions").to_compile_error()
 		},
-	};
-
-	TokenStream::from(expanded)
+	}
 }

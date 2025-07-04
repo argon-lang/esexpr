@@ -1,9 +1,9 @@
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 //~^ E0080
 pub struct OptionalNoTag3 {
-	#[optional]
+	#[esexpr(optional)]
 	pub a: Option<esexpr::ESExprStatic>,
 
-	#[optional]
+	#[esexpr(optional)]
 	pub b: Option<i32>,
 }

@@ -261,7 +261,7 @@ impl<'a> ESExprCodec<'a> for ESExprStatic {
 	}
 }
 
-/// A ESExpr constructor expression
+/// A `ESExpr` constructor expression
 #[derive(Debug, Clone, PartialEq, ValueEq)]
 pub struct ESExprConstructor<'a> {
 	/// The name of the constructor.
@@ -313,11 +313,13 @@ impl<'a> ConstructorArgs<'a> {
 	}
 
 	/// The number of constructor arguments.
+	#[must_use]
 	pub fn len(&self) -> usize {
 		self.args.as_slice().len()
 	}
 
 	/// Gets whether there are any arguments.
+	#[must_use]
 	pub fn is_empty(&self) -> bool {
 		self.args.as_slice().is_empty()
 	}
@@ -372,7 +374,7 @@ impl<'a> From<ConstructorArgs<'a>> for Vec<ESExpr<'a>> {
 	fn from(args: ConstructorArgs<'a>) -> Self {
 		match args.args {
 			ConstructorArgsInner::Owned(args) => args,
-			ConstructorArgsInner::Borrowed(args) => args.into_iter().map(ESExpr::as_borrowed).collect(),
+			ConstructorArgsInner::Borrowed(args) => args.iter().map(ESExpr::as_borrowed).collect(),
 		}
 	}
 }
@@ -400,7 +402,7 @@ impl<'a> IntoIterator for &'a ConstructorArgs<'a> {
 	}
 }
 
-/// ESExpr Constructor arguments
+/// `ESExpr` Constructor arguments
 /// Used instead of `Cow` because of lifetime variance.
 #[derive(Clone)]
 enum ConstructorArgsInner<'a> {
@@ -438,6 +440,7 @@ impl<'a> ValueEq for ConstructorArgsInner<'a> {
 	}
 }
 
+#[must_use]
 pub struct ConstructorArgsIntoIter<'a> {
 	inner_iter: ConstructorArgsInnerIntoIter<'a>,
 }
@@ -466,7 +469,7 @@ impl<'a> Iterator for ConstructorArgsInnerIntoIter<'a> {
 	}
 }
 
-/// ESExpr constructor keyword arguments
+/// `ESExpr` constructor keyword arguments
 #[derive(Clone, Debug, PartialEq, ValueEq)]
 pub struct KeywordArgs<'a> {
 	kwargs: KeywordArgsInner<'a>,
@@ -479,11 +482,13 @@ impl<'a> KeywordArgs<'a> {
 	}
 
 	/// The number of keyword arguments.
+	#[must_use]
 	pub fn len(&self) -> usize {
 		self.kwargs.as_map().len()
 	}
 
 	/// Checks if there are any keyword arguments
+	#[must_use]
 	pub fn is_empty(&self) -> bool {
 		self.kwargs.as_map().is_empty()
 	}
@@ -609,6 +614,7 @@ impl<'a> ValueEq for KeywordArgsInner<'a> {
 	}
 }
 
+#[must_use]
 pub struct KeywordArgsIntoIter<'a> {
 	inner_iter: KeywordArgsInnerIntoIter<'a>,
 }

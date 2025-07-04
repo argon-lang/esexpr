@@ -38,14 +38,14 @@ This can be customized using the `constructor` attribute.
 
 ```rust
 #[derive(ESExprCodec, Copy, Debug, PartialEq)]
-#[constructor = "my-ctor"]
+#[esexpr(constructor = "my-ctor")]
 struct MyStruct {
     pub a: String,
 }
 
 #[derive(ESExprCodec, Copy, Debug, PartialEq)]
 struct MyEnum {
-    #[constructor = "a2"]
+    #[esexpr(constructor = "a2")]
     A(String),
     B(i32),
 }
@@ -59,7 +59,7 @@ It is the responsibility of the user to ensure that the tags do not overlap with
 ```rust
 #[derive(ESExprCodec, Copy, Debug, PartialEq)]
 struct MyEnum {
-    #[inline_value]
+    #[esexpr(inline_value)]
     A(String),
     B(i32),
 }
@@ -71,7 +71,7 @@ Fields may not be specified for any cases.
 
 ```rust
 #[derive(ESExprCodec, Copy, Debug, PartialEq)]
-#[simple_enum]
+#[esexpr(simple_enum)]
 struct MyEnum {
     A,
     B,
@@ -86,29 +86,19 @@ Additionally, default values can be set using `default_value`.
 ```rust
 #[derive(ESExprCodec, Copy, Debug, PartialEq)]
 struct MyStruct {
-    #[keyword]
+    #[esexpr(keyword)]
     a: bool,
 
-    #[keyword = "b2"]
+    #[esexpr(keyword = "b2")]
     b: bool,
 
-    #[keyword(name = "c2")]
-    c: bool,
-
-    #[keyword(name = "d2", required = false)]
-    d: Option<bool>,
-
-    #[keyword(required = false, name = "e2")]
-    e: Option<bool>,
-
-    #[keyword(required = false)]
-    f: Option<bool>,
-
-    #[keyword]
-    #[default_value = false]
+    #[esexpr(keyword = "c2", optional)]
+    c: Option<bool>,
+    
+    #[esexpr(keyword, default_value = false)]
     g: bool,
 
-    #[keyword]
+    #[esexpr(keyword)]
     h: Option<bool>,
 }
 ```
@@ -118,10 +108,10 @@ To handle multiple arguments, `vararg` and `dict` can be used for positional and
 ```rust
 #[derive(ESExprCodec, Copy, Debug, PartialEq)]
 struct MyStruct {
-    #[vararg]
+    #[esexpr(vararg)]
     args: Vec<bool>,
 
-    #[dict]
+    #[esexpr(dict)]
     kwargs: std::collections::HashMap<String, bool>,
 }
 ```

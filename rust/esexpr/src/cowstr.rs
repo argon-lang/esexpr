@@ -25,6 +25,7 @@ pub enum CowStr<'a> {
 
 impl<'a> CowStr<'a> {
 	/// Gets a borrowed `CowStr`.
+	#[must_use]
 	pub fn as_borrowed<'b>(&'b self) -> CowStr<'b>
 	where
 		'a: 'b,
@@ -32,11 +33,12 @@ impl<'a> CowStr<'a> {
 		match self {
 			CowStr::Borrowed(s) => CowStr::Borrowed(s),
 			CowStr::Static(s) => CowStr::Static(s),
-			CowStr::Owned(s) => CowStr::Borrowed(&s),
+			CowStr::Owned(s) => CowStr::Borrowed(s),
 		}
 	}
 
 	/// Converts to a `CowStr` that does not borrow data.
+	#[must_use]
 	pub fn into_owned_cowstr(self) -> CowStr<'static> {
 		match self {
 			CowStr::Borrowed(s) => CowStr::Owned(s.to_owned()),
@@ -46,6 +48,7 @@ impl<'a> CowStr<'a> {
 	}
 
 	/// Copies to a `CowStr` that does not borrow data.
+	#[must_use]
 	pub fn as_owned_cowstr(&self) -> CowStr<'static> {
 		match self {
 			CowStr::Borrowed(s) => CowStr::Owned((*s).to_owned()),
@@ -55,6 +58,7 @@ impl<'a> CowStr<'a> {
 	}
 
 	/// Convert into a `String`.
+	#[must_use]
 	pub fn into_string(self) -> String {
 		match self {
 			CowStr::Borrowed(s) | CowStr::Static(s) => s.to_owned(),
@@ -74,8 +78,7 @@ impl<'a> Deref for CowStr<'a> {
 
 	fn deref(&self) -> &Self::Target {
 		match self {
-			CowStr::Borrowed(s) => s,
-			CowStr::Static(s) => s,
+			CowStr::Borrowed(s) | CowStr::Static(s) => s,
 			CowStr::Owned(s) => s.as_str(),
 		}
 	}
@@ -113,55 +116,55 @@ impl<'a> From<CowStr<'a>> for Cow<'a, str> {
 
 impl<'a, 'b> PartialEq<CowStr<'b>> for CowStr<'a> {
 	fn eq(&self, other: &CowStr<'b>) -> bool {
-		str::eq(self.deref(), other.deref())
+		str::eq(&**self, &**other)
 	}
 }
 
-impl<'a, 'b> PartialEq<str> for CowStr<'a> {
+impl<'a> PartialEq<str> for CowStr<'a> {
 	fn eq(&self, other: &str) -> bool {
-		str::eq(self.deref(), other)
+		str::eq(&**self, other)
 	}
 }
 
-impl<'a, 'b> PartialEq<&str> for CowStr<'a> {
-	fn eq(&self, other: &&str) -> bool {
-		str::eq(self.deref(), *other)
+impl<'a, 'b> PartialEq<&'b str> for CowStr<'a> {
+	fn eq(&self, other: &&'b str) -> bool {
+		str::eq(&**self, *other)
 	}
 }
 
 impl<'a> PartialEq<CowStr<'a>> for str {
 	fn eq(&self, other: &CowStr<'a>) -> bool {
-		str::eq(self, other.deref())
+		str::eq(self, &**other)
 	}
 }
 
 impl<'a> PartialEq<CowStr<'a>> for &str {
 	fn eq(&self, other: &CowStr<'a>) -> bool {
-		str::eq(self, other.deref())
+		str::eq(self, &**other)
 	}
 }
 
 impl<'a, 'b> ValueEq<CowStr<'b>> for CowStr<'a> {
 	fn value_eq(&self, other: &CowStr<'b>) -> bool {
-		str::eq(self.deref(), other.deref())
+		str::eq(&**self, &**other)
 	}
 }
 
-impl<'a, 'b> ValueEq<str> for CowStr<'a> {
+impl<'a> ValueEq<str> for CowStr<'a> {
 	fn value_eq(&self, other: &str) -> bool {
-		str::eq(self.deref(), other)
+		str::eq(&**self, other)
 	}
 }
 
 impl<'a> ValueEq<CowStr<'a>> for str {
 	fn value_eq(&self, other: &CowStr<'a>) -> bool {
-		str::eq(self, other.deref())
+		str::eq(self, &**other)
 	}
 }
 
 impl<'a> ValueEq<CowStr<'a>> for &str {
 	fn value_eq(&self, other: &CowStr<'a>) -> bool {
-		str::eq(self, other.deref())
+		str::eq(self, &**other)
 	}
 }
 
@@ -169,13 +172,13 @@ impl<'a> Eq for CowStr<'a> {}
 
 impl<'a, 'b> PartialOrd<CowStr<'b>> for CowStr<'a> {
 	fn partial_cmp(&self, other: &CowStr<'b>) -> Option<Ordering> {
-		str::partial_cmp(self.deref(), other.deref())
+		str::partial_cmp(&**self, &**other)
 	}
 }
 
 impl<'a> Ord for CowStr<'a> {
 	fn cmp(&self, other: &Self) -> Ordering {
-		str::cmp(self.deref(), other.deref())
+		str::cmp(&**self, &**other)
 	}
 }
 
@@ -193,12 +196,12 @@ impl<'a> core::fmt::Display for CowStr<'a> {
 
 impl<'a> core::borrow::Borrow<str> for CowStr<'a> {
 	fn borrow(&self) -> &str {
-		self.deref()
+		self
 	}
 }
 
 impl<'a> core::borrow::Borrow<str> for &CowStr<'a> {
 	fn borrow(&self) -> &str {
-		(*self).deref()
+		self
 	}
 }

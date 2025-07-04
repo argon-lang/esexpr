@@ -7,107 +7,101 @@ struct ConstructorName123Conversion {
 enum ConstructorNameEnum {
 	MyName123Test,
 
-	#[constructor = "my-ctor"]
+	#[esexpr(constructor = "my-ctor")]
 	CustomName,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
-#[constructor = "my-ctor"]
+#[esexpr(constructor = "my-ctor")]
 struct CustomConstructorName {
 	a: i32,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum InlineValueTest {
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Flag(bool),
 
 	NormalCase(bool),
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
-#[constructor = "optional-args"]
-struct PositionalArgsOptional1(bool, bool, #[optional] Option<bool>);
+#[esexpr(constructor = "optional-args")]
+struct PositionalArgsOptional1(bool, bool, #[esexpr(optional)] Option<bool>);
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
-#[constructor = "keywords"]
+#[esexpr(constructor = "keywords")]
 struct KeywordStruct {
-	#[keyword]
+	#[esexpr(keyword)]
 	a: bool,
 
-	#[keyword = "b2"]
+	#[esexpr(keyword = "b2")]
 	b: bool,
 
-	#[keyword = "c2"]
-	#[optional]
+	#[esexpr(keyword = "c2", optional)]
 	c: Option<bool>,
 
-	#[keyword]
-	#[optional]
+	#[esexpr(keyword, optional)]
 	d: Option<bool>,
 
-	#[keyword]
-	#[default_value = "false"]
+	#[esexpr(keyword, default_value = false)]
 	e: bool,
 
-	#[keyword]
+	#[esexpr(keyword)]
 	f: Option<bool>,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum KeywordEnum {
-	#[constructor = "keywords"]
+	#[esexpr(constructor = "keywords")]
 	Value {
-		#[keyword]
+		#[esexpr(keyword)]
 		a: bool,
 
-		#[keyword = "b2"]
+		#[esexpr(keyword = "b2")]
 		b: bool,
 
-		#[keyword = "c2"]
-		#[optional]
+		#[esexpr(keyword = "c2", optional)]
 		c: Option<bool>,
 
-		#[keyword]
-		#[optional]
+		#[esexpr(keyword, optional)]
 		d: Option<bool>,
 
-		#[keyword]
-		#[default_value = "false"]
+		#[esexpr(keyword, default_value = "false")]
 		e: bool,
 
-		#[keyword]
+		#[esexpr(keyword)]
 		f: Option<bool>,
 	},
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
-#[simple_enum]
+#[esexpr(simple_enum)]
 enum SimpleEnum {
 	A,
 	B,
-	#[constructor = "my-c"]
+	#[esexpr(constructor = "my-c")]
 	C,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
-#[constructor = "many"]
+#[esexpr(constructor = "many")]
 struct ManyArgsStruct {
-	#[vararg]
+	#[esexpr(vararg)]
 	args: alloc::vec::Vec<bool>,
 
-	#[dict]
+	#[esexpr(dict)]
 	kwargs: alloc::collections::BTreeMap<alloc::string::String, bool>,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
 enum ManyArgsEnum {
-	#[constructor = "many"]
+	#[esexpr(constructor = "many")]
 	Value {
-		#[vararg]
+		#[esexpr(vararg)]
 		args: alloc::vec::Vec<bool>,
 
-		#[dict]
+		#[esexpr(dict)]
 		kwargs: alloc::collections::BTreeMap<alloc::string::String, bool>,
 	},
 }
@@ -117,19 +111,19 @@ struct GenericTest<A>(A);
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct MultipleOptionalPositional1 {
-	#[optional]
+	#[esexpr(optional)]
 	pub a: Option<i32>,
 
-	#[optional]
+	#[esexpr(optional)]
 	pub b: Option<f32>,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct RequiredAfterOptionalPositional1 {
-	#[optional]
+	#[esexpr(optional)]
 	pub a: Option<i32>,
 
-	#[optional]
+	#[esexpr(optional)]
 	pub b: Option<f32>,
 
 	pub c: alloc::string::String,
@@ -137,10 +131,10 @@ pub struct RequiredAfterOptionalPositional1 {
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct RequiredAfterOptionalPositional2 {
-	#[optional]
+	#[esexpr(optional)]
 	pub a: Option<i32>,
 
-	#[optional]
+	#[esexpr(optional)]
 	pub b: Option<f32>,
 
 	pub c: alloc::string::String,
@@ -150,10 +144,10 @@ pub struct RequiredAfterOptionalPositional2 {
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct RequiredAfterOptionalPositional3 {
-	#[default_value = "4"]
+	#[esexpr(default_value = 4)]
 	pub a: i32,
 
-	#[default_value = "4.0"]
+	#[esexpr(default_value = 4.0)]
 	pub b: f32,
 
 	pub c: alloc::string::String,
@@ -161,10 +155,10 @@ pub struct RequiredAfterOptionalPositional3 {
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct RequiredAfterOptionalPositional4 {
-	#[default_value = "4"]
+	#[esexpr(default_value = 4)]
 	pub a: i32,
 
-	#[default_value = "4.0"]
+	#[esexpr(default_value = 4.0)]
 	pub b: f32,
 
 	pub c: alloc::string::String,
@@ -174,12 +168,12 @@ pub struct RequiredAfterOptionalPositional4 {
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct OptionalNoTag1 {
-	#[optional]
+	#[esexpr(optional)]
 	pub a: Option<esexpr::ESExprStatic>,
 }
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
-struct VarArgAfterOptional(#[optional] Option<u32>, #[vararg] alloc::vec::Vec<f32>);
+struct VarArgAfterOptional(#[esexpr(optional)] Option<u32>, #[esexpr(vararg)] alloc::vec::Vec<f32>);
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct AnyExpr {

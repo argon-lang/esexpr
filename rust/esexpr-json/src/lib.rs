@@ -23,28 +23,28 @@ pub enum JsonExpr {
 	/// A JSON Object
 	Obj {
 		/// The fields of the object.
-		#[dict]
+		#[esexpr(dict)]
 		values: BTreeMap<String, JsonExpr>,
 	},
 
 	/// A JSON Array
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Arr(Vec<JsonExpr>),
 
 	/// A JSON String
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Str(String),
 
 	/// A JSON Number
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Num(f64),
 
 	/// A JSON Boolean
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Bool(bool),
 
 	/// A JSON Null value
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Null(()),
 }
 
@@ -312,9 +312,9 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
 mod serde_u128_vec {
 	use alloc::format;
 	use alloc::vec::Vec;
+
 	use serde::{Deserialize, Serialize};
 
-	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
 	pub fn serialize<S: serde::Serializer>(f: &Vec<u128>, serializer: S) -> Result<S::Ok, S::Error> {
 		<Vec<u128>>::serialize(f, serializer)
 	}
@@ -323,11 +323,10 @@ mod serde_u128_vec {
 		let value = serde_json::Value::deserialize(deserializer)?;
 		match serde_json::from_value(value) {
 			Ok(v) => Ok(v),
-			Err(e) => Err(serde::de::Error::custom(format!("{:?}", e))),
+			Err(e) => Err(serde::de::Error::custom(format!("{e:?}"))),
 		}
 	}
 }
-
 
 /// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
 mod serde_f16 {

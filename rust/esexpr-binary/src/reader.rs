@@ -57,18 +57,18 @@ impl<IOError> From<alloc::string::FromUtf8Error> for ParseError<IOError> {
 }
 
 #[derive(ESExprCodec, Debug, PartialEq, Clone)]
-#[constructor = "string-table"]
+#[esexpr(constructor = "string-table")]
 struct FixedStringPool {
-	#[vararg]
+	#[esexpr(vararg)]
 	pub strings: Vec<String>,
 }
 
 #[derive(ESExprCodec, Debug, PartialEq, Clone)]
 enum AppendedStringPool {
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Fixed(FixedStringPool),
 
-	#[inline_value]
+	#[esexpr(inline_value)]
 	Single(String),
 }
 

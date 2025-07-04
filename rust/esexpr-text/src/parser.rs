@@ -175,10 +175,6 @@ fn parse_hex_float(s: &str) -> ESExpr<'static> {
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
 		)]
-		#[expect(
-			clippy::unwrap_used,
-			reason = "Shouldn't fail because the parser should ensure the format is valid."
-		)]
 		let repr: hexponent::FloatLiteral = s
 			.trim_end_matches('d')
 			.trim_end_matches('D')
@@ -310,7 +306,7 @@ fn binary(input: &str) -> IResult<&str, ESExpr<'static>> {
 		map(
 			delimited(
 				preceded(skip_ws, tag("#u8[")),
-				many0(map_res(preceded(skip_ws, integer), |i| u8::try_from(i))),
+				many0(map_res(preceded(skip_ws, integer), u8::try_from)),
 				preceded(skip_ws, cut(tag("]"))),
 			),
 			|b| ESExpr::Array8(Cow::Owned(b)),
@@ -318,7 +314,7 @@ fn binary(input: &str) -> IResult<&str, ESExpr<'static>> {
 		map(
 			delimited(
 				preceded(skip_ws, tag("#u16[")),
-				many0(map_res(preceded(skip_ws, integer), |i| u16::try_from(i))),
+				many0(map_res(preceded(skip_ws, integer), u16::try_from)),
 				preceded(skip_ws, cut(tag("]"))),
 			),
 			|b| ESExpr::Array16(Cow::Owned(b)),
@@ -326,7 +322,7 @@ fn binary(input: &str) -> IResult<&str, ESExpr<'static>> {
 		map(
 			delimited(
 				preceded(skip_ws, tag("#u32[")),
-				many0(map_res(preceded(skip_ws, integer), |i| u32::try_from(i))),
+				many0(map_res(preceded(skip_ws, integer), u32::try_from)),
 				preceded(skip_ws, cut(tag("]"))),
 			),
 			|b| ESExpr::Array32(Cow::Owned(b)),
@@ -334,7 +330,7 @@ fn binary(input: &str) -> IResult<&str, ESExpr<'static>> {
 		map(
 			delimited(
 				preceded(skip_ws, tag("#u64[")),
-				many0(map_res(preceded(skip_ws, integer), |i| u64::try_from(i))),
+				many0(map_res(preceded(skip_ws, integer), u64::try_from)),
 				preceded(skip_ws, cut(tag("]"))),
 			),
 			|b| ESExpr::Array64(Cow::Owned(b)),
@@ -342,7 +338,7 @@ fn binary(input: &str) -> IResult<&str, ESExpr<'static>> {
 		map(
 			delimited(
 				preceded(skip_ws, tag("#u128[")),
-				many0(map_res(preceded(skip_ws, integer), |i| u128::try_from(i))),
+				many0(map_res(preceded(skip_ws, integer), u128::try_from)),
 				preceded(skip_ws, cut(tag("]"))),
 			),
 			|b| ESExpr::Array128(Cow::Owned(b)),

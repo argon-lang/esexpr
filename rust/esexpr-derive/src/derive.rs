@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
+use darling::util::Flag;
+use darling::{FromAttributes, FromMeta};
 use proc_macro2::{Literal, Span};
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::{
-	Attribute,
 	Data,
 	DeriveInput,
 	Expr,
@@ -18,9 +19,6 @@ use syn::{
 	Index,
 	Lit,
 	LitStr,
-	Meta,
-	MetaList,
-	MetaNameValue,
 	Path,
 	Token,
 	Type,
@@ -28,6 +26,47 @@ use syn::{
 	Variant,
 	parse_quote,
 };
+
+#[derive(Debug, Default, FromAttributes)]
+#[darling(attributes(esexpr))]
+struct ESExprTypeAttr {
+	constructor: Option<String>,
+	simple_enum: Flag,
+}
+
+#[derive(Debug, Default, FromAttributes)]
+#[darling(attributes(esexpr))]
+struct ESExprVariantAttr {
+	constructor: Option<String>,
+	inline_value: Flag,
+}
+
+#[derive(Debug, Default, FromAttributes)]
+#[darling(attributes(esexpr))]
+struct ESExprFieldAttr {
+	keyword: Option<ESExprKeywordAttr>,
+	default_value: Option<Expr>,
+	optional: Flag,
+	dict: Flag,
+	vararg: Flag,
+}
+
+#[derive(Debug)]
+struct ESExprKeywordAttr {
+	name: Option<String>,
+}
+
+impl FromMeta for ESExprKeywordAttr {
+	fn from_word() -> darling::Result<Self> {
+		Ok(ESExprKeywordAttr { name: None })
+	}
+
+	fn from_string(value: &str) -> darling::Result<Self> {
+		Ok(ESExprKeywordAttr {
+			name: Some(value.to_owned()),
+		})
+	}
+}
 
 type TokenRes = Result<proc_macro2::TokenStream, proc_macro2::TokenStream>;
 
@@ -77,16 +116,23 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 		}
 	};
 
-	let validate = flatten_token_res(validate_attributes(&input.attrs, &type_name, &input.data));
-	let tags = flatten_token_res(get_esexpr_tag(&input.attrs, &type_name, &input.data));
-	let encode = flatten_token_res(get_esexpr_encode(&input.attrs, &type_name, &input.data));
-	let decode = flatten_token_res(get_esexpr_decode(&input.attrs, &type_name, &input.data));
+	let attr = match ESExprTypeAttr::from_attributes(&input.attrs) {
+		Ok(attr) => attr,
+		Err(e) => return e.write_errors(),
+	};
 
-	let res = quote! {
+	if let Err(e) = validate_attributes(&attr, &type_name, &input.data) {
+		return e;
+	}
+
+	let tags = flatten_token_res(get_esexpr_tag(&attr, &type_name, &input.data));
+	let encode = flatten_token_res(get_esexpr_encode(&attr, &type_name, &input.data));
+	let decode = flatten_token_res(get_esexpr_decode(&attr, &type_name, &input.data));
+
+	quote! {
 		impl #type_params ::esexpr::ESExprCodec<'esexpr_lifetime> for #type_name #generics_lt #type_args #generics_gt {
 
 			const TAGS: ::esexpr::ESExprTagCollection = {
-				#validate
 				#tags
 			};
 
@@ -98,30 +144,31 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 				#decode
 			}
 		}
-	};
-
-	// eprintln!("tokens: {res}");
-
-	res
+	}
 }
 
-fn validate_attributes(attrs: &[Attribute], _type_name: &Ident, data: &Data) -> TokenRes {
+fn validate_attributes(attr: &ESExprTypeAttr, _type_name: &Ident, data: &Data) -> Result<(), proc_macro2::TokenStream> {
 	match data {
 		Data::Struct(s) => {
-			if has_simple_enum_attribute(attrs)? {
+			if attr.simple_enum.is_present() {
 				Err(quote! { compile_error!("Struct cannot be a simple_enum."); })?;
 			}
 
 			validate_fields(&s.fields)?;
 		},
 		Data::Enum(e) => {
-			if constructor_attribute(attrs)?.is_some() {
-				Err(quote! { compile_error!("Constructor name may only be specified for structs and enum cases"); })?;
+			if attr.constructor.is_some() {
+				Err(
+					quote! { compile_error!("Constructor name may only be specified for structs and enum variants"); },
+				)?;
 			}
 
 			for c in &e.variants {
-				if has_simple_enum_attribute(&c.attrs)? {
-					Err(quote! { compile_error!("Enum case cannot be a simple_enum."); })?;
+				let variant_attr =
+					ESExprVariantAttr::from_attributes(&c.attrs).map_err(darling::Error::write_errors)?;
+
+				if variant_attr.inline_value.is_present() && variant_attr.constructor.is_some() {
+					Err(quote! { compile_error!("Variant cannot have both inline_value and constructor."); })?;
 				}
 
 				validate_fields(&c.fields)?;
@@ -130,7 +177,7 @@ fn validate_attributes(attrs: &[Attribute], _type_name: &Ident, data: &Data) -> 
 		Data::Union(_) => (),
 	}
 
-	Ok(quote! {})
+	Ok(())
 }
 
 fn validate_fields(fields: &Fields) -> Result<(), proc_macro2::TokenStream> {
@@ -141,37 +188,39 @@ fn validate_fields(fields: &Fields) -> Result<(), proc_macro2::TokenStream> {
 	};
 
 	for field in fields {
-		if keyword_attribute(&field.attrs)?.is_some() {
-			if has_dict_attribute(&field.attrs)? {
+		let attr = ESExprFieldAttr::from_attributes(&field.attrs).map_err(darling::Error::write_errors)?;
+
+		if attr.optional.is_present() && attr.default_value.is_some() {
+			return Err(quote! { compile_error!("Optional arguments cannot have default values."); });
+		}
+
+		if attr.keyword.is_some() {
+			if attr.dict.is_present() {
 				return Err(quote! { compile_error!("Keyword arguments cannot be dict values."); });
 			}
 
-			if has_vararg_attribute(&field.attrs)? {
+			if attr.vararg.is_present() {
 				return Err(quote! { compile_error!("Keyword arguments cannot be vararg values."); });
 			}
-
-			if has_optional_attribute(&field.attrs)? && has_default_value_attribute(&field.attrs)?.is_some() {
-				return Err(quote! { compile_error!("Optional arguments cannot have default values."); });
-			}
 		}
-		else if has_dict_attribute(&field.attrs)? {
-			if has_vararg_attribute(&field.attrs)? {
+		else if attr.dict.is_present() {
+			if attr.vararg.is_present() {
 				return Err(quote! { compile_error!("Dict arguments cannot be vararg values."); });
 			}
-			if has_optional_attribute(&field.attrs)? {
+			if attr.optional.is_present() {
 				return Err(quote! { compile_error!("Dictionary arguments cannot be optional."); });
 			}
 
-			if has_default_value_attribute(&field.attrs)?.is_some() {
+			if attr.default_value.is_some() {
 				return Err(quote! { compile_error!("Dictionary arguments cannot have default values."); });
 			}
 		}
-		else if has_vararg_attribute(&field.attrs)? {
-			if has_optional_attribute(&field.attrs)? {
+		else if attr.vararg.is_present() {
+			if attr.optional.is_present() {
 				return Err(quote! { compile_error!("Variable arguments cannot be optional."); });
 			}
 
-			if has_default_value_attribute(&field.attrs)?.is_some() {
+			if attr.default_value.is_some() {
 				return Err(quote! { compile_error!("Variable arguments cannot have default values."); });
 			}
 		}
@@ -195,8 +244,8 @@ fn param_to_arg(p: &GenericParam) -> GenericArgument {
 	}
 }
 
-fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenRes {
-	fn make_constructor_expr(name: &Expr) -> Expr {
+fn get_esexpr_tag(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> TokenRes {
+	fn make_constructor_expr(name: &str) -> Expr {
 		parse_quote! { ::esexpr::ESExprTag::Constructor(::esexpr::cowstr::CowStr::Borrowed(#name)) }
 	}
 
@@ -207,21 +256,28 @@ fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenR
 	}
 
 	Ok(match data {
-		Data::Struct(_) => make_set_of(make_constructor_expr(&make_constructor_name(attrs, type_name)?)),
+		Data::Struct(_) => make_set_of(make_constructor_expr(&make_constructor_name(
+			attr.constructor.as_ref(),
+			type_name,
+		))),
 
-		Data::Enum(_) if has_simple_enum_attribute(attrs)? => make_set_of(parse_quote! { ::esexpr::ESExprTag::Str }),
+		Data::Enum(_) if attr.simple_enum.is_present() => make_set_of(parse_quote! { ::esexpr::ESExprTag::Str }),
 
 		Data::Enum(e) => {
 			let case_tags: Vec<proc_macro2::TokenStream> = e
 				.variants
 				.iter()
 				.map(|c| -> TokenRes {
-					if has_inline_value_attribute(&c.attrs)? {
+					let variant_attr =
+						ESExprVariantAttr::from_attributes(&c.attrs).map_err(darling::Error::write_errors)?;
+
+					if variant_attr.inline_value.is_present() {
 						let t = &get_inline_value_field(c)?.ty;
 						Ok(quote! { <#t as ::esexpr::ESExprCodec>::TAGS })
 					}
 					else {
-						let tag = make_constructor_expr(&make_constructor_name(&c.attrs, &c.ident)?);
+						let tag =
+							make_constructor_expr(&make_constructor_name(variant_attr.constructor.as_ref(), &c.ident));
 						Ok(make_set_of(tag))
 					}
 				})
@@ -236,10 +292,10 @@ fn get_esexpr_tag(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenR
 	})
 }
 
-fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenRes {
+fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> TokenRes {
 	Ok(match data {
 		Data::Struct(s) => {
-			let constructor_name = make_constructor_name(attrs, type_name)?;
+			let constructor_name = make_constructor_name(attr.constructor.as_ref(), type_name);
 
 			let encode_fields = make_encode_fields(&s.fields, |name, i| {
 				if let Some(name) = name {
@@ -259,13 +315,16 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 			}
 		},
 
-		Data::Enum(e) if has_simple_enum_attribute(attrs)? => {
+		Data::Enum(e) if attr.simple_enum.is_present() => {
 			let cases: proc_macro2::TokenStream = e
 				.variants
 				.iter()
 				.map(|c| -> TokenRes {
+					let variant_attr =
+						ESExprVariantAttr::from_attributes(&c.attrs).map_err(darling::Error::write_errors)?;
+
 					let case_name = &c.ident;
-					let case_name_str = &make_constructor_name(&c.attrs, case_name)?;
+					let case_name_str = &make_constructor_name(variant_attr.constructor.as_ref(), case_name);
 
 					Ok(quote! {
 						#type_name::#case_name => ::esexpr::ESExpr::Str(::esexpr::cowstr::CowStr::Static(#case_name_str)),
@@ -290,6 +349,9 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                     let name = Ident::new(&name, Span::mixed_site());
                     quote! { #name }
                 }
+
+				let variant_attr = ESExprVariantAttr::from_attributes(&c.attrs)
+					.map_err(darling::Error::write_errors)?;
 
 				let case_name = &c.ident;
 
@@ -321,7 +383,7 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                     Fields::Unit => quote! { #type_name::#case_name },
                 };
 
-                if has_inline_value_attribute(&c.attrs)? {
+                if variant_attr.inline_value.is_present() {
                     let field = get_inline_value_field(c)?;
                     let field_name = make_field_name(field.ident.as_ref(), 0);
                     let field_type = &field.ty;
@@ -333,7 +395,7 @@ fn get_esexpr_encode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
                     })
                 }
                 else {
-                    let constructor_name = make_constructor_name(&c.attrs, case_name)?;
+                    let constructor_name = make_constructor_name(variant_attr.constructor.as_ref(), case_name);
 
                     let encode_fields = make_encode_fields(&c.fields, make_field_name)?;
 
@@ -410,26 +472,28 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
         let field_expr = make_field_expr(field.ident.as_ref(), i);
         let field_type = &field.ty;
 
+		let field_attr = ESExprFieldAttr::from_attributes(&field.attrs)
+			.map_err(darling::Error::write_errors)?;
+
         Ok(
-            if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
+            if let Some(keyword_attr) = field_attr.keyword.as_ref() {
                 if has_dict_field {
                     Err(quote! { compile_error!("Keyword arguments cannot be used with dict arguments"); })?;
                 }
 
-                let kw = make_kwarg_name(keyword_attr.name, field.ident.as_ref())?;
-                let kw_name = get_string_expr_value(&kw)?;
+                let kw = make_kwarg_name(keyword_attr.name.as_ref(), field.ident.as_ref())?;
 
-                if kwarg_names.contains(&kw_name) {
-                    let message = make_str_expr(&format!("Duplicate keyword argument \"{kw_name}\""));
+                if kwarg_names.contains(&kw) {
+                    let message = make_str_expr(&format!("Duplicate keyword argument \"{kw}\""));
                     Err(quote! { compile_error!(#message); })?;
                 }
 
-                kwarg_names.insert(kw_name);
+                kwarg_names.insert(kw.clone());
 
-                if has_optional_attribute(&field.attrs)? {
+                if field_attr.optional.is_present() {
                     quote! { if let Some(value) = <#field_type as ::esexpr::ESExprOptionalFieldCodec>::encode_optional_field(#field_expr) { kwargs.insert(::esexpr::cowstr::CowStr::Static(#kw), value); } }
                 }
-                else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+                else if let Some(default_value) = field_attr.default_value.as_ref() {
                     quote! {
                         {
                             let value = #field_expr;
@@ -443,7 +507,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     quote! { kwargs.insert(::esexpr::cowstr::CowStr::Static(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_expr)); }
                 }
             }
-            else if has_dict_attribute(&field.attrs)? {
+            else if field_attr.dict.is_present() {
                 if has_dict_field {
                     Err(quote! { compile_error!("Only a single dict argument is allowed"); })?;
                 }
@@ -455,7 +519,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 
                 quote! { ::esexpr::ESExprDictCodec::encode_dict_element(#field_expr, &mut kwargs); }
             }
-            else if has_vararg_attribute(&field.attrs)? {
+            else if field_attr.vararg.is_present() {
                 if has_vararg_field {
                     Err(quote! { compile_error!("Only a single vararg is allowed"); })?;
                 }
@@ -475,7 +539,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     Err(quote! { compile_error!("Positional arguments must precede varargs"); })?;
                 }
 
-                if has_optional_attribute(&field.attrs)? {
+                if field_attr.optional.is_present() {
 					let tags = quote! { <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS };
 					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 					prev_optional_positional_tags.push(tags);
@@ -487,7 +551,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 						}
 					}
                 }
-                else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+                else if let Some(default_value) = field_attr.default_value.as_ref() {
 					let tags = quote! { <#field_type as ::esexpr::ESExprCodec>::TAGS };
 					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 					prev_optional_positional_tags.push(tags);
@@ -516,10 +580,10 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
     }).collect::<Result<_, _>>()
 }
 
-fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> TokenRes {
+fn get_esexpr_decode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> TokenRes {
 	Ok(match data {
 		Data::Struct(s) => {
-			let constructor_name = make_constructor_name(attrs, type_name)?;
+			let constructor_name = make_constructor_name(attr.constructor.as_ref(), type_name);
 
 			let decode_fields = make_decode_fields(&s.fields, &constructor_name, quote! { #type_name })?;
 
@@ -554,13 +618,16 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 			}
 		},
 
-		Data::Enum(e) if has_simple_enum_attribute(attrs)? => {
+		Data::Enum(e) if attr.simple_enum.is_present() => {
 			let decode_cases: proc_macro2::TokenStream = e
 				.variants
 				.iter()
 				.map(|c| -> TokenRes {
+					let variant_attr =
+						ESExprVariantAttr::from_attributes(&c.attrs).map_err(darling::Error::write_errors)?;
+
 					let case_name = &c.ident;
-					let case_name_str = &make_constructor_name(&c.attrs, case_name)?;
+					let case_name_str = &make_constructor_name(variant_attr.constructor.as_ref(), case_name);
 
 					Ok(quote! {
 						#case_name_str => Ok(#type_name::#case_name),
@@ -599,7 +666,10 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 				.map(|c| -> TokenRes {
 					let case_name = &c.ident;
 
-					if has_inline_value_attribute(&c.attrs)? {
+					let variant_attr = ESExprVariantAttr::from_attributes(&c.attrs)
+						.map_err(darling::Error::write_errors)?;
+
+					if variant_attr.inline_value.is_present() {
 						let field = get_inline_value_field(c)?;
 						let field_type = &field.ty;
 
@@ -618,7 +688,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 						})
 					}
 					else {
-						let name = make_constructor_name(&c.attrs, case_name)?;
+						let name = make_constructor_name(variant_attr.constructor.as_ref(), case_name);
 						let decode_fields = make_decode_fields(&c.fields, &name, quote! { #type_name::#case_name })?;
 						Ok(quote! {
 							::esexpr::ESExpr::Constructor(::esexpr::ESExprConstructor { name, args, kwargs }) if name == #name => {
@@ -653,7 +723,7 @@ fn get_esexpr_decode(attrs: &[Attribute], type_name: &Ident, data: &Data) -> Tok
 	})
 }
 
-fn make_decode_fields(fields: &Fields, constructor_name: &Expr, constructor: proc_macro2::TokenStream) -> TokenRes {
+fn make_decode_fields(fields: &Fields, constructor_name: &str, constructor: proc_macro2::TokenStream) -> TokenRes {
 	let mut arg_index = 0;
 	Ok(match fields {
 		Fields::Named(fields) => {
@@ -689,23 +759,25 @@ fn make_decode_fields(fields: &Fields, constructor_name: &Expr, constructor: pro
 #[derive(Copy, Clone)]
 enum FieldPath<'a> {
 	Positional(usize),
-	Keyword(&'a Expr),
+	Keyword(&'a str),
 }
 
-fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Expr) -> TokenRes {
+fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &str) -> TokenRes {
 	let field_type = &field.ty;
 
-	Ok(if let Some(keyword_attr) = keyword_attribute(&field.attrs)? {
-		let kw = make_kwarg_name(keyword_attr.name, field.ident.as_ref())?;
+	let attr = ESExprFieldAttr::from_attributes(&field.attrs).map_err(darling::Error::write_errors)?;
+
+	Ok(if let Some(keyword_attr) = attr.keyword {
+		let kw = make_kwarg_name(keyword_attr.name.as_ref(), field.ident.as_ref())?;
 		let error_mapping = make_error_mapping(constructor_name, FieldPath::Keyword(&kw));
 
-		if has_optional_attribute(&field.attrs)? {
+		if attr.optional.is_present() {
 			quote! {
 				<#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(kwargs.remove(#kw))
 					.map_err(#error_mapping)?
 			}
 		}
-		else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+		else if let Some(default_value) = attr.default_value.as_ref() {
 			quote! {
 				kwargs.remove(#kw)
 					.map(<#field_type as ::esexpr::ESExprCodec>::decode_esexpr)
@@ -725,17 +797,17 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 			}
 		}
 	}
-	else if has_dict_attribute(&field.attrs)? {
+	else if attr.dict.is_present() {
 		quote! { <#field_type as ::esexpr::ESExprDictCodec>::decode_dict_element(&mut kwargs, #constructor_name)? }
 	}
-	else if has_vararg_attribute(&field.attrs)? {
+	else if attr.vararg.is_present() {
 		let i_expr = Literal::usize_suffixed(*arg_index);
 		quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::decode_vararg_element(&mut args, #constructor_name, #i_expr)? }
 	}
 	else {
 		let error_mapping = make_error_mapping(constructor_name, FieldPath::Positional(*arg_index));
 
-		if has_optional_attribute(&field.attrs)? {
+		if attr.optional.is_present() {
 			quote! {
 				<#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(
 					if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS.contains(&e.tag())) {
@@ -748,7 +820,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 
 			}
 		}
-		else if let Some(default_value) = has_default_value_attribute(&field.attrs)? {
+		else if let Some(default_value) = attr.default_value.as_ref() {
 			quote! {
 				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprCodec>::TAGS.contains(&e.tag())) {
 					args.pop_front()
@@ -780,7 +852,7 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &Ex
 	})
 }
 
-fn make_error_mapping(constructor_name: &Expr, path: FieldPath) -> proc_macro2::TokenStream {
+fn make_error_mapping(constructor_name: &str, path: FieldPath) -> proc_macro2::TokenStream {
 	match path {
 		FieldPath::Positional(i) => {
 			let i_expr = Literal::usize_suffixed(i);
@@ -793,148 +865,23 @@ fn make_error_mapping(constructor_name: &Expr, path: FieldPath) -> proc_macro2::
 	}
 }
 
-fn make_constructor_name(attrs: &[Attribute], type_name: &Ident) -> Result<Expr, proc_macro2::TokenStream> {
-	if let Some(ctor) = constructor_attribute(attrs)? {
-		Ok(ctor.clone())
-	}
-	else {
-		Ok(make_str_expr(&reformat_type_name(&type_name.to_string())))
+fn make_constructor_name(constructor: Option<&String>, ident: &Ident) -> String {
+	match constructor {
+		Some(name) => name.clone(),
+		None => reformat_type_name(&ident.to_string()),
 	}
 }
 
-fn make_kwarg_name(attr_name: Option<&Expr>, field_name: Option<&Ident>) -> Result<Expr, proc_macro2::TokenStream> {
+fn make_kwarg_name(attr_name: Option<&String>, field_name: Option<&Ident>) -> Result<String, proc_macro2::TokenStream> {
 	Ok(match attr_name {
 		Some(name) => name.clone(),
 		None => match field_name {
-			Some(name) => make_str_expr(&reformat_field_name(&name.to_string())),
+			Some(name) => reformat_field_name(&name.to_string()),
 			None => Err(
-				quote! { compile_error!("Keyword arguments for unnamed fields must specifiy a name: #[keyword = \"name\"]"); },
+				quote! { compile_error!("Keyword arguments for unnamed fields must specify a name: #[esexpr(keyword = \"name\")]"); },
 			)?,
 		},
 	})
-}
-
-fn get_string_expr_value(e: &Expr) -> Result<String, proc_macro2::TokenStream> {
-	match e {
-		Expr::Lit(ExprLit {
-			lit: Lit::Str(lit_str), ..
-		}) => Ok(lit_str.value()),
-		_ => Err(quote! { compile_error!("Expected a string literal"); }),
-	}
-}
-
-enum DecodedAttribute<'a> {
-	Simple,
-	NameValue(&'a Expr),
-	ArgList,
-}
-
-fn decode_attr<'a>(
-	name: &str,
-	attrs: &'a [Attribute],
-) -> Result<Option<DecodedAttribute<'a>>, proc_macro2::TokenStream> {
-	fn try_decode_attr<'a>(name: &str, attr: &'a Attribute) -> Option<DecodedAttribute<'a>> {
-		match &attr.meta {
-			Meta::NameValue(MetaNameValue { path, value, .. }) if path.get_ident().is_some_and(|i| *i == name) => {
-				Some(DecodedAttribute::NameValue(value))
-			},
-
-			Meta::List(MetaList { path, .. }) if path.get_ident().is_some_and(|i| *i == name) => {
-				Some(DecodedAttribute::ArgList)
-			},
-
-			Meta::Path(p) if p.get_ident().is_some_and(|i| *i == name) => Some(DecodedAttribute::Simple),
-
-			_ => None,
-		}
-	}
-
-	let mut attrs = attrs
-		.iter()
-		.filter_map(|attr| try_decode_attr(name, attr))
-		.collect::<Vec<_>>();
-
-	if attrs.len() > 1 {
-		let msg = make_str_expr(&format!("Attribute {name} may only be specified once."));
-		Err(quote! { compile_error!(#msg); })
-	}
-	else {
-		Ok(attrs.pop())
-	}
-}
-
-fn has_simple_attribute(name: &str, attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
-	decode_attr(name, attrs)?
-		.map(|attr| match attr {
-			DecodedAttribute::Simple => Ok(()),
-			_ => {
-				let msg = make_str_expr(&format!("Attribute {name} must be a simple attribute"));
-				Err(quote! { compile_error!(#msg); })?
-			},
-		})
-		.transpose()
-		.map(|o| o.is_some())
-}
-
-fn get_name_value_attribute<'a>(
-	name: &str,
-	attrs: &'a [Attribute],
-) -> Result<Option<&'a Expr>, proc_macro2::TokenStream> {
-	decode_attr(name, attrs)?
-		.map(|attr| match attr {
-			DecodedAttribute::NameValue(value) => Ok(value),
-			_ => {
-				let msg = make_str_expr(&format!("Attribute {name} must be a name-value attribute"));
-				Err(quote! { compile_error!(#msg); })?
-			},
-		})
-		.transpose()
-}
-
-fn constructor_attribute(attrs: &[Attribute]) -> Result<Option<&Expr>, proc_macro2::TokenStream> {
-	get_name_value_attribute("constructor", attrs)
-}
-
-struct KeywordAttributeInfo<'a> {
-	name: Option<&'a Expr>,
-}
-
-fn keyword_attribute(attrs: &[Attribute]) -> Result<Option<KeywordAttributeInfo>, proc_macro2::TokenStream> {
-	decode_attr("keyword", attrs)?
-		.map(|attr| match attr {
-			DecodedAttribute::Simple => Ok(KeywordAttributeInfo { name: None }),
-			DecodedAttribute::NameValue(value) => Ok(KeywordAttributeInfo { name: Some(value) }),
-			_ => {
-				let msg = "Attribute keyword must be a simple or name-value attribute";
-				Err(quote! { compile_error!(#msg); })?
-			},
-		})
-		.transpose()
-}
-
-fn has_simple_enum_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
-	has_simple_attribute("simple_enum", attrs)
-}
-
-fn has_default_value_attribute(attrs: &[Attribute]) -> Result<Option<Expr>, proc_macro2::TokenStream> {
-	let Some(expr_str_expr) = get_name_value_attribute("default_value", attrs)?
-	else {
-		return Ok(None);
-	};
-
-	let expr_str = get_string_expr_value(expr_str_expr)?;
-
-	syn::parse_str::<Expr>(&expr_str).map(Some).map_err(
-		|_| quote! { compile_error!("Default value must be a string containing a valid expression of the field type") },
-	)
-}
-
-fn has_optional_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
-	has_simple_attribute("optional", attrs)
-}
-
-fn has_inline_value_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
-	has_simple_attribute("inline_value", attrs)
 }
 
 fn get_inline_value_field(c: &Variant) -> Result<&Field, proc_macro2::TokenStream> {
@@ -957,14 +904,6 @@ fn get_inline_value_field(c: &Variant) -> Result<&Field, proc_macro2::TokenStrea
 		},
 		Fields::Unit => Err(quote! { compile_error!("Unit case cannot be an inline_value"); }),
 	}
-}
-
-fn has_dict_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
-	has_simple_attribute("dict", attrs)
-}
-
-fn has_vararg_attribute(attrs: &[Attribute]) -> Result<bool, proc_macro2::TokenStream> {
-	has_simple_attribute("vararg", attrs)
 }
 
 // Convert name from PascalCase to kebab-case
@@ -1069,7 +1008,10 @@ mod test {
 			}
 		}
 
-		assert!(checker.compile_error_messages.iter().any(|s| s == message));
+		assert!(
+			checker.compile_error_messages.iter().any(|s| s == message),
+			"Expected error message \"{message}\" not found"
+		);
 	}
 
 	struct CompileErrorChecker {
@@ -1110,8 +1052,8 @@ mod test {
 	#[test]
 	fn constructor_on_enum() {
 		ensure_error!(
-			"Constructor name may only be specified for structs and enum cases",
-			#[constructor = "my-ctor"]
+			"Constructor name may only be specified for structs and enum variants",
+			#[esexpr(constructor = "my-ctor")]
 			enum ConstructorNameEnum {
 				MyName123Test,
 
@@ -1124,19 +1066,8 @@ mod test {
 	fn simple_enum_on_struct() {
 		ensure_error!(
 			"Struct cannot be a simple_enum.",
-			#[simple_enum]
+			#[esexpr(simple_enum)]
 			struct ConstructorNameEnum(i32);
-		);
-	}
-
-	#[test]
-	fn simple_enum_on_case() {
-		ensure_error!(
-			"Enum case cannot be a simple_enum.",
-			enum ConstructorNameEnum {
-				#[simple_enum]
-				MyCase,
-			}
 		);
 	}
 
@@ -1145,10 +1076,10 @@ mod test {
 		ensure_error!(
 			"Keyword arguments cannot be used with dict arguments",
 			struct MyStruct {
-				#[dict]
+				#[esexpr(dict)]
 				a: HashMap<String, String>,
 
-				#[keyword]
+				#[esexpr(keyword)]
 				b: String,
 			}
 		);
@@ -1159,10 +1090,10 @@ mod test {
 		ensure_error!(
 			"Only a single dict argument is allowed",
 			struct MyStruct {
-				#[dict]
+				#[esexpr(dict)]
 				a: HashMap<String, String>,
 
-				#[dict]
+				#[esexpr(dict)]
 				b: HashMap<String, String>,
 			}
 		);
@@ -1173,10 +1104,10 @@ mod test {
 		ensure_error!(
 			"Only a single vararg is allowed",
 			struct MyStruct {
-				#[vararg]
+				#[esexpr(vararg)]
 				a: Vec<String>,
 
-				#[vararg]
+				#[esexpr(vararg)]
 				b: Vec<String>,
 			}
 		);
@@ -1187,7 +1118,7 @@ mod test {
 		ensure_error!(
 			"Positional arguments must precede varargs",
 			struct MyStruct {
-				#[vararg]
+				#[esexpr(vararg)]
 				a: Vec<String>,
 
 				b: String,
@@ -1200,7 +1131,7 @@ mod test {
 		ensure_error!(
 			"Unit case cannot be an inline_value",
 			enum MyEnum {
-				#[inline_value]
+				#[esexpr(inline_value)]
 				MyCase,
 			}
 		);
@@ -1208,7 +1139,7 @@ mod test {
 		ensure_error!(
 			"Inline value case must have exactly one field",
 			enum MyEnum {
-				#[inline_value]
+				#[esexpr(inline_value)]
 				MyCase(),
 			}
 		);
@@ -1216,7 +1147,7 @@ mod test {
 		ensure_error!(
 			"Inline value case must have exactly one field",
 			enum MyEnum {
-				#[inline_value]
+				#[esexpr(inline_value)]
 				MyCase(i32, i32),
 			}
 		);
@@ -1224,7 +1155,7 @@ mod test {
 		ensure_error!(
 			"Inline value case must have exactly one field",
 			enum MyEnum {
-				#[inline_value]
+				#[esexpr(inline_value)]
 				MyCase {},
 			}
 		);
@@ -1232,7 +1163,7 @@ mod test {
 		ensure_error!(
 			"Inline value case must have exactly one field",
 			enum MyEnum {
-				#[inline_value]
+				#[esexpr(inline_value)]
 				MyCase { a: i32, b: i32 },
 			}
 		);
@@ -1241,8 +1172,8 @@ mod test {
 	#[test]
 	fn keyword_arg_unnamed() {
 		ensure_error!(
-			"Keyword arguments for unnamed fields must specifiy a name: #[keyword = \"name\"]",
-			struct MyStruct(#[keyword] u32);
+			"Keyword arguments for unnamed fields must specify a name: #[esexpr(keyword = \"name\")]",
+			struct MyStruct(#[esexpr(keyword)] u32);
 		);
 	}
 
@@ -1250,11 +1181,7 @@ mod test {
 	fn default_value_dict() {
 		ensure_error!(
 			"Dictionary arguments cannot have default values.",
-			struct MyStruct(
-				#[default_value = "4"]
-				#[dict]
-				HashMap<String, u32>,
-			);
+			struct MyStruct(#[esexpr(dict, default_value = 4)] HashMap<String, u32>);
 		);
 	}
 
@@ -1262,11 +1189,7 @@ mod test {
 	fn optional_value_dict() {
 		ensure_error!(
 			"Dictionary arguments cannot be optional.",
-			struct MyStruct(
-				#[optional]
-				#[dict]
-				HashMap<String, u32>,
-			);
+			struct MyStruct(#[esexpr(optional, dict)] HashMap<String, u32>);
 		);
 	}
 
@@ -1274,11 +1197,7 @@ mod test {
 	fn default_value_vararg() {
 		ensure_error!(
 			"Variable arguments cannot have default values.",
-			struct MyStruct(
-				#[default_value = "4"]
-				#[vararg]
-				Vec<u32>,
-			);
+			struct MyStruct(#[esexpr(vararg, default_value = "4")] Vec<u32>);
 		);
 	}
 
@@ -1286,11 +1205,7 @@ mod test {
 	fn optional_value_vararg() {
 		ensure_error!(
 			"Variable arguments cannot be optional.",
-			struct MyStruct(
-				#[optional]
-				#[vararg]
-				Vec<u32>,
-			);
+			struct MyStruct(#[esexpr(optional, vararg)] Vec<u32>);
 		);
 	}
 
@@ -1298,194 +1213,31 @@ mod test {
 	fn default_value_optional() {
 		ensure_error!(
 			"Optional arguments cannot have default values.",
-			struct MyStruct(
-				#[keyword = "a"]
-				#[optional]
-				#[default_value = "4"]
-				u32,
-			);
+			struct MyStruct(#[esexpr(keyword = "a", optional, default_value = 4)] u32);
 		);
 	}
 
 	#[test]
-	fn constructor_invalid() {
+	fn default_value_optional_positional() {
 		ensure_error!(
-			"Attribute constructor may only be specified once.",
-			#[constructor = "a"]
-			#[constructor = "b"]
-			struct MyStruct(u32);
-		);
-		ensure_error!(
-			"Attribute constructor must be a name-value attribute",
-			#[constructor]
-			struct MyStruct(u32);
-		);
-		ensure_error!(
-			"Attribute constructor must be a name-value attribute",
-			#[constructor(name = "my-ctor")]
-			struct MyStruct(u32);
+			"Optional arguments cannot have default values.",
+			struct MyStruct(#[esexpr(optional, default_value = 4)] u32);
 		);
 	}
 
 	#[test]
 	fn keyword_arg_invalid() {
 		ensure_error!(
-			"Attribute keyword may only be specified once.",
-			struct MyStruct(
-				#[keyword]
-				#[keyword = "b"]
-				u32,
-			);
-		);
-		ensure_error!(
 			"Duplicate keyword argument \"a\"",
-			struct MyStruct(#[keyword = "a"] u32, #[keyword = "a"] u32);
+			struct MyStruct(#[esexpr(keyword = "a")] u32, #[esexpr(keyword = "a")] u32);
 		);
 		ensure_error!(
 			"Keyword arguments cannot be dict values.",
-			struct MyStruct(
-				#[dict]
-				#[keyword = "x"]
-				HashMap<String, String>,
-			);
+			struct MyStruct(#[esexpr(dict, keyword = "x")] HashMap<String, String>);
 		);
 		ensure_error!(
 			"Keyword arguments cannot be vararg values.",
-			struct MyStruct(
-				#[vararg]
-				#[keyword = "x"]
-				HashMap<String, String>,
-			);
-		);
-	}
-
-	#[test]
-	fn inline_value_invalid() {
-		ensure_error!(
-			"Attribute inline_value may only be specified once.",
-			enum MyEnum {
-				#[inline_value]
-				#[inline_value]
-				MyCase(i32),
-			}
-		);
-		ensure_error!(
-			"Attribute inline_value must be a simple attribute",
-			enum MyEnum {
-				#[inline_value = true]
-				MyCase(i32),
-			}
-		);
-		ensure_error!(
-			"Attribute inline_value must be a simple attribute",
-			enum MyEnum {
-				#[inline_value()]
-				MyCase(i32),
-			}
-		);
-	}
-
-	#[test]
-	fn simple_enum_invalid() {
-		ensure_error!(
-			"Attribute simple_enum may only be specified once.",
-			#[simple_enum]
-			#[simple_enum]
-			enum MyEnum {
-				MyCase(i32),
-			}
-		);
-		ensure_error!(
-			"Attribute simple_enum must be a simple attribute",
-			#[simple_enum = true]
-			enum MyEnum {
-				MyCase(i32),
-			}
-		);
-		ensure_error!(
-			"Attribute simple_enum must be a simple attribute",
-			#[simple_enum(x = 1)]
-			enum MyEnum {
-				MyCase(i32),
-			}
-		);
-	}
-
-	#[test]
-	fn default_value() {
-		ensure_error!(
-			"Attribute default_value may only be specified once.",
-			struct MyStruct(
-				#[keyword = "name"]
-				#[default_value = "1"]
-				#[default_value = "2"]
-				u32,
-			);
-		);
-		ensure_error!(
-			"Attribute default_value must be a name-value attribute",
-			struct MyStruct(
-				#[keyword = "name"]
-				#[default_value]
-				u32,
-			);
-		);
-		ensure_error!(
-			"Attribute default_value must be a name-value attribute",
-			struct MyStruct(
-				#[keyword = "name"]
-				#[default_value()]
-				u32,
-			);
-		);
-	}
-
-	#[test]
-	fn dict_invalid() {
-		ensure_error!(
-			"Attribute dict may only be specified once.",
-			struct MyStruct(
-				#[dict]
-				#[dict]
-				HashMap<String, String>,
-			);
-		);
-		ensure_error!(
-			"Attribute dict must be a simple attribute",
-			#[simple_enum = true]
-			struct MyStruct(#[dict = 1] HashMap<String, String>);
-		);
-		ensure_error!(
-			"Attribute dict must be a simple attribute",
-			struct MyStruct(#[dict()] HashMap<String, String>);
-		);
-		ensure_error!(
-			"Dict arguments cannot be vararg values.",
-			struct MyStruct(
-				#[dict]
-				#[vararg]
-				HashMap<String, String>,
-			);
-		);
-	}
-
-	#[test]
-	fn vararg_invalid() {
-		ensure_error!(
-			"Attribute vararg may only be specified once.",
-			struct MyStruct(
-				#[vararg]
-				#[vararg]
-				Vec<String>,
-			);
-		);
-		ensure_error!(
-			"Attribute vararg must be a simple attribute",
-			struct MyStruct(#[vararg = 1] Vec<String>);
-		);
-		ensure_error!(
-			"Attribute vararg must be a simple attribute",
-			struct MyStruct(#[vararg()] Vec<String>);
+			struct MyStruct(#[esexpr(vararg, keyword = "x")] HashMap<String, String>);
 		);
 	}
 }

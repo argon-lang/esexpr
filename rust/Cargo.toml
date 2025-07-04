@@ -15,6 +15,7 @@ members = [
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 bytemuck = { version = "1.23.1", features = ["extern_crate_alloc"] }
 ctrlc = { version = "3.4.7" }
+darling = "0.20.11"
 derive_more = { version = "2.0.1", default-features = false, features = [ "full" ] }
 esexpr = { version = "0.1.20", path = "esexpr", default-features = false }
 esexpr-binary = { version = "0.1.20", path = "esexpr-binary", default-features = false }
@@ -31,7 +32,7 @@ quote = "1.0.40"
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["float_roundtrip", "alloc"] }
 static_assertions = "1.1.0"
-syn = { version = "2.0.104", features = ["derive", "full"] }
+syn = { version = "2.0.104", features = ["derive", "full", "visit"] }
 ui_test = "0.30.2"
 
 

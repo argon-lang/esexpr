@@ -110,7 +110,7 @@ impl<T: ValueEq> ValueEq<Vec<T>> for [T] {
 }
 
 #[cfg(feature = "std")]
-impl<K: Eq + std::hash::Hash, V: ValueEq> ValueEq for std::collections::HashMap<K, V> {
+impl<K: Eq + std::hash::Hash, V: ValueEq, S: std::hash::BuildHasher> ValueEq for std::collections::HashMap<K, V, S> {
 	fn value_eq(&self, other: &Self) -> bool {
 		self.len() == other.len() &&
 			self.iter()
