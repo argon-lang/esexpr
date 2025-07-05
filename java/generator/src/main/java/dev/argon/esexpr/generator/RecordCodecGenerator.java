@@ -16,6 +16,11 @@ final class RecordCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
+	protected void validateAnnotations() throws AbortException {
+
+	}
+
+	@Override
 	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
 		return ESExprTagSet.of(new ESExprTag.Constructor(getConstructorName(elem)));
 	}
@@ -32,7 +37,7 @@ final class RecordCodecGenerator extends GeneratorBase {
 		println(")) {");
 		indent();
 
-		println("var args = new java.util.ArrayList<>(args0);");
+		println("var args = new java.util.ArrayDeque<>(args0);");
 		println("var kwargs = new java.util.HashMap<>(kwargs0);");
 
 		writeDecodeFields(elem, false);

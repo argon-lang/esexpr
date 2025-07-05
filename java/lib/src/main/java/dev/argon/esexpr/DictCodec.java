@@ -8,8 +8,9 @@ import java.util.Map;
 /**
  * A codec for dictionary argument values.
  * @param <T> The type of the dictionary argument value.
+ * @param <E> The type of the dictionary key elements.
  */
-public interface DictCodec<T> {
+public interface DictCodec<T, E> {
 	/**
 	 * Encode a dictionary argument value into a map of expressions.
 	 * @param value The dictionary argument value.

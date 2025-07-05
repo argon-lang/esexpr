@@ -7,8 +7,9 @@ import java.util.Optional;
 /**
  * A codec for optional values.
  * @param <T> The type of the optional value.
+ * @param <E> The type of the optional elements.
  */
-public interface OptionalValueCodec<T> {
+public interface OptionalValueCodec<T, E> {
 	/**
 	 * Encode an optional value into an optional expression.
 	 * @param value The optional value.

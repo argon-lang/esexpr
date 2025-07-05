@@ -2,19 +2,21 @@ package dev.argon.esexpr;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Deque;
 import java.util.List;
 
 /**
  * A codec for variable argument values.
  * @param <T> The type of the variable argument value.
+ * @param <E> The type of the repeated elements.
  */
-public interface VarargCodec<T> {
+public interface VarargCodec<T, E> {
 	/**
 	 * Encode a variable argument value into a list of expressions.
 	 * @param value The variable argument value.
-	 * @return The expressions.
+	 * @param exprs The list to which any expressions will be appended.
 	 */
-	List<ESExpr> encodeVararg(T value);
+	void encodeVararg(T value, List<ESExpr> exprs);
 
 	/**
 	 * Decode a list of expressions into a variable argument value.
@@ -23,7 +25,7 @@ public interface VarargCodec<T> {
 	 * @return The variable argument value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	T decodeVararg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException;
+	T decodeVararg(Deque<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException;
 
 	/**
 	 * Builds paths for elements of a variable argument.

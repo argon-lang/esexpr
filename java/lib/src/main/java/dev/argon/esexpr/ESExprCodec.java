@@ -2,6 +2,7 @@ package dev.argon.esexpr;
 
 import java.util.Set;
 import java.util.Optional;
+import java.util.function.IntFunction;
 
 import dev.argon.esexpr.codecs.OptionalCodec;
 import org.jetbrains.annotations.NotNull;
@@ -60,6 +61,16 @@ public abstract class ESExprCodec<T> {
 		 * @return The sub-path.
 		 */
 		FailurePath append(String constructor, int index);
+
+		/**
+		 * Creates a path builder for a vararg.
+		 * @param constructor The constructor name of the object containing the value indicated by the new subpath.
+		 * @param offset The index offset of the positional argument indicated by the new subpath.
+		 * @return The path builder.
+		 */
+		default VarargCodec.PositionalPathBuilder appenderWithOffset(String constructor, int offset) {
+			return i -> append(constructor, offset + i);
+		}
 
 		/**
 		 * Gets a sub-path for a keyword argument.

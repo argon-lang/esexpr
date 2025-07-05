@@ -1,0 +1,22 @@
+package dev.argon.esexpr.generator.gen;
+
+import dev.argon.esexpr.ESExprCodec;
+import dev.argon.esexpr.ESExprCodecGen;
+import dev.argon.esexpr.OptionalValue;
+import dev.argon.esexpr.Vararg;
+
+import java.util.List;
+import java.util.Optional;
+
+@ESExprCodecGen
+public record OptionalAfterVararg(
+	@Vararg
+	List<Float> a,
+
+	@OptionalValue
+	Optional<Integer> b
+) {
+	public static ESExprCodec<OptionalAfterVararg> codec() {
+		return OptionalAfterVararg_CodecImpl.INSTANCE;
+	}
+}

@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CompileTests {
 
 	private static final String MODULE_INFO = """
-  		module dev.argon.esexpr.gen_error_tests {
+		module dev.argon.esexpr.gen_error_tests {
 			requires dev.argon.esexpr;
 			exports dev.argon.esexpr.gen_error_tests;
 		}
@@ -40,7 +40,11 @@ public class CompileTests {
 				diagnostics,
 				List.of(
 					"--module-path",
-					System.getProperty("jdk.module.path")
+					System.getProperty("jdk.module.path"),
+					"-s",
+					"build/test_output_files",
+					"-d",
+					"build/test_output_files"
 				),
 				null,
 				compilationUnits
@@ -96,9 +100,23 @@ public class CompileTests {
 	}
 
 	@Test
-	public void kwargAfterDict() throws Throwable {
+	public void constructorOnEnum() throws Throwable {
 		assertFails(
-			"Keyword arguments must precede dict arguments",
+			"Constructor name may only be specified for records",
+			"ConstructorNameEnum",
+			IMPORTS + """
+				@ESExprCodecGen
+				@Constructor("my-ctor")
+				public sealed interface ConstructorNameEnum {
+					record A() implements ConstructorNameEnum {}
+				}"""
+		);
+	}
+
+	@Test
+	public void kwargWithDict() throws Throwable {
+		assertFails(
+			"Keyword arguments cannot be used with dict arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
@@ -108,6 +126,19 @@ public class CompileTests {
 					
 					@Keyword
 					String b
+				) {}"""
+		);
+		assertFails(
+			"Keyword arguments cannot be used with dict arguments",
+			"MyRecord",
+			IMPORTS + """
+				@ESExprCodecGen
+				public record MyRecord(
+					@Keyword
+					String b,
+					
+					@Dict
+					KeywordMapping<String> a
 				) {}"""
 		);
 	}
@@ -132,7 +163,7 @@ public class CompileTests {
 	@Test
 	public void multipleVararg() throws Throwable {
 		assertFails(
-			"Only a single vararg is allowed",
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
@@ -149,7 +180,7 @@ public class CompileTests {
 	@Test
 	public void argAfterVararg() throws Throwable {
 		assertFails(
-			"Positional arguments must precede varargs",
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
@@ -165,7 +196,7 @@ public class CompileTests {
 	@Test
 	public void optionalArgAfterVararg() throws Throwable {
 		assertFails(
-			"Positional arguments must precede varargs",
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
@@ -182,7 +213,7 @@ public class CompileTests {
 	@Test
 	public void multipleOptionalPos() throws Throwable {
 		assertFails(
-			"Only a single optional positional argument is allowed",
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen
@@ -199,7 +230,7 @@ public class CompileTests {
 	@Test
 	public void argAfterOptionalPos() throws Throwable {
 		assertFails(
-			"Required positional arguments must precede optional positional arguments",
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
 			"MyRecord",
 			IMPORTS + """
 				@ESExprCodecGen

@@ -1,5 +1,6 @@
 package dev.argon.esexpr.generator;
 
+import dev.argon.esexpr.Constructor;
 import dev.argon.esexpr.ESExprTag;
 import dev.argon.esexpr.ESExprTagSet;
 
@@ -24,6 +25,13 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 			.filter(e -> e.getKind() == ElementKind.ENUM_CONSTANT)
 			.map(e -> (VariableElement)e)
 			.toList();
+	}
+
+	@Override
+	protected void validateAnnotations() throws AbortException {
+		if(elem.getAnnotation(Constructor.class) != null) {
+			throw new AbortException("Constructor name may only be specified for records", elem);
+		}
 	}
 
 	@Override

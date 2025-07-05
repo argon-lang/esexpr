@@ -4,6 +4,7 @@ import dev.argon.esexpr.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 /**
@@ -12,7 +13,7 @@ import java.util.List;
  * @param <T> The element type.
  */
 @ESExprOverrideCodec(value = List.class, codecType = ESExprOverrideCodec.CodecType.VARARG)
-public class ListVarargCodec<T> implements VarargCodec<List<T>> {
+public class ListVarargCodec<T> implements VarargCodec<List<T>, T> {
 	/**
 	 * Creates a VarArgCodec for List values.
 	 *
@@ -25,18 +26,29 @@ public class ListVarargCodec<T> implements VarargCodec<List<T>> {
 	private final ESExprCodec<T> elementCodec;
 
 	@Override
-	public List<ESExpr> encodeVararg(List<T> value) {
-		return value.stream().map(elementCodec::encode).toList();
+	public void encodeVararg(List<T> value, List<ESExpr> exprs) {
+		for(var elem : value) {
+			exprs.add(elementCodec.encode(elem));
+		}
 	}
 
 	@Override
-	public List<T> decodeVararg(List<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException {
+	public List<T> decodeVararg(Deque<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException {
 		List<T> values = new ArrayList<>(exprs.size());
-		int i = 0;
-		for(var expr : exprs) {
+		for(int i = 0;; ++i) {
+			var expr = exprs.peekFirst();
+			if(expr == null) {
+				break;
+			}
+
+			if(!elementCodec.tags().contains(expr.tag())) {
+				break;
+			}
+
+			exprs.removeFirst();
+
 			var value = elementCodec.decode(expr, pathBuilder.pathAt(i));
 			values.add(value);
-			++i;
 		}
 		return values;
 	}

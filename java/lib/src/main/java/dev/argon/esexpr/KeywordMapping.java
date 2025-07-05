@@ -61,7 +61,7 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 	 * @return The DictCodec.
 	 * @param <T> The element type.
 	 */
-	public static <T> DictCodec<KeywordMapping<T>> dictCodec(ESExprCodec<T> tCodec) {
+	public static <T> DictCodec<KeywordMapping<T>, T> dictCodec(ESExprCodec<T> tCodec) {
 		return new DictCodec<>() {
 			@Override
 			public Map<String, ESExpr> encodeDict(KeywordMapping<T> value) {

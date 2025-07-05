@@ -9,10 +9,12 @@ import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
+import javax.lang.model.util.Elements;
 
 import com.google.common.collect.ImmutableSet;
 import dev.argon.esexpr.*;
 import org.apache.commons.text.StringEscapeUtils;
+import org.jspecify.annotations.Nullable;
 
 abstract class GeneratorBase {
 	public GeneratorBase(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
@@ -51,6 +53,7 @@ abstract class GeneratorBase {
 
 
 	public final void generate() throws IOException, AbortException {
+		validateAnnotations();
 		writePackage();
 		writeClassImpl();
 	}
@@ -260,6 +263,110 @@ abstract class GeneratorBase {
 			.findFirst()
 			.map(Map.Entry::getValue);
 	}
+
+	private TypeMirror findCodecElementType(
+		TypeMirror t,
+		Element associatedElement,
+		CodecOverride.CodecType codecType
+	) throws AbortException {
+		var codecOverride = findOverrideCodec(t, associatedElement, codecType);
+		if(codecOverride == null) {
+			throw new AbortException("Could not find " + codecType + " for " + t, associatedElement);
+		}
+
+		List<? extends TypeMirror> typeArguments = t instanceof DeclaredType dt
+			? dt.getTypeArguments()
+			: List.of();
+
+		var t2 = switch(codecOverride) {
+			case TypeElement te ->
+				env.getTypeUtils().getDeclaredType(te, typeArguments.toArray(TypeMirror[]::new));
+
+			case VariableElement ve ->
+				ve.asType();
+
+			case ExecutableElement ee ->
+				substitute(ee.getReturnType(), ee.getTypeParameters(), typeArguments);
+
+			default -> throw new AbortException("Unexpected override type", associatedElement);
+		};
+
+		var elemType = findElementType(t2, codecType);
+		if(elemType == null) {
+			throw new AbortException("Could not find element type for " + codecType.codecClass() + " type " + t, associatedElement);
+		}
+
+		return elemType;
+	}
+
+	private @Nullable TypeMirror findElementType(
+		TypeMirror t,
+		CodecOverride.CodecType codecType
+	) {
+		if(!(t instanceof DeclaredType dt)) {
+			return null;
+		}
+
+		var te = (TypeElement)dt.asElement();
+
+		var typeParams = te.getTypeParameters();
+		var typeArgs = dt.getTypeArguments();
+		
+		if(te.getQualifiedName().toString().equals(codecType.codecClass())) {
+			return substitute(dt.getTypeArguments().get(1), typeParams, typeArgs);
+		}
+		else {
+			var superClass = te.getSuperclass();
+			if(superClass.getKind() != TypeKind.NONE) {
+				var res = findElementType(substitute(superClass, typeParams, typeArgs), codecType);
+				if(res != null) {
+					return res;
+				}
+			}
+
+			for(var iface : te.getInterfaces()) {
+				var res = findElementType(substitute(iface, typeParams, typeArgs), codecType);
+				if(res != null) {
+					return res;
+				}
+			}
+
+			return null;
+		}
+	}
+	
+	private TypeMirror substitute(TypeMirror t, List<? extends TypeParameterElement> typeParams, List<? extends TypeMirror> typeArgs) {
+		return switch(t) {
+			case TypeVariable tv -> {
+				var tpe = (TypeParameterElement)tv.asElement();
+				for (int i = 0; i < typeParams.size(); i++) {
+					if (typeParams.get(i).equals(tpe)) {
+						yield typeArgs.get(i);
+					}
+				}
+				yield t;
+			}
+
+			case DeclaredType dt -> {
+				var args = dt.getTypeArguments().stream()
+					.map(arg -> substitute(arg, typeParams, typeArgs))
+					.toList();
+
+				yield env.getTypeUtils().getDeclaredType(
+					(TypeElement) dt.asElement(),
+					args.toArray(TypeMirror[]::new)
+				);
+			}
+
+			case ArrayType at ->
+				env.getTypeUtils().getArrayType(
+					substitute(at.getComponentType(), typeParams, typeArgs)
+				);
+
+			default -> t;
+		};
+	}
+
 
 	private final String NAME_SPLIT_PATTERN = "(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])_(?=[0-9])";
 	private String nameToKebabCase(String name) {
@@ -489,11 +596,9 @@ abstract class GeneratorBase {
 	}
 
 	protected void writeEncodeFields(TypeElement te, String valueVarName, boolean useYield) throws IOException, AbortException {
-
-		boolean hasVarArgs = false;
 		boolean hasDict = false;
-		boolean hasOptionalPositional = false;
 		var kwargNames = new HashSet<String>();
+		var prevOptionalPositionalTags = ESExprTagSet.of();
 
 		println("var args = new java.util.ArrayList<dev.argon.esexpr.ESExpr>();");
 		println("var kwargs = new java.util.HashMap<java.lang.String, dev.argon.esexpr.ESExpr>();");
@@ -508,7 +613,7 @@ abstract class GeneratorBase {
 				}
 
 				if(hasDict) {
-					throw new AbortException("Keyword arguments must precede dict arguments", field);
+					throw new AbortException("Keyword arguments cannot be used with dict arguments", field);
 				}
 
 				if(isOptional(field)) {
@@ -596,24 +701,18 @@ abstract class GeneratorBase {
 			}
 
 			if(isVararg(field)) {
-				if(hasVarArgs) {
-					throw new AbortException("Only a single vararg is allowed", field);
-				}
-				hasVarArgs = true;
+				var elementType = findCodecElementType(field.asType(), field, CodecOverride.CodecType.VARARG);
 
-				print("for(var arg : ");
+				var fieldTags = lookupTags(elementType, field);
+				posTagCheck(field, prevOptionalPositionalTags, fieldTags);
+				prevOptionalPositionalTags = prevOptionalPositionalTags.union(fieldTags);
+
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.VARARG);
 				print(".encodeVararg(");
 				print(valueVarName);
 				print(".");
 				print(field.getSimpleName());
-				println("())) {");
-				indent();
-
-				println("args.add(arg);");
-
-				dedent();
-				println("}");
+				println("(), args);");
 				continue;
 			}
 
@@ -622,6 +721,10 @@ abstract class GeneratorBase {
 					throw new AbortException("Only a single dict argument is allowed", field);
 				}
 				hasDict = true;
+
+				if(!kwargNames.isEmpty()) {
+					throw new AbortException("Keyword arguments cannot be used with dict arguments", field);
+				}
 
 				print("for(var pair : ");
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.DICT);
@@ -639,16 +742,12 @@ abstract class GeneratorBase {
 				continue;
 			}
 
-			if(hasVarArgs) {
-				throw new AbortException("Positional arguments must precede varargs", field);
-			}
-
 			if(isOptional(field)) {
-				if(hasOptionalPositional) {
-					throw new AbortException("Only a single optional positional argument is allowed", field);
-				}
+				var elementType = findCodecElementType(field.asType(), field, CodecOverride.CodecType.OPTIONAL_VALUE);
 
-				hasOptionalPositional = true;
+				var fieldTags = lookupTags(elementType, field);
+				posTagCheck(field, prevOptionalPositionalTags, fieldTags);
+				prevOptionalPositionalTags = prevOptionalPositionalTags.union(fieldTags);
 
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.OPTIONAL_VALUE);
 				print(".encodeOptional(");
@@ -658,9 +757,11 @@ abstract class GeneratorBase {
 				println("()).ifPresent(arg -> args.add(arg));");
 			}
 			else {
-				if(hasOptionalPositional) {
-					throw new AbortException("Required positional arguments must precede optional positional arguments", field);
+				if(!prevOptionalPositionalTags.isEmpty()) {
+					var fieldTags = lookupTags(field.asType(), field);
+					posTagCheck(field, prevOptionalPositionalTags, fieldTags);
 				}
+				prevOptionalPositionalTags = ESExprTagSet.of();
 
 				print("args.add(");
 				printCodecExpr(field.asType(), field);
@@ -670,7 +771,6 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				println("()));");
 			}
-
 		}
 		
 		if(useYield) {
@@ -684,8 +784,21 @@ abstract class GeneratorBase {
 		println(", args, kwargs);");
 	}
 
+	private void posTagCheck(RecordComponentElement rce, ESExprTagSet prevTags, ESExprTagSet fieldTags) throws AbortException {
+		if(prevTags.isEmpty()) {
+			return;
+		}
+
+		if(fieldTags.isAll()) {
+			throw new AbortException("Field '" + rce.getSimpleName() + "' cannot follow optional positional arguments with all tags", rce);
+		}
+
+		if(!prevTags.isDisjoint(fieldTags)) {
+			throw new AbortException("Field '" + rce.getSimpleName() + "' must have distinct tags from immediately preceding optional positional arguments", rce);
+		}
+	}
+
 	protected void writeDecodeFields(TypeElement te, boolean useYield) throws IOException, AbortException {
-		int positionalIndex = 0;
 		for(var field : getFields(te)) {
 			var kwAnn = getKeywordAnn(field).orElse(null);
 			if(kwAnn != null) {
@@ -764,15 +877,9 @@ abstract class GeneratorBase {
 				print(field.getSimpleName());
 				print(" = ");
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.VARARG);
-				print(".decodeVararg(args, i -> path.append(");
+				print(".decodeVararg(args, path.appenderWithOffset(");
 				printStringLiteral(getConstructorName(te));
-				print(", ");
-				print(Integer.toString(positionalIndex));
-				println(" + i));");
-
-				println("args.clear();");
-
-				++positionalIndex;
+				print(", args0.size() - args.size()));");
 				continue;
 			}
 
@@ -789,16 +896,33 @@ abstract class GeneratorBase {
 				continue;
 			}
 
+			print("var path_");
+			print(field.getSimpleName());
+			print(" = path.append(");
+			printStringLiteral(getConstructorName(te));
+			println(", args0.size() - args.size());");
+
 			if(isOptional(field)) {
+				var elementType = findCodecElementType(field.asType(), field, CodecOverride.CodecType.OPTIONAL_VALUE);
+
+				print("var fieldExpr_");
+				print(field.getSimpleName());
+				println(" = args.peekFirst();");
+
+
 				print("var field_");
 				print(field.getSimpleName());
 				print(" = ");
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.OPTIONAL_VALUE);
-				print(".decodeOptional(args.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(args.removeFirst()), path.append(");
-				printStringLiteral(getConstructorName(te));
-				print(", ");
-				print(Integer.toString(positionalIndex));
-				println("));");
+				print(".decodeOptional((fieldExpr_");
+				print(field.getSimpleName());
+				print("!= null && ");
+				printCodecExpr(elementType, field, CodecOverride.CodecType.VALUE);
+				print(".tags().contains(fieldExpr_");
+				print(field.getSimpleName());
+				print(".tag())) ? java.util.Optional.of(args.removeFirst()) : java.util.Optional.empty(), path_");
+				print(field.getSimpleName());
+				println(");");
 			}
 			else {
 				print("if(args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Not enough arguments\", path.withConstructor(");
@@ -807,14 +931,11 @@ abstract class GeneratorBase {
 				print("var field_");
 				print(field.getSimpleName());
 				print(" = ");
-				printCodecExpr(field.asType(), field);
+				printCodecExpr(field.asType(), field, CodecOverride.CodecType.VALUE);
 				print(".decode(args.removeFirst(), path.append(");
 				printStringLiteral(getConstructorName(te));
-				print(", ");
-				print(Integer.toString(positionalIndex));
-				println("));");
+				println(", args0.size() - args.size()));");
 			}
-			++positionalIndex;
 		}
 
 		print("if(!args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Extra positional arguments were found.\", path.withConstructor(");
@@ -888,6 +1009,7 @@ abstract class GeneratorBase {
 
 	}
 
+	protected abstract void validateAnnotations() throws AbortException;
 	protected abstract ESExprTagSet getTags(Element associatedElement) throws AbortException;
 	protected abstract void writeEncodeImpl() throws IOException, AbortException;
 	protected abstract void writeDecodeImpl() throws IOException, AbortException;

@@ -1,6 +1,7 @@
 package dev.argon.esexpr.generator;
 
 import com.google.common.collect.ImmutableSet;
+import dev.argon.esexpr.Constructor;
 import dev.argon.esexpr.ESExprTag;
 import dev.argon.esexpr.ESExprTagSet;
 import dev.argon.esexpr.InlineValue;
@@ -26,6 +27,13 @@ final class EnumCodecGenerator extends GeneratorBase {
 			.map(e -> e instanceof TypeElement te ? te : null)
 			.filter(te -> te != null && te.getInterfaces().stream().anyMatch((TypeMirror iface) -> env.getTypeUtils().isSameType(iface, elem.asType())))
 			.toList();
+	}
+
+	@Override
+	protected void validateAnnotations() throws AbortException {
+		if(elem.getAnnotation(Constructor.class) != null) {
+			throw new AbortException("Constructor name may only be specified for records", elem);
+		}
 	}
 
 	@Override
@@ -121,7 +129,7 @@ final class EnumCodecGenerator extends GeneratorBase {
 				printStringLiteral(getConstructorName(c));
 				println(") -> {");
 				indent();
-				println("var args = new java.util.ArrayList<>(args0);");
+				println("var args = new java.util.ArrayDeque<>(args0);");
 				println("var kwargs = new java.util.HashMap<>(kwargs0);");
 	
 				writeDecodeFields(c, true);
