@@ -48,14 +48,14 @@ pub const TAG_CONSTRUCTOR_END: u8 = 0xE0;
 pub const TAG_TRUE: u8 = 0xE1;
 pub const TAG_FALSE: u8 = 0xE2;
 pub const TAG_NULL0: u8 = 0xE3;
+pub const TAG_NULL1: u8 = 0xE8;
+pub const TAG_NULL2: u8 = 0xE9;
+pub const TAG_NULLN: u8 = 0xEA;
 pub const TAG_FLOAT16: u8 = 0xEC;
 pub const TAG_FLOAT32: u8 = 0xE4;
 pub const TAG_FLOAT64: u8 = 0xE5;
 pub const TAG_CONSTRUCTOR_START_STRING_TABLE: u8 = 0xE6;
 pub const TAG_CONSTRUCTOR_START_LIST: u8 = 0xE7;
-pub const TAG_NULL1: u8 = 0xE8;
-pub const TAG_NULL2: u8 = 0xE9;
-pub const TAG_NULLN: u8 = 0xEA;
 pub const TAG_APPEND_STRING_TABLE: u8 = 0xEB;
 
 pub const TAG_ARRAY16: u8 = 0xED;

@@ -1,20 +1,16 @@
 #![expect(missing_docs, reason = "Tests")]
 
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use esexpr::ESExpr;
 
-fn parse_test(name: &str) {
-	let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-	dir.push("../../tests");
-
-	let mut esx = dir.clone();
-	esx.push(format!("{}.esx", name));
-	let esx = std::fs::read_to_string(esx).unwrap();
+fn parse_test(path: &Path) {
+	let esx = std::fs::read_to_string(&path).unwrap();
 	let esx = esexpr_text::parse_multi(&esx).unwrap();
 
-	let mut json = dir;
-	json.push(format!("{}.json", name));
+	let mut json = path.parent().unwrap().to_path_buf();
+	json.push(format!("{}.json", path.file_stem().unwrap().to_str().unwrap()));
 	let json = std::fs::read_to_string(json).unwrap();
 	let json: esexpr_json::JsonEncodedESExpr = serde_json::from_str(&json).unwrap();
 	let json = match json {
@@ -30,42 +26,17 @@ fn parse_test(name: &str) {
 }
 
 #[test]
-fn parse_bool() {
-	parse_test("bool_false");
-	parse_test("bool_true");
+fn parse_tests() {
+	for path in fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests")).unwrap() {
+		let path = path.unwrap().path();
+		if path.extension().unwrap() != "esx" {
+			continue;
+		}
+
+		parse_test(&path);
+	}
 }
 
-#[test]
-fn parse_constructor() {
-	parse_test("constructor");
-	parse_test("constructor2");
-	parse_test("constructor-keyword");
-}
-
-#[test]
-fn parse_str() {
-	parse_test("str");
-}
-
-#[test]
-fn parse_binary() {
-	parse_test("binary");
-}
-
-#[test]
-fn parse_int() {
-	parse_test("int");
-}
-
-#[test]
-fn parse_float32() {
-	parse_test("float32");
-}
-
-#[test]
-fn parse_float64() {
-	parse_test("float64");
-}
 
 #[test]
 fn parse_nan() {
