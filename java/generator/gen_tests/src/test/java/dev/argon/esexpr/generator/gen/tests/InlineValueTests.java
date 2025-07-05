@@ -2,6 +2,7 @@ package dev.argon.esexpr.generator.gen.tests;
 
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.ESExprTag;
+import dev.argon.esexpr.ESExprTagSet;
 import dev.argon.esexpr.generator.gen.InlineValueEnum;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +17,7 @@ public class InlineValueTests extends TestBase {
 
 	@Test
 	public void testInlineValue() throws Throwable {
-		assertEquals(Set.of(new ESExprTag.Int(), new ESExprTag.Constructor("b")), InlineValueEnum.codec().tags());
+		assertEquals(ESExprTagSet.of(ESExprTag.INT, new ESExprTag.Constructor("b")), InlineValueEnum.codec().tags());
 		assertCodecMatch(
 			InlineValueEnum.codec(),
 			new ESExpr.Int(BigInteger.ZERO),

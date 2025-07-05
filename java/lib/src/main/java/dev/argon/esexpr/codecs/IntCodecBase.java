@@ -3,10 +3,7 @@ package dev.argon.esexpr.codecs;
 import java.math.BigInteger;
 import java.util.Set;
 
-import dev.argon.esexpr.DecodeException;
-import dev.argon.esexpr.ESExpr;
-import dev.argon.esexpr.ESExprCodec;
-import dev.argon.esexpr.ESExprTag;
+import dev.argon.esexpr.*;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -23,8 +20,8 @@ public abstract class IntCodecBase<T> extends ESExprCodec<T> {
 	private final BigInteger max;
 
 	@Override
-	public final @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Int());
+	public final @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(ESExprTag.INT);
 	}
 
 	@Override

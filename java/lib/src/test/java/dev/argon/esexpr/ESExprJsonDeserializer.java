@@ -111,7 +111,49 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 				return new ESExpr.Float64(value);
 			}
 			else if(node.has("base64")) {
-				return new ESExpr.Binary(Base64.getDecoder().decode(node.get("base64").asText()));
+				return new ESExpr.Array8(Base64.getDecoder().decode(node.get("base64").asText()));
+			}
+			else if(node.has("array8")) {
+				var array = node.get("array8");
+				byte[] bytes = new byte[array.size()];
+				for (int i = 0; i < array.size(); i++) {
+					bytes[i] = getInt(array.get(i)).byteValue();
+				}
+				return new ESExpr.Array8(bytes);
+			}
+			else if(node.has("array16")) {
+				var array = node.get("array16");
+				short[] shorts = new short[array.size()];
+				for (int i = 0; i < array.size(); i++) {
+					shorts[i] = getInt(array.get(i)).shortValue();
+				}
+				return new ESExpr.Array16(shorts);
+			}
+			else if(node.has("array32")) {
+				var array = node.get("array32");
+				int[] ints = new int[array.size()];
+				for (int i = 0; i < array.size(); i++) {
+					ints[i] = getInt(array.get(i)).intValue();
+				}
+				return new ESExpr.Array32(ints);
+			}
+			else if(node.has("array64")) {
+				var array = node.get("array64");
+				long[] longs = new long[array.size()];
+				for (int i = 0; i < array.size(); i++) {
+					longs[i] = getInt(array.get(i)).longValue();
+				}
+				return new ESExpr.Array64(longs);
+			}
+			else if(node.has("array128")) {
+				var array = node.get("array128");
+				long[] longs = new long[array.size() * 2];
+				for (int i = 0; i < array.size(); i++) {
+					BigInteger value = getInt(array.get(i));
+					longs[i * 2] = value.longValue();
+					longs[i * 2 + 1] = value.shiftLeft(64).longValue();
+				}
+				return new ESExpr.Array128(longs);
 			}
 			else if(node.has("null")) {
 				return new ESExpr.Null(new BigInteger(node.get("null").asText()));
@@ -119,6 +161,15 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 		}
 
 		throw JsonMappingException.from(jsonParser, "Unexpected JSON for ESExpr value");
+	}
+	
+	private static BigInteger getInt(JsonNode node) {
+		if(node.isTextual()) {
+			return new BigInteger(node.asText());
+		}
+		else {
+			return BigInteger.valueOf(node.asLong());	
+		}
 	}
 
 }

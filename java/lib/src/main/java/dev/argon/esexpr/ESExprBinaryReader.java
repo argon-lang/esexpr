@@ -111,7 +111,7 @@ public class ESExprBinaryReader {
 			case 0x40 -> BinToken.WithIntegerType.NEG_INT;
 			case 0x60 -> BinToken.WithIntegerType.STRING;
 			case 0x80 -> BinToken.WithIntegerType.STRING_POOL_INDEX;
-			case 0xA0 -> BinToken.WithIntegerType.BINARY;
+			case 0xA0 -> BinToken.WithIntegerType.ARRAY8;
 			case 0xC0 -> BinToken.WithIntegerType.KEYWORD;
 			default -> null;
 		};
@@ -122,14 +122,19 @@ public class ESExprBinaryReader {
 				case 0xE1 -> BinToken.Fixed.TRUE;
 				case 0xE2 -> BinToken.Fixed.FALSE;
 				case 0xE3 -> BinToken.Fixed.NULL0;
+				case 0xE8 -> BinToken.Fixed.NULL1;
+				case 0xE9 -> BinToken.Fixed.NULL2;
+				case 0xEA -> BinToken.Fixed.NULLN;
+				case 0xEC -> BinToken.Fixed.FLOAT16;
 				case 0xE4 -> BinToken.Fixed.FLOAT32;
 				case 0xE5 -> BinToken.Fixed.FLOAT64;
 				case 0xE6 -> BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE;
 				case 0xE7 -> BinToken.Fixed.CONSTRUCTOR_START_LIST;
-				case 0xE8 -> BinToken.Fixed.NULL1;
-				case 0xE9 -> BinToken.Fixed.NULL2;
-				case 0xEA -> BinToken.Fixed.NULLN;
 				case 0xEB -> BinToken.Fixed.APPEND_STRING_TABLE;
+				case 0xED -> BinToken.Fixed.ARRAY16;
+				case 0xEE -> BinToken.Fixed.ARRAY32;
+				case 0xEF -> BinToken.Fixed.ARRAY64;
+				case 0xF0 -> BinToken.Fixed.ARRAY128;
 				default -> throw new SyntaxException();
 			};
 		}
@@ -195,14 +200,14 @@ public class ESExprBinaryReader {
 					yield new ExprPlus.Expr(new ESExpr.Str(sym));
 				}
 
-				case BINARY -> {
+				case ARRAY8 -> {
 					int len = value.intValueExact();
 					byte[] b = new byte[len];
 					if(is.readNBytes(b, 0, len) < len) {
 						throw new EOFException();
 					}
 
-					yield new ExprPlus.Expr(new ESExpr.Binary(b));
+					yield new ExprPlus.Expr(new ESExpr.Array8(b));
 				}
 
 				case KEYWORD -> {
@@ -212,6 +217,9 @@ public class ESExprBinaryReader {
 			};
 
 			case BinToken.Fixed fixed -> switch(fixed) {
+				case CONSTRUCTOR_END -> new ExprPlus.ConstructorEnd();
+				case TRUE -> new ExprPlus.Expr(new ESExpr.Bool(true));
+				case FALSE -> new ExprPlus.Expr(new ESExpr.Bool(false));
 				case NULL0 -> new ExprPlus.Expr(new ESExpr.Null(BigInteger.ZERO));
 				case NULL1 -> new ExprPlus.Expr(new ESExpr.Null(BigInteger.ONE));
 				case NULL2 -> new ExprPlus.Expr(new ESExpr.Null(BigInteger.valueOf(2)));
@@ -219,9 +227,20 @@ public class ESExprBinaryReader {
 					var n = readInt(BigInteger.ZERO, 0);
 					yield new ExprPlus.Expr(new ESExpr.Null(n.add(BigInteger.valueOf(3))));
 				}
-				case CONSTRUCTOR_END -> new ExprPlus.ConstructorEnd();
-				case TRUE -> new ExprPlus.Expr(new ESExpr.Bool(true));
-				case FALSE -> new ExprPlus.Expr(new ESExpr.Bool(false));
+
+				case FLOAT16 -> {
+					short bits = 0;
+					for(int i = 0; i < 2; ++i) {
+						int b = next();
+						if(b < 0) {
+							throw new EOFException();
+						}
+
+						bits |= (short)((b & 0xFF) << (i * 8));
+					}
+
+					yield new ExprPlus.Expr(new ESExpr.Float32(Float.intBitsToFloat(bits)));
+				}
 				case FLOAT32 -> {
 					int bits = 0;
 					for(int i = 0; i < 4; ++i) {
@@ -269,6 +288,75 @@ public class ESExprBinaryReader {
 					}
 
 					yield new ExprPlus.AppendedToStringTable();
+				}
+				
+				case ARRAY16 -> {
+					var n = readInt(BigInteger.ZERO, 0);
+					int len = n.intValueExact();
+					short[] b = new short[len];
+					for(int i = 0; i < len; ++i) {
+						short value = 0;
+						for (int j = 0; j < 2; ++j) {
+							int byteVal = next();
+							if (byteVal < 0) {
+								throw new EOFException();
+							}
+							value |= (short)((byteVal & 0xFF) << (j * 8));
+						}
+						b[i] = value;
+					}
+					yield new ExprPlus.Expr(new ESExpr.Array16(b));
+				}
+				case ARRAY32 -> {
+					var n = readInt(BigInteger.ZERO, 0);
+					int len = n.intValueExact();
+					int[] b = new int[len];
+					for (int i = 0; i < len; ++i) {
+						int value = 0;
+						for (int j = 0; j < 4; ++j) {
+							int byteVal = next();
+							if (byteVal < 0) {
+								throw new EOFException();
+							}
+							value |= (byteVal & 0xFF) << (j * 8);
+						}
+						b[i] = value;
+					}
+					yield new ExprPlus.Expr(new ESExpr.Array32(b));
+				}
+				case ARRAY64 -> {
+					var n = readInt(BigInteger.ZERO, 0);
+					int len = n.intValueExact();
+					long[] b = new long[len];
+					for (int i = 0; i < len; ++i) {
+						long value = 0;
+						for (int j = 0; j < 8; ++j) {
+							int byteVal = next();
+							if (byteVal < 0) {
+								throw new EOFException();
+							}
+							value |= (long) (byteVal & 0xFF) << (j * 8);
+						}
+						b[i] = value;
+					}
+					yield new ExprPlus.Expr(new ESExpr.Array64(b));
+				}
+				case ARRAY128 -> {
+					var n = readInt(BigInteger.ZERO, 0);
+					int len = n.multiply(BigInteger.TWO).intValueExact();
+					long[] b = new long[len];
+					for (int i = 0; i < len; ++i) {
+						long value = 0;
+						for (int j = 0; j < 8; ++j) {
+							int byteVal = next();
+							if (byteVal < 0) {
+								throw new EOFException();
+							}
+							value |= (long) (byteVal & 0xFF) << (j * 8);
+						}
+						b[i] = value;
+					}
+					yield new ExprPlus.Expr(new ESExpr.Array128(b));
 				}
 			};
 		};

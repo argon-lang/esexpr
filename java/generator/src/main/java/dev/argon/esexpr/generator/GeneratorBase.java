@@ -369,7 +369,7 @@ abstract class GeneratorBase {
 		}
 
 		println("@java.lang.Override");
-		println("public java.util.Set<dev.argon.esexpr.ESExprTag> tags() {");
+		println("public dev.argon.esexpr.ESExprTagSet tags() {");
 		indent();
 		writeTagsImpl();
 		dedent();

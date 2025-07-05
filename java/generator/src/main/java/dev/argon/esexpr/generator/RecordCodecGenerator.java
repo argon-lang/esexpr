@@ -13,11 +13,9 @@ final class RecordCodecGenerator extends GeneratorBase {
 
 	@Override
 	protected void writeTagsImpl() throws IOException, AbortException {
-		println("var tags = new java.util.HashSet<dev.argon.esexpr.ESExprTag>();");
-		print("tags.add(new dev.argon.esexpr.ESExprTag.Constructor(");
+		print("return dev.argon.esexpr.ESExprTagSet.of(new dev.argon.esexpr.ESExprTag.Constructor(");
 		printStringLiteral(getConstructorName(elem));
 		println("));");
-		println("return tags;");
 	}
 
 	@Override

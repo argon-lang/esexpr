@@ -16,12 +16,13 @@ public class NonNegativeBigIntegerESExprCodec extends ESExprCodec<BigInteger> {
 	 * A codec for non-negative bigint values.
 	 */
 	@ESExprOverrideCodec(value = BigInteger.class, requiredAnnotations = Unsigned.class)
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static final ESExprCodec<BigInteger> INSTANCE = new NonNegativeBigIntegerESExprCodec();
 
 
 	@Override
-	public final @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Int());
+	public final @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(ESExprTag.INT);
 	}
 
 	@Override

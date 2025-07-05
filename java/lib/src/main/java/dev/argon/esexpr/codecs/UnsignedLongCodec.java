@@ -1,8 +1,6 @@
 package dev.argon.esexpr.codecs;
 
-import dev.argon.esexpr.ESExprCodec;
-import dev.argon.esexpr.ESExprOverrideCodec;
-import dev.argon.esexpr.Unsigned;
+import dev.argon.esexpr.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
@@ -20,6 +18,7 @@ public class UnsignedLongCodec extends IntCodecBase<Long> {
 	 */
 	@ESExprOverrideCodec(value = long.class, requiredAnnotations = Unsigned.class)
 	@ESExprOverrideCodec(value = Long.class, requiredAnnotations = Unsigned.class)
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static final ESExprCodec<Long> INSTANCE = new UnsignedLongCodec();
 
 	@Override

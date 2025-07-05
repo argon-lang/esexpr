@@ -24,13 +24,19 @@ final class EnumCodecGenerator extends GeneratorBase {
 
 	@Override
 	protected void writeTagsImpl() throws IOException, AbortException {
-		println("var tags = new java.util.HashSet<dev.argon.esexpr.ESExprTag>();");
+		println("var tags = com.google.common.collect.ImmutableSet.<dev.argon.esexpr.ESExprTag>builder();");
 		for(var c : getCases()) {
 			if(isInlineValue(c)) {
 				var field = getFields(c).get(0);
-				print("tags.addAll(");
+
+				print("switch(");
 				printCodecExpr(field.asType(), field);
-				println(".tags());");
+				println(".tags()) {");
+				indent();
+				println("case dev.argon.esexpr.ESExprTagSet.Tags(var fieldTags) -> tags.addAll(fieldTags);");
+				println("case dev.argon.esexpr.ESExprTagSet.All() -> { return new dev.argon.esexpr.ESExprTagSet.All(); }");
+				dedent();
+				println("}");
 			}
 			else {
 				print("tags.add(new dev.argon.esexpr.ESExprTag.Constructor(");
@@ -38,7 +44,7 @@ final class EnumCodecGenerator extends GeneratorBase {
 				println("));");	
 			}
 		}
-		println("return tags;");
+		println("return new dev.argon.esexpr.ESExprTagSet.Tags(tags.build());");
 	}
 
 	@Override

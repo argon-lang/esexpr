@@ -110,9 +110,13 @@ public class ESExprBinaryWriter {
 				os.write(b);
 			}
 
-			case ESExpr.Binary(var b) -> {
-				writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.BINARY, BigInteger.valueOf(b.length)));
-				os.write(b);
+			case ESExpr.Float16(var f) -> {
+				writeToken(BinToken.Fixed.FLOAT16);
+				int bits = Short.toUnsignedInt(f);
+				for(int i = 0; i < 2; ++i) {
+					os.write(bits & 0xFF);
+					bits >>>= 8;
+				}
 			}
 
 			case ESExpr.Float32(var f) -> {
@@ -130,6 +134,64 @@ public class ESExprBinaryWriter {
 				for(int i = 0; i < 8; ++i) {
 					os.write((int)bits & 0xFF);
 					bits >>>= 8;
+				}
+			}
+
+			case ESExpr.Array8(var b) -> {
+				writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.ARRAY8, BigInteger.valueOf(b.length)));
+				os.write(b);
+			}
+
+			case ESExpr.Array16(var b) -> {
+				writeToken(BinToken.Fixed.ARRAY16);
+				writeInt(BigInteger.valueOf(b.length));
+				for(short value : b) {
+					os.write(value & 0xFF);
+					os.write((value >> 8) & 0xFF);
+				}
+			}
+
+			case ESExpr.Array32(var b) -> {
+				writeToken(BinToken.Fixed.ARRAY32);
+				writeInt(BigInteger.valueOf(b.length));
+				for(int value : b) {
+					os.write(value & 0xFF);
+					os.write((value >> 8) & 0xFF);
+					os.write((value >> 16) & 0xFF);
+					os.write((value >> 24) & 0xFF);
+				}
+			}
+
+			case ESExpr.Array64(var b) -> {
+				writeToken(BinToken.Fixed.ARRAY64);
+				writeInt(BigInteger.valueOf(b.length));
+				for(long value : b) {
+					os.write((int) value & 0xFF);
+					os.write((int) (value >> 8) & 0xFF);
+					os.write((int) (value >> 16) & 0xFF);
+					os.write((int) (value >> 24) & 0xFF);
+					os.write((int) (value >> 32) & 0xFF);
+					os.write((int) (value >> 40) & 0xFF);
+					os.write((int) (value >> 48) & 0xFF);
+					os.write((int) (value >> 56) & 0xFF);
+				}
+			}
+
+			case ESExpr.Array128(var b) -> {
+				if((b.length % 2) != 0) {
+					throw new IllegalArgumentException("Array128 must have even length");
+				}
+				writeToken(BinToken.Fixed.ARRAY128);
+				writeInt(BigInteger.valueOf(b.length / 2));
+				for(long value : b) {
+					os.write((int) value & 0xFF);
+					os.write((int) (value >> 8) & 0xFF);
+					os.write((int) (value >> 16) & 0xFF);
+					os.write((int) (value >> 24) & 0xFF);
+					os.write((int) (value >> 32) & 0xFF);
+					os.write((int) (value >> 40) & 0xFF);
+					os.write((int) (value >> 48) & 0xFF);
+					os.write((int) (value >> 56) & 0xFF);
 				}
 			}
 
@@ -160,7 +222,7 @@ public class ESExprBinaryWriter {
 					case NEG_INT -> 0x40;
 					case STRING -> 0x60;
 					case STRING_POOL_INDEX -> 0x80;
-					case BINARY -> 0xA0;
+					case ARRAY8 -> 0xA0;
 					case KEYWORD -> 0xC0;
 				};
 
@@ -182,14 +244,19 @@ public class ESExprBinaryWriter {
 					case TRUE -> 0xE1;
 					case FALSE -> 0xE2;
 					case NULL0 -> 0xE3;
+					case NULL1 -> 0xE8;
+					case NULL2 -> 0xE9;
+					case NULLN -> 0xEA;
+					case FLOAT16 -> 0xEC;
 					case FLOAT32 -> 0xE4;
 					case FLOAT64 -> 0xE5;
 					case CONSTRUCTOR_START_STRING_TABLE -> 0xE6;
 					case CONSTRUCTOR_START_LIST -> 0xE7;
-					case NULL1 -> 0xE8;
-					case NULL2 -> 0xE9;
-					case NULLN -> 0xEA;
 					case APPEND_STRING_TABLE -> 0xEB;
+					case ARRAY16 -> 0xED;
+					case ARRAY32 -> 0xEE;
+					case ARRAY64 -> 0xEF;
+					case ARRAY128 -> 0xF0;
 				};
 				os.write(b);
 			}

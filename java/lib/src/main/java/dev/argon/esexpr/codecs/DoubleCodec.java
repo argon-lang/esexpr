@@ -16,11 +16,12 @@ public class DoubleCodec extends ESExprCodec<Double> {
 	 */
 	@ESExprOverrideCodec(double.class)
 	@ESExprOverrideCodec(Double.class)
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.FLOAT64 })
 	public static final ESExprCodec<Double> INSTANCE = new DoubleCodec();
 
 	@Override
-	public @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Float64());
+	public @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(ESExprTag.FLOAT64);
 	}
 
 	@Override

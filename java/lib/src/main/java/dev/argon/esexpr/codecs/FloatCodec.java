@@ -16,11 +16,12 @@ public class FloatCodec extends ESExprCodec<Float> {
 	 */
 	@ESExprOverrideCodec(float.class)
 	@ESExprOverrideCodec(Float.class)
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.FLOAT32 })
 	public static final ESExprCodec<Float> INSTANCE = new FloatCodec();
 
 	@Override
-	public @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Float32());
+	public @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(ESExprTag.FLOAT32);
 	}
 
 	@Override

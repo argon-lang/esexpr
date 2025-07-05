@@ -16,11 +16,12 @@ public class BooleanESExprCodec extends ESExprCodec<Boolean> {
 	 */
 	@ESExprOverrideCodec(boolean.class)
 	@ESExprOverrideCodec(Boolean.class)
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.BOOL })
 	public static final ESExprCodec<Boolean> INSTANCE = new BooleanESExprCodec();
 
 	@Override
-	public @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Bool());
+	public @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(ESExprTag.BOOL);
 	}
 
 	@Override

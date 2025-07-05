@@ -39,7 +39,7 @@ public sealed interface ESExpr {
     public static record Bool(boolean b) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Bool();
+			return ESExprTag.BOOL;
 		}
 	}
 
@@ -50,7 +50,7 @@ public sealed interface ESExpr {
     public static record Int(@NotNull BigInteger n) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Int();
+			return ESExprTag.INT;
 		}
 	}
 
@@ -61,37 +61,18 @@ public sealed interface ESExpr {
     public static record Str(@NotNull String s) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Str();
+			return ESExprTag.STR;
 		}
 	}
 
 	/**
-	 * A binary value.
-	 * @param b The binary data.
+	 * A 32-bit floating point value.
+	 * @param f The float value.
 	 */
-    public static record Binary(byte @NotNull[] b) implements ESExpr {
+	public static record Float16(short f) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Binary();
-		}
-
-		@Override
-		public final String toString() {
-			return "Binary[" + Arrays.toString(b) + "]";
-		}
-
-		@Override
-		public final int hashCode() {
-			return Arrays.hashCode(b);
-		}
-
-		@Override
-		public final boolean equals(Object obj) {
-			if(!(obj instanceof Binary other)) {
-				return false;
-			}
-
-			return Arrays.equals(b, other.b());
+			return ESExprTag.FLOAT16;
 		}
 	}
 
@@ -102,7 +83,7 @@ public sealed interface ESExpr {
     public static record Float32(float f) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Float32();
+			return ESExprTag.FLOAT32;
 		}
 	}
 
@@ -113,7 +94,161 @@ public sealed interface ESExpr {
     public static record Float64(double d) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Float64();
+			return ESExprTag.FLOAT64;
+		}
+	}
+
+	/**
+	 * An array of 8-bit values.
+	 * @param b The values.
+	 */
+	public static record Array8(byte @NotNull[] b) implements ESExpr {
+		@Override
+		public @NotNull ESExprTag tag() {
+			return ESExprTag.ARRAY8;
+		}
+
+		@Override
+		public final @NotNull String toString() {
+			return "Array8" + Arrays.toString(b);
+		}
+
+		@Override
+		public final int hashCode() {
+			return Arrays.hashCode(b);
+		}
+
+		@Override
+		public final boolean equals(Object obj) {
+			if(!(obj instanceof Array8 other)) {
+				return false;
+			}
+
+			return Arrays.equals(b, other.b());
+		}
+	}
+
+	/**
+	 * An array of 16-bit values.
+	 *
+	 * @param b The values.
+	 */
+	public static record Array16(short @NotNull [] b) implements ESExpr {
+		@Override
+		public @NotNull ESExprTag tag() {
+			return ESExprTag.ARRAY16;
+		}
+
+		@Override
+		public final @NotNull String toString() {
+			return "Array16" + Arrays.toString(b);
+		}
+
+		@Override
+		public final int hashCode() {
+			return Arrays.hashCode(b);
+		}
+
+		@Override
+		public final boolean equals(Object obj) {
+			if (!(obj instanceof Array16 other)) {
+				return false;
+			}
+
+			return Arrays.equals(b, other.b());
+		}
+	}
+
+	/**
+	 * An array of 32-bit values.
+	 *
+	 * @param b The values.
+	 */
+	public static record Array32(int @NotNull [] b) implements ESExpr {
+		@Override
+		public @NotNull ESExprTag tag() {
+			return ESExprTag.ARRAY32;
+		}
+
+		@Override
+		public final @NotNull String toString() {
+			return "Array32" + Arrays.toString(b);
+		}
+
+		@Override
+		public final int hashCode() {
+			return Arrays.hashCode(b);
+		}
+
+		@Override
+		public final boolean equals(Object obj) {
+			if (!(obj instanceof Array32 other)) {
+				return false;
+			}
+
+			return Arrays.equals(b, other.b());
+		}
+	}
+
+	/**
+	 * An array of 64-bit values.
+	 *
+	 * @param b The values.
+	 */
+	public static record Array64(long @NotNull [] b) implements ESExpr {
+		@Override
+		public @NotNull ESExprTag tag() {
+			return ESExprTag.ARRAY64;
+		}
+
+		@Override
+		public final @NotNull String toString() {
+			return "Array64" + Arrays.toString(b);
+		}
+
+		@Override
+		public final int hashCode() {
+			return Arrays.hashCode(b);
+		}
+
+		@Override
+		public final boolean equals(Object obj) {
+			if (!(obj instanceof Array64 other)) {
+				return false;
+			}
+
+			return Arrays.equals(b, other.b());
+		}
+	}
+
+	/**
+	 * An array of 128-bit values.
+	 *
+	 * @param b The complex number values as pairs of longs.
+	 */
+	public static record Array128(long @NotNull [] b) implements ESExpr {
+		@Override
+		public @NotNull ESExprTag tag() {
+			return ESExprTag.ARRAY128;
+		}
+
+		@Override
+		public final @NotNull String toString() {
+			return "Array128" + Arrays.toString(b);
+		}
+
+		@Override
+		public final int hashCode() {
+			return Arrays.hashCode(b);
+		}
+
+		@Override
+		public final boolean equals(Object obj) {
+			if (!(obj instanceof Array128 other)) {
+				return false;
+			}
+
+			return Arrays.equals(b, other.b());
 		}
 	}
 
@@ -124,7 +259,7 @@ public sealed interface ESExpr {
     public static record Null(BigInteger level) implements ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
-			return new ESExprTag.Null();
+			return ESExprTag.NULL;
 		}
 	}
 
@@ -143,8 +278,8 @@ public sealed interface ESExpr {
 	 */
 	static final @NotNull ESExprCodec<@NotNull ESExpr> CODEC = new ESExprCodec<ESExpr>() {
 		@Override
-		public @NotNull Set<@NotNull ESExprTag> tags() {
-			return Set.of();
+		public @NotNull ESExprTagSet tags() {
+			return new ESExprTagSet.All();
 		}
 
 		@Override

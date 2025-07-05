@@ -21,6 +21,7 @@ dependencies {
     testImplementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("org.jetbrains:annotations:26.0.0")
+    api("com.google.guava:guava:33.4.8-jre")
 }
 
 java {

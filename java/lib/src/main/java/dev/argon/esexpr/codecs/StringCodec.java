@@ -15,11 +15,12 @@ public class StringCodec extends ESExprCodec<String> {
 	 * A codec for string values.
 	 */
 	@ESExprOverrideCodec(String.class)
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.STR })
 	public static final ESExprCodec<String> INSTANCE = new StringCodec();
 
 	@Override
-	public @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Str());
+	public @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(ESExprTag.STR);
 	}
 
 	@Override

@@ -19,13 +19,14 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 	 * @return The codec.
 	 * @param <T> The element type.
 	 */
+	@ESExprCodecTags(constructors = { "dict" })
 	public static <T> ESExprCodec<KeywordMapping<T>> codec(ESExprCodec<T> tCodec) {
 		return new ESExprCodec<>() {
 			private static final String DICT_CONSTRUCTOR = "dict";
 
 			@Override
-			public @NotNull Set<@NotNull ESExprTag> tags() {
-				return Set.of(new ESExprTag.Constructor(DICT_CONSTRUCTOR));
+			public @NotNull ESExprTagSet tags() {
+				return ESExprTagSet.of(new ESExprTag.Constructor(DICT_CONSTRUCTOR));
 			}
 
 			@Override

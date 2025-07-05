@@ -13,6 +13,7 @@ import java.util.Set;
  * @param <T> The type of the list elements.
  */
 @ESExprOverrideCodec(List.class)
+@ESExprCodecTags(constructors = { "list" })
 public class ListCodec<T> extends ESExprCodec<List<T>> {
 
 	/**
@@ -26,8 +27,8 @@ public class ListCodec<T> extends ESExprCodec<List<T>> {
 	private final ESExprCodec<T> itemCodec;
 
 	@Override
-	public @NotNull Set<@NotNull ESExprTag> tags() {
-		return Set.of(new ESExprTag.Constructor("list"));
+	public @NotNull ESExprTagSet tags() {
+		return ESExprTagSet.of(new ESExprTag.Constructor("list"));
 	}
 
 	@Override

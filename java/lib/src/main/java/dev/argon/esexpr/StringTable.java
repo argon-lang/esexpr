@@ -18,6 +18,7 @@ public record StringTable(@NotNull List<@NotNull String> values) {
 	 * StringTable codec.
 	 * @return The codec.
 	 */
+	@ESExprCodecTags(constructors = { "string-table" })
 	public static ESExprCodec<StringTable> codec() {
 		return CODEC;
 	}
@@ -25,8 +26,8 @@ public record StringTable(@NotNull List<@NotNull String> values) {
 	private static final ESExprCodec<StringTable> CODEC = new ESExprCodec<StringTable>() {
 
 		@Override
-		public @NotNull Set<@NotNull ESExprTag> tags() {
-			return Set.of(new ESExprTag.Constructor(BinToken.StringTableName));
+		public @NotNull ESExprTagSet tags() {
+			return ESExprTagSet.of(new ESExprTag.Constructor(BinToken.StringTableName));
 		}
 
 		@Override

@@ -1,5 +1,6 @@
 package dev.argon.esexpr.codecs;
 
+import com.google.common.collect.ImmutableSet;
 import dev.argon.esexpr.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,6 +14,7 @@ import java.util.Set;
  * @param <T> The type of the optional value.
  */
 @ESExprOverrideCodec(Optional.class)
+@ESExprCodecTags(scalar = { ESExprTag.Scalar.NULL }, unionWithTypeParameters = "T")
 public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 	/**
 	 * Create a codec for optional values.
@@ -25,11 +27,16 @@ public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 	private final ESExprCodec<T> itemCodec;
 
 	@Override
-	public @NotNull Set<@NotNull ESExprTag> tags() {
-		var tags = new HashSet<ESExprTag>();
-		tags.add(new ESExprTag.Null());
-		tags.addAll(itemCodec.tags());
-		return tags;
+	public @NotNull ESExprTagSet tags() {
+		return switch(itemCodec.tags()) {
+			case ESExprTagSet.Tags(var elementTags) -> {
+				var tags = ImmutableSet.<@NotNull ESExprTag>builder();
+				tags.add(ESExprTag.NULL);
+				tags.addAll(elementTags);
+				yield new ESExprTagSet.Tags(tags.build());
+			}
+			case ESExprTagSet.All all -> all;
+		};
 	}
 
 	@Override

@@ -21,7 +21,7 @@ public abstract class ESExprCodec<T> {
 	 * Gets the set of tags of values for this type.
 	 * @return The set of tags.
 	 */
-	public abstract @NotNull Set<@NotNull ESExprTag> tags();
+	public abstract @NotNull ESExprTagSet tags();
 
 	/**
 	 * Encode a value into an ESExpr.
