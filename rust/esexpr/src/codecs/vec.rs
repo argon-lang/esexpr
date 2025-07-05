@@ -65,16 +65,19 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 		constructor_name: &str,
 		start_index: usize,
 	) -> Result<Self, DecodeError> {
-		args.drain(..)
-			.enumerate()
-			.map(|(i, a)| {
-				A::decode_esexpr(a).map_err(|mut e| {
-					e.error_path_with(|old_path| {
-						DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + i, Box::new(old_path))
-					});
-					e
-				})
-			})
-			.collect()
+		let mut res = Vec::new();
+		
+		while args.front().is_some_and(|e| A::TAGS.contains(&e.tag())) {
+			let Some(e) = args.pop_front() else { break };
+			
+			res.push(A::decode_esexpr(e).map_err(|mut e| {
+				e.error_path_with(|old_path| {
+					DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + res.len(), Box::new(old_path))
+				});
+				e
+			})?);
+		}
+		
+		Ok(res)
 	}
 }

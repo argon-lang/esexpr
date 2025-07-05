@@ -1,7 +1,7 @@
 #![expect(missing_docs, reason = "Tests")]
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use esexpr::ESExpr;
 

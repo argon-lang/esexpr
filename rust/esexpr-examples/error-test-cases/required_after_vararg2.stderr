@@ -1,0 +1,17 @@
+error[E0080]: evaluation of `<RequiredAfterVarArg2 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#1}` failed
+ --> error-test-cases/required_after_vararg2.rs:1:10
+  |
+1 | #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+  |          ^^^^^^^^^^^^^^^^^^^ evaluation panicked: Field 'c' must have distinct tags from immediately preceding optional positional arguments
+
+note: erroneous constant encountered
+ --> error-test-cases/required_after_vararg2.rs:1:10
+  |
+1 | #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+  |          ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this note originates in the derive macro `esexpr::ESExprCodec` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0080`.

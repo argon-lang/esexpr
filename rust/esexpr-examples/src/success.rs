@@ -172,8 +172,18 @@ pub struct OptionalNoTag1 {
 	pub a: Option<esexpr::ESExprStatic>,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
-struct VarArgAfterOptional(#[esexpr(optional)] Option<u32>, #[esexpr(vararg)] alloc::vec::Vec<f32>);
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+struct VarargAfterOptional(#[esexpr(optional)] Option<u32>, #[esexpr(vararg)] alloc::vec::Vec<f32>);
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+struct OptionalAfterVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, #[esexpr(optional)] Option<u32>);
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+struct RequiredAfterVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, u32);
+
+#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+struct MultipleVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, #[esexpr(vararg)] alloc::vec::Vec<i32>);
+
 
 #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
 pub struct AnyExpr {
@@ -185,7 +195,6 @@ mod tests {
 	use alloc::borrow::ToOwned;
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
-
 	use esexpr::cowstr::CowStr;
 	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq, esexpr};
 
@@ -441,5 +450,136 @@ mod tests {
 
 		assert_eq!(expr, GenericTest(5).encode_esexpr());
 		assert_eq!(5, GenericTest::<i32>::decode_esexpr(expr).unwrap().0);
+	}
+	
+	#[test]
+	fn vararg_after_optional() {
+		let expr = esexpr! {
+			("vararg-after-optional" 5 1.0_f32 2.0_f32 3.0_f32)
+		};
+		let value = VarargAfterOptional(Some(5), vec![ 1.0, 2.0, 3.0 ]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
+
+		
+		let expr = esexpr! {
+			("vararg-after-optional" 1.0_f32 2.0_f32 3.0_f32)
+		};
+		let value = VarargAfterOptional(None, vec![ 1.0, 2.0, 3.0 ]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
+		
+
+		let expr = esexpr! {
+			("vararg-after-optional" 5)
+		};
+		let value = VarargAfterOptional(Some(5), vec![]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
+
+
+		let expr = esexpr! {
+			("vararg-after-optional")
+		};
+		let value = VarargAfterOptional(None, vec![]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
+	}
+
+	#[test]
+	fn optional_after_vararg() {
+		let expr = esexpr! {
+			("optional-after-vararg" 1.0_f32 2.0_f32 3.0_f32 5)
+		};
+		let value = OptionalAfterVararg(vec![1.0, 2.0, 3.0], Some(5));
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
+
+
+		let expr = esexpr! {
+			("optional-after-vararg" 1.0_f32 2.0_f32 3.0_f32)
+		};
+		let value = OptionalAfterVararg(vec![1.0, 2.0, 3.0], None);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
+
+
+		let expr = esexpr! {
+			("optional-after-vararg" 5)
+		};
+		let value = OptionalAfterVararg(vec![], Some(5));
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
+
+
+		let expr = esexpr! {
+			("optional-after-vararg")
+		};
+		let value = OptionalAfterVararg(vec![], None);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
+	}
+
+	#[test]
+	fn required_after_vararg() {
+		let expr = esexpr! {
+			("required-after-vararg" 1.0_f32 2.0_f32 3.0_f32 5)
+		};
+		let value = RequiredAfterVararg(vec![1.0, 2.0, 3.0], 5);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, RequiredAfterVararg::decode_esexpr(expr).unwrap());
+
+		let expr = esexpr! {
+			("required-after-vararg" 5)
+		};
+		let value = RequiredAfterVararg(vec![], 5);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, RequiredAfterVararg::decode_esexpr(expr).unwrap());
+	}
+
+	#[test]
+	fn multiple_vararg_test() {
+		let expr = esexpr! {
+			("multiple-vararg" 1.0_f32 2.0_f32 3.0_f32 1 2 3)
+		};
+		let value = MultipleVararg(vec![1.0, 2.0, 3.0], vec![1, 2, 3]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, MultipleVararg::decode_esexpr(expr).unwrap());
+
+		let expr = esexpr! {
+			("multiple-vararg" 1.0_f32 2.0_f32 3.0_f32)
+		};
+		let value = MultipleVararg(vec![1.0, 2.0, 3.0], vec![]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, MultipleVararg::decode_esexpr(expr).unwrap());
+		
+		
+		let expr = esexpr! {
+			("multiple-vararg" 1 2 3)
+		};
+		let value = MultipleVararg(vec![], vec![1, 2, 3]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, MultipleVararg::decode_esexpr(expr).unwrap());
+
+		let expr = esexpr! {
+			("multiple-vararg")
+		};
+		let value = MultipleVararg(vec![], vec![]);
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, MultipleVararg::decode_esexpr(expr).unwrap());
 	}
 }

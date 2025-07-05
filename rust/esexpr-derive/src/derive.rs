@@ -432,21 +432,20 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 		prev_optional_positional_tags: &[proc_macro2::TokenStream],
 	) -> proc_macro2::TokenStream {
 		if prev_optional_positional_tags.is_empty() {
-			quote! {}
+			return quote! {}
 		}
-		else {
-			let message_nonfull =
-				format!("Field '{field_name}' cannot follow optional positional arguments with all tags");
 
-			let message_disjoint = format!(
-				"Field '{field_name}' must have distinct tags from immediately preceding optional positional arguments"
-			);
+		let message_nonfull =
+			format!("Field '{field_name}' cannot follow optional positional arguments with all tags");
 
-			quote! {
-				const {
-					assert!(!::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_all(), #message_nonfull);
-					assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message_disjoint);
-				}
+		let message_disjoint = format!(
+			"Field '{field_name}' must have distinct tags from immediately preceding optional positional arguments"
+		);
+
+		quote! {
+			const {
+				assert!(!::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_all(), #message_nonfull);
+				assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message_disjoint);
 			}
 		}
 	}
@@ -458,7 +457,6 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 	};
 
 	let mut has_dict_field = false;
-	let mut has_vararg_field = false;
 	let mut kwarg_names = HashSet::new();
 
 	let mut prev_optional_positional_tags = Vec::new();
@@ -520,11 +518,6 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 quote! { ::esexpr::ESExprDictCodec::encode_dict_element(#field_expr, &mut kwargs); }
             }
             else if field_attr.vararg.is_present() {
-                if has_vararg_field {
-                    Err(quote! { compile_error!("Only a single vararg is allowed"); })?;
-                }
-                has_vararg_field = true;
-
 				let tags = quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::TAGS };
 				let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 				prev_optional_positional_tags.push(tags);
@@ -535,10 +528,6 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 				}
             }
             else {
-                if has_vararg_field {
-                    Err(quote! { compile_error!("Positional arguments must precede varargs"); })?;
-                }
-
                 if field_attr.optional.is_present() {
 					let tags = quote! { <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS };
 					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
@@ -1072,7 +1061,7 @@ mod test {
 	}
 
 	#[test]
-	fn kwarg_after_dict() {
+	fn kwarg_with_dict() {
 		ensure_error!(
 			"Keyword arguments cannot be used with dict arguments",
 			struct MyStruct {
@@ -1081,6 +1070,16 @@ mod test {
 
 				#[esexpr(keyword)]
 				b: String,
+			}
+		);
+		ensure_error!(
+			"Keyword arguments cannot be used with dict arguments",
+			struct MyStruct {
+				#[esexpr(keyword)]
+				b: String,
+
+				#[esexpr(dict)]
+				a: HashMap<String, String>,
 			}
 		);
 	}
@@ -1095,33 +1094,6 @@ mod test {
 
 				#[esexpr(dict)]
 				b: HashMap<String, String>,
-			}
-		);
-	}
-
-	#[test]
-	fn multiple_vararg() {
-		ensure_error!(
-			"Only a single vararg is allowed",
-			struct MyStruct {
-				#[esexpr(vararg)]
-				a: Vec<String>,
-
-				#[esexpr(vararg)]
-				b: Vec<String>,
-			}
-		);
-	}
-
-	#[test]
-	fn arg_after_vararg() {
-		ensure_error!(
-			"Positional arguments must precede varargs",
-			struct MyStruct {
-				#[esexpr(vararg)]
-				a: Vec<String>,
-
-				b: String,
 			}
 		);
 	}
