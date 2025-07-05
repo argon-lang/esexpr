@@ -1,10 +1,14 @@
 package dev.argon.esexpr.generator;
 
+import dev.argon.esexpr.ESExprTag;
+import dev.argon.esexpr.ESExprTagSet;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -22,10 +26,9 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 			.toList();
 	}
 
-
 	@Override
-	protected void writeTagsImpl() throws IOException, AbortException {
-		println("return dev.argon.esexpr.ESExprTagSet.of(dev.argon.esexpr.ESExprTag.STR);");
+	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
+		return ESExprTagSet.of(ESExprTag.STR);
 	}
 
 	@Override

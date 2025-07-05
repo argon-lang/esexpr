@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Indicates that an `ESExprCodec` should be generated for the annotated type.
  */
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface ESExprCodecGen {
 	

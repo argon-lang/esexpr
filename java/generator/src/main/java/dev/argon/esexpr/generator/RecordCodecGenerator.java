@@ -1,9 +1,13 @@
 package dev.argon.esexpr.generator;
 
+import dev.argon.esexpr.ESExprTag;
+import dev.argon.esexpr.ESExprTagSet;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
 final class RecordCodecGenerator extends GeneratorBase {
@@ -12,10 +16,8 @@ final class RecordCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
-	protected void writeTagsImpl() throws IOException, AbortException {
-		print("return dev.argon.esexpr.ESExprTagSet.of(new dev.argon.esexpr.ESExprTag.Constructor(");
-		printStringLiteral(getConstructorName(elem));
-		println("));");
+	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
+		return ESExprTagSet.of(new ESExprTag.Constructor(getConstructorName(elem)));
 	}
 
 	@Override

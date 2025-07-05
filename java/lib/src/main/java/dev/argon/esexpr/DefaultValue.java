@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Specifies a default value for an argument.
  */
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.RECORD_COMPONENT)
 public @interface DefaultValue {
 	/**

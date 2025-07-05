@@ -50,19 +50,9 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
             for(Element elem : annotatedElements) {
 				var typeElem = (TypeElement)elem;
 
-				Function<PrintWriter, GeneratorBase> generatorFactory = switch(typeElem.getKind()) {
-					case RECORD -> writer -> new RecordCodecGenerator(writer, processingEnv, metadataCache, typeElem);
-					case INTERFACE -> {
-						if(typeElem.getModifiers().contains(Modifier.SEALED))
-							yield writer -> new EnumCodecGenerator(writer, processingEnv, metadataCache, typeElem);
-						else
-							yield null;
-					}
-					case ENUM -> writer -> new SimpleEnumCodecGenerator(writer, processingEnv, metadataCache, typeElem);
-					default -> null;
-				};
-
 				try {
+					Function<PrintWriter, GeneratorBase> generatorFactory = GeneratorBase.forElement(processingEnv, metadataCache, typeElem);
+
 					if(generatorFactory == null) {
 						throw new AbortException("ESExprCodeGen must be used with a record, sealed interface (of records), or an enum.");
 					}

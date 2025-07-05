@@ -13,6 +13,7 @@ repositories {
 
 dependencies {
     implementation("org.apache.commons:commons-text:1.13.0")
+    implementation(project(":lib"))
 }
 
 java {

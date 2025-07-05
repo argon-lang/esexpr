@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Indicates that the value is encoded as a keyword argument.
  */
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.RECORD_COMPONENT)
 public @interface Keyword {
 	/**

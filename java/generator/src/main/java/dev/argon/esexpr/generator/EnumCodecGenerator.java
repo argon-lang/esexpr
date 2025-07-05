@@ -1,10 +1,16 @@
 package dev.argon.esexpr.generator;
 
+import com.google.common.collect.ImmutableSet;
+import dev.argon.esexpr.ESExprTag;
+import dev.argon.esexpr.ESExprTagSet;
+import dev.argon.esexpr.InlineValue;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
@@ -23,28 +29,27 @@ final class EnumCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
-	protected void writeTagsImpl() throws IOException, AbortException {
-		println("var tags = com.google.common.collect.ImmutableSet.<dev.argon.esexpr.ESExprTag>builder();");
+	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
+		var tags = ImmutableSet.<ESExprTag>builder();
+
 		for(var c : getCases()) {
 			if(isInlineValue(c)) {
 				var field = getFields(c).get(0);
 
-				print("switch(");
-				printCodecExpr(field.asType(), field);
-				println(".tags()) {");
-				indent();
-				println("case dev.argon.esexpr.ESExprTagSet.Tags(var fieldTags) -> tags.addAll(fieldTags);");
-				println("case dev.argon.esexpr.ESExprTagSet.All() -> { return new dev.argon.esexpr.ESExprTagSet.All(); }");
-				dedent();
-				println("}");
+				switch(lookupTags(field.asType(), associatedElement)) {
+					case ESExprTagSet.All all -> {
+						return all;
+					}
+					case ESExprTagSet.Tags(var fieldTags) ->
+						tags.addAll(fieldTags);
+				}
 			}
 			else {
-				print("tags.add(new dev.argon.esexpr.ESExprTag.Constructor(");
-				printStringLiteral(getConstructorName(c));
-				println("));");	
+				tags.add(new ESExprTag.Constructor(getConstructorName(c)));
 			}
 		}
-		println("return new dev.argon.esexpr.ESExprTagSet.Tags(tags.build());");
+
+		return new ESExprTagSet.Tags(tags.build());
 	}
 
 	@Override
@@ -133,7 +138,7 @@ final class EnumCodecGenerator extends GeneratorBase {
 	}
 
 	private boolean isInlineValue(TypeElement c) {
-		return hasAnnotation(c.getAnnotationMirrors(), "dev.argon.esexpr.InlineValue");
+		return c.getAnnotation(InlineValue.class) != null;
 	}
 
 }

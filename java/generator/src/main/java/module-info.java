@@ -3,7 +3,7 @@
  */
 module dev.argon.esexpr.generator {
 	requires transitive java.compiler;
-	requires org.apache.commons.text;
+	requires org.apache.commons.text; requires dev.argon.esexpr;
 	
 	exports dev.argon.esexpr.generator;
 

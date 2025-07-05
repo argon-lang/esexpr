@@ -1,5 +1,8 @@
 package dev.argon.esexpr.generator;
 
+import dev.argon.esexpr.ESExprCodecTags;
+import dev.argon.esexpr.ESExprEnableCodecOverrides;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
@@ -9,7 +12,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-record CodecOverride(Element overridingElement, TypeMirror t, CodecType codecType, List<TypeMirror> requiredAnnotations, List<TypeMirror> excludedAnnotations) {
+record CodecOverride(
+	Element overridingElement,
+	TypeMirror t,
+	CodecType codecType,
+	List<TypeMirror> requiredAnnotations,
+	List<TypeMirror> excludedAnnotations
+) {
 	enum CodecType {
 		VALUE,
 		OPTIONAL_VALUE,
@@ -49,7 +58,7 @@ record CodecOverride(Element overridingElement, TypeMirror t, CodecType codecTyp
 		return moduleElement.getEnclosedElements()
 			.stream()
 			.map(element -> (PackageElement)element)
-			.filter(packageElement -> GeneratorBase.hasAnnotation(packageElement.getAnnotationMirrors(), "dev.argon.esexpr.ESExprEnableCodecOverrides"))
+			.filter(packageElement -> packageElement.getAnnotation(ESExprEnableCodecOverrides.class) != null)
 			.flatMap(packageElement -> packageElement.getEnclosedElements().stream())
 			.flatMap(CodecOverride::scanElement);
 	}
@@ -73,7 +82,6 @@ record CodecOverride(Element overridingElement, TypeMirror t, CodecType codecTyp
 			)
 				.map(annObj -> {
 					var ann = (AnnotationMirror)((AnnotationValue)annObj).getValue();
-
 
 					return new CodecOverride(
 						elem,

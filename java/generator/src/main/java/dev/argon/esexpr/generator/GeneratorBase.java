@@ -3,12 +3,15 @@ package dev.argon.esexpr.generator;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 
+import com.google.common.collect.ImmutableSet;
+import dev.argon.esexpr.*;
 import org.apache.commons.text.StringEscapeUtils;
 
 abstract class GeneratorBase {
@@ -25,6 +28,26 @@ abstract class GeneratorBase {
 	protected final TypeElement elem;
 	private int indentLevel = 0;
 	private boolean needsIndent = true;
+
+
+	public static Function<PrintWriter, GeneratorBase> forElement(ProcessingEnvironment processingEnv, MetadataCache metadataCache, TypeElement typeElem) throws AbortException {
+		switch(typeElem.getKind()) {
+			case RECORD -> {
+				return writer -> new RecordCodecGenerator(writer, processingEnv, metadataCache, typeElem);
+			}
+			case INTERFACE -> {
+				if(typeElem.getModifiers().contains(Modifier.SEALED)) {
+					return writer -> new EnumCodecGenerator(writer, processingEnv, metadataCache, typeElem);
+				}
+			}
+			case ENUM -> {
+				return writer -> new SimpleEnumCodecGenerator(writer, processingEnv, metadataCache, typeElem);
+			}
+			default -> {}
+		}
+
+		throw new AbortException("ESExprCodeGen must be used with a record, sealed interface (of records), or an enum.");
+	}
 
 
 	public final void generate() throws IOException, AbortException {
@@ -270,15 +293,21 @@ abstract class GeneratorBase {
 
 
 	protected String getConstructorName(TypeElement elem) {
-		return getAnnotation(elem.getAnnotationMirrors(), "dev.argon.esexpr.Constructor")
-			.map(ctorAnn -> ((String)getAnnotationArgument(ctorAnn, "value").get().getValue()))
-			.orElseGet(() -> nameToKebabCase(elem.getSimpleName().toString()));
+		var ctor = elem.getAnnotation(Constructor.class);
+		if(ctor != null) {
+			return ctor.value();
+		}
+
+		return nameToKebabCase(elem.getSimpleName().toString());
 	}
 
 	protected String getConstructorNameSimpleEnum(VariableElement elem) {
-		return getAnnotation(elem.getAnnotationMirrors(), "dev.argon.esexpr.Constructor")
-			.map(ctorAnn -> ((String)getAnnotationArgument(ctorAnn, "value").get().getValue()))
-			.orElseGet(() -> enumConstNameToKebabCase(elem.getSimpleName().toString()));
+		var ctor = elem.getAnnotation(Constructor.class);
+		if(ctor != null) {
+			return ctor.value();
+		}
+
+		return enumConstNameToKebabCase(elem.getSimpleName().toString());
 	}
 
 
@@ -425,33 +454,38 @@ abstract class GeneratorBase {
 			.toList();
 	}
 
-	private Optional<? extends AnnotationMirror> getKeywordAnn(RecordComponentElement rce) {
-		return getAnnotation(rce.getAnnotationMirrors(), "dev.argon.esexpr.Keyword");
+	private Optional<Keyword> getKeywordAnn(RecordComponentElement rce) {
+		return Optional.ofNullable(rce.getAnnotation(Keyword.class));
 	}
 
 	private boolean isOptional(RecordComponentElement field) {
-		return hasAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.OptionalValue");
+		return field.getAnnotation(OptionalValue.class) != null;
 	}
 
 	private Optional<String> getDefaultValue(RecordComponentElement field) {
-		return getAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.DefaultValue")
-			.flatMap(ann -> getAnnotationArgument(ann, "value"))
-			.flatMap(value -> value.getValue() instanceof String s ? Optional.of(s) : Optional.empty());
+		var defaultValue = field.getAnnotation(DefaultValue.class);
+		if(defaultValue == null) {
+			return Optional.empty();
+		}
+
+		return Optional.of(defaultValue.value());
 	}
 
 	private boolean isVararg(RecordComponentElement field) {
-		return hasAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.Vararg");
+		return field.getAnnotation(Vararg.class) != null;
 	}
 
 	private boolean isDict(RecordComponentElement field) {
-		return hasAnnotation(field.getAnnotationMirrors(), "dev.argon.esexpr.Dict");
+		return field.getAnnotation(Dict.class) != null;
 	}
 
-	private String getKeywordName(RecordComponentElement rce, AnnotationMirror ann) {
-		return getAnnotationArgument(ann, "value")
-			.map(arg -> (String)arg.getValue())
-			.filter(s -> !s.isEmpty())
-			.orElseGet(() -> nameToKebabCase(rce.getSimpleName().toString()));
+	private String getKeywordName(RecordComponentElement rce, Keyword keyword) {
+		if(keyword.value().isEmpty()) {
+			return nameToKebabCase(rce.getSimpleName().toString());
+		}
+		else {
+			return keyword.value();
+		}
 	}
 
 	protected void writeEncodeFields(TypeElement te, String valueVarName, boolean useYield) throws IOException, AbortException {
@@ -820,10 +854,100 @@ abstract class GeneratorBase {
 	}
 
 
-	protected abstract void writeTagsImpl() throws IOException, AbortException;
+	private void writeTagsImpl() throws IOException, AbortException {
+		switch(lookupTags(elem.asType(), elem)) {
+			case ESExprTagSet.All() -> {
+				println("return new dev.argon.esexpr.ESExprTagSet.All();");
+			}
+			case ESExprTagSet.Tags(var tags) -> {
+				print("return dev.argon.esexpr.ESExprTagSet.of(");
+
+				boolean isFirst = true;
+				for(var tag : tags) {
+					if(!isFirst) {
+						print(", ");
+					}
+					isFirst = false;
+
+					switch(tag) {
+						case ESExprTag.Constructor(var name) -> {
+							print("new dev.argon.esexpr.ESExprTag.Constructor(");
+							printStringLiteral(name);
+							print(")");
+						}
+						case ESExprTag.Scalar scalar -> {
+							print("dev.argon.esexpr.ESExprTag.");
+							print(scalar.name());
+						}
+					}
+				}
+
+				println(");");
+			}
+		}
+
+	}
+
+	protected abstract ESExprTagSet getTags(Element associatedElement) throws AbortException;
 	protected abstract void writeEncodeImpl() throws IOException, AbortException;
 	protected abstract void writeDecodeImpl() throws IOException, AbortException;
 
 
+	protected ESExprTagSet lookupTags(TypeMirror t, Element associatedElement) throws AbortException {
+		var overrideCodec = findOverrideCodec(t, associatedElement, CodecOverride.CodecType.VALUE);
+		if(overrideCodec != null) {
+			return tagsFromAnnotation(t, overrideCodec, associatedElement);
+		}
+		
+		if(t instanceof DeclaredType dt && dt.asElement() instanceof TypeElement te && te.getAnnotation(ESExprCodecGen.class) != null) {
+			return GeneratorBase.forElement(env, metadataCache, te).apply(writer).getTags(associatedElement);
+		}
+
+		throw new AbortException("Could not determine tags of type " + t, associatedElement);
+	}
+
+
+	private ESExprTagSet tagsFromAnnotation(TypeMirror t, Element codecElement, Element associatedElement) throws AbortException {
+		var tags = codecElement.getAnnotation(ESExprCodecTags.class);
+		if(tags == null) {
+			throw new AbortException("ESExprOverrideCodec must be annotated with ESExprCodecTags", associatedElement);
+		}
+
+
+		Map<String, TypeMirror> typeParamMap = new HashMap<>();
+		if(t instanceof DeclaredType dt) {
+			var typeElement = (TypeElement) dt.asElement();
+			var typeArgs = dt.getTypeArguments();
+			for(int i = 0; i < typeElement.getTypeParameters().size(); i++) {
+				typeParamMap.put(typeElement.getTypeParameters().get(i).getSimpleName().toString(), typeArgs.get(i));
+			}
+		}
+
+		if(tags.all()) {
+			return new ESExprTagSet.All();
+		}
+
+		var ts = ImmutableSet.<ESExprTag>builder();
+
+		for(var tp : tags.unionWithTypeParameters()) {
+			var tpt = typeParamMap.get(tp);
+			if(tpt == null) {
+				throw new AbortException("Could not determine tags for type parameter " + tp);
+			}
+
+			switch(lookupTags(tpt, associatedElement)) {
+				case ESExprTagSet.Tags(var tpTags) -> ts.addAll(tpTags);
+				case ESExprTagSet.All all -> { return all; }
+			}
+		}
+
+		for(var ctorName : tags.constructors()) {
+			ts.add(new ESExprTag.Constructor(ctorName));
+		}
+
+		ts.addAll(Arrays.asList(tags.scalar()));
+
+		return new ESExprTagSet.Tags(ts.build());
+	}
 
 }

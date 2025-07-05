@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Specifies the constructor name when encoded as an ESExpr.
  */
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 @Target({ElementType.TYPE, ElementType.FIELD})
 public @interface Constructor {
 	/**
