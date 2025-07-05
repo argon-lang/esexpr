@@ -26,7 +26,8 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
 }
 
 impl<'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F> {
-	const TAGS: ESExprTagCollection = F::TAGS;
+	type Element = F::Element;
+
 
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		(**self).encode_optional_field()
@@ -38,7 +39,7 @@ impl<'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F
 }
 
 impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
-	const TAGS: ESExprTagCollection = F::TAGS;
+	type Element = F::Element;
 
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
 		(**self).encode_vararg_element(args);
@@ -47,14 +48,14 @@ impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
 	fn decode_vararg_element(
 		args: &mut VecDeque<ESExpr<'a>>,
 		constructor_name: &str,
-		start_index: usize,
+		start_index: &mut usize,
 	) -> Result<Self, DecodeError> {
 		F::decode_vararg_element(args, constructor_name, start_index).map(Box::new)
 	}
 }
 
 impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
-	const TAGS: ESExprTagCollection = F::TAGS;
+	type Element = F::Element;
 
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		(**self).encode_dict_element(kwargs);

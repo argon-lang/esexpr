@@ -146,7 +146,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<String, A, S> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
 
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {
@@ -175,7 +175,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<Cow<'a, str>, A, S> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
 
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {
@@ -204,7 +204,8 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprDictCodec<'a> for HashMap<CowStr<'a>, A, S> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
+
 
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {

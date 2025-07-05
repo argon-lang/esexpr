@@ -337,7 +337,7 @@ impl Eq for ESExprTagCollection {}
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{ESExprCodec, ESExprOptionalFieldCodec};
+	use crate::ESExprCodec;
 
 	#[test]
 	fn tag_collection_disjoint() {
@@ -347,8 +347,8 @@ mod tests {
 
 		assert!(
 			ESExprTagCollection::Concat(&[
-				<Option<i32> as ESExprOptionalFieldCodec>::TAGS,
-				<Option<f32> as ESExprOptionalFieldCodec>::TAGS,
+				i32::TAGS,
+				f32::TAGS,
 			],)
 			.is_disjoint(<alloc::string::String as ESExprCodec>::TAGS)
 		);

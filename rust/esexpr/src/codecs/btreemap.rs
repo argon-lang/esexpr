@@ -150,7 +150,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<CowStr<'a>, A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for BTreeMap<Cow<'a, str>, A> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
 
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {
@@ -179,7 +179,8 @@ impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for BTreeMap<Cow<'a, str>, A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for BTreeMap<String, A> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
+
 
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
 		for (k, v) in self {

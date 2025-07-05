@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use darling::util::Flag;
 use darling::{FromAttributes, FromMeta};
-use proc_macro2::{Literal, Span};
+use proc_macro2::Span;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::{
@@ -518,7 +518,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                 quote! { ::esexpr::ESExprDictCodec::encode_dict_element(#field_expr, &mut kwargs); }
             }
             else if field_attr.vararg.is_present() {
-				let tags = quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::TAGS };
+				let tags = quote! { <<#field_type as ::esexpr::ESExprVarArgCodec>::Element as ::esexpr::ESExprCodec>::TAGS };
 				let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 				prev_optional_positional_tags.push(tags);
 
@@ -529,7 +529,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
             }
             else {
                 if field_attr.optional.is_present() {
-					let tags = quote! { <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS };
+					let tags = quote! { <<#field_type as ::esexpr::ESExprOptionalFieldCodec>::Element as ::esexpr::ESExprCodec>::TAGS };
 					let checks = make_pos_tag_check(&field_name, &tags, &prev_optional_positional_tags);
 					prev_optional_positional_tags.push(tags);
 
@@ -581,6 +581,7 @@ fn get_esexpr_decode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 					let mut args = <::esexpr::core_types::alloc::collections::VecDeque<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>>>>::from(
 						<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::ConstructorArgs<'_>>>::from(args)
 					);
+					let mut arg_index = 0_usize;
 					let mut kwargs = <::esexpr::core_types::alloc::collections::BTreeMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
 					if name == #constructor_name {
 						Ok(#decode_fields)
@@ -684,6 +685,7 @@ fn get_esexpr_decode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 								let mut args = <::esexpr::core_types::alloc::collections::VecDeque<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>>>>::from(
 									<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::ConstructorArgs<'_>>>::from(args)
 								);
+								let mut arg_index = 0_usize;
 								let mut kwargs = <::esexpr::core_types::alloc::collections::BTreeMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
 								::esexpr::core_types::core::result::Result::Ok(#decode_fields)
 							},
@@ -713,7 +715,6 @@ fn get_esexpr_decode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 }
 
 fn make_decode_fields(fields: &Fields, constructor_name: &str, constructor: proc_macro2::TokenStream) -> TokenRes {
-	let mut arg_index = 0;
 	Ok(match fields {
 		Fields::Named(fields) => {
 			let field_init: proc_macro2::TokenStream = fields
@@ -722,7 +723,7 @@ fn make_decode_fields(fields: &Fields, constructor_name: &str, constructor: proc
 				.map(|field| -> TokenRes {
 					#[expect(clippy::unwrap_used, reason = "This is a named field, so it must have a name.")]
 					let field_name = field.ident.as_ref().unwrap();
-					let field_value = make_decode_field(field, &mut arg_index, constructor_name)?;
+					let field_value = make_decode_field(field, constructor_name)?;
 					Ok(quote! { #field_name: #field_value, })
 				})
 				.collect::<Result<_, _>>()?;
@@ -734,7 +735,7 @@ fn make_decode_fields(fields: &Fields, constructor_name: &str, constructor: proc
 				.unnamed
 				.iter()
 				.map(|field| -> TokenRes {
-					let field_value = make_decode_field(field, &mut arg_index, constructor_name)?;
+					let field_value = make_decode_field(field, constructor_name)?;
 					Ok(quote! { #field_value, })
 				})
 				.collect::<Result<_, _>>()?;
@@ -747,11 +748,11 @@ fn make_decode_fields(fields: &Fields, constructor_name: &str, constructor: proc
 
 #[derive(Copy, Clone)]
 enum FieldPath<'a> {
-	Positional(usize),
+	Positional,
 	Keyword(&'a str),
 }
 
-fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &str) -> TokenRes {
+fn make_decode_field(field: &Field, constructor_name: &str) -> TokenRes {
 	let field_type = &field.ty;
 
 	let attr = ESExprFieldAttr::from_attributes(&field.attrs).map_err(darling::Error::write_errors)?;
@@ -790,44 +791,53 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &st
 		quote! { <#field_type as ::esexpr::ESExprDictCodec>::decode_dict_element(&mut kwargs, #constructor_name)? }
 	}
 	else if attr.vararg.is_present() {
-		let i_expr = Literal::usize_suffixed(*arg_index);
-		quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::decode_vararg_element(&mut args, #constructor_name, #i_expr)? }
+		quote! { <#field_type as ::esexpr::ESExprVarArgCodec>::decode_vararg_element(&mut args, #constructor_name, &mut arg_index)? }
 	}
 	else {
-		let error_mapping = make_error_mapping(constructor_name, FieldPath::Positional(*arg_index));
+		let error_mapping = make_error_mapping(constructor_name, FieldPath::Positional);
 
 		if attr.optional.is_present() {
 			quote! {
-				<#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(
-					if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprOptionalFieldCodec>::TAGS.contains(&e.tag())) {
+				{
+					let current_arg_index = arg_index;
+					<#field_type as ::esexpr::ESExprOptionalFieldCodec>::decode_optional_field(
+						if args.front().is_some_and(|e| <<#field_type as ::esexpr::ESExprOptionalFieldCodec>::Element as ::esexpr::ESExprCodec>::TAGS.contains(&e.tag())) {
+							args.pop_front().inspect(|_| arg_index += 1)
+						}
+						else {
+							None
+						}
+					)
+						.map_err(#error_mapping)?
+				}
+			}
+		}
+		else if let Some(default_value) = attr.default_value.as_ref() {
+			quote! {
+				{
+					let current_arg_index = arg_index;
+					if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprCodec>::TAGS.contains(&e.tag())) {
 						args.pop_front()
 					}
 					else {
 						None
 					}
-				).map_err(#error_mapping)?
-
-			}
-		}
-		else if let Some(default_value) = attr.default_value.as_ref() {
-			quote! {
-				if args.front().is_some_and(|e| <#field_type as ::esexpr::ESExprCodec>::TAGS.contains(&e.tag())) {
-					args.pop_front()
+						.map(
+							|arg| {
+								<#field_type as ::esexpr::ESExprCodec>::decode_esexpr(arg)
+									.map_err(#error_mapping)
+							}
+						)
+						.transpose()?
+						.unwrap_or_else(|| #default_value)
 				}
-				else {
-					None
-				}
-					.map(
-						|arg| <#field_type as ::esexpr::ESExprCodec>::decode_esexpr(arg)
-							.map_err(#error_mapping)
-					)
-					.transpose()?
-					.unwrap_or_else(|| #default_value)
 			}
 		}
 		else {
 			quote! {
 				if let Some(arg) = args.pop_front() {
+					let current_arg_index = arg_index;
+					arg_index += 1;
 					<#field_type as ::esexpr::ESExprCodec>::decode_esexpr(arg).map_err(#error_mapping)?
 				}
 				else {
@@ -843,9 +853,8 @@ fn make_decode_field(field: &Field, arg_index: &mut usize, constructor_name: &st
 
 fn make_error_mapping(constructor_name: &str, path: FieldPath) -> proc_macro2::TokenStream {
 	match path {
-		FieldPath::Positional(i) => {
-			let i_expr = Literal::usize_suffixed(i);
-			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Positional(::esexpr::core_types::alloc::string::String::from(#constructor_name), #i_expr, ::esexpr::core_types::alloc::boxed::Box::new(p))); e } }
+		FieldPath::Positional => {
+			quote! { |mut e| { e.error_path_with(|p| ::esexpr::DecodeErrorPath::Positional(::esexpr::core_types::alloc::string::String::from(#constructor_name), current_arg_index, ::esexpr::core_types::alloc::boxed::Box::new(p))); e } }
 		},
 
 		FieldPath::Keyword(name) => {

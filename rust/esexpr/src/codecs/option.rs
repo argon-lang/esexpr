@@ -42,7 +42,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Option<A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprOptionalFieldCodec<'a> for Option<A> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
 
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		self.as_ref().map(A::encode_esexpr)

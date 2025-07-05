@@ -52,7 +52,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
-	const TAGS: ESExprTagCollection = A::TAGS;
+	type Element = A;
 
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>) {
 		for arg in self {
@@ -63,7 +63,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 	fn decode_vararg_element(
 		args: &mut VecDeque<ESExpr<'a>>,
 		constructor_name: &str,
-		start_index: usize,
+		start_index: &mut usize,
 	) -> Result<Self, DecodeError> {
 		let mut res = Vec::new();
 		
@@ -72,11 +72,13 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 			
 			res.push(A::decode_esexpr(e).map_err(|mut e| {
 				e.error_path_with(|old_path| {
-					DecodeErrorPath::Positional(constructor_name.to_owned(), start_index + res.len(), Box::new(old_path))
+					DecodeErrorPath::Positional(constructor_name.to_owned(), *start_index + res.len(), Box::new(old_path))
 				});
 				e
 			})?);
 		}
+		
+		*start_index += res.len();
 		
 		Ok(res)
 	}

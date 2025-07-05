@@ -34,9 +34,9 @@ where
 pub trait ESExprOptionalFieldCodec<'a>
 where
 	Self: Sized + 'a,
-{
-	/// The tags of the encoded expressions that this type can produce.
-	const TAGS: ESExprTagCollection;
+{	
+	/// The element type.
+	type Element: ESExprCodec<'a> + 'a;
 
 	/// Encode an optional field or None when the value should be excluded.
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>>;
@@ -53,8 +53,8 @@ pub trait ESExprVarArgCodec<'a>
 where
 	Self: Sized + 'a,
 {
-	/// The tags of the encoded expressions that this type can produce.
-	const TAGS: ESExprTagCollection;
+	/// The element type.
+	type Element: ESExprCodec<'a> + 'a;
 
 	/// Encode variable arguments
 	fn encode_vararg_element(&'a self, args: &mut Vec<ESExpr<'a>>);
@@ -66,7 +66,7 @@ where
 	fn decode_vararg_element(
 		args: &mut VecDeque<ESExpr<'a>>,
 		constructor_name: &str,
-		start_index: usize,
+		start_index: &mut usize,
 	) -> Result<Self, DecodeError>;
 }
 
@@ -75,8 +75,8 @@ pub trait ESExprDictCodec<'a>
 where
 	Self: Sized + 'a,
 {
-	/// The tags of the encoded expressions that this type can produce.
-	const TAGS: ESExprTagCollection;
+	/// The element type.
+	type Element: ESExprCodec<'a> + 'a;
 
 	/// Encode dictionary arguments.
 	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>);
