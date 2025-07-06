@@ -65,7 +65,7 @@ function json2esexpr(json: ESExprJson): ESExpr {
             return { type: "float16", value: Number.NEGATIVE_INFINITY };
         }
         else {
-            return { type: "float16", value: Math.fround(json.float16) };
+            return { type: "float16", value: Math.f16round(json.float16) };
         }
     }
     else if("float32" in json) {

@@ -31,8 +31,8 @@
         "declaration": true,
         "verbatimModuleSyntax": true,
         
-        "lib": ["ES2022", "DOM"],
-        "target": "ES2022"
+        "lib": ["ESNext", "DOM"],
+        "target": "ES2024"
 
     },
 

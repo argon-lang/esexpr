@@ -1,4 +1,4 @@
-import { valuesEqual } from "./util.js";
+import { unreachable, valuesEqual } from "./util.js";
 
 export type ESExpr =
     | ESExpr.Constructor
@@ -114,7 +114,112 @@ export namespace ESExpr {
     }
 
     export const codec: ESExprCodec<ESExpr> = {
-        tags: new Set(),
+        get tags() {
+            return ESExprTagSet.All;
+        },
+
+        isEncodedEqual(a, b) {
+            if(typeof a !== "object") {
+                return typeof b !== "object" && Object.is(a, b);
+            }
+            
+            if(typeof b !== "object") {
+                return false;
+            }
+
+            if(a === null) {
+                return b === null;
+            }
+            if(b === null) {
+                return false;
+            }
+
+            if(a instanceof Uint8Array) {
+                if(b instanceof Uint8Array) {
+                    return array8Codec.isEncodedEqual(a, b);
+                }
+                else {
+                    return false;
+                }
+            }
+            if(b instanceof Uint8Array) {
+                return false;
+            }
+
+            if(a instanceof Uint16Array) {
+                if(b instanceof Uint16Array) {
+                    return array16Codec.isEncodedEqual(a, b);
+                }
+                else {
+                    return false;
+                }
+            }
+            if(b instanceof Uint16Array) {
+                return false;
+            }
+
+            if(a instanceof Uint32Array) {
+                if(b instanceof Uint32Array) {
+                    return array32Codec.isEncodedEqual(a, b);
+                }
+                else {
+                    return false;
+                }
+            }
+            if(b instanceof Uint32Array) {
+                return false;
+            }
+
+            if(a instanceof BigUint64Array) {
+                if(b instanceof BigUint64Array) {
+                    return array64Codec.isEncodedEqual(a, b);
+                }
+                else {
+                    return false;
+                }
+            }
+            if(b instanceof BigUint64Array) {
+                return false;
+            }
+
+            switch(a.type) {
+                case "constructor":
+                {
+                    if(b.type !== "constructor") {
+                        return false;
+                    }
+
+                    if(a.name !== b.name) {
+                        return false;
+                    }
+
+                    if(!listCodec(this).isEncodedEqual(a.args, b.args)) {
+                        return false;
+                    }
+
+                    if(!mapMappedValueCodec(this).isEncodedEqual(a.kwargs, b.kwargs)) {
+                        return false;
+                    }
+
+                    return true;
+                }
+                
+                case "float16":
+                    return b.type === "float16" && Object.is(a.value, b.value);
+
+                case "float32":
+                    return b.type === "float32" && Object.is(a.value, b.value);
+
+                case "null":
+                    return b.type === "null" && a.level === b.level;
+
+                case "array128":
+                    return b.type === "array128" && array8Codec.isEncodedEqual(a.value, b.value);
+
+                default:
+                    unreachable(a, "Unexpected ESExpr value");
+            }
+        },
 
         encode(value: ESExpr): ESExpr {
             return value;
@@ -165,6 +270,33 @@ export namespace ESExprTagSet {
             return true;
         },
     };
+
+    export function isEmpty(a: ESExprTagSet): boolean {
+        return a instanceof Set && a.size === 0;
+    }
+
+    export function disjoint(a: ESExprTagSet, b: ESExprTagSet) {
+        if(!(a instanceof Set)) {
+            return isEmpty(b);
+        }
+
+        if(!(b instanceof Set)) {
+            return a.size === 0;
+        }
+
+        return a.isDisjointFrom(b);
+    }
+
+    export function union(a: ESExprTagSet, b: ESExprTagSet): ESExprTagSet {
+        if(!(a instanceof Set)) {
+            return a;
+        }
+        if(!(b instanceof Set)) {
+            return b;
+        }
+
+        return a.union(b);
+    }
 }
 
 export type DecodeErrorPath =
@@ -181,6 +313,7 @@ export type DecodeResult<T> =
 
 export interface ESExprCodec<T> {
     readonly tags: ESExprTagSet;
+    isEncodedEqual(a: T, b: T): boolean;
     encode(value: T): ESExpr;
     decode(expr: ESExpr): DecodeResult<T>;
 }
@@ -192,14 +325,23 @@ export interface FieldDecodeState {
     readonly kwargs: Map<string, ESExpr>;
 }
 
+export interface RecordCodecValidationState {
+    previousOptionalPositionalTags: ESExprTagSet;
+    readonly keywords: Set<string>;
+    hasDict: boolean;
+}
+
 export interface ESExprFieldCodec<T> {
     readonly tags: ESExprTagSet;
+    validate(state: RecordCodecValidationState, fieldName: string): void;
+    isEncodedEqual(a: T, b: T): boolean;
     encode(value: T, args: ESExpr[], kwargs: Map<string, ESExpr>): void;
     decode(state: FieldDecodeState): DecodeResult<T>;
 }
 
 export interface ESExprCaseCodec<Name extends string, T extends { readonly $type: Name }> {
     readonly tags: ESExprTagSet;
+    isEncodedEqual(a: T, b: T): boolean;
     encode(value: T): ESExpr;
     decode(caseName: Name, expr: ESExpr): DecodeResult<T>;
 }
@@ -209,6 +351,10 @@ export interface ESExprCaseCodec<Name extends string, T extends { readonly $type
 export const boolCodec: ESExprCodec<boolean> = {
     get tags(): ESExprTagSet {
         return new Set([Boolean]);
+    },
+
+    isEncodedEqual(a, b) {
+        return a === b;
     },
 
     encode(value: boolean): ESExpr {
@@ -233,6 +379,10 @@ export const boolCodec: ESExprCodec<boolean> = {
 export const intCodec: ESExprCodec<bigint> = {
     get tags(): ESExprTagSet {
         return new Set([BigInt]);
+    },
+
+    isEncodedEqual(a, b) {
+        return a === b;
     },
 
     encode(value: bigint): ESExpr {
@@ -264,6 +414,10 @@ class SmallIntCodec implements ESExprCodec<number> {
 
     get tags(): ESExprTagSet {
         return new Set([BigInt]);
+    }
+
+    isEncodedEqual(a: number, b: number): boolean {
+        return a === b;
     }
 
     encode(value: number): ESExpr {
@@ -302,6 +456,10 @@ class BigIntCodec implements ESExprCodec<bigint> {
 
     get tags(): ESExprTagSet {
         return new Set([BigInt]);
+    }
+
+    isEncodedEqual(a: bigint, b: bigint): boolean {
+        return a === b;
     }
 
     encode(value: bigint): ESExpr {
@@ -343,6 +501,10 @@ export const strCodec: ESExprCodec<string> = {
         return new Set([String]);
     },
 
+    isEncodedEqual(a, b) {
+        return a === b;
+    },
+
     encode: function (value: string): ESExpr {
         return value;
     },
@@ -364,6 +526,20 @@ export const strCodec: ESExprCodec<string> = {
 export const array8Codec: ESExprCodec<Uint8Array> = {
     get tags(): ESExprTagSet {
         return new Set([Uint8Array]);
+    },
+
+    isEncodedEqual(a, b) {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) {
+                return false;
+            }
+        }
+
+        return true;
     },
 
     encode: function (value: Uint8Array): ESExpr {
@@ -389,6 +565,20 @@ export const array16Codec: ESExprCodec<Uint16Array> = {
         return new Set([Uint16Array]);
     },
 
+    isEncodedEqual(a, b) {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    },
+
     encode: function (value: Uint16Array): ESExpr {
         return value;
     },
@@ -410,6 +600,20 @@ export const array16Codec: ESExprCodec<Uint16Array> = {
 export const array32Codec: ESExprCodec<Uint32Array> = {
     get tags(): ESExprTagSet {
         return new Set([Uint16Array]);
+    },
+
+    isEncodedEqual(a, b) {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) {
+                return false;
+            }
+        }
+
+        return true;
     },
 
     encode: function (value: Uint32Array): ESExpr {
@@ -435,6 +639,20 @@ export const array64Codec: ESExprCodec<BigUint64Array> = {
         return new Set([BigUint64Array]);
     },
 
+    isEncodedEqual(a, b) {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    },
+
     encode: function (value: BigUint64Array): ESExpr {
         return value;
     },
@@ -456,6 +674,10 @@ export const array64Codec: ESExprCodec<BigUint64Array> = {
 export const float16Codec: ESExprCodec<number> = {
     get tags(): ESExprTagSet {
         return new Set([Float16Symbol]);
+    },
+
+    isEncodedEqual(a, b) {
+        return Object.is(a, b);
     },
 
     encode: function (value: number): ESExpr {
@@ -481,6 +703,10 @@ export const float32Codec: ESExprCodec<number> = {
         return new Set([Float32Symbol]);
     },
 
+    isEncodedEqual(a, b) {
+        return Object.is(a, b);
+    },
+
     encode: function (value: number): ESExpr {
         return { type: "float32", value };
     },
@@ -502,6 +728,10 @@ export const float32Codec: ESExprCodec<number> = {
 export const float64Codec: ESExprCodec<number> = {
     get tags(): ESExprTagSet {
         return new Set([Number]);
+    },
+
+    isEncodedEqual(a, b) {
+        return Object.is(a, b);
     },
 
     encode: function (value: number): ESExpr {
@@ -531,6 +761,20 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
 
     get tags(): ESExprTagSet {
         return new Set(["list"]);
+    }
+
+    isEncodedEqual(a: readonly T[], b: readonly T[]): boolean {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(!this.#itemCodec.isEncodedEqual(a[i]!, b[i]!)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     encode(value: readonly T[]): ESExpr {
@@ -655,6 +899,18 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
         return tags;
     }
 
+    isEncodedEqual(a: Option<T>, b: Option<T>): boolean {
+        if(a === null) {
+            return b === null;
+        }
+        
+        if(b === null) {
+            return false;
+        }
+
+        return this.#itemCodec.isEncodedEqual(Option.get(a), Option.get(b));
+    }
+
     encode(value: Option<T>): ESExpr {
         if(value === null) {
             return null;
@@ -714,11 +970,30 @@ export type RecordFieldCodecs<T> = {
     readonly [Key in keyof T]-?: ESExprFieldCodec<T[Key]>;
 };
 
+function checkRecordValueEqual<T>(fields: RecordFieldCodecs<T>, a: T, b: T): boolean {
+    for(const field of Object.keys(fields) as (keyof T)[]) {
+        if(!fields[field].isEncodedEqual(a[field], b[field])) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 class RecordCodec<T> implements ESExprCodec<T> {
     constructor(constructorName: string, fields: RecordFieldCodecs<T>) {
         this.#constructorName = constructorName;
         this.#fields = fields;
+
+        const state: RecordCodecValidationState = {
+            previousOptionalPositionalTags: new Set(),
+            keywords: new Set(),
+            hasDict: false,
+        };
+
+        for(const field of Object.keys(this.#fields) as (keyof T & string)[]) {
+            this.#fields[field].validate(state, field);
+        }
     }
 
     readonly #constructorName: string;
@@ -727,6 +1002,10 @@ class RecordCodec<T> implements ESExprCodec<T> {
     
     get tags(): ESExprTagSet {
         return new Set([this.#constructorName]);
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return checkRecordValueEqual(this.#fields, a, b);
     }
 
     encode(value: T): ESExpr {
@@ -843,6 +1122,15 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
         return tags;
     }
 
+    isEncodedEqual(a: T, b: T): boolean {
+        if(a.$type !== b.$type) {
+            return false;
+        }
+
+        const t: T["$type"] = a.$type;
+        return this.#cases[t].isEncodedEqual(a, b);
+    }
+
     encode(value: T): ESExpr {
         const t: T["$type"] = value.$type;
         return this.#cases[t].encode(value);
@@ -886,6 +1174,10 @@ class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
         return new Set([String]);
     }
 
+    isEncodedEqual(a: T, b: T): boolean {
+        return a === b;
+    }
+
     encode(value: T): ESExpr {
         return this.#names[value];
     }
@@ -921,6 +1213,17 @@ export function simpleEnumCodec<T extends string>(names: SimpleEnumNames<T>): ES
 }
 
 
+function validatePositionalFieldTags(state: RecordCodecValidationState, codec: { readonly tags: ESExprTagSet }, fieldName: string): void {
+    if(!(state.previousOptionalPositionalTags instanceof Set)) {
+        throw new Error(`Field '${fieldName}' cannot follow optional positional arguments with all tags`);
+    }
+
+    if(!ESExprTagSet.disjoint(state.previousOptionalPositionalTags, codec.tags)) {
+        throw new Error(`Field '${fieldName}' must have distinct tags from immediately preceding optional positional arguments`);
+    }
+}
+
+
 class PositionalFieldCodec<T> implements ESExprFieldCodec<T> {
     constructor(codec: ESExprCodec<T>) {
         this.#codec = codec;
@@ -930,6 +1233,15 @@ class PositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 
     get tags(): ESExprTagSet {
         return this.#codec.tags;
+    }
+
+    validate(state: RecordCodecValidationState, fieldName: string): void {
+        validatePositionalFieldTags(state, this.#codec, fieldName);
+        state.previousOptionalPositionalTags = new Set();
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
     }
 
     encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
@@ -981,6 +1293,16 @@ class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
         return this.#codec.tags;
     }
 
+
+    validate(state: RecordCodecValidationState, fieldName: string): void {
+        validatePositionalFieldTags(state, this.#codec, fieldName);
+        state.previousOptionalPositionalTags = ESExprTagSet.union(state.previousOptionalPositionalTags, this.#codec.tags);
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
+    }
+
     encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
         const encoded = this.#codec.encodeOptional(value);
         if(encoded !== undefined) {
@@ -989,7 +1311,15 @@ class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
     }
 
     decode(state: FieldDecodeState): DecodeResult<T> {
-        const expr = state.args.shift();
+        let expr = state.args[0];
+        if(expr !== undefined) {
+            if(this.#codec.tags.has(ESExpr.tagOf(expr))) {
+                state.args.shift();
+            }
+            else {
+                expr = undefined;
+            }
+        }
 
         const result = this.#codec.decodeOptional(expr);
         if(!result.success) {
@@ -1015,11 +1345,66 @@ export function optionalPositionalFieldCodec<T>(codec: OptionalValueCodec<T>): E
     return new OptionalPositionalFieldCodec(codec);
 }
 
+class DefaultPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
+    constructor(codec: ESExprCodec<T>, defaultValue: () => T) {
+        this.#codec = codec;
+        this.#defaultValue = defaultValue;
+    }
+
+    readonly #codec: ESExprCodec<T>;
+    readonly #defaultValue: () => T;
+
+
+    get tags(): ESExprTagSet {
+        return this.#codec.tags;
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
+    }
+
+    validate(state: RecordCodecValidationState, fieldName: string): void {
+        validatePositionalFieldTags(state, this.#codec, fieldName);
+        state.previousOptionalPositionalTags = ESExprTagSet.union(state.previousOptionalPositionalTags, this.#codec.tags);
+    }
+
+    encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
+        if(!this.#codec.isEncodedEqual(value, this.#defaultValue.call(null))) {
+            args.push(this.#codec.encode(value));
+        }
+    }
+    
+    decode(state: FieldDecodeState): DecodeResult<T> {
+        let expr = state.args[0];
+        if(expr !== undefined) {
+            if(this.#codec.tags.has(ESExpr.tagOf(expr))) {
+                state.args.shift();
+            }
+            else {
+                expr = undefined;
+            }
+        }
+
+        if(expr === undefined) {
+            return {
+                success: true,
+                value: this.#defaultValue.call(null),
+            };
+        }
+
+        return this.#codec.decode(expr);
+    }
+}
+
+export function defaultPositionalFieldCodec<T>(codec: ESExprCodec<T>, defaultValue: () => T): ESExprFieldCodec<T> {
+    return new DefaultPositionalFieldCodec(codec, defaultValue);
+}
 
 export interface RepeatedValuesCodec<T> {
     readonly tags: ESExprTagSet;
-    encodeMany(value: T): readonly ESExpr[];
-    decodeMany(exprs: readonly ESExpr[]): RepeatedDecodeResult<T>;
+    isEncodedEqual(a: T, b: T): boolean;
+    encodeMany(value: T, exprs: ESExpr[]): void;
+    decodeMany(exprs: ESExpr[]): RepeatedDecodeResult<T>;
 }
 
 export type RepeatedDecodeResult<T> =
@@ -1038,15 +1423,41 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
         return this.#codec.tags;
     }
 
-    encodeMany(value: readonly T[]): readonly ESExpr[] {
-        return value.map(v => this.#codec.encode(v));
+    isEncodedEqual(a: readonly T[], b: readonly T[]): boolean {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(!this.#codec.isEncodedEqual(a[i]!, b[i]!)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    decodeMany(exprs: readonly ESExpr[]): RepeatedDecodeResult<readonly T[]> {
+    encodeMany(value: readonly T[], exprs: ESExpr[]): void {
+        for(const v of value) {
+            exprs.push(this.#codec.encode(v));
+        }
+    }
+
+    decodeMany(exprs: ESExpr[]): RepeatedDecodeResult<readonly T[]> {
         let result: T[] = [];
-        let i = 0;
-        for(const e of exprs) {
-            const item = this.#codec.decode(e);
+        for(let i = 0; exprs.length > 0; ++i) {
+            const expr = exprs[0];
+            if(expr === undefined) {
+                break;
+            }
+
+            if(!this.#codec.tags.has(ESExpr.tagOf(expr))) {
+                break;
+            }
+
+            exprs.shift();
+
+            const item = this.#codec.decode(expr);
             if(!item.success) {
                 return {
                     success: false,
@@ -1057,7 +1468,6 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
             }
 
             result.push(item.value);
-            ++i;
         }
 
         return {
@@ -1083,16 +1493,21 @@ class VarargFieldCodec<T> implements ESExprFieldCodec<T> {
         return this.#codec.tags;
     }
 
+    validate(state: RecordCodecValidationState, fieldName: string): void {
+        validatePositionalFieldTags(state, this.#codec, fieldName);
+        state.previousOptionalPositionalTags = ESExprTagSet.union(state.previousOptionalPositionalTags, this.#codec.tags);
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
+    }
+
     encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
-        const items = this.#codec.encodeMany(value);
-        for(const a of items) {
-            args.push(a);
-        }
+        this.#codec.encodeMany(value, args);
     }
 
     decode(state: FieldDecodeState): DecodeResult<T> {
         const result = this.#codec.decodeMany(state.args);
-        state.args.length = 0;
 
         if(result.success) {
             return result;
@@ -1117,6 +1532,16 @@ export function varargFieldCodec<T>(codec: RepeatedValuesCodec<T>): ESExprFieldC
 }
 
 
+function validateKeywordField(state: RecordCodecValidationState, name: string) {
+    if(state.hasDict) {
+        throw new Error("Keyword arguments cannot be used with dict arguments");
+    }
+
+    if(state.keywords.has(name)) {
+        throw new Error(`Duplicate keyword argument \"${name}\"`);
+    }
+}
+
 class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     constructor(codec: ESExprCodec<T>, name: string) {
         this.#codec = codec;
@@ -1128,6 +1553,15 @@ class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
 
     get tags(): ESExprTagSet {
         return this.#codec.tags;
+    }
+
+    validate(state: RecordCodecValidationState, _fieldName: string): void {
+        validateKeywordField(state, this.#name);
+        state.keywords.add(this.#name);
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
     }
 
     encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
@@ -1171,6 +1605,7 @@ export function keywordFieldCodec<T>(name: string, codec: ESExprCodec<T>): ESExp
 
 export interface OptionalValueCodec<T> {
     readonly tags: ESExprTagSet;
+    isEncodedEqual(a: T, b: T): boolean;
     encodeOptional(value: T): ESExpr | undefined;
     decodeOptional(expr: ESExpr | undefined): DecodeResult<T>;
 }
@@ -1184,6 +1619,16 @@ class UndefinedOptionalValueCodec<T> implements OptionalValueCodec<T | undefined
 
     get tags(): ESExprTagSet {
         return this.#codec.tags;
+    }
+
+    isEncodedEqual(a: T | undefined, b: T | undefined): boolean {
+        if(a === undefined) {
+            return b === undefined;
+        }
+        if(b === undefined) {
+            return false;
+        }
+        return this.#codec.isEncodedEqual(a, b);
     }
 
     encodeOptional(value: T | undefined): ESExpr | undefined {
@@ -1219,6 +1664,15 @@ class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
 
     get tags(): ESExprTagSet {
         return this.#codec.tags;
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
+    }
+
+    validate(state: RecordCodecValidationState, _fieldName: string): void {
+        validateKeywordField(state, this.#name);
+        state.keywords.add(this.#name);
     }
 
     encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
@@ -1261,8 +1715,17 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
         return this.#codec.tags;
     }
 
+    validate(state: RecordCodecValidationState, _fieldName: string): void {
+        validateKeywordField(state, this.#name);
+        state.keywords.add(this.#name);
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
+    }
+
     encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
-        if(!valuesEqual(value, this.#defaultValue())) {
+        if(!valuesEqual(value, this.#defaultValue.call(null))) {
             kwargs.set(this.#name, this.#codec.encode(value));
         }
     }
@@ -1270,7 +1733,7 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     decode(state: FieldDecodeState): DecodeResult<T> {
         const expr = state.kwargs.get(this.#name);
         if(expr === undefined) {
-            return { success: true, value: this.#defaultValue() };
+            return { success: true, value: this.#defaultValue.call(null) };
         }
 
         state.kwargs.delete(this.#name);
@@ -1301,6 +1764,7 @@ export function defaultKeywordFieldCodec<T>(name: string, defaultValue: () => T,
 
 export interface MappedValueCodec<T> {
     readonly tags: ESExprTagSet;
+    isEncodedEqual(a: T, b: T): boolean;
     encodeMapped(value: T): ReadonlyMap<string, ESExpr>;
     decodeMapped(expr: ReadonlyMap<string, ESExpr>): MappedValueDecodeResult<T>;
 }
@@ -1321,6 +1785,24 @@ class MapMappedValueCodec<T> implements MappedValueCodec<ReadonlyMap<string, T>>
 
     get tags(): ESExprTagSet {
         return this.#codec.tags;
+    }
+
+    isEncodedEqual(a: ReadonlyMap<string, T>, b: ReadonlyMap<string, T>): boolean {
+        if(a.size != b.size) {
+            return false;
+        }
+
+        for(const [k, v1] of a) {
+            if(!b.has(k)) {
+                return false;
+            }
+
+            if(!this.#codec.isEncodedEqual(v1, b.get(k)!)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     encodeMapped(value: ReadonlyMap<string, T>): ReadonlyMap<string, ESExpr> {
@@ -1370,6 +1852,22 @@ class DictFieldCodec<T> implements ESExprFieldCodec<T> {
         return this.#codec.tags;
     }
 
+    validate(state: RecordCodecValidationState, _fieldName: string): void {
+        if(state.hasDict) {
+            throw new Error("Only a single dict argument is allowed");
+        }
+
+        if(state.keywords.size > 0) {
+            throw new Error("Keyword arguments cannot be used with dict arguments");
+        }
+
+        state.hasDict = true;
+    }
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.#codec.isEncodedEqual(a, b);
+    }
+
     encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
         const encoded = this.#codec.encodeMapped(value);
         for(const [k, v] of encoded) {
@@ -1417,9 +1915,15 @@ class CaseCodec<Name extends string, T extends { readonly $type: Name }> impleme
     get tags(): ESExprTagSet {
         return new Set([this.#constructor_name]);
     }
+    
+    isEncodedEqual(a: T, b: T): boolean {
+        return checkRecordValueEqual(this.#fields, a, b);
+    }
+
     encode(value: T): ESExpr {
         return recordCodec(this.#constructor_name, this.#fields).encode(value);
     }
+
     decode(caseName: Name, expr: ESExpr): DecodeResult<T> {
         const res = recordCodec(this.#constructor_name, this.#fields).decode(expr);
         if(!res.success) {
@@ -1452,7 +1956,11 @@ class InlineCaseCodec<Field extends string, Name extends string, T> implements E
     readonly #codec: ESExprCodec<T>;
 
     get tags(): ESExprTagSet {
-        return this.#codec.tags
+        return this.#codec.tags;
+    }
+
+    isEncodedEqual(a: { readonly $type: Name; } & { readonly [F in Field]: T; }, b: { readonly $type: Name; } & { readonly [F in Field]: T; }): boolean {
+        return this.#codec.isEncodedEqual(a[this.#field], b[this.#field]);
     }
     
     encode(value: { readonly $type: Name; } & { [F in Field]: T; }): ESExpr {
@@ -1494,7 +2002,7 @@ class LazyCodec<A> implements ESExprCodec<A> {
 
     #getInner(): ESExprCodec<A> {
         if(this.#inner === null) {
-            this.#inner = this.#create();
+            this.#inner = this.#create.call(null);
         }
 
         return this.#inner;
@@ -1502,6 +2010,10 @@ class LazyCodec<A> implements ESExprCodec<A> {
 
     get tags(): ESExprTagSet {
         return this.#getInner().tags;
+    }
+
+    isEncodedEqual(a: A, b: A): boolean {
+        return this.#getInner().isEncodedEqual(a, b);
     }
 
     encode(value: A): ESExpr {
@@ -1515,5 +2027,4 @@ class LazyCodec<A> implements ESExprCodec<A> {
 export function lazyCodec<A>(inner: () => ESExprCodec<A>): ESExprCodec<A> {
     return new LazyCodec(inner);
 }
-
 

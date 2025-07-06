@@ -128,14 +128,14 @@ namespace Positional1 {
 interface Positional2 {
     readonly a: boolean,
     readonly b?: boolean | undefined,
-    readonly c?: boolean | undefined,
+    readonly c?: bigint | undefined,
 }
 
 namespace Positional2 {
     export const codec: ESExprCodec<Positional2> = esexpr.recordCodec("args", {
         a: esexpr.positionalFieldCodec(esexpr.boolCodec),
         b: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
-        c: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.boolCodec)),
+        c: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.intCodec)),
     });
 }
 
@@ -164,8 +164,8 @@ test("Optional Positional", () => {
     );
     expectCodecMatch(
         Positional2.codec,
-        { type: "constructor", name: "args", args: [ true, false, true ], kwargs: new Map(), },
-        { a: true, b: false, c: true }
+        { type: "constructor", name: "args", args: [ true, false, 1n ], kwargs: new Map(), },
+        { a: true, b: false, c: 1n }
     );
 });
 
@@ -298,5 +298,66 @@ test("Option", () => {
     expect(esexpr.Option.get(esexpr.Option.some(null))).toBeNull();
 });
 
+
+
+
+test("Multiple optional positional", () => {
+    interface MultipleOptionalPositional1 {
+        readonly a?: number | undefined;
+        readonly b?: number | undefined;
+    }
+
+    expect(() => {
+        return esexpr.recordCodec<MultipleOptionalPositional1>("multiple-optional-positional1", {
+            a: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.signedInt32Codec)),
+            b: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.signedInt32Codec)),
+        })
+    }).toThrowError("Field 'b' must have distinct tags from immediately preceding optional positional arguments");
+
+
+    interface MultipleOptionalPositional2 {
+        readonly a: number;
+        readonly b: number;
+    }
+
+    expect(() => {
+        return esexpr.recordCodec<MultipleOptionalPositional2>("multiple-optional-positional2", {
+            a: esexpr.defaultPositionalFieldCodec(esexpr.signedInt32Codec, () => 4),
+            b: esexpr.defaultPositionalFieldCodec(esexpr.signedInt32Codec, () => 4),
+        })
+    }).toThrowError("Field 'b' must have distinct tags from immediately preceding optional positional arguments");
+});
+
+test("Multiple vararg", () => {
+    interface MultipleVararg1 {
+        readonly a: readonly number[];
+        readonly b: readonly number[];
+    }
+
+    expect(() => {
+        return esexpr.recordCodec<MultipleVararg1>("multiple-varargs", {
+            a: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.signedInt32Codec)),
+            b: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.signedInt32Codec)),
+        })
+    }).toThrowError("Field 'b' must have distinct tags from immediately preceding optional positional arguments");
+
+
+    expectCodecMatch(
+        esexpr.recordCodec<MultipleVararg1>("multiple-varargs", {
+            a: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.signedInt32Codec)),
+            b: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.float64Codec)),
+        }),
+        {
+            type: "constructor",
+            name: "multiple-varargs",
+            args: [ 4n, 5 ],
+            kwargs: new Map(),
+        },
+        {
+            a: [ 4 ],
+            b: [ 5 ],
+        }
+    );
+});
 
 
