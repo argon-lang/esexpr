@@ -6,16 +6,14 @@ use alloc::vec::Vec;
 use esexpr::expr::ESExprConstructor;
 
 use crate::cowstr::CowStr;
-use crate::{
-	DecodeError,
-	DecodeErrorPath,
-	DecodeErrorType,
-	ESExpr,
-	ESExprCodec,
-	ESExprTag,
-	ESExprTagCollection,
-	ESExprVarArgCodec,
-};
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagCollection, ESExprVarArgCodec};
+
+impl<A: ESExprEncodedEq> ESExprEncodedEq for Vec<A> {
+	fn is_encoded_eq(&self, other: &Self) -> bool {
+		self.len() == other.len() &&
+			self.iter().zip(other.iter()).all(|(v1, v2)| A::is_encoded_eq(v1, v2))
+	}
+}
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("list"))]);
@@ -66,10 +64,10 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 		start_index: &mut usize,
 	) -> Result<Self, DecodeError> {
 		let mut res = Vec::new();
-		
+
 		while args.front().is_some_and(|e| A::TAGS.contains(&e.tag())) {
 			let Some(e) = args.pop_front() else { break };
-			
+
 			res.push(A::decode_esexpr(e).map_err(|mut e| {
 				e.error_path_with(|old_path| {
 					DecodeErrorPath::Positional(constructor_name.to_owned(), *start_index + res.len(), Box::new(old_path))
@@ -77,9 +75,9 @@ impl<'a, A: ESExprCodec<'a>> ESExprVarArgCodec<'a> for Vec<A> {
 				e
 			})?);
 		}
-		
+
 		*start_index += res.len();
-		
+
 		Ok(res)
 	}
 }

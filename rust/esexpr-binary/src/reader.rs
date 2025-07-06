@@ -1,7 +1,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use esexpr::{ESExpr, ESExprCodec};
+use esexpr::{ESExpr, ESExprCodec, ESExprEncodedEq};
 use num_bigint::BigUint;
 
 use crate::append_only_string_list::AppendOnlyStringList;
@@ -56,14 +56,14 @@ impl<IOError> From<alloc::string::FromUtf8Error> for ParseError<IOError> {
 	}
 }
 
-#[derive(ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(ESExprCodec, ESExprEncodedEq, Debug, PartialEq, Clone)]
 #[esexpr(constructor = "string-table")]
 struct FixedStringPool {
 	#[esexpr(vararg)]
 	pub strings: Vec<String>,
 }
 
-#[derive(ESExprCodec, Debug, PartialEq, Clone)]
+#[derive(ESExprCodec, ESExprEncodedEq, Debug, PartialEq, Clone)]
 enum AppendedStringPool {
 	#[esexpr(inline_value)]
 	Fixed(FixedStringPool),

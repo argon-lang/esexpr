@@ -4,7 +4,7 @@ use std::convert::Infallible;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use esexpr::{ESExpr, ValueEq};
+use esexpr::ESExpr;
 use esexpr_binary::ExprParserSync;
 
 async fn encoding_test(esx: &Path) {
@@ -42,10 +42,7 @@ fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 			.unwrap()
 	};
 
-	assert!(
-		expected.value_eq(&esx),
-		"Test case {test_name} did not match. Expected: {expected:?}, actual: {esx:?}"
-	);
+	assert_eq!(expected, esx, "Test case {test_name} did not match. Expected: {expected:?}, actual: {esx:?}");
 
 	let mut reencoded = Vec::with_capacity(esx.len());
 	for e in &esx {
@@ -75,10 +72,7 @@ async fn encoding_test_async(expected: &[ESExpr<'static>], path: &Path) {
 			.unwrap()
 	};
 
-	assert!(
-		expected.value_eq(&esx),
-		"Test case {test_name} did not match. Expected: {expected:?}, actual: {esx:?}"
-	);
+	assert_eq!(expected, esx, "Test case {test_name} did not match. Expected: {expected:?}, actual: {esx:?}");
 
 	let mut reencoded = Vec::with_capacity(esx.len());
 	for e in &esx {

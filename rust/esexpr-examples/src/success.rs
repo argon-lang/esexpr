@@ -1,9 +1,9 @@
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 struct ConstructorName123Conversion {
 	a: i32,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 enum ConstructorNameEnum {
 	MyName123Test,
 
@@ -11,13 +11,13 @@ enum ConstructorNameEnum {
 	CustomName,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 #[esexpr(constructor = "my-ctor")]
 struct CustomConstructorName {
 	a: i32,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 enum InlineValueTest {
 	#[esexpr(inline_value)]
 	Flag(bool),
@@ -25,11 +25,11 @@ enum InlineValueTest {
 	NormalCase(bool),
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 #[esexpr(constructor = "optional-args")]
 struct PositionalArgsOptional1(bool, bool, #[esexpr(optional)] Option<bool>);
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 #[esexpr(constructor = "keywords")]
 struct KeywordStruct {
 	#[esexpr(keyword)]
@@ -51,7 +51,7 @@ struct KeywordStruct {
 	f: Option<bool>,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 enum KeywordEnum {
 	#[esexpr(constructor = "keywords")]
 	Value {
@@ -75,7 +75,7 @@ enum KeywordEnum {
 	},
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 #[esexpr(simple_enum)]
 enum SimpleEnum {
 	A,
@@ -84,7 +84,7 @@ enum SimpleEnum {
 	C,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 #[esexpr(constructor = "many")]
 struct ManyArgsStruct {
 	#[esexpr(vararg)]
@@ -94,7 +94,7 @@ struct ManyArgsStruct {
 	kwargs: alloc::collections::BTreeMap<alloc::string::String, bool>,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 enum ManyArgsEnum {
 	#[esexpr(constructor = "many")]
 	Value {
@@ -106,10 +106,10 @@ enum ManyArgsEnum {
 	},
 }
 
-#[derive(esexpr::ESExprCodec, Clone)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Clone)]
 struct GenericTest<A>(A);
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct MultipleOptionalPositional1 {
 	#[esexpr(optional)]
 	pub a: Option<i32>,
@@ -118,7 +118,7 @@ pub struct MultipleOptionalPositional1 {
 	pub b: Option<f32>,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct RequiredAfterOptionalPositional1 {
 	#[esexpr(optional)]
 	pub a: Option<i32>,
@@ -129,7 +129,7 @@ pub struct RequiredAfterOptionalPositional1 {
 	pub c: alloc::string::String,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct RequiredAfterOptionalPositional2 {
 	#[esexpr(optional)]
 	pub a: Option<i32>,
@@ -142,7 +142,7 @@ pub struct RequiredAfterOptionalPositional2 {
 	pub d: i32,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct RequiredAfterOptionalPositional3 {
 	#[esexpr(default_value = 4)]
 	pub a: i32,
@@ -153,7 +153,7 @@ pub struct RequiredAfterOptionalPositional3 {
 	pub c: alloc::string::String,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct RequiredAfterOptionalPositional4 {
 	#[esexpr(default_value = 4)]
 	pub a: i32,
@@ -166,26 +166,26 @@ pub struct RequiredAfterOptionalPositional4 {
 	pub d: i32,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct OptionalNoTag1 {
 	#[esexpr(optional)]
 	pub a: Option<esexpr::ESExprStatic>,
 }
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
 struct VarargAfterOptional(#[esexpr(optional)] Option<u32>, #[esexpr(vararg)] alloc::vec::Vec<f32>);
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
 struct OptionalAfterVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, #[esexpr(optional)] Option<u32>);
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
 struct RequiredAfterVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, u32);
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq, Debug, PartialEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
 struct MultipleVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, #[esexpr(vararg)] alloc::vec::Vec<i32>);
 
 
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct AnyExpr {
 	pub a: esexpr::ESExprStatic,
 }
@@ -196,7 +196,7 @@ mod tests {
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 	use esexpr::cowstr::CowStr;
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq, esexpr};
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ESExprEncodedEq, esexpr};
 
 	use super::*;
 
@@ -213,7 +213,7 @@ mod tests {
 			ConstructorName123Conversion::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&ConstructorName123Conversion::decode_esexpr(expr).unwrap()
 		));
@@ -234,7 +234,7 @@ mod tests {
 			ConstructorNameEnum::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&ConstructorNameEnum::decode_esexpr(expr).unwrap()
 		));
@@ -251,7 +251,7 @@ mod tests {
 		let value = CustomConstructorName { a: 5 };
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&CustomConstructorName::decode_esexpr(expr).unwrap()
 		));
@@ -265,7 +265,7 @@ mod tests {
 		let value = ConstructorNameEnum::CustomName;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&ConstructorNameEnum::decode_esexpr(expr).unwrap()
 		));
@@ -281,7 +281,7 @@ mod tests {
 			InlineValueTest::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&InlineValueTest::decode_esexpr(expr).unwrap()
 		));
@@ -294,7 +294,7 @@ mod tests {
 		let value = InlineValueTest::NormalCase(true);
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&InlineValueTest::decode_esexpr(expr).unwrap()
 		));
@@ -307,14 +307,14 @@ mod tests {
 
 		let value = PositionalArgsOptional1(true, false, None);
 		assert_eq!(expr2, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&PositionalArgsOptional1::decode_esexpr(expr2.clone()).unwrap()
 		));
 
 		let value = PositionalArgsOptional1(true, false, Some(true));
 		assert_eq!(expr3, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&PositionalArgsOptional1::decode_esexpr(expr3.clone()).unwrap()
 		));
@@ -337,7 +337,7 @@ mod tests {
 
 		assert_eq!(tags, KeywordStruct::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&KeywordStruct::decode_esexpr(expr.clone()).unwrap()
 		));
@@ -353,7 +353,7 @@ mod tests {
 
 		assert_eq!(tags, KeywordEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr! { (keywords a: true b2: true f: #null) };
 
@@ -367,7 +367,7 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&KeywordStruct::decode_esexpr(expr.clone()).unwrap()
 		));
@@ -382,7 +382,7 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr! {
 			(keywords a: true b2: true)
@@ -398,19 +398,19 @@ mod tests {
 
 		assert_eq!(ESExprTagCollection::Tags(&[ESExprTag::Str]), SimpleEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr!("b");
 		let value = SimpleEnum::B;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr!("my-c");
 		let value = SimpleEnum::C;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 
 		let expr = esexpr!("d");
 
@@ -428,7 +428,7 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(
+		assert!(ESExprEncodedEq::is_encoded_eq(
 			&value,
 			&ManyArgsStruct::decode_esexpr(expr.clone()).unwrap()
 		));
@@ -439,7 +439,7 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ValueEq::value_eq(&value, &ManyArgsEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(&value, &ManyArgsEnum::decode_esexpr(expr).unwrap()));
 	}
 
 	#[test]

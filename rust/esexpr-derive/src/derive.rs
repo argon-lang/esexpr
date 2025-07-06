@@ -495,7 +495,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
                     quote! {
                         {
                             let value = #field_expr;
-                            if !<#field_type as ::esexpr::ValueEq>::value_eq(value, &#default_value) {
+                            if !<#field_type as ::esexpr::ESExprEncodedEq>::is_encoded_eq(value, &#default_value) {
                                 kwargs.insert(::esexpr::cowstr::CowStr::Static(#kw), <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
                             }
                         }
@@ -549,7 +549,7 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 						#checks
                         {
                             let value = #field_expr;
-                            if !<#field_type as ::esexpr::ValueEq>::value_eq(value, &#default_value) {
+                            if !<#field_type as ::esexpr::ESExprEncodedEq>::is_encoded_eq(value, &#default_value) {
                                 args.push(<#field_type as ::esexpr::ESExprCodec>::encode_esexpr(value));
                             }
                         }

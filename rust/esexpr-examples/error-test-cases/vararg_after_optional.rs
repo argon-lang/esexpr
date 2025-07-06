@@ -1,4 +1,4 @@
-#[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 //~^ E0080
 pub struct VarArgAfterOptional {
 	#[esexpr(optional)]

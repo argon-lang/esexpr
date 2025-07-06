@@ -1,11 +1,11 @@
 use std::borrow::{Cow, ToOwned};
 use std::boxed::Box;
 use std::collections::{BTreeMap, HashMap};
-use std::hash::BuildHasher;
+use std::hash::{BuildHasher, Hash};
 use std::ops::Deref;
 use std::string::String;
 
-use esexpr::ESExprConstructor;
+use esexpr::{ESExprConstructor, ESExprEncodedEq};
 
 use crate::cowstr::CowStr;
 use crate::{
@@ -18,6 +18,15 @@ use crate::{
 	ESExprTag,
 	ESExprTagCollection,
 };
+
+impl<K: Eq + Hash, A: ESExprEncodedEq, S: BuildHasher> ESExprEncodedEq for HashMap<K, A, S> {
+	fn is_encoded_eq(&self, other: &Self) -> bool {
+		self.len() == other.len() &&
+			self.iter().all(|(k, v1)|
+				other.get(k).is_some_and(|v2| v1.is_encoded_eq(v2))
+			)
+	}
+}
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<String, A, S> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);

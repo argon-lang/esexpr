@@ -1,13 +1,13 @@
 error[E0080]: evaluation of `<VarArgAfterOptional as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#0}` failed
  --> error-test-cases/vararg_after_optional.rs:1:10
   |
-1 | #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+1 | #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
   |          ^^^^^^^^^^^^^^^^^^^ evaluation panicked: Field 'b' must have distinct tags from immediately preceding optional positional arguments
 
 note: erroneous constant encountered
  --> error-test-cases/vararg_after_optional.rs:1:10
   |
-1 | #[derive(esexpr::ESExprCodec, esexpr::ValueEq)]
+1 | #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
   |          ^^^^^^^^^^^^^^^^^^^
   |
   = note: this note originates in the derive macro `esexpr::ESExprCodec` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -12,11 +12,14 @@ use alloc::vec::Vec;
 use crate::cowstr::CowStr;
 use crate::{DecodeError, ESExpr, ESExprTagCollection};
 
+/// Equality for the encoded ESExpr representation.
+pub trait ESExprEncodedEq {
+	/// Determines whether two values are equal when encoded as `ESExpr`.
+	fn is_encoded_eq(&self, other: &Self) -> bool;
+}
+
 /// A codec that encodes and decodes `ESExpr` values.
-pub trait ESExprCodec<'a>
-where
-	Self: Sized + 'a,
-{
+pub trait ESExprCodec<'a>: ESExprEncodedEq + Sized + 'a {
 	/// The tags of the encoded expressions that this type can produce.
 	const TAGS: ESExprTagCollection;
 
@@ -31,10 +34,7 @@ where
 }
 
 /// A field codec for optional fields.
-pub trait ESExprOptionalFieldCodec<'a>
-where
-	Self: Sized + 'a,
-{	
+pub trait ESExprOptionalFieldCodec<'a>: ESExprEncodedEq + Sized + 'a {
 	/// The element type.
 	type Element: ESExprCodec<'a> + 'a;
 
@@ -49,10 +49,7 @@ where
 }
 
 /// A field codec for variable arguments.
-pub trait ESExprVarArgCodec<'a>
-where
-	Self: Sized + 'a,
-{
+pub trait ESExprVarArgCodec<'a>: ESExprEncodedEq + Sized + 'a {
 	/// The element type.
 	type Element: ESExprCodec<'a> + 'a;
 

@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, GenericParam, TypeParamBound, parse_quote};
 
-pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
+pub fn derive_encoded_eq_impl(input: TokenStream) -> TokenStream {
 	// Parse the input tokens into a syntax tree
 	let input: DeriveInput = parse_quote!(#input);
 	let name = &input.ident;
@@ -11,13 +11,13 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 	// Split generics for use in the impl
 	let (_impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
 
-	// Add ValueEq bounds to type parameters
+	// Add ESExprEncodedEq bounds to type parameters
 	let mut generics_with_bounds = generics.clone();
 	for param in &mut generics_with_bounds.params {
 		if let GenericParam::Type(type_param) = param {
 			type_param
 				.bounds
-				.push(TypeParamBound::Trait(syn::parse_quote!(ValueEq)));
+				.push(TypeParamBound::Trait(syn::parse_quote!(::esexpr::ESExprEncodedEq)));
 		}
 	}
 	let (bounded_impl_generics, _, bounded_where_clause) = generics_with_bounds.split_for_impl();
@@ -31,15 +31,15 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 					let field_name = field.ident.as_ref().unwrap();
 					let field_type = &field.ty;
 					quote! {
-						if !<#field_type as ::esexpr::ValueEq>::value_eq(&self.#field_name, &other.#field_name) {
+						if !<#field_type as ::esexpr::ESExprEncodedEq>::is_encoded_eq(&self.#field_name, &other.#field_name) {
 							return false;
 						}
 					}
 				});
 
 				quote! {
-					impl #bounded_impl_generics ::esexpr::ValueEq for #name #ty_generics #bounded_where_clause {
-						fn value_eq(&self, other: &Self) -> bool {
+					impl #bounded_impl_generics ::esexpr::ESExprEncodedEq for #name #ty_generics #bounded_where_clause {
+						fn is_encoded_eq(&self, other: &Self) -> bool {
 							#(#field_eq)*
 							true
 						}
@@ -51,15 +51,15 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 					let index = syn::Index::from(i);
 					let field_type = &field.ty;
 					quote! {
-						if !<#field_type as ::esexpr::ValueEq>::value_eq(&self.#index, &other.#index) {
+						if !<#field_type as ::esexpr::ESExprEncodedEq>::is_encoded_eq(&self.#index, &other.#index) {
 							return false;
 						}
 					}
 				});
 
 				quote! {
-					impl #bounded_impl_generics ::esexpr::ValueEq for #name #ty_generics #bounded_where_clause {
-						fn value_eq(&self, other: &Self) -> bool {
+					impl #bounded_impl_generics ::esexpr::ESExprEncodedEq for #name #ty_generics #bounded_where_clause {
+						fn is_encoded_eq(&self, other: &Self) -> bool {
 							#(#field_eq)*
 							true
 						}
@@ -68,8 +68,8 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 			},
 			Fields::Unit => {
 				quote! {
-					impl #bounded_impl_generics ::esexpr::ValueEq for #name #ty_generics #bounded_where_clause {
-						fn value_eq(&self, _other: &Self) -> bool {
+					impl #bounded_impl_generics ::esexpr::ESExprEncodedEq for #name #ty_generics #bounded_where_clause {
+						fn is_encoded_eq(&self, _other: &Self) -> bool {
 							true
 						}
 					}
@@ -89,7 +89,7 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
                         let field_eq = fields.named.iter().zip(self_fields.iter()).zip(other_fields.iter()).map(|((field, self_field), other_field)| {
                             let field_type = &field.ty;
                             quote! {
-                                if !<#field_type as ::esexpr::ValueEq>::value_eq(#self_field, #other_field) {
+                                if !<#field_type as ::esexpr::ESExprEncodedEq>::is_encoded_eq(#self_field, #other_field) {
                                     return false;
                                 }
                             }
@@ -110,7 +110,7 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
                         let field_eq = fields.unnamed.iter().zip(self_fields.iter()).zip(other_fields.iter()).map(|((field, self_field), other_field)| {
                             let field_type = &field.ty;
                             quote! {
-                                if !<#field_type as ::esexpr::ValueEq>::value_eq(#self_field, #other_field) {
+                                if !<#field_type as ::esexpr::ESExprEncodedEq>::is_encoded_eq(#self_field, #other_field) {
                                     return false;
                                 }
                             }
@@ -132,8 +132,8 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
             });
 
 			quote! {
-				impl #bounded_impl_generics ::esexpr::ValueEq for #name #ty_generics #bounded_where_clause {
-					fn value_eq(&self, other: &Self) -> bool {
+				impl #bounded_impl_generics ::esexpr::ESExprEncodedEq for #name #ty_generics #bounded_where_clause {
+					fn is_encoded_eq(&self, other: &Self) -> bool {
 						match (self, other) {
 							#(#variants,)*
 							_ => false
@@ -143,7 +143,7 @@ pub fn derive_value_eq_impl(input: TokenStream) -> TokenStream {
 			}
 		},
 		Data::Union(_) => {
-			syn::Error::new(input.ident.span(), "ValueEq derive is not supported for unions").to_compile_error()
+			syn::Error::new(input.ident.span(), "ESExprEncodedEq derive is not supported for unions").to_compile_error()
 		},
 	}
 }

@@ -3,15 +3,13 @@ use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 use crate::cowstr::CowStr;
-use crate::{
-	DecodeError,
-	ESExpr,
-	ESExprCodec,
-	ESExprDictCodec,
-	ESExprOptionalFieldCodec,
-	ESExprTagCollection,
-	ESExprVarArgCodec,
-};
+use crate::{DecodeError, ESExpr, ESExprCodec, ESExprDictCodec, ESExprEncodedEq, ESExprOptionalFieldCodec, ESExprTagCollection, ESExprVarArgCodec};
+
+impl<A: ESExprEncodedEq> ESExprEncodedEq for Box<A> {
+	fn is_encoded_eq(&self, other: &Self) -> bool {
+		A::is_encoded_eq(self, other)
+	}
+}
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
 	const TAGS: ESExprTagCollection = A::TAGS;

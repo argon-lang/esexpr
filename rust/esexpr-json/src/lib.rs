@@ -13,12 +13,12 @@ use core::f32;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use esexpr::cowstr::CowStr;
-use esexpr::{ESExpr, ESExprCodec, ESExprConstructor};
+use esexpr::{ESExpr, ESExprCodec, ESExprConstructor, ESExprEncodedEq};
 use half::f16;
 use num_bigint::{BigInt, BigUint};
 
 /// An `ESExpr` representation of a JSON value.
-#[derive(ESExprCodec, Debug, PartialEq)]
+#[derive(ESExprCodec, ESExprEncodedEq, Debug, PartialEq)]
 pub enum JsonExpr {
 	/// A JSON Object
 	Obj {

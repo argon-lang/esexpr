@@ -5,17 +5,18 @@ use alloc::string::String;
 use core::ops::Deref;
 
 use crate::cowstr::CowStr;
-use crate::{
-	DecodeError,
-	DecodeErrorPath,
-	DecodeErrorType,
-	ESExpr,
-	ESExprCodec,
-	ESExprConstructor,
-	ESExprDictCodec,
-	ESExprTag,
-	ESExprTagCollection,
-};
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprConstructor, ESExprDictCodec, ESExprEncodedEq, ESExprTag, ESExprTagCollection};
+
+impl<K: Ord, A: ESExprEncodedEq> ESExprEncodedEq for BTreeMap<K, A> {
+	fn is_encoded_eq(&self, other: &Self) -> bool {
+		self.len() == other.len() &&
+			self.iter()
+				.zip(other.iter())
+				.all(|((k1, v1), (k2, v2))|
+					 k1 == k2 && v1.is_encoded_eq(v2)
+				)
+	}
+}
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<String, A> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);

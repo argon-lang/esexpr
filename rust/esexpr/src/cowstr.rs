@@ -7,8 +7,6 @@ use core::fmt::Formatter;
 use core::hash::Hasher;
 use core::ops::Deref;
 
-use crate::ValueEq;
-
 /// A copy-on-write type for str.
 /// This includes a case for static strings.
 #[derive(Clone)]
@@ -140,30 +138,6 @@ impl<'a> PartialEq<CowStr<'a>> for str {
 
 impl<'a> PartialEq<CowStr<'a>> for &str {
 	fn eq(&self, other: &CowStr<'a>) -> bool {
-		str::eq(self, &**other)
-	}
-}
-
-impl<'a, 'b> ValueEq<CowStr<'b>> for CowStr<'a> {
-	fn value_eq(&self, other: &CowStr<'b>) -> bool {
-		str::eq(&**self, &**other)
-	}
-}
-
-impl<'a> ValueEq<str> for CowStr<'a> {
-	fn value_eq(&self, other: &str) -> bool {
-		str::eq(&**self, other)
-	}
-}
-
-impl<'a> ValueEq<CowStr<'a>> for str {
-	fn value_eq(&self, other: &CowStr<'a>) -> bool {
-		str::eq(self, &**other)
-	}
-}
-
-impl<'a> ValueEq<CowStr<'a>> for &str {
-	fn value_eq(&self, other: &CowStr<'a>) -> bool {
 		str::eq(self, &**other)
 	}
 }

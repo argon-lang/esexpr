@@ -7,7 +7,7 @@ use half::f16;
 use num_bigint::{BigInt, BigUint};
 
 use crate::cowstr::CowStr;
-use crate::{DecodeError, ESExprCodec, ESExprTag, ESExprTagCollection, ValueEq};
+use crate::{DecodeError, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagCollection};
 
 /// Representation of an `ESExpr` value.
 /// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
@@ -181,9 +181,9 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
 			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
 			ESExpr::Str(s1) => matches!(other, ESExpr::Str(s2) if s1 == s2),
-			&ESExpr::Float16(f1) => matches!(other, &ESExpr::Float16(f2) if f1 == f2),
-			&ESExpr::Float32(f1) => matches!(other, &ESExpr::Float32(f2) if f1 == f2),
-			&ESExpr::Float64(f1) => matches!(other, &ESExpr::Float64(f2) if f1 == f2),
+			&ESExpr::Float16(f1) => matches!(other, &ESExpr::Float16(f2) if f1.to_bits() == f2.to_bits()),
+			&ESExpr::Float32(f1) => matches!(other, &ESExpr::Float32(f2) if f1.to_bits() == f2.to_bits()),
+			&ESExpr::Float64(f1) => matches!(other, &ESExpr::Float64(f2) if f1.to_bits() == f2.to_bits()),
 			ESExpr::Array8(a1) => matches!(other, ESExpr::Array8(a2) if a1 == a2),
 			ESExpr::Array16(a1) => matches!(other, ESExpr::Array16(a2) if a1 == a2),
 			ESExpr::Array32(a1) => matches!(other, ESExpr::Array32(a2) if a1 == a2),
@@ -194,44 +194,14 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 	}
 }
 
-impl<'a, 'b> ValueEq<ESExpr<'b>> for ESExpr<'a> {
-	fn value_eq(&self, other: &ESExpr<'b>) -> bool {
-		match self {
-			ESExpr::Constructor(ESExprConstructor {
-				name: name1,
-				args: args1,
-				kwargs: kwargs1,
-			}) => {
-				let ESExpr::Constructor(ESExprConstructor {
-					name: name2,
-					args: args2,
-					kwargs: kwargs2,
-				}) = other
-				else {
-					return false;
-				};
+impl<'a> Eq for ESExpr<'a> {}
 
-				name1 == name2 &&
-					args1 == args2 && kwargs1
-					.iter()
-					.zip(kwargs2.iter())
-					.all(|((k1, v1), (k2, v2))| k1 == k2 && v1.value_eq(&v2))
-			},
-			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
-			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
-			ESExpr::Str(s1) => matches!(other, ESExpr::Str(s2) if s1 == s2),
-			ESExpr::Float16(f1) => matches!(other, ESExpr::Float16(f2) if f1.value_eq(f2)),
-			ESExpr::Float32(f1) => matches!(other, ESExpr::Float32(f2) if f1.value_eq(f2)),
-			ESExpr::Float64(f1) => matches!(other, ESExpr::Float64(f2) if f1.value_eq(f2)),
-			ESExpr::Array8(a1) => matches!(other, ESExpr::Array8(a2) if a1 == a2),
-			ESExpr::Array16(a1) => matches!(other, ESExpr::Array16(a2) if a1 == a2),
-			ESExpr::Array32(a1) => matches!(other, ESExpr::Array32(a2) if a1 == a2),
-			ESExpr::Array64(a1) => matches!(other, ESExpr::Array64(a2) if a1 == a2),
-			ESExpr::Array128(a1) => matches!(other, ESExpr::Array128(a2) if a1 == a2),
-			ESExpr::Null(l1) => matches!(other, ESExpr::Null(l2) if l1 == l2),
-		}
+impl<'a> ESExprEncodedEq for ESExpr<'a> {
+	fn is_encoded_eq(&self, other: &Self) -> bool {
+		self == other
 	}
 }
+
 
 impl<'a> ESExprCodec<'a> for ESExpr<'a> {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::All;
@@ -246,8 +216,14 @@ impl<'a> ESExprCodec<'a> for ESExpr<'a> {
 }
 
 /// A wrapper for a `ESExpr<'static>`
-#[derive(Debug, Clone, PartialEq, ValueEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ESExprStatic(ESExpr<'static>);
+
+impl ESExprEncodedEq for ESExprStatic {
+	fn is_encoded_eq(&self, other: &Self) -> bool {
+		self == other
+	}
+}
 
 impl<'a> ESExprCodec<'a> for ESExprStatic {
 	const TAGS: ESExprTagCollection = ESExprTagCollection::All;
@@ -262,7 +238,7 @@ impl<'a> ESExprCodec<'a> for ESExprStatic {
 }
 
 /// A `ESExpr` constructor expression
-#[derive(Debug, Clone, PartialEq, ValueEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ESExprConstructor<'a> {
 	/// The name of the constructor.
 	pub name: CowStr<'a>,
@@ -301,7 +277,7 @@ impl<'a> ESExprConstructor<'a> {
 }
 
 /// Positional arguments of an `ESExprConstructor`.
-#[derive(Debug, Clone, PartialEq, ValueEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstructorArgs<'a> {
 	args: ConstructorArgsInner<'a>,
 }
@@ -434,11 +410,7 @@ impl<'a> PartialEq for ConstructorArgsInner<'a> {
 	}
 }
 
-impl<'a> ValueEq for ConstructorArgsInner<'a> {
-	fn value_eq(&self, other: &Self) -> bool {
-		self.as_slice() == other.as_slice()
-	}
-}
+impl<'a> Eq for ConstructorArgsInner<'a> {}
 
 #[must_use]
 pub struct ConstructorArgsIntoIter<'a> {
@@ -470,7 +442,7 @@ impl<'a> Iterator for ConstructorArgsInnerIntoIter<'a> {
 }
 
 /// `ESExpr` constructor keyword arguments
-#[derive(Clone, Debug, PartialEq, ValueEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct KeywordArgs<'a> {
 	kwargs: KeywordArgsInner<'a>,
 }
@@ -608,11 +580,7 @@ impl<'a> PartialEq for KeywordArgsInner<'a> {
 	}
 }
 
-impl<'a> ValueEq for KeywordArgsInner<'a> {
-	fn value_eq(&self, other: &Self) -> bool {
-		self.as_map() == other.as_map()
-	}
-}
+impl<'a> Eq for KeywordArgsInner<'a> {}
 
 #[must_use]
 pub struct KeywordArgsIntoIter<'a> {
