@@ -1,5 +1,6 @@
 import * as esexpr from "./index.js";
 import type { ESExpr, ESExprCodec } from "./index.js";
+import { unreachable } from "./util.js";
 
 
 export class ESExprFormatError extends Error {}
@@ -11,9 +12,14 @@ type Token =
     | { type: "constructor_end" }
     | { type: "keyword", index: number }
     | { type: "int_value", value: bigint }
-    | { type: "string_value", s: string }
+    | { type: "string_value", value: string }
     | { type: "string_pool_value", index: number }
-    | { type: "binary_value", value: Uint8Array }
+    | { type: "array8_value", value: Uint8Array }
+    | { type: "array16_value", value: Uint16Array }
+    | { type: "array32_value", value: Uint32Array }
+    | { type: "array64_value", value: BigUint64Array }
+    | { type: "array128_value", value: Uint8Array }
+    | { type: "float16_value", value: number }
     | { type: "float32_value", value: number }
     | { type: "float64_value", value: number }
     | { type: "boolean_value", value: boolean }
@@ -35,7 +41,7 @@ const TAG_VARINT_NON_NEG_INT = 0x20;
 const TAG_VARINT_NEG_INT = 0x40;
 const TAG_VARINT_STRING_LENGTH = 0x60;
 const TAG_VARINT_STRING_POOL = 0x80;
-const TAG_VARINT_BYTES_LENGTH = 0xA0;
+const TAG_VARINT_ARRAY8_LENGTH = 0xA0;
 const TAG_VARINT_KEYWORD = 0xC0;
 
 
@@ -43,16 +49,87 @@ const TAG_CONSTRUCTOR_END = 0xE0;
 const TAG_TRUE = 0xE1;
 const TAG_FALSE = 0xE2;
 const TAG_NULL0 = 0xE3;
+const TAG_NULL1 = 0xE8;
+const TAG_NULL2 = 0xE9;
+const TAG_NULLN = 0xEA;
+const TAG_FLOAT16 = 0xEC;
 const TAG_FLOAT32 = 0xE4;
 const TAG_FLOAT64 = 0xE5;
 const TAG_CONSTRUCTOR_START_STRING_TABLE = 0xE6;
 const TAG_CONSTRUCTOR_START_LIST = 0xE7;
-const TAG_NULL1 = 0xE8;
-const TAG_NULL2 = 0xE9;
-const TAG_NULLN = 0xEA;
 const TAG_APPEND_STRING_TABLE = 0xEB;
+const TAG_ARRAY16 = 0xED;
+const TAG_ARRAY32 = 0xEE;
+const TAG_ARRAY64 = 0xEF;
+const TAG_ARRAY128 = 0xF0;
 
 
+const isBigEndian: boolean = (() => {
+    const u32 = new Uint32Array([0x12345678]);
+    const u8 = new Uint8Array(u32.buffer);
+    return u8[0]! !== 0x78;
+})();
+
+const u8ToU16: (u8: Uint8Array, len: number) => Uint16Array = isBigEndian
+    ? ((u8, len) => {
+        const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+        for(let i = 0; i < len; ++i) {
+            buff.setUint16(i * 2, buff.getUint16(i * 2, true), false);
+        }
+        return new Uint16Array(u8.buffer, u8.byteOffset, len);
+    })
+    : ((u8, len) => new Uint16Array(u8.buffer, u8.byteOffset, len));
+
+const u8ToU32: (u8: Uint8Array, len: number) => Uint32Array = isBigEndian
+    ? ((u8, len) => {
+        const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+        for(let i = 0; i < len; ++i) {
+            buff.setUint32(i * 4, buff.getUint32(i * 4, true), false);
+        }
+        return new Uint32Array(u8.buffer, u8.byteOffset, len);
+    })
+    : ((u8, len) => new Uint32Array(u8.buffer, u8.byteOffset, len));
+
+const u8ToU64: (u8: Uint8Array, len: number) => BigUint64Array = isBigEndian
+    ? ((u8, len) => {
+        const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+        for(let i = 0; i < len; ++i) {
+            buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, true), false);
+        }
+        return new BigUint64Array(u8.buffer, u8.byteOffset, len);
+    })
+    : ((u8, len) => new BigUint64Array(u8.buffer, u8.byteOffset, len));
+
+const u16ToU8: (u16: Uint16Array) => Uint8Array = isBigEndian
+    ? (u16 => {
+        const buff = new DataView(u16.buffer, u16.byteOffset, u16.byteLength);
+        for (let i = 0; i < u16.length; ++i) {
+            buff.setUint16(i * 2, buff.getUint16(i * 2, false), true);
+        }
+        return new Uint8Array(u16.buffer, u16.byteOffset, u16.byteLength);
+    })
+    : (u16 => new Uint8Array(u16.buffer, u16.byteOffset, u16.byteLength));
+
+const u32ToU8: (u32: Uint32Array) => Uint8Array = isBigEndian
+    ? (u32 => {
+        const buff = new DataView(u32.buffer, u32.byteOffset, u32.byteLength);
+        for (let i = 0; i < u32.length; ++i) {
+            buff.setUint32(i * 4, buff.getUint32(i * 4, false), true);
+        }
+        return new Uint8Array(u32.buffer, u32.byteOffset, u32.byteLength);
+    })
+    : (u32 => new Uint8Array(u32.buffer, u32.byteOffset, u32.byteLength));
+
+const u64ToU8: (u64: BigUint64Array) => Uint8Array = isBigEndian
+    ? (u64 => {
+        const buff = new DataView(u64.buffer, u64.byteOffset, u64.byteLength);
+        for (let i = 0; i < u64.length; ++i) {
+            buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, false), true);
+        }
+        return new Uint8Array(u64.buffer, u64.byteOffset, u64.byteLength);
+    })
+    : (u64 => new Uint8Array(u64.buffer, u64.byteOffset, u64.byteLength));
+    
 
 class ByteReader {
     constructor(iter: AsyncIterator<Uint8Array>) {
@@ -106,7 +183,7 @@ class ByteReader {
             this.#index += len;
             offset += len;
         }
-        
+         
         s += decoder.decode();
         return s;
     }
@@ -148,7 +225,7 @@ export class ExprReader {
         for(;;) {
             const expr = await this.#readExprPlus();
     
-            if(typeof expr === "object" && expr !== null && !(expr instanceof Uint8Array)) {
+            if(typeof expr === "object" && expr !== null && !ArrayBuffer.isView(expr)) {
                 switch(expr.type) {
                     case "constructor_end":
                         throw new ESExprFormatError("Unexpected constructor end");
@@ -216,30 +293,32 @@ export class ExprReader {
             case "keyword":
                 return { type: "keyword", index: startToken.index };
 
-            case "int_value":
-                return startToken.value;
-
-            case "string_value":
-                return startToken.s;
 
             case "string_pool_value":
                 return this.#stringPool.get(startToken.index);
 
-            case "binary_value":
-                return startToken.value;
+            case "float16_value":
+                return { type: "float16", value: startToken.value };
 
             case "float32_value":
                 return { type: "float32", value: startToken.value };
 
+            case "int_value":
             case "float64_value":
-                return startToken.value;
-
             case "boolean_value":
+            case "string_value":
+            case "array8_value":
+            case "array16_value":
+            case "array32_value":
+            case "array64_value":
                 return startToken.value;
 
             case "null_value":
                 if(startToken.level > 0) {
-                    return { type: "null", level: startToken.level };
+                    return {
+                        type: "null",
+                        level: startToken.level,
+                    };
                 }
                 else {
                     return null;
@@ -263,6 +342,15 @@ export class ExprReader {
 
                 return { type: "appended_to_string_table" };
             }
+
+            case "array128_value":
+                return {
+                    type: "array128",
+                    value: startToken.value,
+                };
+
+            default:
+                unreachable(startToken, "Unexpected expression token");
         }
     }
 
@@ -274,7 +362,7 @@ export class ExprReader {
         for(;;) {
             const expr = await this.#readExprPlus();
 
-            if(typeof expr === "object" && expr !== null && !(expr instanceof Uint8Array)) {
+            if(typeof expr === "object" && expr !== null && !ArrayBuffer.isView(expr)) {
                 switch(expr.type) {
                     case "constructor_end":
                         break args;
@@ -354,6 +442,14 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                     break;
                 }
 
+                case TAG_FLOAT16:
+                {
+                    const buff = await reader.readFixed(2);
+                    const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
+                    const value = dv.getFloat16(0, false);
+                    yield { type: "float16_value", value };
+                    break;
+                }
 
                 case TAG_FLOAT32:
                 {
@@ -383,6 +479,50 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                     yield { type: "append_string_table" };
                     break;
 
+                case TAG_ARRAY16:
+                {
+                    const n = await readIntFull(reader);
+                    const value = u8ToU16(await reader.readFixed(checkIntRange(n * 2n)), Number(n));
+                    yield {
+                        type: "array16_value",
+                        value,
+                    };
+                    break;
+                }
+
+                case TAG_ARRAY32:
+                {
+                    const n = await readIntFull(reader);
+                    const value = u8ToU32(await reader.readFixed(checkIntRange(n * 4n)), Number(n));
+                    yield {
+                        type: "array32_value",
+                        value,
+                    };
+                    break;
+                }
+
+                case TAG_ARRAY64:
+                {
+                    const n = await readIntFull(reader);
+                    const value = u8ToU64(await reader.readFixed(checkIntRange(n * 8n)), Number(n));
+                    yield {
+                        type: "array64_value",
+                        value,
+                    };
+                    break;
+                }
+
+                case TAG_ARRAY128:
+                {
+                    const n = await readIntFull(reader);
+                    const value = await reader.readFixed(checkIntRange(n * 16n));
+                    yield {
+                        type: "array128_value",
+                        value,
+                    };
+                    break;
+                }
+
                 default:
                     throw new ESExprFormatError("Invalid token byte");
             }
@@ -404,8 +544,8 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 
                 case TAG_VARINT_STRING_LENGTH:
                 {
-                    const s = await reader.readString(checkIntRange(n));
-                    yield { type: "string_value", s };
+                    const value = await reader.readString(checkIntRange(n));
+                    yield { type: "string_value", value };
                     break;
                 }
 
@@ -413,16 +553,15 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                     yield { type: "string_pool_value", index: checkIntRange(n), };
                     break;
 
-                case TAG_VARINT_BYTES_LENGTH:
+                case TAG_VARINT_ARRAY8_LENGTH:
                     {
                         const value = await reader.readFixed(checkIntRange(n));
-                        yield { type: "binary_value", value };
+                        yield { type: "array8_value", value };
                         break;
                     }
 
                 case TAG_VARINT_KEYWORD:
                     yield { type: "keyword", index: checkIntRange(n), };
-
             }
         }
     }
@@ -539,8 +678,23 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                 yield writeByte(TAG_NULL0);
             }
             else if(e instanceof Uint8Array) {
-                yield* writeInt(TAG_VARINT_BYTES_LENGTH, BigInt(e.length));
+                yield* writeInt(TAG_VARINT_ARRAY8_LENGTH, BigInt(e.length));
                 yield e;
+            }
+            else if(e instanceof Uint16Array) {
+                yield writeByte(TAG_ARRAY16);
+                yield* writeIntFull(BigInt(e.length));
+                yield u16ToU8(e);
+            }
+            else if(e instanceof Uint32Array) {
+                yield writeByte(TAG_ARRAY32);
+                yield* writeIntFull(BigInt(e.length));
+                yield u32ToU8(e);
+            }
+            else if(e instanceof BigUint64Array) {
+                yield writeByte(TAG_ARRAY64);
+                yield* writeIntFull(BigInt(e.length));
+                yield u64ToU8(e);
             }
             else {
                 async function* writeStringTag(tag: number, s: string): AsyncIterable<Uint8Array> {
@@ -583,6 +737,15 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                         break;
                     }
 
+                    case "float16":
+                    {
+                        const data = new Uint8Array(3);
+                        data[0] = TAG_FLOAT16;
+                        new DataView(data.buffer, 1, 2).setFloat16(0, e.value, true);
+                        yield data;
+                        break;
+                    }
+
                     case "float32":
                     {
                         const data = new Uint8Array(5);
@@ -604,7 +767,19 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                             yield writeByte(TAG_NULLN);
                             yield* writeIntFull(e.level - 3n);
                         }
+                        break;
                     }
+
+                    case "array128":
+                    {
+                        yield writeByte(TAG_ARRAY128);
+                        yield* writeIntFull(BigInt(e.value.length / 16));
+                        yield e.value;
+                        break;
+                    }
+
+                    default:
+                        unreachable(e, "Unexpected esexpr value");
                 }
             }
             break;

@@ -5,9 +5,14 @@ export type ESExpr =
     | boolean
     | bigint
     | string
-    | Uint8Array
+    | ESExpr.Float16
     | ESExpr.Float32
     | number
+    | Uint8Array
+    | Uint16Array
+    | Uint32Array
+    | BigUint64Array
+    | ESExpr.Array128
     | null
     | ESExpr.NestedNull
 ;
@@ -36,13 +41,28 @@ export namespace ESExpr {
                 if(e instanceof Uint8Array) {
                     return Uint8Array;
                 }
+                if(e instanceof Uint16Array) {
+                    return Uint16Array;
+                }
+                if(e instanceof Uint32Array) {
+                    return Uint32Array;
+                }
+                if(e instanceof BigUint64Array) {
+                    return BigUint64Array;
+                }
 
                 switch(e.type) {
                     case "constructor":
                         return e.name;
 
+                    case "float16":
+                        return Float16Symbol;
+
                     case "float32":
-                        return Math;
+                        return Float32Symbol;
+
+                    case "array128":
+                        return Array128Symbol;
 
                     case "null":
                         return null;
@@ -52,6 +72,10 @@ export namespace ESExpr {
 
     export function isConstructor(e: ESExpr): e is ESExpr.Constructor {
         return typeof e === "object" && e !== null && "type" in e && e.type === "constructor";
+    }
+
+    export function isFloat16(e: ESExpr): e is ESExpr.Float32 {
+        return typeof e === "object" && e !== null && "type" in e && e.type === "float16";
     }
 
     export function isFloat32(e: ESExpr): e is ESExpr.Float32 {
@@ -69,6 +93,11 @@ export namespace ESExpr {
         readonly kwargs: ReadonlyMap<string, ESExpr>;
     }
 
+    export interface Float16 {
+        readonly type: "float16";
+        readonly value: number;
+    }
+
     export interface Float32 {
         readonly type: "float32";
         readonly value: number;
@@ -77,6 +106,11 @@ export namespace ESExpr {
     export interface NestedNull {
         readonly type: "null";
         readonly level: bigint;
+    }
+
+    export interface Array128 {
+        readonly type: "array128";
+        readonly value: Uint8Array;
     }
 
     export const codec: ESExprCodec<ESExpr> = {
@@ -92,16 +126,46 @@ export namespace ESExpr {
     };
 }
 
+export const Float16Symbol: unique symbol = Symbol.for("esexpr-float16");
+export const Float32Symbol: unique symbol = Symbol.for("esexpr-float32");
+export const Array128Symbol: unique symbol = Symbol.for("esexpr-array128");
+
 export type ESExprTag =
     | string // constructor name
     | typeof Boolean
     | typeof BigInt
     | typeof String
-    | typeof Uint8Array
-    | typeof Math // used for float32
+    | typeof Float16Symbol
+    | typeof Float32Symbol
     | typeof Number
+    | typeof Uint8Array
+    | typeof Uint16Array
+    | typeof Uint32Array
+    | typeof BigUint64Array
+    | typeof Array128Symbol
     | null
 ;
+
+export type ESExprTagSet =
+    | ReadonlySet<ESExprTag>
+    | ESExprTagSet.All
+;
+
+export namespace ESExprTagSet {
+    export interface All {
+        type: "all-tags";
+
+        has(tag: ESExprTag): boolean;
+    }
+
+    export const All: All = {
+        type: "all-tags",
+
+        has(_tag) {
+            return true;
+        },
+    };
+}
 
 export type DecodeErrorPath =
     | { readonly type: "current" }
@@ -116,7 +180,7 @@ export type DecodeResult<T> =
 ;
 
 export interface ESExprCodec<T> {
-    readonly tags: ReadonlySet<ESExprTag>;
+    readonly tags: ESExprTagSet;
     encode(value: T): ESExpr;
     decode(expr: ESExpr): DecodeResult<T>;
 }
@@ -129,13 +193,13 @@ export interface FieldDecodeState {
 }
 
 export interface ESExprFieldCodec<T> {
-    readonly tags: ReadonlySet<ESExprTag>;
+    readonly tags: ESExprTagSet;
     encode(value: T, args: ESExpr[], kwargs: Map<string, ESExpr>): void;
     decode(state: FieldDecodeState): DecodeResult<T>;
 }
 
 export interface ESExprCaseCodec<Name extends string, T extends { readonly $type: Name }> {
-    readonly tags: ReadonlySet<ESExprTag>;
+    readonly tags: ESExprTagSet;
     encode(value: T): ESExpr;
     decode(caseName: Name, expr: ESExpr): DecodeResult<T>;
 }
@@ -143,7 +207,7 @@ export interface ESExprCaseCodec<Name extends string, T extends { readonly $type
 
 
 export const boolCodec: ESExprCodec<boolean> = {
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([Boolean]);
     },
 
@@ -167,7 +231,7 @@ export const boolCodec: ESExprCodec<boolean> = {
 
 
 export const intCodec: ESExprCodec<bigint> = {
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([BigInt]);
     },
 
@@ -198,7 +262,7 @@ class SmallIntCodec implements ESExprCodec<number> {
     readonly #min: number;
     readonly #max: number;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([BigInt]);
     }
 
@@ -236,7 +300,7 @@ class BigIntCodec implements ESExprCodec<bigint> {
     readonly #min: bigint;
     readonly #max: bigint;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([BigInt]);
     }
 
@@ -275,7 +339,7 @@ export const signedInt64Codec: ESExprCodec<bigint> = new BigIntCodec(-0x80000000
 export const unsignedInt64Codec: ESExprCodec<bigint> = new BigIntCodec(0n, 0xFFFFFFFFFFFFFFFFn);
 
 export const strCodec: ESExprCodec<string> = {
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([String]);
     },
 
@@ -297,8 +361,8 @@ export const strCodec: ESExprCodec<string> = {
     },
 };
 
-export const binaryCodec: ESExprCodec<Uint8Array> = {
-    get tags(): ReadonlySet<ESExprTag> {
+export const array8Codec: ESExprCodec<Uint8Array> = {
+    get tags(): ESExprTagSet {
         return new Set([Uint8Array]);
     },
 
@@ -313,7 +377,99 @@ export const binaryCodec: ESExprCodec<Uint8Array> = {
         else {
             return {
                 success: false,
-                message: "Expected a binary value",
+                message: "Expected an array8 value",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const array16Codec: ESExprCodec<Uint16Array> = {
+    get tags(): ESExprTagSet {
+        return new Set([Uint16Array]);
+    },
+
+    encode: function (value: Uint16Array): ESExpr {
+        return value;
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<Uint16Array> {
+        if(expr instanceof Uint16Array) {
+            return { success: true, value: expr };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected an array16 value",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const array32Codec: ESExprCodec<Uint32Array> = {
+    get tags(): ESExprTagSet {
+        return new Set([Uint16Array]);
+    },
+
+    encode: function (value: Uint32Array): ESExpr {
+        return value;
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<Uint32Array> {
+        if(expr instanceof Uint32Array) {
+            return { success: true, value: expr };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected an array32 value",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const array64Codec: ESExprCodec<BigUint64Array> = {
+    get tags(): ESExprTagSet {
+        return new Set([BigUint64Array]);
+    },
+
+    encode: function (value: BigUint64Array): ESExpr {
+        return value;
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<BigUint64Array> {
+        if(expr instanceof BigUint64Array) {
+            return { success: true, value: expr };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected an array64 value",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const float16Codec: ESExprCodec<number> = {
+    get tags(): ESExprTagSet {
+        return new Set([Float16Symbol]);
+    },
+
+    encode: function (value: number): ESExpr {
+        return { type: "float16", value };
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<number> {
+        if(ESExpr.isFloat16(expr)) {
+            return { success: true, value: expr.value };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected a float16",
                 path: { type: "current" },
             };
         }
@@ -321,8 +477,8 @@ export const binaryCodec: ESExprCodec<Uint8Array> = {
 };
 
 export const float32Codec: ESExprCodec<number> = {
-    get tags(): ReadonlySet<ESExprTag> {
-        return new Set([Math]);
+    get tags(): ESExprTagSet {
+        return new Set([Float32Symbol]);
     },
 
     encode: function (value: number): ESExpr {
@@ -344,7 +500,7 @@ export const float32Codec: ESExprCodec<number> = {
 };
 
 export const float64Codec: ESExprCodec<number> = {
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([Number]);
     },
 
@@ -373,7 +529,7 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
 
     readonly #itemCodec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set(["list"]);
     }
 
@@ -485,10 +641,15 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 
     readonly #itemCodec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
+        const itemTags = this.#itemCodec.tags;
+        if(!(itemTags instanceof Set)) {
+            return itemTags;
+        }
+
         const tags = new Set<ESExprTag>();
         tags.add(null);
-        for(const tag of this.#itemCodec.tags) {
+        for(const tag of itemTags) {
             tags.add(tag);
         }
         return tags;
@@ -564,7 +725,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
     readonly #fields: RecordFieldCodecs<T>;
 
     
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([this.#constructorName]);
     }
 
@@ -667,10 +828,15 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
 
     readonly #cases: EnumCaseCodecs<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         const tags = new Set<ESExprTag>();
         for(const c of Object.keys(this.#cases) as T["$type"][]) {
-            for(const tag of this.#cases[c].tags) {
+            const caseTags = this.#cases[c].tags;
+            if(!(caseTags instanceof Set)) {
+                return caseTags;
+            }
+
+            for(const tag of caseTags) {
                 tags.add(tag);
             }
         }
@@ -716,7 +882,7 @@ class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
 
     readonly #names: SimpleEnumNames<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([String]);
     }
 
@@ -762,7 +928,7 @@ class PositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 
     readonly #codec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -811,7 +977,7 @@ class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 
     readonly #codec: OptionalValueCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -851,7 +1017,7 @@ export function optionalPositionalFieldCodec<T>(codec: OptionalValueCodec<T>): E
 
 
 export interface RepeatedValuesCodec<T> {
-    readonly tags: ReadonlySet<ESExprTag>;
+    readonly tags: ESExprTagSet;
     encodeMany(value: T): readonly ESExpr[];
     decodeMany(exprs: readonly ESExpr[]): RepeatedDecodeResult<T>;
 }
@@ -868,7 +1034,7 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
 
     readonly #codec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -913,7 +1079,7 @@ class VarargFieldCodec<T> implements ESExprFieldCodec<T> {
 
     readonly #codec: RepeatedValuesCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -960,7 +1126,7 @@ class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     readonly #codec: ESExprCodec<T>;
     readonly #name: string;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -1004,7 +1170,7 @@ export function keywordFieldCodec<T>(name: string, codec: ESExprCodec<T>): ESExp
 
 
 export interface OptionalValueCodec<T> {
-    readonly tags: ReadonlySet<ESExprTag>;
+    readonly tags: ESExprTagSet;
     encodeOptional(value: T): ESExpr | undefined;
     decodeOptional(expr: ESExpr | undefined): DecodeResult<T>;
 }
@@ -1016,7 +1182,7 @@ class UndefinedOptionalValueCodec<T> implements OptionalValueCodec<T | undefined
 
     readonly #codec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -1051,7 +1217,7 @@ class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     readonly #codec: OptionalValueCodec<T>;
     readonly #name: string;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -1091,7 +1257,7 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
     readonly #name: string;
     readonly #defaultValue: () => T;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -1134,7 +1300,7 @@ export function defaultKeywordFieldCodec<T>(name: string, defaultValue: () => T,
 
 
 export interface MappedValueCodec<T> {
-    readonly tags: ReadonlySet<ESExprTag>;
+    readonly tags: ESExprTagSet;
     encodeMapped(value: T): ReadonlyMap<string, ESExpr>;
     decodeMapped(expr: ReadonlyMap<string, ESExpr>): MappedValueDecodeResult<T>;
 }
@@ -1153,7 +1319,7 @@ class MapMappedValueCodec<T> implements MappedValueCodec<ReadonlyMap<string, T>>
 
     readonly #codec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -1200,7 +1366,7 @@ class DictFieldCodec<T> implements ESExprFieldCodec<T> {
 
     readonly #codec: MappedValueCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags;
     }
 
@@ -1248,7 +1414,7 @@ class CaseCodec<Name extends string, T extends { readonly $type: Name }> impleme
     readonly #constructor_name: string;
     readonly #fields: RecordFieldCodecs<Omit<T, "$type">>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return new Set([this.#constructor_name]);
     }
     encode(value: T): ESExpr {
@@ -1285,7 +1451,7 @@ class InlineCaseCodec<Field extends string, Name extends string, T> implements E
     readonly #field: Field;
     readonly #codec: ESExprCodec<T>;
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#codec.tags
     }
     
@@ -1334,7 +1500,7 @@ class LazyCodec<A> implements ESExprCodec<A> {
         return this.#inner;
     }
 
-    get tags(): ReadonlySet<ESExprTag> {
+    get tags(): ESExprTagSet {
         return this.#getInner().tags;
     }
 

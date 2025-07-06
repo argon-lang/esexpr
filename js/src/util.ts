@@ -1,4 +1,9 @@
 
+export function unreachable(_x: never, message: string): never {
+    throw new Error(message);
+}
+
+
 export function valuesEqual(a: unknown, b: unknown): boolean {
     if(typeof a !== typeof b) {
         return false;
@@ -14,6 +19,60 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 
         if(a instanceof Uint8Array) {
             if(!(b instanceof Uint8Array)) {
+                return false;
+            }
+
+            if(a.length !== b.length) {
+                return false;
+            }
+
+            for(let i = 0; i < a.length; ++i) {
+                if(a[i] !== b[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if(a instanceof Uint16Array) {
+            if(!(b instanceof Uint16Array)) {
+                return false;
+            }
+
+            if(a.length !== b.length) {
+                return false;
+            }
+
+            for(let i = 0; i < a.length; ++i) {
+                if(a[i] !== b[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if(a instanceof Uint32Array) {
+            if(!(b instanceof Uint32Array)) {
+                return false;
+            }
+
+            if(a.length !== b.length) {
+                return false;
+            }
+
+            for(let i = 0; i < a.length; ++i) {
+                if(a[i] !== b[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if(a instanceof BigUint64Array) {
+            if(!(b instanceof BigUint64Array)) {
                 return false;
             }
 
