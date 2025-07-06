@@ -20,6 +20,11 @@ public class BooleanESExprCodec extends ESExprCodec<Boolean> {
 	public static final ESExprCodec<Boolean> INSTANCE = new BooleanESExprCodec();
 
 	@Override
+	public boolean isEncodedEqual(Boolean x, Boolean y) {
+		return x.booleanValue() == y.booleanValue();
+	}
+
+	@Override
 	public @NotNull ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.BOOL);
 	}

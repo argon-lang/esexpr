@@ -40,6 +40,19 @@ public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 	}
 
 	@Override
+	public boolean isEncodedEqual(Optional<T> x, Optional<T> y) {
+		if(x.isEmpty()) {
+			return y.isEmpty();
+		}
+		else if(y.isEmpty()) {
+			return false;
+		}
+		else {
+			return itemCodec.isEncodedEqual(x.get(), y.get());
+		}
+	}
+
+	@Override
 	public @NotNull ESExpr encode(@NotNull Optional<T> value) {
 		return value.map(x -> {
 			var res = itemCodec.encode(x);

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -223,4 +224,59 @@ public class OptionalTests {
         assertEquals(expr, MultipleVararg.codec().encode(value));
         assertEquals(value, MultipleVararg.codec().decode(expr));
     }
+	
+	@Test
+	public void positionalDefaultValue() throws DecodeException {
+		ESExpr expr = new ESExpr.Constructor(
+			"positional-default-value",
+			List.of(
+				new ESExpr.Int(BigInteger.valueOf(10)),
+				new ESExpr.Float32(20.0f),
+				new ESExpr.Str("abc")
+			),
+			Map.of()
+		);
+		PositionalDefaultValue value = new PositionalDefaultValue(10, 20.0f, "abc");
+
+		assertEquals(expr, PositionalDefaultValue.codec().encode(value));
+		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
+
+		expr = new ESExpr.Constructor(
+			"positional-default-value",
+			List.of(
+				new ESExpr.Float32(20.0f),
+				new ESExpr.Str("abc")
+			),
+			Map.of()
+		);
+		value = new PositionalDefaultValue(4, 20.0f, "abc");
+
+		assertEquals(expr, PositionalDefaultValue.codec().encode(value));
+		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
+
+		expr = new ESExpr.Constructor(
+			"positional-default-value",
+			List.of(
+				new ESExpr.Int(BigInteger.valueOf(10)),
+				new ESExpr.Str("abc")
+			),
+			Map.of()
+		);
+		value = new PositionalDefaultValue(10, 5.0f, "abc");
+
+		assertEquals(expr, PositionalDefaultValue.codec().encode(value));
+		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
+
+		expr = new ESExpr.Constructor(
+			"positional-default-value",
+			List.of(
+				new ESExpr.Str("abc")
+			),
+			Map.of()
+		);
+		value = new PositionalDefaultValue(4, 5.0f, "abc");
+
+		assertEquals(expr, PositionalDefaultValue.codec().encode(value));
+		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
+	}
 }

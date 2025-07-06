@@ -24,6 +24,19 @@ public class OptionalOptionalValueCodec<T> implements OptionalValueCodec<Optiona
 	private final ESExprCodec<T> elementCodec;
 
 	@Override
+	public boolean isEncodedEqual(Optional<T> x, Optional<T> y) {
+		if(x.isEmpty()) {
+			return y.isEmpty();
+		}
+		else if(y.isEmpty()) {
+			return false;
+		}
+		else {
+			return elementCodec.isEncodedEqual(x.get(), y.get());
+		}
+	}
+
+	@Override
 	public Optional<ESExpr> encodeOptional(Optional<T> value) {
 		return value.map(elementCodec::encode);
 	}

@@ -22,6 +22,11 @@ public class SignedLongCodec extends IntCodecBase<Long> {
 	public static final ESExprCodec<Long> INSTANCE = new SignedLongCodec();
 
 	@Override
+	public boolean isEncodedEqual(Long x, Long y) {
+		return x.longValue() == y.longValue();
+	}
+
+	@Override
 	protected @NotNull Long fromBigInt(@NotNull BigInteger value) {
 		return value.longValue();
 	}

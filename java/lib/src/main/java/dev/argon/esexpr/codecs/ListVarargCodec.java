@@ -26,6 +26,21 @@ public class ListVarargCodec<T> implements VarargCodec<List<T>, T> {
 	private final ESExprCodec<T> elementCodec;
 
 	@Override
+	public boolean isEncodedEqual(List<T> x, List<T> y) {
+		if(x.size() != y.size()) {
+			return false;
+		}
+
+		for(int i = 0; i < x.size(); ++i) {
+			if(!elementCodec.isEncodedEqual(x.get(i), y.get(i))) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	@Override
 	public void encodeVararg(List<T> value, List<ESExpr> exprs) {
 		for(var elem : value) {
 			exprs.add(elementCodec.encode(elem));

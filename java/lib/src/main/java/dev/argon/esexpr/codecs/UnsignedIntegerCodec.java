@@ -22,6 +22,11 @@ public class UnsignedIntegerCodec extends IntCodecBase<Integer> {
 	public static final ESExprCodec<Integer> INSTANCE = new UnsignedIntegerCodec();
 
 	@Override
+	public boolean isEncodedEqual(Integer x, Integer y) {
+		return x.equals(y);
+	}
+
+	@Override
 	protected @NotNull Integer fromBigInt(@NotNull BigInteger value) {
 		return value.intValue();
 	}

@@ -22,6 +22,10 @@ public class SignedIntegerCodec extends IntCodecBase<Integer> {
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static final ESExprCodec<Integer> INSTANCE = new SignedIntegerCodec();
 
+	@Override
+	public boolean isEncodedEqual(Integer x, Integer y) {
+		return x.intValue() == y.intValue();
+	}
 
 	@Override
 	protected @NotNull Integer fromBigInt(@NotNull BigInteger value) {

@@ -24,6 +24,11 @@ public class StringCodec extends ESExprCodec<String> {
 	}
 
 	@Override
+	public boolean isEncodedEqual(String x, String y) {
+		return x.equals(y);
+	}
+
+	@Override
 	public @NotNull ESExpr encode(@NotNull String value) {
 		return new ESExpr.Str(value);
 	}

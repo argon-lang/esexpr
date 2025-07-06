@@ -26,6 +26,11 @@ final class RecordCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
+	protected void writeEncodedEqualImpl() throws IOException, AbortException {
+		writeEncodedEqualFields(elem, "x", "y", false);
+	}
+
+	@Override
 	protected void writeEncodeImpl() throws IOException, AbortException {
 		writeEncodeFields(elem, "value", false);
 	}

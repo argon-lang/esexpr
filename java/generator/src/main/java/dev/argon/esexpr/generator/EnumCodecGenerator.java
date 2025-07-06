@@ -61,6 +61,41 @@ final class EnumCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
+	protected void writeEncodedEqualImpl() throws IOException, AbortException {
+		println("return switch(x) {");
+		indent();
+
+		for(var c : getCases()) {
+			print("case ");
+			print(elem.getQualifiedName());
+			print(".");
+			print(c.getSimpleName());
+			printTypeArguments();
+			println(" x2 -> {");
+			indent();
+
+			print("if(!(y instanceof ");
+			print(elem.getQualifiedName());
+			print(".");
+			print(c.getSimpleName());
+			printTypeArguments();
+			println(" y2)) {");
+			indent();
+			println("yield false;");
+			dedent();
+			println("}");
+
+			writeEncodedEqualFields(c, "x2", "y2", true);
+
+			dedent();
+			println("}");
+		}
+
+		dedent();
+		println("};");
+	}
+
+	@Override
 	protected void writeEncodeImpl() throws IOException, AbortException {
 		println("return switch(value) {");
 		indent();

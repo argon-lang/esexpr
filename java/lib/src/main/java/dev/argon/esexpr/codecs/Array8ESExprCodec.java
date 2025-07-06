@@ -3,6 +3,7 @@ package dev.argon.esexpr.codecs;
 import dev.argon.esexpr.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.Set;
 
 /**
@@ -22,6 +23,11 @@ public class Array8ESExprCodec extends ESExprCodec<byte[]> {
 	@Override
 	public @NotNull ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.ARRAY8);
+	}
+
+	@Override
+	public boolean isEncodedEqual(byte[] x, byte[] y) {
+		return Arrays.equals(x, y);
 	}
 
 	@Override

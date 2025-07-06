@@ -26,6 +26,11 @@ public class NonNegativeBigIntegerESExprCodec extends ESExprCodec<BigInteger> {
 	}
 
 	@Override
+	public boolean isEncodedEqual(BigInteger x, BigInteger y) {
+		return x.equals(y);
+	}
+
+	@Override
 	public final @NotNull ESExpr encode(@NotNull BigInteger value) {
 		return new ESExpr.Int(value);
 	}

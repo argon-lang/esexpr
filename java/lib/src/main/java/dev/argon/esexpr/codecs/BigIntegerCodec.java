@@ -20,6 +20,11 @@ public class BigIntegerCodec extends ESExprCodec<BigInteger> {
 	public static final ESExprCodec<BigInteger> INSTANCE = new BigIntegerCodec();
 
 	@Override
+	public boolean isEncodedEqual(BigInteger x, BigInteger y) {
+		return x.equals(y);
+	}
+
+	@Override
 	public final @NotNull ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.INT);
 	}

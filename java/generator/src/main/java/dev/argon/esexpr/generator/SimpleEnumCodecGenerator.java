@@ -40,6 +40,11 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
+	protected void writeEncodedEqualImpl() throws IOException, AbortException {
+		println("return x.equals(y);");
+	}
+
+	@Override
 	protected void writeEncodeImpl() throws IOException, AbortException {
 		println("var s = switch(value) {");
 		indent();

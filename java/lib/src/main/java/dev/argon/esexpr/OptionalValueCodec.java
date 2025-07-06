@@ -11,6 +11,15 @@ import java.util.Optional;
  */
 public interface OptionalValueCodec<T, E> {
 	/**
+	 * Determines if two optional values, after being encoded, are equal.
+	 *
+	 * @param x The first optional value to compare.
+	 * @param y The second optional value to compare.
+	 * @return true if the two values are encoded equally, false otherwise.
+	 */
+	boolean isEncodedEqual(T x, T y);
+
+	/**
 	 * Encode an optional value into an optional expression.
 	 * @param value The optional value.
 	 * @return The optional expression.

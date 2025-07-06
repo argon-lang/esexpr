@@ -74,6 +74,22 @@ public sealed interface ESExpr {
 		public @NotNull ESExprTag tag() {
 			return ESExprTag.FLOAT16;
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof Float16(var other) &&
+				f == other;
+		}
+
+		@Override
+		public int hashCode() {
+			return f;
+		}
+
+		@Override
+		public @NotNull String toString() {
+			return "Float16[f=" + Float.float16ToFloat(f) + "]";
+		}
 	}
 
 	/**
@@ -85,6 +101,17 @@ public sealed interface ESExpr {
 		public @NotNull ESExprTag tag() {
 			return ESExprTag.FLOAT32;
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof Float32(var other) &&
+				Float.floatToRawIntBits(f) == Float.floatToRawIntBits(other);
+		}
+
+		@Override
+		public int hashCode() {
+			return Float.floatToRawIntBits(f);
+		}
 	}
 
 	/**
@@ -95,6 +122,17 @@ public sealed interface ESExpr {
 		@Override
 		public @NotNull ESExprTag tag() {
 			return ESExprTag.FLOAT64;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof Float64(var other) &&
+				Double.doubleToRawLongBits(d) == Double.doubleToRawLongBits(other);
+		}
+
+		@Override
+		public int hashCode() {
+			return Long.hashCode(Double.doubleToRawLongBits(d));
 		}
 	}
 
@@ -276,10 +314,15 @@ public sealed interface ESExpr {
 	/**
 	 * Codec for arbitrary ESExpr values.
 	 */
-	static final @NotNull ESExprCodec<@NotNull ESExpr> CODEC = new ESExprCodec<ESExpr>() {
+	static final @NotNull ESExprCodec<@NotNull ESExpr> CODEC = new ESExprCodec<>() {
 		@Override
 		public @NotNull ESExprTagSet tags() {
 			return new ESExprTagSet.All();
+		}
+
+		@Override
+		public boolean isEncodedEqual(ESExpr x, ESExpr y) {
+			return x.equals(y);
 		}
 
 		@Override

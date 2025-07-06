@@ -21,6 +21,10 @@ public class UnsignedByteCodec extends IntCodecBase<Byte> {
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static final ESExprCodec<Byte> INSTANCE = new UnsignedByteCodec();
 
+	@Override
+	public boolean isEncodedEqual(Byte x, Byte y) {
+		return x.byteValue() == y.byteValue();
+	}
 
 	@Override
 	protected @NotNull Byte fromBigInt(@NotNull BigInteger value) {

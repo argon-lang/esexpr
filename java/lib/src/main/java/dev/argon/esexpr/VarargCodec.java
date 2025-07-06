@@ -12,6 +12,15 @@ import java.util.List;
  */
 public interface VarargCodec<T, E> {
 	/**
+	 * Determines whether two variable argument values are encoded equally.
+	 *
+	 * @param x The first variable argument value.
+	 * @param y The second variable argument value.
+	 * @return true if the two values are encoded equally, false otherwise.
+	 */
+	boolean isEncodedEqual(T x, T y);
+
+	/**
 	 * Encode a variable argument value into a list of expressions.
 	 * @param value The variable argument value.
 	 * @param exprs The list to which any expressions will be appended.

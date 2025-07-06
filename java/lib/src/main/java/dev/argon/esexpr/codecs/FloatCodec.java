@@ -25,6 +25,11 @@ public class FloatCodec extends ESExprCodec<Float> {
 	}
 
 	@Override
+	public boolean isEncodedEqual(Float x, Float y) {
+		return Float.floatToRawIntBits(x) == Float.floatToRawIntBits(y);
+	}
+
+	@Override
 	public @NotNull ESExpr encode(@NotNull Float value) {
 		return new ESExpr.Float32(value);
 	}

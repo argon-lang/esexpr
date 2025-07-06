@@ -51,6 +51,15 @@ public abstract class ESExprCodec<T> {
 	public abstract @NotNull T decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException;
 
 	/**
+	 * Determines whether two values are equal when encoded as an `ESExpr`.
+	 * @param x The first value.
+	 * @param y The second value.
+	 * @return true iff the values are equal when encoded.
+	 */
+	public abstract boolean isEncodedEqual(T x, T y);
+
+
+	/**
 	 * The path of a decode failure.
 	 */
 	public sealed interface FailurePath {

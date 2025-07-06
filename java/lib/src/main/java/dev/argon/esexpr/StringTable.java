@@ -23,11 +23,16 @@ public record StringTable(@NotNull List<@NotNull String> values) {
 		return CODEC;
 	}
 
-	private static final ESExprCodec<StringTable> CODEC = new ESExprCodec<StringTable>() {
+	private static final ESExprCodec<StringTable> CODEC = new ESExprCodec<>() {
 
 		@Override
 		public @NotNull ESExprTagSet tags() {
 			return ESExprTagSet.of(new ESExprTag.Constructor(BinToken.StringTableName));
+		}
+
+		@Override
+		public boolean isEncodedEqual(StringTable x, StringTable y) {
+			return x.equals(y);
 		}
 
 		@Override

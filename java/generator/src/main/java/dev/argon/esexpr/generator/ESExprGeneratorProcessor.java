@@ -53,10 +53,6 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 				try {
 					Function<PrintWriter, GeneratorBase> generatorFactory = GeneratorBase.forElement(processingEnv, metadataCache, typeElem);
 
-					if(generatorFactory == null) {
-						throw new AbortException("ESExprCodeGen must be used with a record, sealed interface (of records), or an enum.");
-					}
-
 					var sw = new StringWriter();
 					try(var pw = new PrintWriter(sw)) {
 						var gen = generatorFactory.apply(pw);

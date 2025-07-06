@@ -22,6 +22,11 @@ public class UnsignedShortCodec extends IntCodecBase<Short> {
 	public static final ESExprCodec<Short> INSTANCE = new UnsignedShortCodec();
 
 	@Override
+	public boolean isEncodedEqual(Short x, Short y) {
+		return x.shortValue() == y.shortValue();
+	}
+
+	@Override
 	protected @NotNull Short fromBigInt(@NotNull BigInteger value) {
 		return value.shortValue();
 	}

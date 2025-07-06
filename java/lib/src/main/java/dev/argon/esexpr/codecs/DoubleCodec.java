@@ -25,6 +25,11 @@ public class DoubleCodec extends ESExprCodec<Double> {
 	}
 
 	@Override
+	public boolean isEncodedEqual(Double x, Double y) {
+		return Double.doubleToRawLongBits(x) == Double.doubleToRawLongBits(y);
+	}
+
+	@Override
 	public @NotNull ESExpr encode(@NotNull Double value) {
 		return new ESExpr.Float64(value);
 	}

@@ -511,6 +511,20 @@ abstract class GeneratorBase {
 		dedent();
 		println("}");
 
+
+		println("@java.lang.Override");
+		print("public boolean isEncodedEqual(");
+		print(elem.getQualifiedName());
+		printTypeArguments();
+		print(" x, ");
+		print(elem.getQualifiedName());
+		printTypeArguments();
+		println(" y) {");
+		indent();
+		writeEncodedEqualImpl();
+		dedent();
+		println("}");
+
 		println("@java.lang.Override");
 		print("public dev.argon.esexpr.ESExpr encode(");
 		print(elem.getQualifiedName());
@@ -648,37 +662,18 @@ abstract class GeneratorBase {
 
 				var defaultValue = getDefaultValue(field).orElse(null);
 				if(defaultValue != null) {
-					boolean isPrimitiveField = field.asType().getKind().isPrimitive();
+					print("if(!");
+					printCodecExpr(field.asType(), field, CodecOverride.CodecType.VALUE);
+					print(".isEncodedEqual(");
 
-					print("if(");
-					if(!isPrimitiveField) {
-						print("!");
-					}
 					print(valueVarName);
 					print(".");
 					print(field.getSimpleName());
-					print("()");
+					print("(), (");
 
-					if(isPrimitiveField) {
-						print(" != ");
-					}
-					else {
-						print(".equals(");
-					}
-
-					if(isPrimitiveField) {
-						print("(");
-					}
 					print(defaultValue);
-					if(isPrimitiveField) {
-						print(")");
-					}
 
-					if(!isPrimitiveField) {
-						print(")");
-					}
-
-					print(") { ");
+					print("))) ");
 				}
 
 
@@ -691,10 +686,6 @@ abstract class GeneratorBase {
 				print(".");
 				print(field.getSimpleName());
 				print("()));");
-
-				if(defaultValue != null) {
-					print(" }");
-				}
 
 				println();
 				continue;
@@ -763,6 +754,19 @@ abstract class GeneratorBase {
 				}
 				prevOptionalPositionalTags = ESExprTagSet.of();
 
+				var defaultValue = getDefaultValue(field).orElse(null);
+				if(defaultValue != null) {
+					print("if(!");
+					printCodecExpr(field.asType(), field);
+					print(".isEncodedEqual(");
+					print(valueVarName);
+					print(".");
+					print(field.getSimpleName());
+					print("(), ");
+					print(defaultValue);
+					print(")) ");
+				}
+
 				print("args.add(");
 				printCodecExpr(field.asType(), field);
 				print(".encode(");
@@ -796,6 +800,57 @@ abstract class GeneratorBase {
 		if(!prevTags.isDisjoint(fieldTags)) {
 			throw new AbortException("Field '" + rce.getSimpleName() + "' must have distinct tags from immediately preceding optional positional arguments", rce);
 		}
+	}
+
+	protected void writeEncodedEqualFields(TypeElement te, String xName, String yName, boolean useYield) throws IOException, AbortException {
+		for(var field : getFields(te)) {
+			print("if(!");
+
+			CodecOverride.CodecType codecType;
+
+			if(isVararg(field)) {
+				codecType = CodecOverride.CodecType.VARARG;
+			}
+			else if(isDict(field)) {
+				codecType = CodecOverride.CodecType.DICT;
+			}
+			else if(isOptional(field)) {
+				codecType = CodecOverride.CodecType.OPTIONAL_VALUE;
+			}
+			else {
+				codecType = CodecOverride.CodecType.VALUE;
+			}
+
+			printCodecExpr(field.asType(), field, codecType);
+
+			print(".isEncodedEqual(");
+			print(xName);
+			print(".");
+			print(field.getSimpleName());
+			print("(), ");
+			print(yName);
+			print(".");
+			print(field.getSimpleName());
+			println("())) {");
+			indent();
+			if(useYield) {
+				print("yield");
+			}
+			else {
+				print("return");
+			}
+			println(" false;");
+			dedent();
+			println("}");
+		}
+
+		if(useYield) {
+			print("yield");
+		}
+		else {
+			print("return");
+		}
+		println(" true;");
 	}
 
 	protected void writeDecodeFields(TypeElement te, boolean useYield) throws IOException, AbortException {
@@ -838,10 +893,7 @@ abstract class GeneratorBase {
 
 					print("(");
 					print(defaultValue);
-					print(")");
-
-
-					print(" : ");
+					print(") : ");
 					printCodecExpr(field.asType(), field);
 					print(".decode(expr_");
 					print(field.getSimpleName());print(", path.append(");
@@ -916,7 +968,7 @@ abstract class GeneratorBase {
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.OPTIONAL_VALUE);
 				print(".decodeOptional((fieldExpr_");
 				print(field.getSimpleName());
-				print("!= null && ");
+				print(" != null && ");
 				printCodecExpr(elementType, field, CodecOverride.CodecType.VALUE);
 				print(".tags().contains(fieldExpr_");
 				print(field.getSimpleName());
@@ -925,16 +977,41 @@ abstract class GeneratorBase {
 				println(");");
 			}
 			else {
-				print("if(args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Not enough arguments\", path.withConstructor(");
-				printStringLiteral(getConstructorName(te));
-				println(")); }");
-				print("var field_");
-				print(field.getSimpleName());
-				print(" = ");
-				printCodecExpr(field.asType(), field, CodecOverride.CodecType.VALUE);
-				print(".decode(args.removeFirst(), path.append(");
-				printStringLiteral(getConstructorName(te));
-				println(", args0.size() - args.size()));");
+				var defaultValue = getDefaultValue(field).orElse(null);
+				if(defaultValue != null) {
+					print("var fieldExpr_");
+					print(field.getSimpleName());
+					println(" = args.peekFirst();");
+
+
+					print("var field_");
+					print(field.getSimpleName());
+					print(" = (fieldExpr_");
+					print(field.getSimpleName());
+					print(" != null && ");
+					printCodecExpr(field.asType(), field, CodecOverride.CodecType.VALUE);
+					print(".tags().contains(fieldExpr_");
+					print(field.getSimpleName());
+					print(".tag())) ? ");
+					printCodecExpr(field.asType(), field, CodecOverride.CodecType.VALUE);
+					print(".decode(args.removeFirst(), path.append(");
+					printStringLiteral(getConstructorName(te));
+					println(", args0.size() - args.size())) : (");
+					print(defaultValue);
+					println(");");
+				}
+				else {
+					print("if(args.isEmpty()) { throw new dev.argon.esexpr.DecodeException(\"Not enough arguments\", path.withConstructor(");
+					printStringLiteral(getConstructorName(te));
+					println(")); }");
+					print("var field_");
+					print(field.getSimpleName());
+					print(" = ");
+					printCodecExpr(field.asType(), field, CodecOverride.CodecType.VALUE);
+					print(".decode(args.removeFirst(), path.append(");
+					printStringLiteral(getConstructorName(te));
+					println(", args0.size() - args.size()));");
+				}
 			}
 		}
 
@@ -1011,6 +1088,7 @@ abstract class GeneratorBase {
 
 	protected abstract void validateAnnotations() throws AbortException;
 	protected abstract ESExprTagSet getTags(Element associatedElement) throws AbortException;
+	protected abstract void writeEncodedEqualImpl() throws IOException, AbortException;
 	protected abstract void writeEncodeImpl() throws IOException, AbortException;
 	protected abstract void writeDecodeImpl() throws IOException, AbortException;
 

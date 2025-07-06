@@ -12,6 +12,15 @@ import java.util.Map;
  */
 public interface DictCodec<T, E> {
 	/**
+	 * Compares two dictionary argument values to determine if they are encoded equivalently.
+	 *
+	 * @param x The first encoded dictionary argument value to compare.
+	 * @param y The second encoded dictionary argument value to compare.
+	 * @return true if the two dictionary argument values are equivalent when encoded, otherwise false.
+	 */
+	boolean isEncodedEqual(T x, T y);
+
+	/**
 	 * Encode a dictionary argument value into a map of expressions.
 	 * @param value The dictionary argument value.
 	 * @return The expressions.

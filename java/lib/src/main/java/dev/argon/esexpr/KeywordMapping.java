@@ -30,6 +30,23 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 			}
 
 			@Override
+			public boolean isEncodedEqual(KeywordMapping<T> x, KeywordMapping<T> y) {
+				if(x.map().size() != y.map().size()) {
+					return false;
+				}
+
+				for(var entryA : x.map().entrySet()) {
+					var other = y.map().get(entryA.getKey());
+
+					if(!tCodec.isEncodedEqual(entryA.getValue(), other)) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			@Override
 			public @NotNull ESExpr encode(@NotNull KeywordMapping<T> value) {
 				var map = dictCodec(tCodec).encodeDict(value);
 				return new ESExpr.Constructor(
@@ -63,6 +80,23 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 	 */
 	public static <T> DictCodec<KeywordMapping<T>, T> dictCodec(ESExprCodec<T> tCodec) {
 		return new DictCodec<>() {
+			@Override
+			public boolean isEncodedEqual(KeywordMapping<T> x, KeywordMapping<T> y) {
+				if(x.map().size() != y.map().size()) {
+					return false;
+				}
+
+				for(var entryA : x.map().entrySet()) {
+					var other = y.map().get(entryA.getKey());
+
+					if(!tCodec.isEncodedEqual(entryA.getValue(), other)) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
 			@Override
 			public Map<String, ESExpr> encodeDict(KeywordMapping<T> value) {
 				Map<String, ESExpr> map = new HashMap<>();

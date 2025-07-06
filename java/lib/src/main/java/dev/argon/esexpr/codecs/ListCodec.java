@@ -32,6 +32,21 @@ public class ListCodec<T> extends ESExprCodec<List<T>> {
 	}
 
 	@Override
+	public boolean isEncodedEqual(List<T> x, List<T> y) {
+		if(x.size() != y.size()) {
+			return false;
+		}
+
+		for(int i = 0; i < x.size(); ++i) {
+			if(!itemCodec.isEncodedEqual(x.get(i), y.get(i))) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	@Override
 	public @NotNull ESExpr encode(@NotNull List<T> value) {
 		return new ESExpr.Constructor("list", value.stream().map(itemCodec::encode).toList(), new HashMap<>());
 	}
