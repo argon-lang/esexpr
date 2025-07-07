@@ -6,8 +6,11 @@ export type ESExpr =
     | bigint
     | string
     | ESExpr.Float16
+    | ESExpr.Float16NaN
     | ESExpr.Float32
+    | ESExpr.Float32NaN
     | number
+    | ESExpr.Float64NaN
     | Uint8Array
     | Uint16Array
     | Uint32Array
@@ -56,10 +59,15 @@ export namespace ESExpr {
                         return e.name;
 
                     case "float16":
+                    case "float16-nan":
                         return Float16Symbol;
 
                     case "float32":
+                    case "float32-nan":
                         return Float32Symbol;
+
+                    case "float64-nan":
+                        return Number;
 
                     case "array128":
                         return Array128Symbol;
@@ -74,12 +82,24 @@ export namespace ESExpr {
         return typeof e === "object" && e !== null && "type" in e && e.type === "constructor";
     }
 
-    export function isFloat16(e: ESExpr): e is ESExpr.Float32 {
+    export function isFloat16(e: ESExpr): e is ESExpr.Float16 {
         return typeof e === "object" && e !== null && "type" in e && e.type === "float16";
+    }
+
+    export function isFloat16NaN(e: ESExpr): e is ESExpr.Float16NaN {
+        return typeof e === "object" && e !== null && "type" in e && e.type === "float16-nan";
     }
 
     export function isFloat32(e: ESExpr): e is ESExpr.Float32 {
         return typeof e === "object" && e !== null && "type" in e && e.type === "float32";
+    }
+
+    export function isFloat32NaN(e: ESExpr): e is ESExpr.Float32NaN {
+        return typeof e === "object" && e !== null && "type" in e && e.type === "float32-nan";
+    }
+
+    export function isFloat64NaN(e: ESExpr): e is ESExpr.Float64NaN {
+        return typeof e === "object" && e !== null && "type" in e && e.type === "float32-nan";
     }
 
     export function isNestedNull(e: ESExpr): e is ESExpr.NestedNull {
@@ -98,9 +118,24 @@ export namespace ESExpr {
         readonly value: number;
     }
 
+    export interface Float16NaN {
+        readonly type: "float16-nan";
+        readonly bits: number;
+    }
+
     export interface Float32 {
         readonly type: "float32";
         readonly value: number;
+    }
+
+    export interface Float32NaN {
+        readonly type: "float32-nan";
+        readonly bits: number;
+    }
+
+    export interface Float64NaN {
+        readonly type: "float64-nan";
+        readonly bits: bigint;
     }
 
     export interface NestedNull {
@@ -206,9 +241,18 @@ export namespace ESExpr {
                 
                 case "float16":
                     return b.type === "float16" && Object.is(a.value, b.value);
+                
+                case "float16-nan":
+                    return b.type === "float16-nan" && a.bits === b.bits;
 
                 case "float32":
                     return b.type === "float32" && Object.is(a.value, b.value);
+                
+                case "float32-nan":
+                    return b.type === "float32-nan" && a.bits === b.bits;
+                
+                case "float64-nan":
+                    return b.type === "float64-nan" && a.bits === b.bits;
 
                 case "null":
                     return b.type === "null" && a.level === b.level;
@@ -688,6 +732,49 @@ export const float16Codec: ESExprCodec<number> = {
         if(ESExpr.isFloat16(expr)) {
             return { success: true, value: expr.value };
         }
+        else if(ESExpr.isFloat16NaN(expr)) {
+            return { success: true, value: Number.NaN };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected a float16",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const float16NaNCodec: ESExprCodec<number | ESExpr.Float16NaN> = {
+    get tags(): ESExprTagSet {
+        return new Set([Float16Symbol]);
+    },
+
+    isEncodedEqual(a, b) {
+        if(typeof a === "number") {
+            return Object.is(a, b);
+        }
+        else {
+            return ESExpr.isFloat16NaN(b) && a.bits === b.bits;
+        }
+    },
+
+    encode: function (value: number | ESExpr.Float16NaN): ESExpr {
+        if(typeof value === "number") {
+            return { type: "float16", value };
+        }
+        else {
+            return value;
+        }
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<number | ESExpr.Float16NaN> {
+        if(ESExpr.isFloat16(expr)) {
+            return { success: true, value: expr.value };
+        }
+        else if(ESExpr.isFloat16NaN(expr)) {
+            return { success: true, value: expr };
+        }
         else {
             return {
                 success: false,
@@ -714,6 +801,49 @@ export const float32Codec: ESExprCodec<number> = {
     decode: function (expr: ESExpr): DecodeResult<number> {
         if(ESExpr.isFloat32(expr)) {
             return { success: true, value: expr.value };
+        }
+        else if(ESExpr.isFloat32NaN(expr)) {
+            return { success: true, value: Number.NaN };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected a float32",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const float32NaNCodec: ESExprCodec<number | ESExpr.Float32NaN> = {
+    get tags(): ESExprTagSet {
+        return new Set([Float32Symbol]);
+    },
+
+    isEncodedEqual(a, b) {
+        if(typeof a === "number") {
+            return Object.is(a, b);
+        }
+        else {
+            return ESExpr.isFloat32NaN(b) && a.bits === b.bits;
+        }
+    },
+
+    encode: function (value: number | ESExpr.Float32NaN): ESExpr {
+        if(typeof value === "number") {
+            return { type: "float32", value };
+        }
+        else {
+            return value;
+        }
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<number | ESExpr.Float32NaN> {
+        if(ESExpr.isFloat32(expr)) {
+            return { success: true, value: expr.value };
+        }
+        else if(ESExpr.isFloat32NaN(expr)) {
+            return { success: true, value: expr };
         }
         else {
             return {
@@ -742,10 +872,45 @@ export const float64Codec: ESExprCodec<number> = {
         if(typeof expr === "number") {
             return { success: true, value: expr };
         }
+        else if(ESExpr.isFloat64NaN(expr)) {
+            return { success: true, value: Number.NaN };
+        }
         else {
             return {
                 success: false,
                 message: "Expected a float64",
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
+export const float64NaNCodec: ESExprCodec<number | ESExpr.Float64NaN> = {
+    get tags(): ESExprTagSet {
+        return new Set([Float16Symbol]);
+    },
+
+    isEncodedEqual(a, b) {
+        if(typeof a === "number") {
+            return Object.is(a, b);
+        }
+        else {
+            return ESExpr.isFloat64NaN(b) && a.bits === b.bits;
+        }
+    },
+
+    encode: function (value: number | ESExpr.Float64NaN): ESExpr {
+        return value;
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<number | ESExpr.Float64NaN> {
+        if(typeof expr === "number" || ESExpr.isFloat64NaN(expr)) {
+            return { success: true, value: expr };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected a float16",
                 path: { type: "current" },
             };
         }

@@ -20,8 +20,11 @@ type Token =
     | { type: "array64_value", value: BigUint64Array }
     | { type: "array128_value", value: Uint8Array }
     | { type: "float16_value", value: number }
+    | { type: "float16_nan", bits: number }
     | { type: "float32_value", value: number }
+    | { type: "float32_nan", bits: number }
     | { type: "float64_value", value: number }
+    | { type: "float64_nan", bits: bigint }
     | { type: "boolean_value", value: boolean }
     | { type: "null_value", level: bigint }
     | { type: "append_string_table" }
@@ -300,8 +303,17 @@ export class ExprReader {
             case "float16_value":
                 return { type: "float16", value: startToken.value };
 
+            case "float16_nan":
+                return { type: "float16-nan", bits: startToken.bits };
+
             case "float32_value":
                 return { type: "float32", value: startToken.value };
+
+            case "float32_nan":
+                return { type: "float32-nan", bits: startToken.bits };
+
+            case "float64_nan":
+                return { type: "float64-nan", bits: startToken.bits };
 
             case "int_value":
             case "float64_value":
@@ -447,23 +459,40 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                     const buff = await reader.readFixed(2);
                     const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
                     const value = dv.getFloat16(0, false);
-                    yield { type: "float16_value", value };
+                    if(Number.isNaN(value)) {
+                        yield { type: "float16_nan", bits: dv.getUint16(0, false) };
+                    }
+                    else {
+                        yield { type: "float16_value", value };
+                    }
                     break;
                 }
 
                 case TAG_FLOAT32:
                 {
                     const buff = await reader.readFixed(4);
-                    const value = new Float32Array(buff.buffer, buff.byteOffset, 1)[0]!;
-                    yield { type: "float32_value", value };
+                    const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
+                    const value = dv.getFloat32(0, false);
+                    if(Number.isNaN(value)) {
+                        yield { type: "float32_nan", bits: dv.getUint32(0, false) };
+                    }
+                    else {
+                        yield { type: "float32_value", value };
+                    }
                     break;
                 }
 
                 case TAG_FLOAT64:
                 {
                     const buff = await reader.readFixed(8);
-                    const value = new Float64Array(buff.buffer, buff.byteOffset, 1)[0]!;
-                    yield { type: "float64_value", value };
+                    const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
+                    const value = dv.getFloat64(0, false);
+                    if(Number.isNaN(value)) {
+                        yield { type: "float64_nan", bits: dv.getBigUint64(0, false) };
+                    }
+                    else {
+                        yield { type: "float64_value", value };
+                    }
                     break;
                 }
 
@@ -746,6 +775,15 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                         break;
                     }
 
+                    case "float16-nan":
+                    {
+                        const data = new Uint8Array(3);
+                        data[0] = TAG_FLOAT16;
+                        new DataView(data.buffer, 1, 2).setUint16(0, e.bits, true);
+                        yield data;
+                        break;
+                    }
+
                     case "float32":
                     {
                         const data = new Uint8Array(5);
@@ -753,6 +791,24 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                         new DataView(data.buffer, 1, 4).setFloat32(0, e.value, true);
                         yield data;
                         break;   
+                    }
+
+                    case "float32-nan":
+                    {
+                        const data = new Uint8Array(5);
+                        data[0] = TAG_FLOAT32;
+                        new DataView(data.buffer, 1, 4).setUint32(0, e.bits, true);
+                        yield data;
+                        break;   
+                    }
+        
+                    case "float64-nan":
+                    {
+                        const data = new Uint8Array(9);
+                        data[0] = TAG_FLOAT64;
+                        new DataView(data.buffer, 1, 8).setBigUint64(0, e.bits, true);
+                        yield data;
+                        break;
                     }
 
                     case "null":
