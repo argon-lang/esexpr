@@ -1,10 +1,14 @@
 package esexpr
 
+import io.circe.DecodingFailure.Reason.WrongTypeExpectation
 import zio.test.*
 import zio.test.Assertion.*
 import zio.*
 import zio.stream.*
-import io.circe.Json
+import io.circe.{Decoder, DecodingFailure, HCursor, Json}
+import esexpr.toFloat16
+
+
 import java.util.Base64
 
 
@@ -67,6 +71,16 @@ object BinaryEncodingTests extends ZIOSpecDefault with EsxbTestLoader {
               }
           }
           .orElse {
+            json.hcursor.downField("float16").as[Json].toOption
+              .map { floatValue =>
+                ESExpr.Float16(floatValue.asString match {
+                  case Some("+inf") => Float16.PositiveInfinity
+                  case Some("-inf") => Float16.NegativeInfinity
+                  case _ => floatValue.asNumber.get.toFloat.toFloat16
+                })
+              }
+          }
+          .orElse {
             json.hcursor.downField("float32").as[Json].toOption
               .map { floatValue =>
                 ESExpr.Float32(floatValue.asString match {
@@ -89,8 +103,43 @@ object BinaryEncodingTests extends ZIOSpecDefault with EsxbTestLoader {
           .orElse {
             json.hcursor.downField("base64").as[String].toOption
               .map { binValue =>
-                ESExpr.Binary(Chunk.fromArray(Base64.getDecoder().decode(binValue)))
+                ESExpr.Array8(Chunk.fromArray(Base64.getDecoder().decode(binValue)))
               }
+          }
+          .orElse {
+            json.hcursor
+              .downField("array8")
+              .as[Seq[Byte]](using arrayNDecoder(_.toByte))
+              .map(a => ESExpr.Array8(Chunk.fromIterable(a)))
+              .toOption
+          }
+          .orElse {
+            json.hcursor
+              .downField("array16")
+              .as[Seq[Short]](using arrayNDecoder(_.toShort))
+              .map(a => ESExpr.Array16(Chunk.fromIterable(a)))
+              .toOption
+          }
+          .orElse {
+            json.hcursor
+              .downField("array32")
+              .as[Seq[Int]](using arrayNDecoder(_.toInt))
+              .map(a => ESExpr.Array32(Chunk.fromIterable(a)))
+              .toOption
+          }
+          .orElse {
+            json.hcursor
+              .downField("array64")
+              .as[Seq[Long]](using arrayNDecoder(_.toLong))
+              .map(a => ESExpr.Array64(Chunk.fromIterable(a)))
+              .toOption
+          }
+          .orElse {
+            json.hcursor
+              .downField("array128")
+              .as[Seq[BigInt]](using arrayNDecoder(identity))
+              .map(a => ESExpr.Array128(Chunk.fromIterator(a.iterator.flatMap(i => Seq(i.toLong, (i >> 64).toLong)))))
+              .toOption
           }
           .orElse {
             json.hcursor.downField("null").as[String].toOption
@@ -101,4 +150,18 @@ object BinaryEncodingTests extends ZIOSpecDefault with EsxbTestLoader {
           .getOrElse { throw new Exception("Unexpected JSON object: " + obj) }
       }
     )
+
+  def arrayNDecoder[I](f: BigInt => I): Decoder[Seq[I]] = {
+    given Decoder[I]:
+      override def apply(c: HCursor): Decoder.Result[I] =
+        if c.value.isNumber then
+          c.value.as[BigInt].map(f)
+        else if c.value.isString then
+          c.value.as[String].map(s => f(BigInt(s)))
+        else
+          Left(DecodingFailure(WrongTypeExpectation("string or int", c.value), c.history))
+    end given
+
+    summon[Decoder[Seq[I]]]
+  }
 }

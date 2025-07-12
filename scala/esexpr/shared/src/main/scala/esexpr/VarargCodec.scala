@@ -6,12 +6,19 @@ import cats.*
 import cats.implicits.given
 
 trait VarargCodec[A] {
+  type ElementType
+  def isEncodedEqual(x: A, y: A): Boolean
   def encodeVararg(value: A): Seq[ESExpr]
   def decodeVararg(exprs: Seq[ESExpr]): Either[(Int, DecodeError), A]
 }
 
 object VarargCodec {
-  given [A: ESExprCodec] => VarargCodec[Seq[A]]:
+  final class SeqVarargCodec[A: ESExprCodec] extends VarargCodec[Seq[A]] {
+    override type ElementType = A
+
+    override def isEncodedEqual(x: Seq[A], y: Seq[A]): Boolean =
+      x.size == y.size && x.zip(y).forall(summon[ESExprCodec[A]].isEncodedEqual.tupled)
+
     def encodeVararg(value: Seq[A]): Seq[ESExpr] =
       value.map(summon[ESExprCodec[A]].encode)
 
@@ -20,5 +27,7 @@ object VarargCodec {
         summon[ESExprCodec[A]].decode(a)
           .left.map { e => (i, e) }
       }
-  end given
+  }
+
+  inline given [A: ESExprCodec] => SeqVarargCodec[A] = SeqVarargCodec[A]
 }

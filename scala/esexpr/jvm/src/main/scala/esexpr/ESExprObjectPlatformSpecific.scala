@@ -5,6 +5,13 @@ import scala.jdk.CollectionConverters.*
 import zio.Chunk
 
 trait ESExprObjectPlatformSpecific {
+
+  private[esexpr] def compareFloat(a: Float, b: Float): Boolean =
+    java.lang.Float.floatToRawIntBits(a) == java.lang.Float.floatToRawIntBits(b)
+
+  private[esexpr] def compareDouble(a: Double, b: Double): Boolean =
+    java.lang.Double.doubleToRawLongBits(a) == java.lang.Double.doubleToRawLongBits(b)
+
   def fromJava(expr: JESExpr): ESExpr =
     expr match {
       case expr: JESExpr.Constructor =>
@@ -17,10 +24,15 @@ trait ESExprObjectPlatformSpecific {
       case expr: JESExpr.Bool => ESExpr.Bool(expr.b)
       case expr: JESExpr.Int => ESExpr.Int(expr.n)
       case expr: JESExpr.Str => ESExpr.Str(expr.s)
-      case expr: JESExpr.Binary => ESExpr.Binary(Chunk.fromArray(expr.b.nn))
+      case expr: JESExpr.Float16 => ESExpr.Float16(Float16.shortBitsToFloat16(expr.f))
       case expr: JESExpr.Float32 => ESExpr.Float32(expr.f)
       case expr: JESExpr.Float64 => ESExpr.Float64(expr.d)
       case expr: JESExpr.Null => ESExpr.Null(expr.level().nn)
+      case expr: JESExpr.Array8 => ESExpr.Array8(Chunk.fromArray(expr.b))
+      case expr: JESExpr.Array16 => ESExpr.Array16(Chunk.fromArray(expr.b))
+      case expr: JESExpr.Array32 => ESExpr.Array32(Chunk.fromArray(expr.b))
+      case expr: JESExpr.Array64 => ESExpr.Array64(Chunk.fromArray(expr.b))
+      case expr: JESExpr.Array128 => ESExpr.Array128(Chunk.fromArray(expr.b))
       case _ => throw new MatchError(expr)
     }
 
@@ -36,10 +48,18 @@ trait ESExprObjectPlatformSpecific {
       case ESExpr.Bool(b) => JESExpr.Bool(b)
       case ESExpr.Int(n) => JESExpr.Int(n.bigInteger)
       case ESExpr.Str(s) => JESExpr.Str(s)
-      case ESExpr.Binary(b) => JESExpr.Binary(b.toArray)
+      case ESExpr.Float16(f) => JESExpr.Float16(Float16.float16ToRawShortBits(f))
+      case ESExpr.Float16NaN(bits) => JESExpr.Float16(bits)
       case ESExpr.Float32(f) => JESExpr.Float32(f)
+      case ESExpr.Float32NaN(bits) => JESExpr.Float32(java.lang.Float.intBitsToFloat(bits))
       case ESExpr.Float64(d) => JESExpr.Float64(d)
+      case ESExpr.Float64NaN(bits) => JESExpr.Float64(java.lang.Double.longBitsToDouble(bits))
       case ESExpr.Null(level) => JESExpr.Null(level.bigInteger)
+      case ESExpr.Array8(b) => JESExpr.Array8(b.toArray)
+      case ESExpr.Array16(b) => JESExpr.Array16(b.toArray)
+      case ESExpr.Array32(b) => JESExpr.Array32(b.toArray)
+      case ESExpr.Array64(b) => JESExpr.Array64(b.toArray)
+      case ESExpr.Array128(b) => JESExpr.Array128(b.toArray)
     }
     
 }

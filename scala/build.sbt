@@ -6,9 +6,7 @@ import scala.sys.process.Process
 
 val zioVersion = "2.1.15"
 
-lazy val commonSettingsNoLibs = Seq(
-  scalaVersion := "3.6.3",
-)
+ThisBuild / scalaVersion := "3.6.3"
 
 publish / skip := true
 
@@ -21,7 +19,7 @@ ThisBuild / credentials += Credentials(
 )
 ThisBuild / resolvers += Resolver.mavenLocal
 
-lazy val commonSettings = commonSettingsNoLibs ++ Seq(
+lazy val commonSettings = Seq(
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 
   libraryDependencies ++= Seq(
@@ -78,7 +76,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
   .jvmConfigure(_.settings(
     jvmSettings,
     libraryDependencies ++= Seq(
-      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.2.1",
+      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.3.0-SNAPSHOT",
       "commons-io" % "commons-io" % "2.18.0" % Test,
     ),
   ))

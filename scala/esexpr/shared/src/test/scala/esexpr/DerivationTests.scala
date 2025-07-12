@@ -26,15 +26,21 @@ object DerivationTests extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("Derivation Tests")(
       suite("Constructor Name Conversion")(
-
+        test("direct")(
+          assertTrue(
+            "test-abc" == ESExprCodec.CodecDerivation.toSExprName("TestABC") &&
+              "test-name-with-parts" == ESExprCodec.CodecDerivation.toSExprName("TestNameWithParts") &&
+              "test-abc-after" == ESExprCodec.CodecDerivation.toSExprName("TestABCAfter")
+          )
+        ),
         codecTest("record")(
-          tags = Some(Set(ESExprTag.Constructor("constructor-name123-conversion"))),
+          tags = Some(ESExprTagSet(ESExprTag.Constructor("constructor-name123-conversion"))),
           expr = ESExpr.Constructor("constructor-name123-conversion", args = Seq(ESExpr.Int(5)), kwargs = Map()),
           value = ConstructorName123Conversion(5),
           invalidExprs = Seq(ESExpr.Constructor("bad-name", args = Seq(ESExpr.Int(5)), kwargs = Map())),
         ),
         codecTest("enum")(
-          tags = Some(Set(ESExprTag.Constructor("my-name123-test"), ESExprTag.Constructor("my-ctor"))),
+          tags = Some(ESExprTagSet(ESExprTag.Constructor("my-name123-test"), ESExprTag.Constructor("my-ctor"))),
           expr = ESExpr.Constructor("my-name123-test", args = Seq(), kwargs = Map()),
           value = ConstructorNameEnum.MyName123Test,
           invalidExprs = Seq(ESExpr.Constructor("bad-name", args = Seq(), kwargs = Map())),
@@ -43,7 +49,7 @@ object DerivationTests extends ZIOSpecDefault {
 
       suite("Custom Constructor Name")(
         codecTest("record")(
-          tags = Some(Set(ESExprTag.Constructor("my-ctor"))),
+          tags = Some(ESExprTagSet(ESExprTag.Constructor("my-ctor"))),
           expr = ESExpr.Constructor("my-ctor", args = Seq(ESExpr.Int(5)), kwargs = Map()),
           value = CustomConstructorName(5),
           invalidExprs = Seq(ESExpr.Constructor("bad-name", args = Seq(ESExpr.Int(5)), kwargs = Map())),
@@ -64,7 +70,7 @@ object DerivationTests extends ZIOSpecDefault {
 
         suite("Inline value")(
           codecTest("inline case")(
-            tags = Some(Set(ESExprTag.Constructor("normal-case"), ESExprTag.Bool)),
+            tags = Some(ESExprTagSet(ESExprTag.Constructor("normal-case"), ESExprTag.Bool)),
             expr = ESExpr.Bool(true),
             value = InlineValueTest.Flag(true),
             invalidExprs = Seq(ESExpr.Constructor("flag", Seq(ESExpr.Bool(true)), Map())),
@@ -206,7 +212,7 @@ object DerivationTests extends ZIOSpecDefault {
 
         suite("SimpleEnum")(
           codecTest("A")(
-            tags = Some(Set(ESExprTag.Str)),
+            tags = Some(ESExprTagSet(ESExprTag.Str)),
 
             expr = ESExpr.Str("a"),
             value = SimpleEnum.A,
@@ -241,7 +247,7 @@ object DerivationTests extends ZIOSpecDefault {
           @constructor("many")
           case Value(
             @dict kwargs: Map[String, Boolean],
-          @vararg args: Seq[Boolean],
+            @vararg args: Seq[Boolean],
           )
         }
 
@@ -271,7 +277,133 @@ object DerivationTests extends ZIOSpecDefault {
             ),
           ),
         )
-      }
+      },
+
+      {
+        final case class OptionalPositional(
+          @optional a: Option[Boolean],
+          @optional b: Option[String],
+        ) derives ESExprCodec, CanEqual
+
+        suite("Optional positional")(
+          codecTest("both")(
+            expr = ESExpr.Constructor(
+              "optional-positional",
+              Seq(ESExpr.Bool(true), ESExpr.Str("A")),
+              Map(),
+            ),
+            value = OptionalPositional(Some(true), Some("A")),
+          ),
+          codecTest("first")(
+            expr = ESExpr.Constructor(
+              "optional-positional",
+              Seq(ESExpr.Bool(true)),
+              Map(),
+            ),
+            value = OptionalPositional(Some(true), None),
+          ),
+          codecTest("both")(
+            expr = ESExpr.Constructor(
+              "optional-positional",
+              Seq(ESExpr.Str("A")),
+              Map(),
+            ),
+            value = OptionalPositional(None, Some("A")),
+          ),
+          codecTest("none")(
+            expr = ESExpr.Constructor(
+              "optional-positional",
+              Seq(),
+              Map(),
+            ),
+            value = OptionalPositional(None, None),
+          ),
+        )
+      },
+
+      {
+        final case class DefaultPositional(
+          a: Boolean = false,
+          b: String = "X",
+        ) derives ESExprCodec, CanEqual
+
+        suite("Default positional")(
+          codecTest("both")(
+            expr = ESExpr.Constructor(
+              "default-positional",
+              Seq(ESExpr.Bool(true), ESExpr.Str("A")),
+              Map(),
+            ),
+            value = DefaultPositional(true, "A"),
+          ),
+          codecTest("first")(
+            expr = ESExpr.Constructor(
+              "default-positional",
+              Seq(ESExpr.Bool(true)),
+              Map(),
+            ),
+            value = DefaultPositional(true, "X"),
+          ),
+          codecTest("both")(
+            expr = ESExpr.Constructor(
+              "default-positional",
+              Seq(ESExpr.Str("A")),
+              Map(),
+            ),
+            value = DefaultPositional(false, "A"),
+          ),
+          codecTest("none")(
+            expr = ESExpr.Constructor(
+              "default-positional",
+              Seq(),
+              Map(),
+            ),
+            value = DefaultPositional(false, "X"),
+          ),
+        )
+      },
+
+      {
+        final case class DefaultPositional2(
+          @defaultValue(false) a: Boolean,
+          @defaultValue("X") b: String,
+        ) derives ESExprCodec, CanEqual
+
+        suite("Default positional2")(
+          codecTest("both")(
+            expr = ESExpr.Constructor(
+              "default-positional2",
+              Seq(ESExpr.Bool(true), ESExpr.Str("A")),
+              Map(),
+            ),
+            value = DefaultPositional2(true, "A"),
+          ),
+          codecTest("first")(
+            expr = ESExpr.Constructor(
+              "default-positional2",
+              Seq(ESExpr.Bool(true)),
+              Map(),
+            ),
+            value = DefaultPositional2(true, "X"),
+          ),
+          codecTest("both")(
+            expr = ESExpr.Constructor(
+              "default-positional2",
+              Seq(ESExpr.Str("A")),
+              Map(),
+            ),
+            value = DefaultPositional2(false, "A"),
+          ),
+          codecTest("none")(
+            expr = ESExpr.Constructor(
+              "default-positional2",
+              Seq(),
+              Map(),
+            ),
+            value = DefaultPositional2(false, "X"),
+          ),
+        )
+      },
     )
 
 
@@ -281,7 +413,7 @@ object DerivationTests extends ZIOSpecDefault {
     expr: ESExpr,
     value: A,
 
-    tags: Option[Set[ESExprTag]] = None,
+    tags: Option[ESExprTagSet] = None,
     invalidExprs: Seq[ESExpr] = Seq(),
   )(using codec: ESExprCodec[A], eqA: CanEqual[A, A]): Spec[TestEnvironment & Scope, Any] =
     suite(name)((
