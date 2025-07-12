@@ -77,7 +77,7 @@ const u8ToU16: (u8: Uint8Array, len: number) => Uint16Array = isBigEndian
     ? ((u8, len) => {
         const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
         for(let i = 0; i < len; ++i) {
-            buff.setUint16(i * 2, buff.getUint16(i * 2, true), false);
+            buff.setUint16(i * 2, buff.getUint16(i * 2, false), true);
         }
         return new Uint16Array(u8.buffer, u8.byteOffset, len);
     })
@@ -87,7 +87,7 @@ const u8ToU32: (u8: Uint8Array, len: number) => Uint32Array = isBigEndian
     ? ((u8, len) => {
         const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
         for(let i = 0; i < len; ++i) {
-            buff.setUint32(i * 4, buff.getUint32(i * 4, true), false);
+            buff.setUint32(i * 4, buff.getUint32(i * 4, false), true);
         }
         return new Uint32Array(u8.buffer, u8.byteOffset, len);
     })
@@ -97,7 +97,7 @@ const u8ToU64: (u8: Uint8Array, len: number) => BigUint64Array = isBigEndian
     ? ((u8, len) => {
         const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
         for(let i = 0; i < len; ++i) {
-            buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, true), false);
+            buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, false), true);
         }
         return new BigUint64Array(u8.buffer, u8.byteOffset, len);
     })
@@ -107,7 +107,7 @@ const u16ToU8: (u16: Uint16Array) => Uint8Array = isBigEndian
     ? (u16 => {
         const buff = new DataView(u16.buffer, u16.byteOffset, u16.byteLength);
         for (let i = 0; i < u16.length; ++i) {
-            buff.setUint16(i * 2, buff.getUint16(i * 2, false), true);
+            buff.setUint16(i * 2, buff.getUint16(i * 2, true), false);
         }
         return new Uint8Array(u16.buffer, u16.byteOffset, u16.byteLength);
     })
@@ -117,7 +117,7 @@ const u32ToU8: (u32: Uint32Array) => Uint8Array = isBigEndian
     ? (u32 => {
         const buff = new DataView(u32.buffer, u32.byteOffset, u32.byteLength);
         for (let i = 0; i < u32.length; ++i) {
-            buff.setUint32(i * 4, buff.getUint32(i * 4, false), true);
+            buff.setUint32(i * 4, buff.getUint32(i * 4, true), false);
         }
         return new Uint8Array(u32.buffer, u32.byteOffset, u32.byteLength);
     })
@@ -127,7 +127,7 @@ const u64ToU8: (u64: BigUint64Array) => Uint8Array = isBigEndian
     ? (u64 => {
         const buff = new DataView(u64.buffer, u64.byteOffset, u64.byteLength);
         for (let i = 0; i < u64.length; ++i) {
-            buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, false), true);
+            buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, true), false);
         }
         return new Uint8Array(u64.buffer, u64.byteOffset, u64.byteLength);
     })
@@ -458,9 +458,9 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                 {
                     const buff = await reader.readFixed(2);
                     const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
-                    const value = dv.getFloat16(0, false);
+                    const value = dv.getFloat16(0, true);
                     if(Number.isNaN(value)) {
-                        yield { type: "float16_nan", bits: dv.getUint16(0, false) };
+                        yield { type: "float16_nan", bits: dv.getUint16(0, true) };
                     }
                     else {
                         yield { type: "float16_value", value };
@@ -472,9 +472,9 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                 {
                     const buff = await reader.readFixed(4);
                     const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
-                    const value = dv.getFloat32(0, false);
+                    const value = dv.getFloat32(0, true);
                     if(Number.isNaN(value)) {
-                        yield { type: "float32_nan", bits: dv.getUint32(0, false) };
+                        yield { type: "float32_nan", bits: dv.getUint32(0, true) };
                     }
                     else {
                         yield { type: "float32_value", value };
@@ -486,9 +486,9 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
                 {
                     const buff = await reader.readFixed(8);
                     const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
-                    const value = dv.getFloat64(0, false);
+                    const value = dv.getFloat64(0, true);
                     if(Number.isNaN(value)) {
-                        yield { type: "float64_nan", bits: dv.getBigUint64(0, false) };
+                        yield { type: "float64_nan", bits: dv.getBigUint64(0, true) };
                     }
                     else {
                         yield { type: "float64_value", value };

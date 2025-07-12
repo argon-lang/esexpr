@@ -206,10 +206,6 @@ for(const file of await fs.readdir(dir, { withFileTypes: true })) {
     if(path.extname(file.name) !== ".esxb") {
         continue;
     }
-
-    if(!file.name.endsWith("array16.esxb")) {
-        continue;
-    }
     
     const fileName = path.join(dir, file.name);
     
