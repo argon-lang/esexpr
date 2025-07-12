@@ -4,9 +4,9 @@ import _root_.io.circe.Json
 
 import scala.sys.process.Process
 
-val zioVersion = "2.1.15"
+val zioVersion = "2.1.19"
 
-ThisBuild / scalaVersion := "3.6.3"
+ThisBuild / scalaVersion := "3.7.1"
 
 publish / skip := true
 
@@ -77,7 +77,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
     jvmSettings,
     libraryDependencies ++= Seq(
       "dev.argon.esexpr" % "esexpr-java-runtime" % "0.3.0-SNAPSHOT",
-      "commons-io" % "commons-io" % "2.18.0" % Test,
+      "commons-io" % "commons-io" % "2.19.0" % Test,
     ),
   ))
   .jsConfigure(_.settings(
@@ -143,9 +143,9 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
 
 
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core" % "0.14.10" % Test,
-      "io.circe" %%% "circe-generic" % "0.14.10" % Test,
-      "io.circe" %%% "circe-parser" % "0.14.10" % Test,
+      "io.circe" %%% "circe-core" % "0.14.14" % Test,
+      "io.circe" %%% "circe-generic" % "0.14.14" % Test,
+      "io.circe" %%% "circe-parser" % "0.14.14" % Test,
     )
 
 

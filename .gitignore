@@ -7,6 +7,7 @@
 /rust/**/target/
 
 /scala/**/target/
+/scala/**/metals.sbt
 
 /java/**/build/
 /java/**/bin/
