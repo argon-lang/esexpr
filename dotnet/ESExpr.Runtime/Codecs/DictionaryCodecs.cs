@@ -170,7 +170,7 @@ public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict>
 	
 	internal const string DictConstructor = "dict";
 
-	public ISet<ESExprTag> Tags => itemCodec.Tags;
+	public ISet<ESExprTag> ElementTags => itemCodec.Tags;
 	
 	public bool IsEncodedEqual(TDict a, TDict b) =>
 		GetCount(a) == GetCount(b) &&

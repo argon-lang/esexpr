@@ -109,7 +109,7 @@ public abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList>
 	protected abstract int GetCount(TList list);
 	
 	
-	public ISet<ESExprTag> Tags { get; } = new HashSet<ESExprTag>([new ESExprTag.Constructor(ListCodecBase<T, TList>.ListConstructor)]);
+	public ISet<ESExprTag> ElementTags { get; } = new HashSet<ESExprTag>([new ESExprTag.Constructor(ListCodecBase<T, TList>.ListConstructor)]);
 
 
 	public bool IsEncodedEqual(TList a, TList b) =>
@@ -120,8 +120,27 @@ public abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList>
 		return value.Select(itemCodec.Encode);
 	}
 
-	public TList DecodeVararg(IReadOnlyList<Expr> value, Func<int, DecodeFailurePath> pathBuilder) {
-		return CreateList(value.Select((arg, index) => itemCodec.Decode(arg, pathBuilder(index))));
+	public TList DecodeVararg(ref SliceList<Expr> value, Func<int, DecodeFailurePath> pathBuilder) {
+		var res = CreateList(
+			value
+				.TakeWhile(expr => itemCodec.Tags.Contains(expr.Tag))
+				.Select((expr, i) => itemCodec.Decode(expr, pathBuilder(i)))
+		);
+
+		value = value.Slice(GetCount(res));
+
+		return res;
+	}
+
+	private IEnumerable<T> DecodeItems(Queue<Expr> queue, Func<int, DecodeFailurePath> pathBuilder) {
+		while(queue.TryPeek(out var item)) {
+			if(!itemCodec.Tags.Contains(item.Tag)) {
+				break;
+			}
+			
+			queue.Dequeue();
+			yield return itemCodec.Decode(item, pathBuilder(0));
+		}
 	}
 }
 

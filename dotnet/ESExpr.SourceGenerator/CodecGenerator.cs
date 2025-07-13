@@ -414,10 +414,11 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 									InvocationExpression(
 										MemberAccessExpression(
 											SyntaxKind.SimpleMemberAccessExpression,
-											propertyValue,
-											IdentifierName("Equals")
+											GetCodecExpr(field.Type),
+											IdentifierName("IsEncodedEqual")
 										),
 										ArgumentList(SeparatedList([
+											Argument(propertyValue),
 											Argument(defaultValue.Syntax),
 										]))
 									)
@@ -587,6 +588,65 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 					stmts.Add(Block(
 						ifStatement
+					));
+				}
+				else if(field.DefaultValue is { } defaultValue) {
+					var codecExpr = GetCodecExpr(field.Type);
+
+					stmts.Add(Block(
+						LocalDeclarationStatement(
+							VariableDeclaration(ESExprType)
+								.WithVariables(
+									SingletonSeparatedList(
+										VariableDeclarator(Identifier("encodedExpr"))
+											.WithInitializer(
+												EqualsValueClause(
+													InvocationExpression(
+														MemberAccessExpression(
+															SyntaxKind.SimpleMemberAccessExpression,
+															codecExpr,
+															IdentifierName("Encode")
+														),
+														ArgumentList(SeparatedList([
+															Argument(propertyValue),
+														]))
+													)
+												)
+											)
+									)
+								)
+						),
+
+						IfStatement(
+							PrefixUnaryExpression(
+								SyntaxKind.LogicalNotExpression,
+								InvocationExpression(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										codecExpr,
+										IdentifierName("IsEncodedEqual")
+									),
+									ArgumentList(SeparatedList([
+										Argument(propertyValue),
+										Argument(defaultValue.Syntax),
+									]))
+								)
+							),
+							Block(
+								ExpressionStatement(
+									InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											IdentifierName("args"),
+											IdentifierName("Add")
+										),
+										ArgumentList(SeparatedList([
+											Argument(IdentifierName("encodedExpr")),
+										]))
+									)
+								)
+							)
+						)
 					));
 				}
 				else {
@@ -805,7 +865,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						IdentifierName("DecodeVararg")
 					),
 					ArgumentList(SeparatedList([
-						Argument(IdentifierName("args")),
+						Argument(IdentifierName("args"))
+							.WithRefOrOutKeyword(Token(SyntaxKind.RefKeyword)),
 						Argument(pathExpr),
 					]))
 				);
@@ -899,17 +960,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				stmts.Add(clearStatement);
 			}
 			else {
-
-
-				var ifCondition = BinaryExpression(
-					SyntaxKind.EqualsExpression,
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						IdentifierName("args"),
-						IdentifierName("Count")),
-					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
-				);
-
 				var exprExpr =
 					ElementAccessExpression(IdentifierName("args"))
 						.WithArgumentList(
@@ -975,20 +1025,145 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							)
 					));
 
+					var ifCondition = BinaryExpression(
+						SyntaxKind.LogicalAndExpression,
+						BinaryExpression(
+							SyntaxKind.NotEqualsExpression,
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("args"),
+								IdentifierName("Count")),
+							LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+						),
+						InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									GetOptionalCodecExpr(field.Type),
+									IdentifierName("ElementTags")
+								),
+								IdentifierName("Contains")
+							),
+							ArgumentList(SingletonSeparatedList(
+								Argument(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										exprExpr,
+										IdentifierName("Tag")
+									)
+								)
+							))
+						)
+					);
 
 					var ifStatement = IfStatement(
 						ifCondition,
 						Block(
-							ExpressionStatement(DecodeOptionalExpr(LiteralExpression(SyntaxKind.NullLiteralExpression)))
-						),
-						ElseClause(Block(
 							ExpressionStatement(DecodeOptionalExpr(exprExpr)),
 							sliceStatement
+						),
+						ElseClause(Block(
+							ExpressionStatement(DecodeOptionalExpr(LiteralExpression(SyntaxKind.NullLiteralExpression)))
+						))
+					);
+					stmts.Add(ifStatement);
+				}
+				else if(field.DefaultValue is { } defaultValue) {
+					var codecExpr = GetCodecExpr(field.Type);
+
+					stmts.Add(LocalDeclarationStatement(
+						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
+							.WithVariables(
+								SingletonSeparatedList(
+									VariableDeclarator(Identifier(localName))
+								)
+							)
+					));
+					
+					var ifCondition = BinaryExpression(
+						SyntaxKind.LogicalAndExpression,
+						BinaryExpression(
+							SyntaxKind.NotEqualsExpression,
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("args"),
+								IdentifierName("Count")),
+							LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+						),
+						InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									codecExpr,
+									IdentifierName("Tags")
+								),
+								IdentifierName("Contains")
+							),
+							ArgumentList(SingletonSeparatedList(
+								Argument(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										ElementAccessExpression(
+											IdentifierName("args"),
+											BracketedArgumentList(SingletonSeparatedList(
+												Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression,
+													Literal(0)))
+											))
+										),
+										IdentifierName("Tag")
+									)
+								)
+							))
+						)
+					);
+					
+					
+					var ifStatement = IfStatement(
+						ifCondition,
+						Block(
+							ExpressionStatement(
+								AssignmentExpression(
+									SyntaxKind.SimpleAssignmentExpression,
+									IdentifierName(localName),
+									InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											codecExpr,
+											IdentifierName("Decode")
+										),
+										ArgumentList(SeparatedList([
+											Argument(exprExpr),
+											Argument(pathExpr),
+										]))
+									)
+								)
+							),
+							sliceStatement
+						),
+						ElseClause(Block(
+							ExpressionStatement(
+								AssignmentExpression(
+									SyntaxKind.SimpleAssignmentExpression,
+									IdentifierName(localName),
+									defaultValue.Syntax
+								)
+							)
 						))
 					);
 					stmts.Add(ifStatement);
 				}
 				else {
+					var ifCondition = BinaryExpression(
+						SyntaxKind.EqualsExpression,
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							IdentifierName("args"),
+							IdentifierName("Count")),
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+					);
+					
 					var codecExpr = GetCodecExpr(field.Type);
 
 					var throwStatement = ThrowStatement(

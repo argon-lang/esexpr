@@ -120,6 +120,8 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 		private readonly IESExprCodec<T> elementCodec;
 
+		public ISet<ESExprTag> ElementTags => elementCodec.Tags;
+
 		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
 			if(!a.hasValue) {
 				return !b.hasValue;
