@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ESExpr.Runtime.Codecs;
 
 namespace ESExpr.Runtime;
 
@@ -229,7 +230,7 @@ public class ESExprBinaryReader {
 				break;
 
 			case BinToken.TokenType.ConstructorStartList:
-				expr = await ReadConstructor(VList<int>.Codec.ListConstructor, cancellationToken).ConfigureAwait(false);
+				expr = await ReadConstructor(ListCodecBase<int, List<int>>.ListConstructor, cancellationToken).ConfigureAwait(false);
 				break;
 
 			case BinToken.TokenType.AppendStringTable: {

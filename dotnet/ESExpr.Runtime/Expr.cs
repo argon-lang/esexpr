@@ -12,8 +12,8 @@ public abstract record Expr {
 
 	public sealed record Constructor(
 		string constructor,
-		VList<Expr> args,
-		VDict<Expr> kwargs
+		ImmutableList<Expr> args,
+		ImmutableDictionary<string, Expr> kwargs
 	) : Expr {
 		public Constructor(string constructor, IReadOnlyList<Expr> args, IReadOnlyDictionary<string, Expr> kwargs)
 			: this(constructor, args.ToImmutableList(), kwargs.ToImmutableDictionary()) { }

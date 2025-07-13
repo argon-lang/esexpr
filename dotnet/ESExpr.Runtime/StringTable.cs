@@ -6,7 +6,7 @@ using ESExpr.Runtime.Codecs;
 
 namespace ESExpr.Runtime;
 
-public record StringTable(VList<string> strings) {
+public record StringTable(ImmutableList<string> strings) {
 	public class Codec : IESExprCodec<StringTable> {
 		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Constructor("string-table")];
 

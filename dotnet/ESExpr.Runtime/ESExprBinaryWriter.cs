@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ESExpr.Runtime.Codecs;
 
 namespace ESExpr.Runtime;
 
@@ -55,7 +56,7 @@ public class ESExprBinaryWriter {
 						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartStringTable, null), cancellationToken).ConfigureAwait(false);
 						break;
 
-					case VList<int>.Codec.ListConstructor:
+					case ListCodecBase<int, List<int>>.ListConstructor:
 						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartList, null), cancellationToken).ConfigureAwait(false);
 						break;
 
@@ -323,7 +324,7 @@ public class ESExprBinaryWriter {
 		}
 
 		if(expr is Expr.Constructor(var name, var args, var kwargs)) {
-			if(name != VList<int>.Codec.ListConstructor && name != StringTable.Codec.StringTableConstructor) {
+			if(name != ListCodecBase<int, List<int>>.ListConstructor && name != StringTable.Codec.StringTableConstructor) {
 				AddSymbol(name);
 			}
 
