@@ -196,7 +196,7 @@ mod tests {
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 	use esexpr::cowstr::CowStr;
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagCollection, ESExprEncodedEq, esexpr};
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagSet, ESExprEncodedEq, esexpr};
 
 	use super::*;
 
@@ -209,7 +209,7 @@ mod tests {
 		let value = ConstructorName123Conversion { a: 5 };
 
 		assert_eq!(
-			ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("constructor-name123-conversion"))]),
+			ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("constructor-name123-conversion"))]),
 			ConstructorName123Conversion::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
@@ -227,7 +227,7 @@ mod tests {
 		let value = ConstructorNameEnum::MyName123Test;
 
 		assert_eq!(
-			ESExprTagCollection::Tags(&[
+			ESExprTagSet::Tags(&[
 				ESExprTag::Constructor(CowStr::Static("my-name123-test")),
 				ESExprTag::Constructor(CowStr::Static("my-ctor")),
 			]),
@@ -277,7 +277,7 @@ mod tests {
 		let value = InlineValueTest::Flag(true);
 
 		assert_eq!(
-			ESExprTagCollection::Tags(&[ESExprTag::Bool, ESExprTag::Constructor(CowStr::Static("normal-case"))]),
+			ESExprTagSet::Tags(&[ESExprTag::Bool, ESExprTag::Constructor(CowStr::Static("normal-case"))]),
 			InlineValueTest::TAGS
 		);
 		assert_eq!(expr, value.encode_esexpr());
@@ -333,7 +333,7 @@ mod tests {
 			f: Some(true),
 		};
 
-		let tags = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("keywords"))]);
+		let tags = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("keywords"))]);
 
 		assert_eq!(tags, KeywordStruct::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
@@ -396,7 +396,7 @@ mod tests {
 		let expr = esexpr!("a");
 		let value = SimpleEnum::A;
 
-		assert_eq!(ESExprTagCollection::Tags(&[ESExprTag::Str]), SimpleEnum::TAGS);
+		assert_eq!(ESExprTagSet::Tags(&[ESExprTag::Str]), SimpleEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
 		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
 

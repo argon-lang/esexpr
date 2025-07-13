@@ -165,10 +165,10 @@ const fn compare_str_bytes(s1: &[u8], s2: &[u8]) -> bool {
 	true
 }
 
-/// A collection of tags.
+/// A set of tags.
 /// Used over standard collections to support const operations.
 #[derive(Clone, Copy, Debug)]
-pub enum ESExprTagCollection {
+pub enum ESExprTagSet {
 	/// The set of all tags.
 	All,
 
@@ -176,17 +176,17 @@ pub enum ESExprTagCollection {
 	Tags(&'static [ESExprTag<'static>]),
 
 	/// A compound collection of tags.
-	Concat(&'static [ESExprTagCollection]),
+	Concat(&'static [ESExprTagSet]),
 }
 
-impl ESExprTagCollection {
+impl ESExprTagSet {
 	/// Check if a tag collection is empty.
 	#[must_use]
 	pub const fn is_empty(self) -> bool {
 		match self {
-			ESExprTagCollection::All => false,
-			ESExprTagCollection::Tags(tags) => tags.is_empty(),
-			ESExprTagCollection::Concat(mut collections) => loop {
+			ESExprTagSet::All => false,
+			ESExprTagSet::Tags(tags) => tags.is_empty(),
+			ESExprTagSet::Concat(mut collections) => loop {
 				let Some((&head, tail)) = collections.split_first()
 				else {
 					return true;
@@ -205,9 +205,9 @@ impl ESExprTagCollection {
 	#[must_use]
 	pub const fn is_all(self) -> bool {
 		match self {
-			ESExprTagCollection::All => true,
-			ESExprTagCollection::Tags(_) => false,
-			ESExprTagCollection::Concat(mut collections) => loop {
+			ESExprTagSet::All => true,
+			ESExprTagSet::Tags(_) => false,
+			ESExprTagSet::Concat(mut collections) => loop {
 				let Some((&head, tail)) = collections.split_first()
 				else {
 					return false;
@@ -226,8 +226,8 @@ impl ESExprTagCollection {
 	#[must_use]
 	pub const fn contains(self, tag: &ESExprTag) -> bool {
 		match self {
-			ESExprTagCollection::All => true,
-			ESExprTagCollection::Tags(mut tags) => loop {
+			ESExprTagSet::All => true,
+			ESExprTagSet::Tags(mut tags) => loop {
 				let Some((head, tail)) = tags.split_first()
 				else {
 					return false;
@@ -239,7 +239,7 @@ impl ESExprTagCollection {
 
 				tags = tail;
 			},
-			ESExprTagCollection::Concat(mut collections) => loop {
+			ESExprTagSet::Concat(mut collections) => loop {
 				let Some((&head, tail)) = collections.split_first()
 				else {
 					return false;
@@ -256,10 +256,10 @@ impl ESExprTagCollection {
 
 	/// Check if a tag collection is disjoint from another tag collection.
 	#[must_use]
-	pub const fn is_disjoint(self, other: ESExprTagCollection) -> bool {
+	pub const fn is_disjoint(self, other: ESExprTagSet) -> bool {
 		match other {
-			ESExprTagCollection::All => self.is_empty(),
-			ESExprTagCollection::Tags(mut tags) => loop {
+			ESExprTagSet::All => self.is_empty(),
+			ESExprTagSet::Tags(mut tags) => loop {
 				let Some((head, tail)) = tags.split_first()
 				else {
 					return true;
@@ -271,7 +271,7 @@ impl ESExprTagCollection {
 
 				tags = tail;
 			},
-			ESExprTagCollection::Concat(mut collections) => loop {
+			ESExprTagSet::Concat(mut collections) => loop {
 				let Some((&head, tail)) = collections.split_first()
 				else {
 					return true;
@@ -288,10 +288,10 @@ impl ESExprTagCollection {
 
 	/// Check if a tag collection is a subset of another tag collection.
 	#[must_use]
-	pub const fn is_subset(self, other: ESExprTagCollection) -> bool {
+	pub const fn is_subset(self, other: ESExprTagSet) -> bool {
 		match self {
-			ESExprTagCollection::All => other.is_all(),
-			ESExprTagCollection::Tags(mut tags) => loop {
+			ESExprTagSet::All => other.is_all(),
+			ESExprTagSet::Tags(mut tags) => loop {
 				let Some((head, tail)) = tags.split_first()
 				else {
 					return true;
@@ -303,7 +303,7 @@ impl ESExprTagCollection {
 
 				tags = tail;
 			},
-			ESExprTagCollection::Concat(mut collections) => loop {
+			ESExprTagSet::Concat(mut collections) => loop {
 				let Some((&head, tail)) = collections.split_first()
 				else {
 					return true;
@@ -320,19 +320,19 @@ impl ESExprTagCollection {
 
 	/// Check if a tag collection is equal to another tag collection.
 	#[must_use]
-	pub const fn is_equal(self, other: ESExprTagCollection) -> bool {
+	pub const fn is_equal(self, other: ESExprTagSet) -> bool {
 		self.is_subset(other) && other.is_subset(self)
 	}
 }
 
-impl PartialEq for ESExprTagCollection {
+impl PartialEq for ESExprTagSet {
 	#[inline]
 	fn eq(&self, other: &Self) -> bool {
 		self.is_equal(*other)
 	}
 }
 
-impl Eq for ESExprTagCollection {}
+impl Eq for ESExprTagSet {}
 
 #[cfg(test)]
 mod tests {
@@ -342,11 +342,11 @@ mod tests {
 	#[test]
 	fn tag_collection_disjoint() {
 		assert!(
-			ESExprTagCollection::Tags(&[ESExprTag::Int]).is_disjoint(ESExprTagCollection::Tags(&[ESExprTag::Float32])),
+			ESExprTagSet::Tags(&[ESExprTag::Int]).is_disjoint(ESExprTagSet::Tags(&[ESExprTag::Float32])),
 		);
 
 		assert!(
-			ESExprTagCollection::Concat(&[
+			ESExprTagSet::Concat(&[
 				i32::TAGS,
 				f32::TAGS,
 			],)

@@ -6,6 +6,7 @@ import dev.argon.esexpr.ESExprTagSet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -49,11 +50,18 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 		println("var s = switch(value) {");
 		indent();
 
+		var names = new HashSet<String>();
+
 		for(var c : getCases()) {
+			var name = getConstructorNameSimpleEnum(c);
+			if(!names.add(name)) {
+				env.getMessager().printError("Duplicate enum value: " + name, elem);
+			}
+
 			print("case ");
 			print(c.getSimpleName());
 			print(" -> ");
-			printStringLiteral(getConstructorNameSimpleEnum(c));
+			printStringLiteral(name);
 			println(";");
 		}
 

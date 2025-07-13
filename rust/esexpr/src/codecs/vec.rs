@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use esexpr::expr::ESExprConstructor;
 
 use crate::cowstr::CowStr;
-use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagCollection, ESExprVarArgCodec};
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagSet, ESExprVarArgCodec};
 
 impl<A: ESExprEncodedEq> ESExprEncodedEq for Vec<A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -16,7 +16,7 @@ impl<A: ESExprEncodedEq> ESExprEncodedEq for Vec<A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Vec<A> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("list"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("list"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::<'a>::constructor(

@@ -97,6 +97,8 @@ final class EnumCodecGenerator extends GeneratorBase {
 
 	@Override
 	protected void writeEncodeImpl() throws IOException, AbortException {
+		ESExprTagSet tags = ESExprTagSet.of();
+
 		println("return switch(value) {");
 		indent();
 
@@ -109,8 +111,13 @@ final class EnumCodecGenerator extends GeneratorBase {
 			println(" caseValue -> {");
 			indent();
 
+			ESExprTagSet caseTags;
+
 			if(isInlineValue(c)) {
 				var field = getFields(c).get(0);
+
+				caseTags = lookupTags(field.asType(), elem);
+
 				print("yield ");
 				printCodecExpr(field.asType(), field);
 				print(".encode(caseValue.");
@@ -118,9 +125,15 @@ final class EnumCodecGenerator extends GeneratorBase {
 				println("());");
 			}
 			else {
+				caseTags = ESExprTagSet.of(new ESExprTag.Constructor(getConstructorName(c)));
 				writeEncodeFields(c, "caseValue", true);
 			}
 
+			if(!tags.isDisjoint(caseTags)) {
+				env.getMessager().printError("Overlapping tags for enum: " + tags + " and " + caseTags, c);
+			}
+
+			tags = tags.union(caseTags);
 
 			dedent();
 			println("}");

@@ -132,7 +132,7 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 	quote! {
 		impl #type_params ::esexpr::ESExprCodec<'esexpr_lifetime> for #type_name #generics_lt #type_args #generics_gt {
 
-			const TAGS: ::esexpr::ESExprTagCollection = {
+			const TAGS: ::esexpr::ESExprTagSet = {
 				#tags
 			};
 
@@ -251,7 +251,7 @@ fn get_esexpr_tag(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> Toke
 
 	fn make_set_of(e: Expr) -> proc_macro2::TokenStream {
 		quote! {
-			::esexpr::ESExprTagCollection::Tags(&[#e])
+			::esexpr::ESExprTagSet::Tags(&[#e])
 		}
 	}
 
@@ -284,7 +284,7 @@ fn get_esexpr_tag(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> Toke
 				.collect::<Result<_, _>>()?;
 
 			quote! {
-				::esexpr::ESExprTagCollection::Concat(&[ #(#case_tags,)* ])
+				::esexpr::ESExprTagSet::Concat(&[ #(#case_tags,)* ])
 			}
 		},
 
@@ -394,43 +394,52 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
                     Fields::Unit => quote! { #type_name::#case_name },
                 };
 
+				let field_tags;
+				let case_tokens;
+				
                 if variant_attr.inline_value.is_present() {
                     let field = get_inline_value_field(c)?;
                     let field_name = make_field_name(field.ident.as_ref(), 0);
                     let field_type = &field.ty;
 					
-					let field_tags = quote! {
+					field_tags = quote! {
 						<#field_type as ::esexpr::ESExprCodec>::TAGS
 					};
 
-					let message_disjoint = format!("Inline value case '{case_name}' must have distinct tags from immediately preceding optional positional arguments");
-					
-					case_tag_assertions.push(quote! {
-						assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#case_tag_exprs,)* ]).is_disjoint(#field_tags), #message_disjoint);
-					});
-					
-					case_tag_exprs.push(field_tags);
-
-                    Ok(quote! {
+                    case_tokens = quote! {
                         #pattern => {
                             <#field_type as ::esexpr::ESExprCodec>::encode_esexpr(#field_name)
                         }
-                    })
+                    };
                 }
                 else {
                     let constructor_name = make_constructor_name(variant_attr.constructor.as_ref(), case_name);
 
                     let encode_fields = make_encode_fields(&c.fields, make_field_name)?;
 
-                    Ok(quote! {
+					field_tags = quote! {
+						::esexpr::ESExprTagSet::Tags(&[ ::esexpr::ESExprTag::Constructor(::esexpr::cowstr::CowStr::Static(#constructor_name)) ])
+					};
+					
+                    case_tokens = quote! {
                         #pattern => {
                             let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
                             let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
                             #encode_fields
                             ::esexpr::ESExpr::constructor(#constructor_name, args, kwargs)
                         }
-                    })
+                    };
                 }
+
+				let message_disjoint = format!("Inline value case '{case_name}' must have distinct tags from immediately preceding optional positional arguments");
+
+				case_tag_assertions.push(quote! {
+					assert!(::esexpr::ESExprTagSet::Concat(&[ #(#case_tag_exprs,)* ]).is_disjoint(#field_tags), #message_disjoint);
+				});
+
+				case_tag_exprs.push(field_tags);
+				
+				Ok(case_tokens)
 
             }).collect::<Result<_, _>>()?;
 
@@ -468,8 +477,8 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 
 		quote! {
 			const {
-				assert!(!::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_all(), #message_nonfull);
-				assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message_disjoint);
+				assert!(!::esexpr::ESExprTagSet::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_all(), #message_nonfull);
+				assert!(::esexpr::ESExprTagSet::Concat(&[ #(#prev_optional_positional_tags,)* ]).is_disjoint(#field_tags), #message_disjoint);
 			}
 		}
 	}

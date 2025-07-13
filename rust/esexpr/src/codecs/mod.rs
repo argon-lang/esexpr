@@ -10,7 +10,7 @@ use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 use crate::cowstr::CowStr;
-use crate::{DecodeError, ESExpr, ESExprTagCollection};
+use crate::{DecodeError, ESExpr, ESExprTagSet};
 
 /// Equality for the encoded ESExpr representation.
 pub trait ESExprEncodedEq {
@@ -21,7 +21,7 @@ pub trait ESExprEncodedEq {
 /// A codec that encodes and decodes `ESExpr` values.
 pub trait ESExprCodec<'a>: ESExprEncodedEq + Sized + 'a {
 	/// The tags of the encoded expressions that this type can produce.
-	const TAGS: ESExprTagCollection;
+	const TAGS: ESExprTagSet;
 
 	/// Encode this value into an expression.
 	fn encode_esexpr(&'a self) -> ESExpr<'a>;

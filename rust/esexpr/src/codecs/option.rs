@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use num_bigint::BigUint;
 
-use crate::{DecodeError, ESExpr, ESExprCodec, ESExprEncodedEq, ESExprOptionalFieldCodec, ESExprTag, ESExprTagCollection};
+use crate::{DecodeError, ESExpr, ESExprCodec, ESExprEncodedEq, ESExprOptionalFieldCodec, ESExprTag, ESExprTagSet};
 
 impl<A: ESExprEncodedEq> ESExprEncodedEq for Option<A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -15,12 +15,12 @@ impl<A: ESExprEncodedEq> ESExprEncodedEq for Option<A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Option<A> {
-	const TAGS: ESExprTagCollection = {
+	const TAGS: ESExprTagSet = {
 		if A::TAGS.is_empty() {
-			ESExprTagCollection::Tags(&[])
+			ESExprTagSet::Tags(&[])
 		}
 		else {
-			ESExprTagCollection::Concat(&[ESExprTagCollection::Tags(&[ESExprTag::Null]), A::TAGS])
+			ESExprTagSet::Concat(&[ESExprTagSet::Tags(&[ESExprTag::Null]), A::TAGS])
 		}
 	};
 

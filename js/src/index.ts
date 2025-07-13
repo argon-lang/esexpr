@@ -295,36 +295,79 @@ export type ESExprTag =
     | null
 ;
 
+export namespace ESExprTag {
+    export function show(tag: ESExprTag): string {
+        if(typeof tag === "string") {
+            return "constructor " + tag;
+        }
+        else if(tag === Boolean) {
+            return "bool";
+        }
+        else if(tag === BigInt) {
+            return "int";
+        }
+        else if(tag === String) {
+            return "string";
+        }
+        else if(tag === Float16Symbol) {
+            return "float16";
+        }
+        else if(tag === Float32Symbol) {
+            return "float32";
+        }
+        else if(tag === Number) {
+            return "float64";
+        }
+        else if(tag === Uint8Array) {
+            return "array8";
+        }
+        else if(tag === Uint16Array) {
+            return "array16";
+        }
+        else if(tag === Uint32Array) {
+            return "array32";
+        }
+        else if(tag === BigUint64Array) {
+            return "array64";
+        }
+        else if(tag === Array128Symbol) {
+            return "array128";
+        }
+        else if(tag === null) {
+            return "null";
+        }
+        else {
+            throw new Error("Invalid tag");
+        }
+    }
+}
+
 export type ESExprTagSet =
     | ReadonlySet<ESExprTag>
-    | ESExprTagSet.All
+    | "all-tags"
 ;
 
 export namespace ESExprTagSet {
-    export interface All {
-        type: "all-tags";
-
-        has(tag: ESExprTag): boolean;
-    }
-
-    export const All: All = {
-        type: "all-tags",
-
-        has(_tag) {
-            return true;
-        },
-    };
+    export const All: ESExprTagSet = "all-tags";
 
     export function isEmpty(a: ESExprTagSet): boolean {
         return a instanceof Set && a.size === 0;
     }
 
+    export function has(a: ESExprTagSet, b: ESExprTag): boolean {
+        if(a === "all-tags") {
+            return true;
+        }
+
+        return a.has(b);
+    }
+
     export function disjoint(a: ESExprTagSet, b: ESExprTagSet) {
-        if(!(a instanceof Set)) {
+        if(a === "all-tags") {
             return isEmpty(b);
         }
 
-        if(!(b instanceof Set)) {
+        if(b === "all-tags") {
             return a.size === 0;
         }
 
@@ -332,14 +375,23 @@ export namespace ESExprTagSet {
     }
 
     export function union(a: ESExprTagSet, b: ESExprTagSet): ESExprTagSet {
-        if(!(a instanceof Set)) {
+        if(a === "all-tags") {
             return a;
         }
-        if(!(b instanceof Set)) {
+        if(b === "all-tags") {
             return b;
         }
 
         return a.union(b);
+    }
+
+    export function show(a: ESExprTagSet): string {
+        if(a === "all-tags") {
+            return "all-tags";
+        }
+        else {
+            return "[ " + Array.from(a).map(ESExprTag.show).join(", ") + " ]";
+        }
     }
 }
 
@@ -1268,23 +1320,27 @@ export type EnumCaseCodecs<T extends { readonly $type: string }> = {
 class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> {
     constructor(cases: EnumCaseCodecs<T>) {
         this.#cases = cases;
+
+        this.#tags = (() => {
+            let tags: ESExprTagSet = new Set();
+            for(const c of Object.keys(this.#cases) as T["$type"][]) {
+                const caseTags = this.#cases[c].tags;
+                
+                if(!ESExprTagSet.disjoint(tags, caseTags)) {
+                    throw new Error(`Overlapping tags: ${ESExprTagSet.show(tags)} and ${ESExprTagSet.show(caseTags)}`);
+                }
+
+                tags = ESExprTagSet.union(tags, caseTags);
+            }
+            return tags;
+        })();
     }
 
     readonly #cases: EnumCaseCodecs<T>;
+    readonly #tags: ESExprTagSet;
 
     get tags(): ESExprTagSet {
-        const tags = new Set<ESExprTag>();
-        for(const c of Object.keys(this.#cases) as T["$type"][]) {
-            const caseTags = this.#cases[c].tags;
-            if(!(caseTags instanceof Set)) {
-                return caseTags;
-            }
-
-            for(const tag of caseTags) {
-                tags.add(tag);
-            }
-        }
-        return tags;
+        return this.#tags;
     }
 
     isEncodedEqual(a: T, b: T): boolean {
@@ -1305,7 +1361,7 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
         const tag = ESExpr.tagOf(expr);
         for(const c of Object.keys(this.#cases) as T["$type"][]) {
             const cc = this.#cases[c];
-            if(cc.tags.has(tag)) {
+            if(ESExprTagSet.has(cc.tags, tag)) {
                 return cc.decode(c, expr) as DecodeResult<T>;
             }
         }
@@ -1331,6 +1387,16 @@ export type SimpleEnumNames<T extends string> = {
 class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
     constructor(names: SimpleEnumNames<T>) {
         this.#names = names;
+
+        const prevNames = new Set<string>();
+
+        for(const name of Object.values(names) as string[]) {
+            if(prevNames.has(name)) {
+                throw new Error("Simple enum has duplicate value: " + name);
+            }
+
+            prevNames.add(name);
+        }
     }
 
     readonly #names: SimpleEnumNames<T>;
@@ -1478,7 +1544,7 @@ class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
     decode(state: FieldDecodeState): DecodeResult<T> {
         let expr = state.args[0];
         if(expr !== undefined) {
-            if(this.#codec.tags.has(ESExpr.tagOf(expr))) {
+            if(ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
                 state.args.shift();
             }
             else {
@@ -1542,7 +1608,7 @@ class DefaultPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
     decode(state: FieldDecodeState): DecodeResult<T> {
         let expr = state.args[0];
         if(expr !== undefined) {
-            if(this.#codec.tags.has(ESExpr.tagOf(expr))) {
+            if(ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
                 state.args.shift();
             }
             else {
@@ -1616,7 +1682,7 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
                 break;
             }
 
-            if(!this.#codec.tags.has(ESExpr.tagOf(expr))) {
+            if(!ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
                 break;
             }
 

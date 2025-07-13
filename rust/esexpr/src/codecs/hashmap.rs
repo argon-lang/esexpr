@@ -16,7 +16,7 @@ use crate::{
 	ESExprCodec,
 	ESExprDictCodec,
 	ESExprTag,
-	ESExprTagCollection,
+	ESExprTagSet,
 };
 
 impl<K: Eq + Hash, A: ESExprEncodedEq, S: BuildHasher> ESExprEncodedEq for HashMap<K, A, S> {
@@ -29,7 +29,7 @@ impl<K: Eq + Hash, A: ESExprEncodedEq, S: BuildHasher> ESExprEncodedEq for HashM
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<String, A, S> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::constructor(
@@ -71,7 +71,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<Cow<'a, str>, A, S> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::constructor(
@@ -113,7 +113,7 @@ impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a>
 }
 
 impl<'a, A: ESExprCodec<'a>, S: BuildHasher + Default + 'static> ESExprCodec<'a> for HashMap<CowStr<'a>, A, S> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::constructor(

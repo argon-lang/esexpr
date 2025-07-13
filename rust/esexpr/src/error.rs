@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use alloc::string::String;
 
-use crate::{ESExprTag, ESExprTagCollection};
+use crate::{ESExprTag, ESExprTagSet};
 
 /// An error that occurs when decoding expressions.
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub enum DecodeErrorType {
 	/// An expression had a different tag than expected.
 	UnexpectedExpr {
 		/// The tags that were expected.
-		expected_tags: ESExprTagCollection,
+		expected_tags: ESExprTagSet,
 
 		/// The actual tag of the expression.
 		actual_tag: ESExprTag<'static>,

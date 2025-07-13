@@ -5,7 +5,7 @@ use alloc::string::String;
 use core::ops::Deref;
 
 use crate::cowstr::CowStr;
-use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprConstructor, ESExprDictCodec, ESExprEncodedEq, ESExprTag, ESExprTagCollection};
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprConstructor, ESExprDictCodec, ESExprEncodedEq, ESExprTag, ESExprTagSet};
 
 impl<K: Ord, A: ESExprEncodedEq> ESExprEncodedEq for BTreeMap<K, A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -19,7 +19,7 @@ impl<K: Ord, A: ESExprEncodedEq> ESExprEncodedEq for BTreeMap<K, A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<String, A> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::constructor(
@@ -61,7 +61,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<String, A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<Cow<'a, str>, A> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		let mut kwargs = BTreeMap::new();
@@ -109,7 +109,7 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<Cow<'a, str>, A> {
 }
 
 impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for BTreeMap<CowStr<'a>, A> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("dict"))]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::constructor(

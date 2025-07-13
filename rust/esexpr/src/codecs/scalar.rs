@@ -5,7 +5,7 @@ use half::f16;
 use num_bigint::{BigInt, BigUint};
 use esexpr::ESExprEncodedEq;
 use crate::cowstr::CowStr;
-use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagCollection};
+use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagSet};
 
 macro_rules! encoded_as_partial_eq {
     ($t: ty) => {
@@ -20,7 +20,7 @@ macro_rules! encoded_as_partial_eq {
 encoded_as_partial_eq!(bool);
 
 impl<'a> ESExprCodec<'a> for bool {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Bool]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Bool]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Bool(*self)
@@ -43,7 +43,7 @@ impl<'a> ESExprCodec<'a> for bool {
 encoded_as_partial_eq!(BigInt);
 
 impl<'a> ESExprCodec<'a> for BigInt {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Int]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Int]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Int(Cow::Borrowed(self))
@@ -66,7 +66,7 @@ impl<'a> ESExprCodec<'a> for BigInt {
 encoded_as_partial_eq!(BigUint);
 
 impl<'a> ESExprCodec<'a> for BigUint {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Int]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Int]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Int(Cow::Owned(BigInt::from(self.clone())))
@@ -96,7 +96,7 @@ macro_rules! int_codec {
 	($T: ty) => {
 		encoded_as_partial_eq!($T);
 		impl<'a> ESExprCodec<'a> for $T {
-			const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Int]);
+			const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Int]);
 
 			fn encode_esexpr(&self) -> ESExpr<'a> {
 				ESExpr::Int(Cow::Owned(BigInt::from(*self)))
@@ -142,7 +142,7 @@ int_codec!(u8);
 encoded_as_partial_eq!(String);
 
 impl<'a> ESExprCodec<'a> for String {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Str]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Str(CowStr::Borrowed(self))
@@ -170,7 +170,7 @@ impl <'a> ESExprEncodedEq for Cow<'a, str> {
 }
 
 impl<'a> ESExprCodec<'a> for Cow<'a, str> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Str]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Str(CowStr::Borrowed(self.as_ref()))
@@ -198,7 +198,7 @@ impl <'a> ESExprEncodedEq for CowStr<'a> {
 }
 
 impl<'a> ESExprCodec<'a> for CowStr<'a> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Str]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Str]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Str(self.as_borrowed())
@@ -227,7 +227,7 @@ impl <'a> ESExprEncodedEq for f16 {
 }
 
 impl<'a> ESExprCodec<'a> for f16 {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Float16]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Float16]);
 
 	fn encode_esexpr(&self) -> ESExpr<'a> {
 		ESExpr::Float16(*self)
@@ -254,7 +254,7 @@ impl <'a> ESExprEncodedEq for f32 {
 }
 
 impl<'a> ESExprCodec<'a> for f32 {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Float32]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Float32]);
 
 	fn encode_esexpr(&self) -> ESExpr<'a> {
 		ESExpr::Float32(*self)
@@ -281,7 +281,7 @@ impl <'a> ESExprEncodedEq for f64 {
 }
 
 impl<'a> ESExprCodec<'a> for f64 {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Float64]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Float64]);
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		ESExpr::Float64(*self)
@@ -305,7 +305,7 @@ impl<'a> ESExprCodec<'a> for f64 {
 encoded_as_partial_eq!(());
 
 impl<'a> ESExprCodec<'a> for () {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::Tags(&[ESExprTag::Null]);
+	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Null]);
 
 	fn encode_esexpr(&self) -> ESExpr {
 		ESExpr::Null(Cow::Owned(BigUint::ZERO))

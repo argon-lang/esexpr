@@ -7,7 +7,7 @@ use half::f16;
 use num_bigint::{BigInt, BigUint};
 
 use crate::cowstr::CowStr;
-use crate::{DecodeError, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagCollection};
+use crate::{DecodeError, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagSet};
 
 /// Representation of an `ESExpr` value.
 /// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
@@ -204,7 +204,7 @@ impl<'a> ESExprEncodedEq for ESExpr<'a> {
 
 
 impl<'a> ESExprCodec<'a> for ESExpr<'a> {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::All;
+	const TAGS: ESExprTagSet = ESExprTagSet::All;
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		self.as_borrowed()
@@ -226,7 +226,7 @@ impl ESExprEncodedEq for ESExprStatic {
 }
 
 impl<'a> ESExprCodec<'a> for ESExprStatic {
-	const TAGS: ESExprTagCollection = ESExprTagCollection::All;
+	const TAGS: ESExprTagSet = ESExprTagSet::All;
 
 	fn encode_esexpr(&'a self) -> ESExpr<'a> {
 		self.0.as_borrowed()
