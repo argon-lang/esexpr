@@ -11,14 +11,14 @@ public class CompileTests : TestBase {
 		var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
 
 		var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-		
+
 		var neededAssemblies = new[]
 		{
 			"System.Private.CoreLib",
 			"System.Runtime",
 		};
-		
-		
+
+
 		Compilation compilation = CSharpCompilation.Create(
 			"ExampleAssembly",
 			syntaxTrees: new[] { syntaxTree },
@@ -33,7 +33,7 @@ public class CompileTests : TestBase {
 
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(new ESExprCodecSourceGenerator());
 		driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
-		
+
 		Assert.That(
 			diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Id == errorCode),
 			diagnostics.Length == 0
@@ -46,7 +46,7 @@ public class CompileTests : TestBase {
 		using System;
 		using ESExpr.Runtime;
 	";
-	
+
 	[Test]
 	public void GenerateForClass() {
 		AssertFails(
@@ -54,7 +54,7 @@ public class CompileTests : TestBase {
 		Imports + "[ESExprCodec] public class HelloWorld {}"
 		);
 	}
-	
+
 	[Test]
 	public void GenerateForInterface() {
 		AssertFails(
@@ -62,7 +62,7 @@ public class CompileTests : TestBase {
 			Imports + "[ESExprCodec] public interface HelloWorld {}"
 		);
 	}
-	
+
 	[Test]
 	public void KeywordAfterDict() {
 		AssertFails(
@@ -78,7 +78,7 @@ public class CompileTests : TestBase {
 			"
 		);
 	}
-	
+
 	[Test]
 	public void MultipleDict() {
 		AssertFails(
@@ -94,7 +94,7 @@ public class CompileTests : TestBase {
 			"
 		);
 	}
-	
+
 	[Test]
 	public void PositionalAfterVararg() {
 		AssertFails(
@@ -109,7 +109,7 @@ public class CompileTests : TestBase {
 			"
 		);
 	}
-	
+
 	[Test]
 	public void MultipleVarargs() {
 		AssertFails(
@@ -125,5 +125,5 @@ public class CompileTests : TestBase {
 			"
 		);
 	}
-	
+
 }

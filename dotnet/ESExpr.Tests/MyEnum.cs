@@ -4,7 +4,7 @@ namespace ESExpr.Tests;
 
 [ESExprCodec]
 public abstract partial record MyEnum {
-	private MyEnum() {}
+	private MyEnum() { }
 
 	public sealed record MyCaseA : MyEnum {
 		public required int A { get; init; }

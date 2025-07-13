@@ -12,9 +12,9 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 	public VDict(IImmutableDictionary<string, T> dict) {
 		this.dict = dict;
 	}
-	
+
 	private readonly IImmutableDictionary<string, T>? dict;
-	
+
 	public IImmutableDictionary<string, T> ImmutableDictionary => dict ?? ImmutableDictionary<string, T>.Empty;
 
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -34,7 +34,7 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 
 	public bool Equals(VDict<T> other) {
 		if(Count != other.Count) return false;
-		
+
 		var valueCmp = EqualityComparer<T>.Default;
 		return this.All(leftKvp =>
 			other.TryGetValue(leftKvp.Key, out var rightValue) &&
@@ -59,7 +59,7 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 	public static bool operator ==(VDict<T> left, VDict<T> right) => left.Equals(right);
 	public static bool operator !=(VDict<T> left, VDict<T> right) => !(left == right);
 	public static implicit operator VDict<T>(ImmutableDictionary<string, T> dict) => new VDict<T>(dict);
-	
+
 	public override string ToString() {
 		var sb = new StringBuilder();
 
@@ -76,23 +76,23 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 			sb.Append(kvp.Value);
 			++i;
 		}
-		
+
 		sb.Append("]");
 
 		return sb.ToString();
 	}
-	
+
 	public class Codec : IESExprCodec<VDict<T>> {
-	
+
 		public Codec(IESExprCodec<T> itemCodec) {
 			this.itemCodec = itemCodec;
 		}
-		
+
 		private readonly IESExprCodec<T> itemCodec;
 
 		private const string DictConstructor = "dict";
-		
-		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[ new ESExprTag.Constructor(DictConstructor) ];
+
+		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Constructor(DictConstructor)];
 		public Expr Encode(VDict<T> value) {
 			var map = new DictCodec(itemCodec).EncodeDict(value);
 			return new Expr.Constructor(
@@ -115,14 +115,14 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 			}
 		}
 	}
-	
+
 	public sealed class DictCodec : IDictCodec<VDict<T>> {
 		public DictCodec(IESExprCodec<T> itemCodec) {
 			this.itemCodec = itemCodec;
 		}
-		
+
 		private readonly IESExprCodec<T> itemCodec;
-		
+
 		public IReadOnlyDictionary<string, Expr> EncodeDict(VDict<T> value) {
 			return value.ToImmutableDictionary(
 				entry => entry.Key,
@@ -136,7 +136,7 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 				entry => itemCodec.Decode(entry.Value, pathBuilder(entry.Key))
 			);
 		}
-	
+
 	}
 
 }

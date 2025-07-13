@@ -9,12 +9,12 @@ public struct Option<T> : IEquatable<Option<T>> {
 		hasValue = true;
 		this.value = value;
 	}
-	
+
 	public static Option<T> Empty => default;
-	
+
 	private bool hasValue;
 	private T value;
-	
+
 	public bool IsSome => hasValue;
 
 	public bool TryGetValue([MaybeNullWhen(false)] out T value) {
@@ -60,7 +60,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 		public Codec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
 		}
-		
+
 		private readonly IESExprCodec<T> elementCodec;
 
 		public ISet<ESExprTag> Tags {
@@ -89,10 +89,10 @@ public struct Option<T> : IEquatable<Option<T>> {
 		public Option<T> Decode(Expr expr, DecodeFailurePath path) {
 			if(expr is Expr.Null(var level)) {
 				if(level > 0) {
-					return new Option<T>(elementCodec.Decode(new Expr.Null(level - 1), path));					
+					return new Option<T>(elementCodec.Decode(new Expr.Null(level - 1), path));
 				}
 				else {
-					return Empty;	
+					return Empty;
 				}
 			}
 			else {
@@ -105,7 +105,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 		public OptionalValueCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
 		}
-		
+
 		private readonly IESExprCodec<T> elementCodec;
 
 		public Expr? EncodeOptional(Option<T> value) {

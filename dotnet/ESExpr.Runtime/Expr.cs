@@ -6,7 +6,7 @@ namespace ESExpr.Runtime;
 
 public abstract record Expr {
 	private Expr() { }
-	
+
 	public abstract ESExprTag Tag { get; }
 
 	public sealed record Constructor(
@@ -15,8 +15,7 @@ public abstract record Expr {
 		VDict<Expr> kwargs
 	) : Expr {
 		public Constructor(string constructor, IReadOnlyList<Expr> args, IReadOnlyDictionary<string, Expr> kwargs)
-			: this(constructor, args.ToImmutableList(), kwargs.ToImmutableDictionary())
-		{}
+			: this(constructor, args.ToImmutableList(), kwargs.ToImmutableDictionary()) { }
 
 		public override ESExprTag Tag => new ESExprTag.Constructor(constructor);
 	}

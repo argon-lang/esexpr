@@ -15,7 +15,7 @@ public class BinaryFormatTests : TestBase {
 			if(elem.TryGetProperty("args", out var argsArray)) {
 				args = argsArray.EnumerateArray().Select(DecodeJsonExpr).ToImmutableList();
 			}
-			
+
 			ImmutableDictionary<string, Expr> kwargs = ImmutableDictionary<string, Expr>.Empty;
 			if(elem.TryGetProperty("kwargs", out var kwargsObj)) {
 				kwargs = kwargsObj.EnumerateObject().ToImmutableDictionary(
@@ -23,7 +23,7 @@ public class BinaryFormatTests : TestBase {
 					field => DecodeJsonExpr(field.Value)
 				);
 			}
-			
+
 			return new Expr.Constructor(constructor, args, kwargs);
 		}
 
@@ -40,13 +40,13 @@ public class BinaryFormatTests : TestBase {
 				),
 				JsonValueKind.Object when elem.TryGetProperty("constructor_name", out var constructor) =>
 					DecodeConstructor(elem, constructor.GetString() ?? throw new InvalidOperationException()),
-				
+
 				JsonValueKind.Object when elem.TryGetProperty("int", out var intValue) =>
 					new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
-				
+
 				JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
 					new Expr.Binary(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
-				
+
 				JsonValueKind.Object when elem.TryGetProperty("float32", out var float32Value) =>
 					new Expr.Float32(float32Value.ValueKind switch {
 						JsonValueKind.String => float32Value.GetString() switch {
@@ -58,7 +58,7 @@ public class BinaryFormatTests : TestBase {
 						JsonValueKind.Number => float32Value.GetSingle(),
 						_ => throw new InvalidOperationException(),
 					}),
-				
+
 				JsonValueKind.Object when elem.TryGetProperty("float64", out var float64Value) =>
 					new Expr.Float64(float64Value.ValueKind switch {
 						JsonValueKind.String => float64Value.GetString() switch {
@@ -70,10 +70,10 @@ public class BinaryFormatTests : TestBase {
 						JsonValueKind.Number => float64Value.GetDouble(),
 						_ => throw new InvalidOperationException()
 					}),
-				
+
 				JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
 					new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
-				
+
 				_ => throw new ArgumentException(nameof(elem)),
 			};
 
@@ -81,7 +81,7 @@ public class BinaryFormatTests : TestBase {
 			return elem.EnumerateArray().Select(DecodeJsonExpr).ToList();
 		}
 		else {
-			return [ DecodeJsonExpr(elem) ];
+			return [DecodeJsonExpr(elem)];
 		}
 	}
 
@@ -104,15 +104,15 @@ public class BinaryFormatTests : TestBase {
 		var rewrittenValue = await esxbValue.ToAsyncEnumerable()
 			.SelectAwait(async expr => await ParseEsxb(await EncodeEsxb(expr)))
 			.ToListAsync();
-		
+
 		Assert.That(esxbValue, Is.EqualTo(jsonValue));
 		Assert.That(rewrittenValue, Is.EqualTo(esxbValue));
 	}
-	
+
 	public static IEnumerable<string> ListTestJsonFiles() {
 		return Directory.EnumerateFiles("../../../../../tests/", "*.json");
-	} 
-	
+	}
+
 
 	private ValueTask<Expr> ParseEsxb(byte[] value) =>
 		new ESExprBinaryReader(new MemoryStream(value)).ReadAll().SingleAsync();

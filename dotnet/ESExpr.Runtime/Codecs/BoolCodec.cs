@@ -4,7 +4,7 @@ namespace ESExpr.Runtime.Codecs;
 
 [ESExprOverrideCodec]
 public sealed class BoolCodec : IESExprCodec<bool> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[ new ESExprTag.Bool() ];
+	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Bool()];
 	public Expr Encode(bool value) => new Expr.Bool(value);
 
 	public bool Decode(Expr expr, DecodeFailurePath path) {

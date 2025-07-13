@@ -22,7 +22,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 		return c.Fields[0];
 	}
-	
+
 	protected override ExpressionSyntax GenerateTagsBody() {
 		return CastExpression(
 			QualifiedName(
@@ -95,8 +95,8 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
-				
-				
+
+
 				switchBody = ReturnStatement(
 					InvocationExpression(
 						MemberAccessExpression(
@@ -125,14 +125,14 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				})
 			));
 		}
-		
+
 		cases.Add(SwitchSection(
 			List(new SwitchLabelSyntax[] { DefaultSwitchLabel() }),
 			List(new StatementSyntax[] {
 				ParseStatement("throw new global::System.InvalidOperationException(\"Unexpected instance type\");"),
 			})
 		));
-		
+
 		var swStmt = SwitchStatement(IdentifierName("value"), List(cases));
 
 		return Block(swStmt);
@@ -146,7 +146,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
-				
+
 				var label = CasePatternSwitchLabel(
 					VarPattern(DiscardDesignation()),
 					Token(SyntaxKind.ColonToken)
@@ -154,7 +154,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 					WhenClause(InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							
+
 							MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
 								GetCodecExpr(field.Type),
@@ -171,7 +171,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 						}))
 					))
 				);
-				
+
 				cases.Add(SwitchSection(
 					List(new SwitchLabelSyntax[] { label }),
 					List(new StatementSyntax[] {
@@ -199,8 +199,8 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 								))
 						),
 					})
-				));	
-				
+				));
+
 			}
 			else {
 				var pattern =
@@ -241,13 +241,13 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 					pattern,
 					Token(SyntaxKind.ColonToken)
 				);
-			
+
 
 				var argsDeclaration = ParseStatement("var args = new global::ESExpr.Runtime.SliceList<global::ESExpr.Runtime.Expr>(args0);");
 				var kwargsDeclaration = ParseStatement("var kwargs = new global::System.Collections.Generic.Dictionary<string, global::ESExpr.Runtime.Expr>(kwargs0);");
 
 				var caseType = GetDeclarationAsType(c.Name, TypeModel.TypeParameters);
-			
+
 				var decodeBlock = WriteDecodeFields(c.ConstructorName, c.Fields, caseType);
 
 				cases.Add(SwitchSection(
@@ -259,17 +259,17 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 							..decodeBlock.Statements,
 						]),
 					})
-				));	
+				));
 			}
 		}
-		
+
 		cases.Add(SwitchSection(
 			List(new SwitchLabelSyntax[] { DefaultSwitchLabel() }),
 			List(new StatementSyntax[] {
 				ParseStatement("throw new global::ESExpr.Runtime.DecodeException(\"Unexpected value for enum\", path);"),
 			})
 		));
-		
+
 		var swStmt = SwitchStatement(IdentifierName("expr"), List(cases));
 
 		return Block(swStmt);

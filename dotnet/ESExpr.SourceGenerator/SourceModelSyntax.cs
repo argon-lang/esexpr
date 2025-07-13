@@ -10,7 +10,7 @@ public sealed class SourceModelSyntax<T>(T syntax) where T : CSharpSyntaxNode {
 		if(obj is not SourceModelSyntax<T> other) {
 			return false;
 		}
-		
+
 		return Syntax.ToString() == other.Syntax.ToString();
 	}
 

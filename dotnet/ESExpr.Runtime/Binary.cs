@@ -9,10 +9,10 @@ public readonly struct Binary : IEquatable<Binary> {
 	}
 
 	private readonly byte[]? bytes;
-	
+
 	public byte[] ByteArray => bytes ?? Array.Empty<byte>();
 	public ReadOnlySpan<byte> Span => ByteArray;
-	
+
 	public static implicit operator byte[](Binary binary) => binary.ByteArray;
 	public static implicit operator Binary(byte[] bytes) => new Binary(bytes);
 

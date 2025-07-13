@@ -16,12 +16,12 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 	}
 
 	private readonly IImmutableList<T>? list;
-	
-	
+
+
 	public static VList<T> Empty => default;
-	
-	
-	
+
+
+
 	public IImmutableList<T> ImmutableList => list ?? ImmutableList<T>.Empty;
 
 
@@ -51,10 +51,10 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 		}
 		return hash.ToHashCode();
 	}
-	
+
 	public static bool operator ==(VList<T> left, VList<T> right) => left.Equals(right);
 	public static bool operator !=(VList<T> left, VList<T> right) => !(left == right);
-	
+
 	public static implicit operator VList<T>(ImmutableList<T> list) => new VList<T>(list);
 
 
@@ -72,7 +72,7 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 			sb.Append(item);
 			++i;
 		}
-		
+
 		sb.Append("]");
 
 		return sb.ToString();
@@ -85,10 +85,10 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 		}
 
 		internal const string ListConstructor = "list";
-	
+
 		private readonly IESExprCodec<T> itemCodec;
 
-		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>) [new ESExprTag.Constructor(ListConstructor)];
+		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Constructor(ListConstructor)];
 
 		public Expr Encode(VList<T> value) {
 			return new Expr.Constructor(ListConstructor, value.Select(itemCodec.Encode).ToImmutableList(), ImmutableDictionary<string, Expr>.Empty);
@@ -107,14 +107,14 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 			}
 		}
 	}
-	
+
 	public sealed class VarargCodec : IVarargCodec<VList<T>> {
 		public VarargCodec(IESExprCodec<T> itemCodec) {
 			this.itemCodec = itemCodec;
 		}
-	
+
 		private readonly IESExprCodec<T> itemCodec;
-	
+
 		public IEnumerable<Expr> EncodeVararg(VList<T> value) {
 			return value.Select(itemCodec.Encode);
 		}

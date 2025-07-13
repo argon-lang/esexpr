@@ -10,14 +10,14 @@ public class RepeatedArgumentsTest : TestBase {
 			new RepeatedArguments.Codec(),
 			new Expr.Constructor(
 				"repeated-arguments",
-				[ new Expr.Str("A"), new Expr.Str("B"), new Expr.Str("Z") ],
+				[new Expr.Str("A"), new Expr.Str("B"), new Expr.Str("Z")],
 				ImmutableDictionary<string, Expr>.Empty
 					.Add("A", new Expr.Str("1"))
 					.Add("B", new Expr.Str("2"))
 					.Add("Z", new Expr.Str("3"))
 			),
 			new RepeatedArguments {
-				Args = [ "A", "B", "Z" ],
+				Args = ["A", "B", "Z"],
 				Kwargs = ImmutableDictionary<string, string>.Empty
 					.Add("A", "1")
 					.Add("B", "2")

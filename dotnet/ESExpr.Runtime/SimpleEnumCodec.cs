@@ -8,17 +8,16 @@ using System.Text.RegularExpressions;
 namespace ESExpr.Runtime;
 
 public partial class SimpleEnumCodec<T> : IESExprCodec<T>
-	where T : struct, Enum
-{
+	where T : struct, Enum {
 	public static SimpleEnumCodec<T> Instance { get; } = new SimpleEnumCodec<T>();
-	
+
 	private SimpleEnumCodec() {
 		strLookup = Enum.GetValues<T>()
 			.ToImmutableDictionary(
 				value => value,
 				GetConstructorName
 			);
-		
+
 		valueLookup = strLookup.ToImmutableDictionary(
 			kvp => kvp.Value,
 			kvp => kvp.Key
@@ -28,15 +27,15 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 	private readonly ImmutableDictionary<string, T> valueLookup;
 	private readonly ImmutableDictionary<T, string> strLookup;
 
-	
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>) [new ESExprTag.Str()];
+
+	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Str()];
 
 	public Expr Encode(T value) {
 		if(strLookup.TryGetValue(value, out var s)) {
 			return new Expr.Str(s);
 		}
 		else {
-			throw new InvalidOperationException($"Unknown enum value: {value}");			
+			throw new InvalidOperationException($"Unknown enum value: {value}");
 		}
 	}
 
@@ -46,7 +45,7 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 				return value;
 			}
 			else {
-				throw new DecodeException("Invalid simple enum value", path);	
+				throw new DecodeException("Invalid simple enum value", path);
 			}
 		}
 		else {
@@ -79,6 +78,6 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 				.Split(name)
 				.Select(s => s.ToLowerInvariant())
 		);
-	
-	
+
+
 }

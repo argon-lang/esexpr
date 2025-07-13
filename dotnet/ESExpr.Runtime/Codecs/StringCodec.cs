@@ -4,7 +4,7 @@ namespace ESExpr.Runtime.Codecs;
 
 [ESExprOverrideCodec]
 public sealed class StringCodec : IESExprCodec<string> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[ new ESExprTag.Str() ];
+	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Str()];
 	public Expr Encode(string value) => new Expr.Str(value);
 
 	public string Decode(Expr expr, DecodeFailurePath path) {

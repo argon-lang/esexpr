@@ -12,24 +12,24 @@ namespace ESExpr.SourceGenerator;
 
 [Generator]
 public class ESExprCodecSourceGenerator : IIncrementalGenerator {
-	
+
 
 
 	public void Initialize(IncrementalGeneratorInitializationContext context) {
-		
-		
+
+
 		IncrementalValuesProvider<ITypeSourceModel?> enumsToGenerate = context.SyntaxProvider
-		    .ForAttributeWithMetadataName(
-		        "ESExpr.Runtime.ESExprCodecAttribute",
-		        predicate: static (node, _) => node is BaseTypeDeclarationSyntax,
-		        transform: static (ctx, _) => CreateSourceModel(ctx))
-		    .Where(static m => m is not null);
+			.ForAttributeWithMetadataName(
+				"ESExpr.Runtime.ESExprCodecAttribute",
+				predicate: static (node, _) => node is BaseTypeDeclarationSyntax,
+				transform: static (ctx, _) => CreateSourceModel(ctx))
+			.Where(static m => m is not null);
 
 		IncrementalValueProvider<CodecOverrideHandler> overrideHandler = context.CompilationProvider
 			.Select(static (compilation, _) => CodecOverrideHandler.Load(compilation));
-		
+
 		var valuesProvider = enumsToGenerate.Combine(overrideHandler);
-		
+
 		context.RegisterSourceOutput(
 			valuesProvider,
 			static (context, valuesTuple) => {
@@ -52,13 +52,13 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 						Location.None,
 						ex.ToString().Replace("\n", " ")));
 				}
-			} 
+			}
 		);
 	}
 
 	private static ITypeSourceModel? CreateSourceModel(GeneratorAttributeSyntaxContext context) {
 		var decl = (BaseTypeDeclarationSyntax)context.TargetNode;
-		
+
 		if(decl.Parent is not (BaseNamespaceDeclarationSyntax or CompilationUnitSyntax)) {
 			return new InvalidTypeSourceModel {
 				Descriptor = Errors.InvalidNestedESExprType,
@@ -76,7 +76,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 						MessageArgs = VList.Of(decl.Identifier.ToString()),
 					};
 				}
-				
+
 				return new RecordSourceModel {
 					Usings = GetUsings(recordDecl),
 					Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
@@ -87,7 +87,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 					TypeParameters = GetTypeParameters(recordDecl),
 					Fields = GetFields(recordDecl, context.SemanticModel),
 				};
-			
+
 			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.AbstractKeyword):
 				if(!IsValidEnumRecord(recordDecl)) {
 					return new InvalidTypeSourceModel {
@@ -96,7 +96,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 						MessageArgs = VList.Of(decl.Identifier.ToString()),
 					};
 				}
-				
+
 				return new UnionRecordSourceModel {
 					Usings = GetUsings(recordDecl),
 					Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
@@ -109,7 +109,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 							.Where(caseDecl => caseDecl.Modifiers.Any(SyntaxKind.PublicKeyword))
 							.Select(caseDecl => {
 								return new SourceModelEnumCase {
-									
+
 									Name = caseDecl.Identifier.ToString(),
 									Location = caseDecl.Identifier.GetLocation(),
 									ConstructorName = GetConstructorName(caseDecl, context.SemanticModel),
@@ -119,7 +119,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 							})
 					),
 				};
-			
+
 			default:
 				return new InvalidTypeSourceModel {
 					Descriptor = Errors.InvalidESExprTypeDeclaration,
@@ -128,7 +128,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 				};
 		}
 	}
-	
+
 	private static bool IsValidEnumRecord(RecordDeclarationSyntax decl) {
 		var constructors = decl.Members
 			.OfType<ConstructorDeclarationSyntax>()
@@ -139,17 +139,17 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			return false;
 		}
 
-		return constructors.Any(ctor => 
+		return constructors.Any(ctor =>
 			ctor.Modifiers.Any(SyntaxKind.PrivateKeyword) &&
 				ctor.ParameterList.Parameters.Count == 0
 		);
 	}
-	
-	
+
+
 
 	private static VList<string> GetNamespaceFromNamespaceNodes(SyntaxNode? syntax) {
 		var ns = new List<string>();
-		
+
 		void AddFromNode(SyntaxNode? syntax) {
 			if(syntax is not BaseNamespaceDeclarationSyntax ns) {
 				return;
@@ -158,18 +158,18 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			AddFromNode(ns.Parent);
 			AddNames(ns.Name);
 		}
-		
+
 		void AddNames(NameSyntax name) {
 			switch(name) {
 				case QualifiedNameSyntax qn:
 					AddNames(qn.Left);
 					ns.Add(qn.Right.ToString());
 					break;
-				
+
 				case SimpleNameSyntax sn:
 					ns.Add(sn.ToString());
 					break;
-				
+
 				default:
 					throw new ArgumentException(
 						"The NameSyntax must be a SimpleNameSyntax or QualifiedNameSyntax.",
@@ -177,7 +177,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 					);
 			}
 		}
-		
+
 		AddFromNode(syntax);
 		return VList.From(ns);
 	}
@@ -194,7 +194,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		if(typeParams is null) {
 			return new();
 		}
-		
+
 		return VList.From(typeParams.Parameters.Select(tp => new SourceModelSyntax<TypeParameterSyntax>(tp)));
 	}
 
@@ -204,7 +204,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			if(t is null) {
 				throw new Exception("Could not get type of field");
 			}
-			
+
 			return new SourceModelField {
 				Name = prop.Identifier.ToString(),
 				Location = prop.Identifier.GetLocation(),
@@ -212,14 +212,14 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 				IsDict = IsDict(prop, semanticModel),
 				IsVararg = IsVararg(prop, semanticModel),
 				IsOptional = IsOptional(prop, semanticModel),
-				DefaultValue = IsDefaultValue(prop, semanticModel) is {} defaultValue
+				DefaultValue = IsDefaultValue(prop, semanticModel) is { } defaultValue
 					? new SourceModelSyntax<ExpressionSyntax>(defaultValue) : null,
 				IsKeyword = IsKeyword(prop, semanticModel),
 			};
 		}));
 	}
-	
-	
+
+
 	private static string GetConstructorName(TypeDeclarationSyntax decl, SemanticModel semanticModel) {
 		if(
 			GetAttribute(decl, "ESExpr.Runtime.ConstructorAttribute", semanticModel) is { ArgumentList.Arguments: var args } &&
@@ -229,7 +229,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			return value.Token.ValueText;
 		}
 		else {
-			return NameToKebabCase(decl.Identifier.Text);			
+			return NameToKebabCase(decl.Identifier.Text);
 		}
 	}
 
@@ -264,7 +264,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		if(attr == null) {
 			return null;
 		}
-		
+
 		if(
 			attr is { ArgumentList.Arguments: var args } &&
 			args.Count == 1 &&
@@ -273,14 +273,14 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			return value.Token.ValueText;
 		}
 		else {
-			return NameToKebabCase(decl.Identifier.Text);			
+			return NameToKebabCase(decl.Identifier.Text);
 		}
 	}
 
 	private static bool IsInlineValue(RecordDeclarationSyntax decl, SemanticModel semanticModel) =>
 		HasAttribute(decl, "ESExpr.Runtime.InlineValueAttribute", semanticModel);
-	
-	
+
+
 	private static string NameToKebabCase(string name) =>
 		string.Join(
 			"-",
@@ -288,6 +288,6 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 				.Select(s => s.ToLowerInvariant())
 		);
 
-	
+
 }
 

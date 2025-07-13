@@ -15,12 +15,12 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 	}
 
 	private readonly IImmutableList<T>? list;
-	
-	
+
+
 	public static VList<T> Empty => default;
-	
-	
-	
+
+
+
 	public IImmutableList<T> ImmutableList => list ?? ImmutableList<T>.Empty;
 
 
@@ -45,16 +45,16 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 
 	public override int GetHashCode() {
 		int hash = 17;
-		foreach (var a in ImmutableList) {
+		foreach(var a in ImmutableList) {
 			hash = hash * 31 + (a?.GetHashCode() ?? 0);
 		}
 		return hash;
 	}
 
-	
+
 	public static bool operator ==(VList<T> left, VList<T> right) => left.Equals(right);
 	public static bool operator !=(VList<T> left, VList<T> right) => !(left == right);
-	
+
 	public static implicit operator VList<T>(ImmutableList<T> list) => new VList<T>(list);
 
 
@@ -72,7 +72,7 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 			sb.Append(item);
 			++i;
 		}
-		
+
 		sb.Append("]");
 
 		return sb.ToString();

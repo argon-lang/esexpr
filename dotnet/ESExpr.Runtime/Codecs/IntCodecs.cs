@@ -6,13 +6,12 @@ namespace ESExpr.Runtime.Codecs;
 
 
 public abstract class IntCodecBase<I> : IESExprCodec<I>
-	where I: IBinaryInteger<I>, IMinMaxValue<I>
-{
+	where I : IBinaryInteger<I>, IMinMaxValue<I> {
 	internal IntCodecBase() {
-		
+
 	}
-	
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[ new ESExprTag.Int() ];
+
+	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Int()];
 
 	public Expr Encode(I value) {
 		return new Expr.Int(BigInteger.CreateChecked(value));
@@ -75,8 +74,8 @@ public sealed class UInt128Codec : IntCodecBase<UInt128> {
 
 [ESExprOverrideCodec]
 public sealed class BigIntegerCodec : IESExprCodec<BigInteger> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[ new ESExprTag.Int() ];
-	
+	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Int()];
+
 	public Expr Encode(BigInteger value) {
 		return new Expr.Int(value);
 	}

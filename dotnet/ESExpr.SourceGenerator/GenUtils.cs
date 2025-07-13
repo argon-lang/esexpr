@@ -24,12 +24,12 @@ internal static class GenUtils {
 				var sym = semanticModel.GetSymbolInfo(a);
 				var ctorSymbol = sym.Symbol as IMethodSymbol;
 				var attrType = ctorSymbol?.ContainingType;
-				
+
 				return attrType != null && attrType.ToDisplayString() == name;
 			});
 
 	public static bool HasAttribute(MemberDeclarationSyntax decl, string name, SemanticModel semanticModel) =>
 		GetAttribute(decl, name, semanticModel) != null;
-	
-	
+
+
 }

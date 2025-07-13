@@ -7,8 +7,8 @@ namespace ESExpr.Tests;
 public class InlineValueTests : TestBase {
 	[Test]
 	public void TestInlineValue() {
-		Assert.That(new InlineValueEnum.Codec().Tags, Is.EqualTo((HashSet<ESExprTag>)[ new ESExprTag.Int(), new ESExprTag.Constructor("b") ]));
-		
+		Assert.That(new InlineValueEnum.Codec().Tags, Is.EqualTo((HashSet<ESExprTag>)[new ESExprTag.Int(), new ESExprTag.Constructor("b")]));
+
 		AssertCodecMatch(
 			new InlineValueEnum.Codec(),
 			new Expr.Int(BigInteger.Zero),
@@ -20,7 +20,7 @@ public class InlineValueTests : TestBase {
 			new InlineValueEnum.Codec(),
 			new Expr.Constructor(
 				"b",
-				[ new Expr.Float32(0.0f) ],
+				[new Expr.Float32(0.0f)],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new InlineValueEnum.B {

@@ -15,7 +15,7 @@ public sealed class VDictionary<K, V> : IReadOnlyDictionary<K, V>, IEquatable<VD
 	}
 
 	private readonly IImmutableDictionary<K, V> values;
-	
+
 	public IImmutableDictionary<K, V> ImmutableDictionary => values ?? ImmutableDictionary<K, V>.Empty;
 
 
@@ -49,7 +49,7 @@ public sealed class VDictionary<K, V> : IReadOnlyDictionary<K, V>, IEquatable<VD
 			if(!other.values.TryGetValue(kvp.Key, out var otherValue)) {
 				return false;
 			}
-			
+
 			if(!object.Equals(kvp.Value, otherValue)) {
 				return false;
 			}
@@ -69,13 +69,13 @@ public sealed class VDictionary<K, V> : IReadOnlyDictionary<K, V>, IEquatable<VD
 
 	public override int GetHashCode() {
 		int hash = 17;
-		foreach (var kvp in ImmutableDictionary) {
+		foreach(var kvp in ImmutableDictionary) {
 			hash = hash * 31 + kvp.Key.GetHashCode();
 			hash = hash * 31 + (kvp.Value?.GetHashCode() ?? 0);
 		}
 		return hash;
 	}
-	
+
 	public static bool operator ==(VDictionary<K, V> left, VDictionary<K, V> right) => left.Equals(right);
 	public static bool operator !=(VDictionary<K, V> left, VDictionary<K, V> right) => !(left == right);
 
@@ -94,7 +94,7 @@ public sealed class VDictionary<K, V> : IReadOnlyDictionary<K, V>, IEquatable<VD
 			sb.Append(item);
 			++i;
 		}
-		
+
 		sb.Append("}");
 
 		return sb.ToString();

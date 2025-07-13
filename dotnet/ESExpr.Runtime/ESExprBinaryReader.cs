@@ -21,7 +21,7 @@ public class ESExprBinaryReader {
 		this.symbolTable = symbolTable.ToList();
 		this.stream = stream;
 	}
-	
+
 	private readonly List<string> symbolTable;
 	private readonly Stream stream;
 
@@ -31,9 +31,10 @@ public class ESExprBinaryReader {
 	public async ValueTask<Expr?> TryRead(CancellationToken cancellationToken = default) {
 		var readVisitor = new ReadExprVisitor();
 
-		for(;;) {
+		for(; ; )
+		{
 			cancellationToken.ThrowIfCancellationRequested();
-			
+
 			var expr = await ReadExprPlus(readVisitor, cancellationToken);
 			if(readVisitor.IsDone) {
 				return expr;
@@ -53,7 +54,7 @@ public class ESExprBinaryReader {
 	public async IAsyncEnumerable<Expr> ReadAll([EnumeratorCancellation] CancellationToken cancellationToken = default) {
 		while(true) {
 			cancellationToken.ThrowIfCancellationRequested();
-			
+
 			var expr = await TryRead(cancellationToken).ConfigureAwait(false);
 			if(expr is null) {
 				break;
@@ -78,15 +79,15 @@ public class ESExprBinaryReader {
 			nextByte = -1;
 			return res;
 		}
-		
+
 		int bytesRead = await stream.ReadAsync(byteBuffer, cancellationToken).ConfigureAwait(false);
 		if(bytesRead == 0) {
 			return -1;
 		}
-		
+
 		return byteBuffer[0];
 	}
-	
+
 	private interface IExprPlusVisitor<out T> {
 		T VisitExpr(Expr expr);
 		T VisitConstructorEnd();
@@ -99,7 +100,7 @@ public class ESExprBinaryReader {
 		public ReadExprVisitor() { }
 
 		public bool IsDone { get; private set; } = false;
-		
+
 		public Expr? VisitExpr(Expr expr) {
 			IsDone = true;
 			return expr;
@@ -123,10 +124,9 @@ public class ESExprBinaryReader {
 		}
 	}
 
-	private async ValueTask<T> ReadExprPlus<T>(IExprPlusVisitor<T> visitor, CancellationToken cancellationToken)
-	{
+	private async ValueTask<T> ReadExprPlus<T>(IExprPlusVisitor<T> visitor, CancellationToken cancellationToken) {
 		var tokenOpt = await NextToken(cancellationToken).ConfigureAwait(false);
-		if(tokenOpt is not {} token) {
+		if(tokenOpt is not { } token) {
 			return visitor.VisitEndOfStream();
 		}
 
@@ -135,17 +135,16 @@ public class ESExprBinaryReader {
 			case BinToken.TokenType.Constructor:
 				expr = await ReadConstructor(LookupStringTable(token.IntValue ?? throw new SyntaxException()), cancellationToken).ConfigureAwait(false);
 				break;
-			
+
 			case BinToken.TokenType.Int:
 				expr = new Expr.Int(token.IntValue ?? throw new SyntaxException());
 				break;
-			
+
 			case BinToken.TokenType.NegInt:
 				expr = new Expr.Int(-((token.IntValue ?? throw new SyntaxException()) + 1));
 				break;
 
-			case BinToken.TokenType.String:
-			{
+			case BinToken.TokenType.String: {
 				var bytes = await ReadBytes(token.IntValue ?? throw new SyntaxException());
 				expr = new Expr.Str(Encoding.UTF8.GetString(bytes));
 				break;
@@ -154,41 +153,39 @@ public class ESExprBinaryReader {
 			case BinToken.TokenType.StringPoolIndex:
 				expr = new Expr.Str(LookupStringTable(token.IntValue ?? throw new SyntaxException()));
 				break;
-			
+
 			case BinToken.TokenType.Binary:
 				expr = new Expr.Binary(await ReadBytes(token.IntValue ?? throw new SyntaxException()));
 				break;
-			
+
 			case BinToken.TokenType.Null0:
 				expr = new Expr.Null(0);
 				break;
-			
+
 			case BinToken.TokenType.Null1:
 				expr = new Expr.Null(1);
 				break;
-			
+
 			case BinToken.TokenType.Null2:
 				expr = new Expr.Null(2);
 				break;
 
-			case BinToken.TokenType.NullN:
-			{
+			case BinToken.TokenType.NullN: {
 				var level = await ReadInt(0, 0, cancellationToken).ConfigureAwait(false);
-				expr = new Expr.Null(level + 3);	
+				expr = new Expr.Null(level + 3);
 				break;
 			}
-				
-			
+
+
 			case BinToken.TokenType.True:
 				expr = new Expr.Bool(true);
 				break;
-			
+
 			case BinToken.TokenType.False:
 				expr = new Expr.Bool(false);
 				break;
 
-			case BinToken.TokenType.Float32:
-			{
+			case BinToken.TokenType.Float32: {
 				int bits = 0;
 				for(int i = 0; i < sizeof(int); ++i) {
 					int b = await Next(cancellationToken);
@@ -203,8 +200,7 @@ public class ESExprBinaryReader {
 				break;
 			}
 
-			case BinToken.TokenType.Float64:
-			{
+			case BinToken.TokenType.Float64: {
 				long bits = 0;
 				for(int i = 0; i < sizeof(long); ++i) {
 					long b = await Next(cancellationToken);
@@ -218,19 +214,18 @@ public class ESExprBinaryReader {
 				expr = new Expr.Float64(BitConverter.Int64BitsToDouble(bits));
 				break;
 			}
-			
+
 			case BinToken.TokenType.ConstructorStartStringTable:
 				expr = await ReadConstructor(StringTable.Codec.StringTableConstructor, cancellationToken).ConfigureAwait(false);
 				break;
-				
+
 			case BinToken.TokenType.ConstructorStartList:
 				expr = await ReadConstructor(VList<int>.Codec.ListConstructor, cancellationToken).ConfigureAwait(false);
 				break;
 
-			case BinToken.TokenType.AppendStringTable:
-			{
+			case BinToken.TokenType.AppendStringTable: {
 				var newStringTableExpr = await Read(cancellationToken).ConfigureAwait(false);
-				
+
 				if(newStringTableExpr is Expr.Str s) {
 					symbolTable.Add(s.value);
 				}
@@ -243,19 +238,19 @@ public class ESExprBinaryReader {
 					catch(DecodeException ex) {
 						throw new SyntaxException("Could not decode string table", ex);
 					}
-					
+
 					symbolTable.AddRange(newStringTable.strings);
 				}
 
 				return visitor.VisitAppendedToStringTable();
 			}
-			
+
 			case BinToken.TokenType.ConstructorEnd:
 				return visitor.VisitConstructorEnd();
-			
+
 			case BinToken.TokenType.Keyword:
 				return visitor.VisitKeyword(token.IntValue ?? throw new SyntaxException());
-			
+
 			default:
 				throw new SyntaxException();
 		}
@@ -268,20 +263,19 @@ public class ESExprBinaryReader {
 
 		while(!argVisitor.IsDone) {
 			cancellationToken.ThrowIfCancellationRequested();
-			
+
 			await await ReadExprPlus(argVisitor, cancellationToken);
 		}
-		
+
 		return new Expr.Constructor(constructor, argVisitor.Args, argVisitor.Kwargs);
 	}
 
 	private sealed class ConstructorArgumentVisitor(ESExprBinaryReader reader, CancellationToken cancellationToken)
-		: IExprPlusVisitor<ValueTask>
-	{
+		: IExprPlusVisitor<ValueTask> {
 		public List<Expr> Args { get; } = new();
 		public Dictionary<string, Expr> Kwargs { get; } = new();
 		public bool IsDone { get; private set; } = false;
-		
+
 		public async ValueTask VisitExpr(Expr expr) {
 			Args.Add(expr);
 		}
@@ -311,8 +305,8 @@ public class ESExprBinaryReader {
 		await stream.ReadExactlyAsync(buff);
 		return buff;
 	}
-	
-	
+
+
 
 
 	private async ValueTask<BinToken?> NextToken(CancellationToken cancellationToken = default) {

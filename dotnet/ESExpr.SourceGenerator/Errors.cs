@@ -11,7 +11,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor InvalidNestedESExprType = new DiagnosticDescriptor(
 		id: "ESX0002",
 		title: "Invalid nested ESExpr type",
@@ -20,7 +20,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor InvalidESExprTypeDeclaration = new DiagnosticDescriptor(
 		id: "ESX0003",
 		title: "Invalid ESExpr type declaration",
@@ -29,7 +29,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor InvalidESExprRecordDeclaration = new DiagnosticDescriptor(
 		id: "ESX0004",
 		title: "Invalid ESExpr record declaration",
@@ -38,7 +38,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor InvalidESExprEnumDeclaration = new DiagnosticDescriptor(
 		id: "ESX0005",
 		title: "Invalid ESExpr abstract record declaration",
@@ -47,7 +47,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor CouldNotDetermineCodec = new DiagnosticDescriptor(
 		id: "ESX0006",
 		title: "Could not determine ESExprCodec",
@@ -56,7 +56,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor InvalidInlineValue = new DiagnosticDescriptor(
 		id: "ESX0007",
 		title: "Invalid inline value",
@@ -65,7 +65,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor MultipleVarargs = new DiagnosticDescriptor(
 		id: "ESX0008",
 		title: "Multiple varargs",
@@ -74,7 +74,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor PositionalAfterVararg = new DiagnosticDescriptor(
 		id: "ESX0009",
 		title: "Positional after vararg",
@@ -83,7 +83,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor MultipleDict = new DiagnosticDescriptor(
 		id: "ESX0010",
 		title: "Multiple dict",
@@ -92,7 +92,7 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
-	
+
 	public static readonly DiagnosticDescriptor KeywordAfterDict = new DiagnosticDescriptor(
 		id: "ESX0011",
 		title: "Keyword after dict",

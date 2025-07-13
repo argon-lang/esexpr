@@ -1,7 +1,7 @@
 namespace ESExpr.Runtime;
 
 public abstract record DecodeFailurePath {
-	private DecodeFailurePath() {}
+	private DecodeFailurePath() { }
 
 	public sealed record Current : DecodeFailurePath {
 		public override DecodeFailurePath WithConstructor(string constructor) {

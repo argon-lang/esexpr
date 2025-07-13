@@ -8,10 +8,10 @@ namespace ESExpr.Runtime;
 
 public record StringTable(VList<string> strings) {
 	public class Codec : IESExprCodec<StringTable> {
-		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>) [ new ESExprTag.Constructor("string-table") ];
-			
+		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Constructor("string-table")];
+
 		internal const string StringTableConstructor = "string-table";
-		
+
 		public Expr Encode(StringTable value) {
 			return new Expr.Constructor(
 				StringTableConstructor,

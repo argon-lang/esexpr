@@ -7,6 +7,6 @@ public sealed class ConstructorAttribute : Attribute {
 	public ConstructorAttribute(string name) {
 		Name = name;
 	}
-	
+
 	public string Name { get; }
 }

@@ -13,11 +13,11 @@ using static ESExpr.SourceGenerator.GenUtils;
 
 namespace ESExpr.SourceGenerator;
 
-internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeModel : ITypeSourceModelDeclaration {
+internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TTypeModel : ITypeSourceModelDeclaration {
 
 	public required SourceProductionContext Context { get; init; }
 	public required CodecOverrideHandler CodecOverrideHandler { get; init; }
-	
+
 	public required TTypeModel TypeModel { get; init; }
 
 	protected abstract ExpressionSyntax GenerateTagsBody();
@@ -28,16 +28,16 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 	public void Generate() {
 		var syntaxTree = CompilationUnit()
 			.AddUsings(TypeModel.Usings.Select(u => u.Syntax).ToArray());
-			
+
 		TypeSyntax outerType = IdentifierName(TypeModel.TypeName);
-		
+
 		var members = new List<MemberDeclarationSyntax>();
 
 		{
 			if(TypeModel.TypeParameters.Count != 0) {
 				var constructor = ConstructorDeclaration("Codec")
 					.WithParameterList(ParameterList(SeparatedList(
-						TypeModel.TypeParameters.Select(tp => 
+						TypeModel.TypeParameters.Select(tp =>
 							Parameter(Identifier(PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec"))
 								.WithType(ESExprCodecType(IdentifierName(tp.Syntax.Identifier.Text)))
 						)
@@ -45,7 +45,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					.WithBody(Block(List(
 						TypeModel.TypeParameters.Select(tp => {
 							var fieldName = PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec";
-							
+
 							return ExpressionStatement(AssignmentExpression(
 								SyntaxKind.SimpleAssignmentExpression,
 								MemberAccessExpression(
@@ -57,7 +57,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							));
 						})
 					)));
-				
+
 				members.Add(constructor);
 
 				foreach(var tp in TypeModel.TypeParameters) {
@@ -71,7 +71,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							.AddModifiers(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.ReadOnlyKeyword))
 					);
 				}
-				
+
 				outerType = GenericName(TypeModel.TypeName)
 					.AddTypeArgumentListArguments(
 						TypeModel.TypeParameters
@@ -80,35 +80,35 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					);
 			}
 		}
-		
-        var tagsProp = PropertyDeclaration(
-                QualifiedName(
-	                QualifiedName(
-		                QualifiedName(
-			                AliasQualifiedName(
-				                IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-				                IdentifierName("System")),
-			                IdentifierName("Collections")
-		                ),
-		                IdentifierName("Generic")
-	                ),
-	                GenericName(Identifier("ISet"))
-		                .WithTypeArgumentList(
-			                TypeArgumentList(SingletonSeparatedList<TypeSyntax>(
-				                ESExprTagType
-			                ))
-		                )
-	            ),
-                Identifier("Tags")
-            )
-            .AddModifiers(Token(SyntaxKind.PublicKeyword))
-            .WithExpressionBody(
-                ArrowExpressionClause(
-                    GenerateTagsBody()
-                )
-            )
-            .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
-        members.Add(tagsProp);
+
+		var tagsProp = PropertyDeclaration(
+				QualifiedName(
+					QualifiedName(
+						QualifiedName(
+							AliasQualifiedName(
+								IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+								IdentifierName("System")),
+							IdentifierName("Collections")
+						),
+						IdentifierName("Generic")
+					),
+					GenericName(Identifier("ISet"))
+						.WithTypeArgumentList(
+							TypeArgumentList(SingletonSeparatedList<TypeSyntax>(
+								ESExprTagType
+							))
+						)
+				),
+				Identifier("Tags")
+			)
+			.AddModifiers(Token(SyntaxKind.PublicKeyword))
+			.WithExpressionBody(
+				ArrowExpressionClause(
+					GenerateTagsBody()
+				)
+			)
+			.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+		members.Add(tagsProp);
 
 		var encodeMethod =
 			MethodDeclaration(
@@ -134,7 +134,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 				)
 				.WithBody(GenerateDecodeBody());
 		members.Add(decodeMethod);
-		
+
 		var codecClass = ClassDeclaration("Codec")
 			.WithBaseList(BaseList(
 				Token(SyntaxKind.ColonToken),
@@ -144,7 +144,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 			))
 			.AddModifiers(Token(SyntaxKind.PublicKeyword), Token(SyntaxKind.SealedKeyword))
 			.AddMembers(members.ToArray());
-		
+
 		var outerClass =
 			RecordDeclaration(
 				Token(SyntaxKind.RecordKeyword),
@@ -179,8 +179,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 
 		syntaxTree = syntaxTree.NormalizeWhitespace();
 
-		
-		
+
+
 		Context.AddSource($"{fileNamePrefix}.ESExprCodec.g.cs", syntaxTree.GetText(Encoding.UTF8));
 	}
 
@@ -235,7 +235,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					)
 				)
 		);
-		
+
 		var stmts = new List<StatementSyntax> {
 			argsDeclaration,
 			kwargsDeclaration,
@@ -243,7 +243,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 
 		bool hasDict = false;
 		bool hasVararg = false;
-		
+
 
 		foreach(var field in fields) {
 			var propertyValue = MemberAccessExpression(
@@ -252,18 +252,18 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 				IdentifierName(field.Name)
 			);
 
-			if(field.IsKeyword is {} keyword) {
+			if(field.IsKeyword is { } keyword) {
 				if(hasDict) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.KeywordAfterDict,
 						field.Location,
-						new object?[] {}
+						new object?[] { }
 					));
 				}
-				
+
 				if(field.IsOptional) {
-					
-					
+
+
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -275,14 +275,14 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						]))
 					);
 
-					
+
 					var condition = IsPatternExpression(
 						encodedExpr,
 						RecursivePattern()
 							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
 							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
 					);
-					
+
 					var ifStatement = IfStatement(
 						condition,
 						Block(
@@ -303,9 +303,9 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							))
 						)
 					);
-					
+
 					stmts.Add(Block(
-						ifStatement	
+						ifStatement
 					));
 				}
 				else {
@@ -321,7 +321,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					);
 
 					if(field.DefaultValue is { } defaultValue) {
-						stmts.Add(Block(							
+						stmts.Add(Block(
 							LocalDeclarationStatement(
 								VariableDeclaration(ESExprType)
 									.WithVariables(
@@ -333,7 +333,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 										)
 									)
 							),
-							
+
 							IfStatement(
 								PrefixUnaryExpression(
 									SyntaxKind.LogicalNotExpression,
@@ -390,12 +390,12 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.MultipleVarargs,
 						field.Location,
-						new object?[] {}
+						new object?[] { }
 					));
 				}
-				
+
 				hasVararg = true;
-				
+
 				var encodedExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -417,7 +417,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						Argument(encodedExpr),
 					]))
 				);
-			
+
 				stmts.Add(ExpressionStatement(expr));
 			}
 			else if(field.IsDict) {
@@ -425,13 +425,13 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.MultipleDict,
 						field.Location,
-						new object?[] {}
+						new object?[] { }
 					));
 				}
-				
+
 				hasDict = true;
-				
-				
+
+
 				var encodedExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -461,7 +461,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						))
 					)
 				);
-			
+
 				stmts.Add(loop);
 			}
 			else {
@@ -469,7 +469,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.PositionalAfterVararg,
 						field.Location,
-						new object?[] {}
+						new object?[] { }
 					));
 				}
 
@@ -485,14 +485,14 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						]))
 					);
 
-					
+
 					var condition = IsPatternExpression(
 						encodedExpr,
 						RecursivePattern()
 							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
 							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
 					);
-					
+
 					var ifStatement = IfStatement(
 						condition,
 						Block(
@@ -510,9 +510,9 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							))
 						)
 					);
-					
+
 					stmts.Add(Block(
-						ifStatement	
+						ifStatement
 					));
 				}
 				else {
@@ -537,14 +537,14 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							Argument(encodedExpr),
 						]))
 					);
-			
+
 					stmts.Add(ExpressionStatement(expr));
 				}
 			}
 		}
-		
+
 		stmts.Add(returnStatement);
-		
+
 		return Block(stmts);
 	}
 
@@ -557,8 +557,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 
 		foreach(var field in fields) {
 			var localName = "local_" + field.Name;
-			
-			if(field.IsKeyword is {} keyword) {
+
+			if(field.IsKeyword is { } keyword) {
 				stmts.Add(LocalDeclarationStatement(
 					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
@@ -596,7 +596,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))),
 					]))
 				);
-				
+
 				ExpressionSyntax decodedExpr;
 				BlockSyntax falseBody;
 
@@ -612,7 +612,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							Argument(pathExpr),
 						}))
 					);
-					
+
 					var emptyExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -624,7 +624,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							Argument(pathExpr),
 						}))
 					);
-					
+
 					falseBody = Block(
 						ExpressionStatement(AssignmentExpression(
 							SyntaxKind.SimpleAssignmentExpression,
@@ -645,8 +645,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							Argument(pathExpr),
 						}))
 					);
-					
-					if(field.DefaultValue is {} defaultValue) {
+
+					if(field.DefaultValue is { } defaultValue) {
 						falseBody = Block(
 							ExpressionStatement(AssignmentExpression(
 								SyntaxKind.SimpleAssignmentExpression,
@@ -686,7 +686,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						falseBody = Block(throwStatement);
 					}
 				}
-				
+
 				var trueBody = Block(
 					ExpressionStatement(AssignmentExpression(
 						SyntaxKind.SimpleAssignmentExpression,
@@ -694,7 +694,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						decodedExpr
 					))
 				);
-				
+
 				stmts.Add(Block(IfStatement(
 					condition,
 					trueBody,
@@ -735,7 +735,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						Argument(pathExpr),
 					]))
 				);
-			
+
 				stmts.Add(LocalDeclarationStatement(
 					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
@@ -747,8 +747,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							)
 						)
 				));
-				
-				
+
+
 				var sliceStatement = ExpressionStatement(
 					AssignmentExpression(
 						SyntaxKind.SimpleAssignmentExpression,
@@ -801,7 +801,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						Argument(pathExpr),
 					]))
 				);
-			
+
 				stmts.Add(LocalDeclarationStatement(
 					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
@@ -813,8 +813,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							)
 						)
 				));
-				
-				
+
+
 				var clearStatement = ExpressionStatement(
 					InvocationExpression(
 							MemberAccessExpression(
@@ -825,8 +825,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 				stmts.Add(clearStatement);
 			}
 			else {
-				
-				
+
+
 				var ifCondition = BinaryExpression(
 					SyntaxKind.EqualsExpression,
 					MemberAccessExpression(
@@ -843,7 +843,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 								Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)))
 							))
 						);
-				
+
 				var pathExpr = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -855,7 +855,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 						Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))),
 					]))
 				);
-				
+
 				// args = args.Slice(1);
 				var sliceStatement = ExpressionStatement(
 					AssignmentExpression(
@@ -900,8 +900,8 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 								)
 							)
 					));
-					
-					
+
+
 					var ifStatement = IfStatement(
 						ifCondition,
 						Block(
@@ -916,7 +916,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 				}
 				else {
 					var codecExpr = GetCodecExpr(field.Type);
-					
+
 					var throwStatement = ThrowStatement(
 						ObjectCreationExpression(
 								QualifiedName(
@@ -943,7 +943,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 								}))
 							)
 					);
-					
+
 					var ifStatement = IfStatement(ifCondition, Block(throwStatement));
 					stmts.Add(ifStatement);
 
@@ -958,7 +958,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 							Argument(pathExpr),
 						]))
 					);
-			
+
 					stmts.Add(LocalDeclarationStatement(
 						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 							.WithVariables(
@@ -972,10 +972,10 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					));
 					stmts.Add(sliceStatement);
 				}
-				
+
 			}
-			
-				
+
+
 			fieldInits.Add(AssignmentExpression(
 				SyntaxKind.SimpleAssignmentExpression,
 				IdentifierName(field.Name),
@@ -988,16 +988,16 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 				SyntaxKind.ObjectInitializerExpression,
 				SeparatedList(fieldInits)
 			));
-		
+
 		stmts.Add(ReturnStatement(objExpr));
-		
+
 		return Block(stmts);
 	}
-	
-	
-	
+
+
+
 	protected TypeSyntax StringType => PredefinedType(Token(SyntaxKind.StringKeyword));
-	
+
 	protected NameSyntax ESExprType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
@@ -1008,7 +1008,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 		),
 		IdentifierName("Expr")
 	);
-	
+
 	protected NameSyntax ESExprTagType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
@@ -1019,7 +1019,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 		),
 		IdentifierName("ESExprTag")
 	);
-	
+
 	protected TypeSyntax ESExprCodecType(TypeSyntax elementType) => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
@@ -1031,11 +1031,11 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 	GenericName(
 			Identifier("IESExprCodec"),
 			TypeArgumentList(
-					SeparatedList([ elementType ])
+					SeparatedList([elementType])
 			)
 		)
 	);
-	
+
 
 	protected TypeSyntax DecodeFailurePathType => QualifiedName(
 		QualifiedName(
@@ -1047,7 +1047,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 		),
 		IdentifierName("DecodeFailurePath")
 	);
-	
+
 	protected TypeSyntax ListType(TypeSyntax elementType) =>
 		QualifiedName(
 			QualifiedName(
@@ -1063,12 +1063,12 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 			GenericName(
 				Identifier("List"),
 				TypeArgumentList(
-					SeparatedList([ elementType ])
+					SeparatedList([elementType])
 				)
 			)
-			
+
 		);
-	
+
 	protected TypeSyntax DictionaryType(TypeSyntax keyType, TypeSyntax valueType) =>
 		QualifiedName(
 			QualifiedName(
@@ -1084,11 +1084,11 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 			GenericName(
 				Identifier("Dictionary"),
 				TypeArgumentList(
-					SeparatedList([ keyType, valueType ])
+					SeparatedList([keyType, valueType])
 				)
 			)
 		);
-	
+
 	protected TypeSyntax OptionType(TypeSyntax elementType) =>
 		QualifiedName(
 			QualifiedName(
@@ -1101,11 +1101,11 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 			GenericName(
 				Identifier("Option"),
 				TypeArgumentList(
-					SeparatedList([ elementType ])
+					SeparatedList([elementType])
 				)
 			)
 		);
-	
+
 	protected static TypeSyntax GetDeclarationAsType(string name, VList<SourceModelSyntax<TypeParameterSyntax>> typeParameters) {
 		if(typeParameters.Count == 0) {
 			return IdentifierName(name);
@@ -1179,19 +1179,19 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 
 	protected ExpressionSyntax GetDictCodecExpr(SourceModelType t) =>
 		GetCodecLikeExpr(t, "IDictCodec", "DictCodec");
-	
+
 	protected ExpressionSyntax GetCodecLikeExpr(SourceModelType t, string codecTypeName, string nestedClassName) {
 		SourceModelType codecType = new SourceModelType.NamedSymbol(VList.Of("ESExpr", "Runtime"), codecTypeName) {
 			TypeArguments = VList.Of(t),
 			IsEnum = false,
 		};
-		
-		
+
+
 		TypeSyntax concreteCodecType;
 		IEnumerable<SourceModelType> typeArgs;
-		
+
 		var overrideCodec = CodecOverrideHandler.GetOverriddenCodec(codecType);
-		
+
 		if(overrideCodec != null) {
 			concreteCodecType = ConvertTypeToTypeSyntax(overrideCodec);
 			typeArgs = overrideCodec switch {
@@ -1213,7 +1213,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 					GenericName(
 						Identifier("SimpleEnumCodec"),
 						TypeArgumentList(
-							SeparatedList([ ConvertTypeToTypeSyntax(t) ])
+							SeparatedList([ConvertTypeToTypeSyntax(t)])
 						)
 					)
 				),
@@ -1258,13 +1258,12 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 		return ObjectCreationExpression(concreteCodecType)
 			.WithArgumentList(ArgumentList(SeparatedList(args)));
 	}
-	
-	
-	
+
+
+
 	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
-		switch (t) {
-			case SourceModelType.NamedSymbol namedTypeSymbol:
-			{
+		switch(t) {
+			case SourceModelType.NamedSymbol namedTypeSymbol: {
 				SimpleNameSyntax name;
 				if(namedTypeSymbol.TypeArguments.Count != 0) {
 					var genericArguments = namedTypeSymbol.TypeArguments.Select(ConvertTypeToTypeSyntax);
@@ -1276,7 +1275,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 				else {
 					name = IdentifierName(namedTypeSymbol.Name);
 				}
-				
+
 				return GetNamespaceMemberSyntax(namedTypeSymbol.Namespace, namedTypeSymbol.Namespace.Count, name);
 			}
 
@@ -1293,7 +1292,7 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 
 			case SourceModelType.Nullable nullableType:
 				return NullableType(ConvertTypeToTypeSyntax(nullableType.Inner));
-			
+
 			default:
 				throw new Exception("Unexpected SourceModelType");
 		}
@@ -1316,13 +1315,13 @@ internal abstract class CodecGenerator<TTypeModel>: ICodecGenerator where TTypeM
 			? name
 			: name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
 
-	
+
 }
 
 internal class AbortGenerationException : Exception {
 	public AbortGenerationException(Diagnostic diag) {
 		Diagnostic = diag;
 	}
-	
+
 	public Diagnostic Diagnostic { get; }
 }

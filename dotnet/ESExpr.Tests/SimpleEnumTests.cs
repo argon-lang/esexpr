@@ -10,7 +10,7 @@ public class SimpleEnumTests : TestBase {
 			new SimpleEnumUser.Codec(),
 			new Expr.Constructor(
 				"simple-enum-user",
-				[ new Expr.Str("test-name123") ],
+				[new Expr.Str("test-name123")],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new SimpleEnumUser {
@@ -21,7 +21,7 @@ public class SimpleEnumTests : TestBase {
 			new SimpleEnumUser.Codec(),
 			new Expr.Constructor(
 				"simple-enum-user",
-				[ new Expr.Str("test-name-456") ],
+				[new Expr.Str("test-name-456")],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new SimpleEnumUser {
@@ -32,7 +32,7 @@ public class SimpleEnumTests : TestBase {
 			new SimpleEnumUser.Codec(),
 			new Expr.Constructor(
 				"simple-enum-user",
-				[ new Expr.Str("other-name-here") ],
+				[new Expr.Str("other-name-here")],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new SimpleEnumUser {
@@ -43,7 +43,7 @@ public class SimpleEnumTests : TestBase {
 			new SimpleEnumUser.Codec(),
 			new Expr.Constructor(
 				"simple-enum-user",
-				[ new Expr.Str("my-custom-name") ],
+				[new Expr.Str("my-custom-name")],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new SimpleEnumUser {

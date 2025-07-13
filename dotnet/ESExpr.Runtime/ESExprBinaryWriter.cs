@@ -22,7 +22,7 @@ public class ESExprBinaryWriter {
 		symbolSet = new HashSet<string>(symbolTable);
 		this.stream = stream;
 	}
-	
+
 	private readonly List<string> symbolTable;
 	private readonly HashSet<string> symbolSet;
 	private readonly Stream stream;
@@ -43,7 +43,7 @@ public class ESExprBinaryWriter {
 				await WriteRaw(newStringExpr, cancellationToken);
 			}
 		}
-		
+
 		await WriteRaw(expr, cancellationToken);
 	}
 
@@ -54,11 +54,11 @@ public class ESExprBinaryWriter {
 					case StringTable.Codec.StringTableConstructor:
 						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartStringTable, null), cancellationToken).ConfigureAwait(false);
 						break;
-					
+
 					case VList<int>.Codec.ListConstructor:
 						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartList, null), cancellationToken).ConfigureAwait(false);
 						break;
-						
+
 					default:
 						var index = await GetSymbolIndex(constructor, cancellationToken);
 						await WriteToken(new BinToken(BinToken.TokenType.Constructor, index), cancellationToken).ConfigureAwait(false);
@@ -74,19 +74,19 @@ public class ESExprBinaryWriter {
 					await WriteToken(new BinToken(BinToken.TokenType.Keyword, index), cancellationToken).ConfigureAwait(false);
 					await WriteRaw(kvp.Value, cancellationToken).ConfigureAwait(false);
 				}
-				
+
 				await WriteToken(new BinToken(BinToken.TokenType.ConstructorEnd, null), cancellationToken).ConfigureAwait(false);
-				
+
 				break;
-			
+
 			case Expr.Bool(true):
 				await WriteToken(new BinToken(BinToken.TokenType.True, null), cancellationToken).ConfigureAwait(false);
 				break;
-			
+
 			case Expr.Bool(false):
 				await WriteToken(new BinToken(BinToken.TokenType.False, null), cancellationToken).ConfigureAwait(false);
 				break;
-			
+
 			case Expr.Int(var i):
 				if(i.Sign >= 0) {
 					await WriteToken(new BinToken(BinToken.TokenType.Int, i), cancellationToken).ConfigureAwait(false);
@@ -96,47 +96,44 @@ public class ESExprBinaryWriter {
 				}
 				break;
 
-			case Expr.Str(var s):
-			{
+			case Expr.Str(var s): {
 				var b = Encoding.UTF8.GetBytes(s);
 				await WriteToken(new BinToken(BinToken.TokenType.String, b.Length), cancellationToken).ConfigureAwait(false);
 				await stream.WriteAsync(b, cancellationToken).ConfigureAwait(false);
 				break;
 			}
-				
+
 			case Expr.Binary(var b):
 				await WriteToken(new BinToken(BinToken.TokenType.Binary, b.Length), cancellationToken).ConfigureAwait(false);
 				await stream.WriteAsync(b, cancellationToken).ConfigureAwait(false);
 				break;
 
-			case Expr.Float32(var f):
-			{
-				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);	
-				
+			case Expr.Float32(var f): {
+				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
+
 				uint bits = unchecked((uint)BitConverter.SingleToInt32Bits(f));
 				for(int i = 0; i < sizeof(uint); ++i) {
 					byte b = unchecked((byte)bits);
 					await stream.WriteAsync(new byte[] { b }, cancellationToken).ConfigureAwait(false);
 					bits >>= 8;
 				}
-				
+
 				break;
 			}
-				
-			case Expr.Float64(var d):
-			{
-				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);	
-				
+
+			case Expr.Float64(var d): {
+				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
+
 				ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(d));
 				for(int i = 0; i < sizeof(ulong); ++i) {
 					byte b = unchecked((byte)bits);
 					await stream.WriteAsync(new byte[] { b }, cancellationToken).ConfigureAwait(false);
 					bits >>= 8;
 				}
-				
+
 				break;
 			}
-			
+
 			case Expr.Null(var level):
 				if(level == 0) {
 					await WriteToken(new BinToken(BinToken.TokenType.Null0, null), cancellationToken).ConfigureAwait(false);
@@ -152,20 +149,20 @@ public class ESExprBinaryWriter {
 					await WriteInt(level - 3, cancellationToken).ConfigureAwait(false);
 				}
 				break;
-				
+
 			default:
 				throw new InvalidOperationException();
 		}
 	}
-	
-	
+
+
 
 	private async ValueTask<BigInteger> GetSymbolIndex(string constructor, CancellationToken cancellationToken) {
 		int index = symbolTable.IndexOf(constructor);
 		if(index < 0) {
 			await WriteToken(new BinToken(BinToken.TokenType.AppendStringTable, null), cancellationToken);
 			await WriteRaw(new Expr.Str(constructor), cancellationToken);
-			
+
 			index = symbolTable.Count;
 			symbolTable.Add(constructor);
 		}
@@ -232,14 +229,14 @@ public class ESExprBinaryWriter {
 		} while(intValue.Sign > 0);
 	}
 
-	
+
 	public void AddSymbols(Expr expr) {
 		void AddSymbol(string symbol) {
 			if(symbolSet.Add(symbol)) {
 				symbolTable.Add(symbol);
 			}
 		}
-		
+
 		if(expr is Expr.Constructor(var name, var args, var kwargs)) {
 			if(name != VList<int>.Codec.ListConstructor && name != StringTable.Codec.StringTableConstructor) {
 				AddSymbol(name);
@@ -248,12 +245,12 @@ public class ESExprBinaryWriter {
 			foreach(var arg in args) {
 				AddSymbols(arg);
 			}
-				
+
 			foreach(var kvp in kwargs) {
 				AddSymbol(kvp.Key);
 				AddSymbols(kvp.Value);
 			}
 		}
 	}
-	
+
 }

@@ -5,7 +5,7 @@ namespace ESExpr.SourceGenerator;
 
 public record UnionRecordSourceModel : ITypeSourceModelDeclaration {
 	public required VList<SourceModelSyntax<UsingDirectiveSyntax>> Usings { get; init; }
-	
+
 	public required VList<string> Namespace { get; init; }
 	public required string TypeName { get; init; }
 	public required Location Location { get; init; }

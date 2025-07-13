@@ -4,7 +4,7 @@ namespace ESExpr.Runtime.Codecs;
 
 [ESExprOverrideCodec]
 public sealed class DoubleCodec : IESExprCodec<double> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[ new ESExprTag.Float64() ];
+	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Float64()];
 	public Expr Encode(double value) => new Expr.Float64(value);
 
 	public double Decode(Expr expr, DecodeFailurePath path) {

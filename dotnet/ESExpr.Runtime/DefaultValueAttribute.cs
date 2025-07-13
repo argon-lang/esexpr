@@ -7,6 +7,6 @@ public class DefaultValueAttribute : Attribute {
 	public DefaultValueAttribute(string valueExpression) {
 		ValueExpression = valueExpression;
 	}
-	
+
 	public string ValueExpression { get; }
 }
