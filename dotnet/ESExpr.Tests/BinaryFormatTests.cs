@@ -81,7 +81,7 @@ public class BinaryFormatTests : TestBase {
 					}),
 
 				JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
-					new Expr.Array8(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
+					new Expr.Array8(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException()).ToImmutableArray()),
 
 				JsonValueKind.Object when elem.TryGetProperty("array8", out var array8Value) =>
 					new Expr.Array8(ReadFixedArray<byte>(array8Value)),
@@ -112,7 +112,7 @@ public class BinaryFormatTests : TestBase {
 		}
 	}
 
-	private T[] ReadFixedArray<T>(JsonElement arrayValue)
+	private ImmutableArray<T> ReadFixedArray<T>(JsonElement arrayValue)
 		where T : IUnsignedNumber<T> {
 		if(arrayValue.ValueKind != JsonValueKind.Array)
 			throw new ArgumentException("Expected array", nameof(arrayValue));
@@ -123,7 +123,7 @@ public class BinaryFormatTests : TestBase {
 				JsonValueKind.Number => T.CreateChecked(e.GetInt64()),
 				_ => throw new ArgumentException($"Unexpected value kind: {e.ValueKind}", nameof(arrayValue))
 			})
-			.ToArray();
+			.ToImmutableArray();
 	}
 
 	private async ValueTask<List<Expr>> ReadJsonFile(string path) {

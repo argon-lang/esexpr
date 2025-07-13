@@ -72,7 +72,7 @@ public abstract record Expr {
 		}
 	}
 
-	public sealed record Array8(byte[] value) : Expr {
+	public sealed record Array8(ImmutableArray<byte> value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Array8();
 
 		public override int GetHashCode() {
@@ -85,7 +85,7 @@ public abstract record Expr {
 
 		public bool Equals(Array8? other) {
 			return other is not null &&
-				value.AsSpan().SequenceEqual(other.value);
+				value.AsSpan().SequenceEqual(other.value.AsSpan());
 		}
 
 		public override string ToString() {
@@ -93,7 +93,7 @@ public abstract record Expr {
 		}
 	}
 
-	public sealed record Array16(ushort[] value) : Expr {
+	public sealed record Array16(ImmutableArray<ushort> value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Array16();
 
 		public override int GetHashCode() {
@@ -106,7 +106,7 @@ public abstract record Expr {
 
 		public bool Equals(Array16? other) {
 			return other is not null &&
-				value.AsSpan().SequenceEqual(other.value);
+				value.AsSpan().SequenceEqual(other.value.AsSpan());
 		}
 
 		public override string ToString() {
@@ -114,7 +114,7 @@ public abstract record Expr {
 		}
 	}
 
-	public sealed record Array32(uint[] value) : Expr {
+	public sealed record Array32(ImmutableArray<uint> value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Array32();
 
 		public override int GetHashCode() {
@@ -127,7 +127,7 @@ public abstract record Expr {
 
 		public bool Equals(Array32? other) {
 			return other is not null &&
-				value.AsSpan().SequenceEqual(other.value);
+				value.AsSpan().SequenceEqual(other.value.AsSpan());
 		}
 
 		public override string ToString() {
@@ -135,7 +135,7 @@ public abstract record Expr {
 		}
 	}
 
-	public sealed record Array64(ulong[] value) : Expr {
+	public sealed record Array64(ImmutableArray<ulong> value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Array64();
 
 		public override int GetHashCode() {
@@ -148,7 +148,7 @@ public abstract record Expr {
 
 		public bool Equals(Array64? other) {
 			return other is not null &&
-				value.AsSpan().SequenceEqual(other.value);
+				value.AsSpan().SequenceEqual(other.value.AsSpan());
 		}
 
 		public override string ToString() {
@@ -156,7 +156,7 @@ public abstract record Expr {
 		}
 	}
 
-	public sealed record Array128(UInt128[] value) : Expr {
+	public sealed record Array128(ImmutableArray<UInt128> value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Array128();
 
 		public override int GetHashCode() {
@@ -169,7 +169,7 @@ public abstract record Expr {
 
 		public bool Equals(Array128? other) {
 			return other is not null &&
-				value.AsSpan().SequenceEqual(other.value);
+				value.AsSpan().SequenceEqual(other.value.AsSpan());
 		}
 
 		public override string ToString() {

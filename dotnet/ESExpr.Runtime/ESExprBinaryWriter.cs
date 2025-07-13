@@ -148,7 +148,7 @@ public class ESExprBinaryWriter {
 
 			case Expr.Array8(var b):
 				await WriteToken(new BinToken(BinToken.TokenType.Array8, b.Length), cancellationToken).ConfigureAwait(false);
-				await stream.WriteAsync(b, cancellationToken).ConfigureAwait(false);
+				await stream.WriteAsync(b.AsMemory(), cancellationToken).ConfigureAwait(false);
 				break;
 
 			case Expr.Array16(var b): {

@@ -201,7 +201,9 @@ public class ESExprBinaryReader {
 			}
 
 			case BinToken.TokenType.Array8:
-				expr = new Expr.Array8(await ReadBytes(token.IntValue ?? throw new SyntaxException(), cancellationToken));
+				expr = new Expr.Array8(
+					(await ReadBytes(token.IntValue ?? throw new SyntaxException(), cancellationToken)).ToImmutableArray()
+				);
 				break;
 
 			case BinToken.TokenType.Array16: {
@@ -279,19 +281,20 @@ public class ESExprBinaryReader {
 		return convert(value);
 	}
 
-	private async ValueTask<T[]> ReadArrayN<T>(int byteSize, CancellationToken cancellationToken = default)
+	private async ValueTask<ImmutableArray<T>> ReadArrayN<T>(int byteSize, CancellationToken cancellationToken = default)
 		where T : IBinaryInteger<T> {
-		var length = await ReadInt(0, 0, cancellationToken).ConfigureAwait(false);
-		var buff = await ReadBytes(length * byteSize, cancellationToken);
-		var values = new T[(int)length];
-		for(int i = 0; i < values.Length; ++i) {
+		var lengthBig = await ReadInt(0, 0, cancellationToken).ConfigureAwait(false);
+		var buff = await ReadBytes(lengthBig * byteSize, cancellationToken);
+		int length = (int)lengthBig;
+		var builder = ImmutableArray.CreateBuilder<T>(length);
+		for(int i = 0; i < length; ++i) {
 			T value = T.Zero;
 			for(int j = 0; j < byteSize; ++j) {
 				value |= T.CreateTruncating(buff[i * byteSize + j]) << (j * 8);
 			}
-			values[i] = value;
+			builder.Add(value);
 		}
-		return values;
+		return builder.MoveToImmutable();
 	}
 
 	private async Task<Expr> ReadConstructor(string constructor, CancellationToken cancellationToken = default) {
