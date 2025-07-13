@@ -145,17 +145,13 @@ public class ESExprBinaryReader {
 				break;
 
 			case BinToken.TokenType.String: {
-				var bytes = await ReadBytes(token.IntValue ?? throw new SyntaxException());
+				var bytes = await ReadBytes(token.IntValue ?? throw new SyntaxException(), cancellationToken);
 				expr = new Expr.Str(Encoding.UTF8.GetString(bytes));
 				break;
 			}
 
 			case BinToken.TokenType.StringPoolIndex:
 				expr = new Expr.Str(LookupStringTable(token.IntValue ?? throw new SyntaxException()));
-				break;
-
-			case BinToken.TokenType.Binary:
-				expr = new Expr.Binary(await ReadBytes(token.IntValue ?? throw new SyntaxException()));
 				break;
 
 			case BinToken.TokenType.Null0:
@@ -185,35 +181,48 @@ public class ESExprBinaryReader {
 				expr = new Expr.Bool(false);
 				break;
 
+			case BinToken.TokenType.Float16: {
+				var value = await ReadFixed<ushort, Half>(sizeof(ushort), BitConverter.UInt16BitsToHalf, cancellationToken);
+				expr = new Expr.Float16(value);
+				break;
+			}
+
 			case BinToken.TokenType.Float32: {
-				int bits = 0;
-				for(int i = 0; i < sizeof(int); ++i) {
-					int b = await Next(cancellationToken);
-					if(b < 0) {
-						throw new SyntaxException();
-					}
-
-					bits |= b << (i * 8);
-				}
-
-				expr = new Expr.Float32(BitConverter.Int32BitsToSingle(bits));
+				var value = await ReadFixed<uint, float>(sizeof(float), BitConverter.UInt32BitsToSingle, cancellationToken);
+				expr = new Expr.Float32(value);
 				break;
 			}
 
 			case BinToken.TokenType.Float64: {
-				long bits = 0;
-				for(int i = 0; i < sizeof(long); ++i) {
-					long b = await Next(cancellationToken);
-					if(b < 0) {
-						throw new SyntaxException();
-					}
-
-					bits |= b << (i * 8);
-				}
-
-				expr = new Expr.Float64(BitConverter.Int64BitsToDouble(bits));
+				var value = await ReadFixed<ulong, double>(sizeof(double), BitConverter.UInt64BitsToDouble, cancellationToken);
+				expr = new Expr.Float64(value);
 				break;
 			}
+
+			case BinToken.TokenType.Array8:
+				expr = new Expr.Array8(await ReadBytes(token.IntValue ?? throw new SyntaxException(), cancellationToken));
+				break;
+
+			case BinToken.TokenType.Array16: {
+				expr = new Expr.Array16(await ReadArrayN<ushort>(sizeof(ushort), cancellationToken));
+				break;
+			}
+
+			case BinToken.TokenType.Array32: {
+				expr = new Expr.Array32(await ReadArrayN<uint>(sizeof(uint), cancellationToken));
+				break;
+			}
+
+			case BinToken.TokenType.Array64: {
+				expr = new Expr.Array64(await ReadArrayN<ulong>(sizeof(ulong), cancellationToken));
+				break;
+			}
+
+			case BinToken.TokenType.Array128: {
+				expr = new Expr.Array128(await ReadArrayN<UInt128>(16, cancellationToken));
+				break;
+			}
+
 
 			case BinToken.TokenType.ConstructorStartStringTable:
 				expr = await ReadConstructor(StringTable.Codec.StringTableConstructor, cancellationToken).ConfigureAwait(false);
@@ -258,6 +267,32 @@ public class ESExprBinaryReader {
 		return visitor.VisitExpr(expr);
 	}
 
+	private async ValueTask<T> ReadFixed<N, T>(int size, Func<N, T> convert, CancellationToken cancellationToken = default)
+		where N : IBinaryInteger<N> {
+		var bytes = await ReadBytes(size, cancellationToken);
+		N value = N.Zero;
+		for(int i = 0; i < size; ++i) {
+			value |= N.CreateTruncating(bytes[i]) << (i * 8);
+		}
+
+		return convert(value);
+	}
+
+	private async ValueTask<T[]> ReadArrayN<T>(int byteSize, CancellationToken cancellationToken = default)
+		where T : IBinaryInteger<T> {
+		var length = await ReadInt(0, 0, cancellationToken).ConfigureAwait(false);
+		var buff = await ReadBytes(length * byteSize, cancellationToken);
+		var values = new T[(int)length];
+		for(int i = 0; i < values.Length; ++i) {
+			T value = T.Zero;
+			for(int j = 0; j < byteSize; ++j) {
+				value |= T.CreateTruncating(buff[i * byteSize + j]) << (j * 8);
+			}
+			values[i] = value;
+		}
+		return values;
+	}
+
 	private async Task<Expr> ReadConstructor(string constructor, CancellationToken cancellationToken = default) {
 		var argVisitor = new ConstructorArgumentVisitor(this, cancellationToken);
 
@@ -298,11 +333,15 @@ public class ESExprBinaryReader {
 		}
 	}
 
-	private async ValueTask<byte[]> ReadBytes(BigInteger tokenIntValue) {
+	private async ValueTask<byte[]> ReadBytes(BigInteger tokenIntValue, CancellationToken cancellationToken = default) {
+		if(tokenIntValue < 0 || tokenIntValue >= int.MaxValue) {
+			throw new SyntaxException("Length too large");
+		}
+
 		int length = (int)tokenIntValue;
 		// Assume nextByte is -1 here.
 		byte[] buff = new byte[length];
-		await stream.ReadExactlyAsync(buff);
+		await stream.ReadExactlyAsync(buff, cancellationToken);
 		return buff;
 	}
 
@@ -321,7 +360,7 @@ public class ESExprBinaryReader {
 			0x40 => BinToken.TokenType.NegInt,
 			0x60 => BinToken.TokenType.String,
 			0x80 => BinToken.TokenType.StringPoolIndex,
-			0xA0 => BinToken.TokenType.Binary,
+			0xA0 => BinToken.TokenType.Array8,
 			0xC0 => BinToken.TokenType.Keyword,
 			_ => null,
 		};
@@ -341,13 +380,18 @@ public class ESExprBinaryReader {
 				0xE1 => BinToken.TokenType.True,
 				0xE2 => BinToken.TokenType.False,
 				0xE3 => BinToken.TokenType.Null0,
-				0xE4 => BinToken.TokenType.Float32,
-				0xE5 => BinToken.TokenType.Float64,
-				0xE6 => BinToken.TokenType.ConstructorStartStringTable,
-				0xE7 => BinToken.TokenType.ConstructorStartList,
 				0xE8 => BinToken.TokenType.Null1,
 				0xE9 => BinToken.TokenType.Null2,
 				0xEA => BinToken.TokenType.NullN,
+				0xEC => BinToken.TokenType.Float16,
+				0xE4 => BinToken.TokenType.Float32,
+				0xE5 => BinToken.TokenType.Float64,
+				0xED => BinToken.TokenType.Array16,
+				0xEE => BinToken.TokenType.Array32,
+				0xEF => BinToken.TokenType.Array64,
+				0xF0 => BinToken.TokenType.Array128,
+				0xE6 => BinToken.TokenType.ConstructorStartStringTable,
+				0xE7 => BinToken.TokenType.ConstructorStartList,
 				0xEB => BinToken.TokenType.AppendStringTable,
 				_ => throw new SyntaxException(),
 			};

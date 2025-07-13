@@ -12,6 +12,10 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 	public static SimpleEnumCodec<T> Instance { get; } = new SimpleEnumCodec<T>();
 
 	private SimpleEnumCodec() {
+		if(typeof(T).GetCustomAttribute<ESExprCodecAttribute>() == null) {
+			throw new InvalidOperationException($"Type {typeof(T)} does not have the {nameof(ESExprCodecAttribute)} attribute");
+		}
+
 		strLookup = Enum.GetValues<T>()
 			.ToImmutableDictionary(
 				value => value,

@@ -103,20 +103,30 @@ public class ESExprBinaryWriter {
 				break;
 			}
 
-			case Expr.Binary(var b):
-				await WriteToken(new BinToken(BinToken.TokenType.Binary, b.Length), cancellationToken).ConfigureAwait(false);
-				await stream.WriteAsync(b, cancellationToken).ConfigureAwait(false);
+			case Expr.Float16(var h): {
+				await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
+
+				ushort bits = BitConverter.HalfToUInt16Bits(h);
+				byte[] buff = new byte[sizeof(ushort)];
+				for(int i = 0; i < sizeof(ushort); ++i) {
+					buff[i] = unchecked((byte)bits);
+					bits >>= 8;
+				}
+				await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+
 				break;
+			}
 
 			case Expr.Float32(var f): {
 				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
 
-				uint bits = unchecked((uint)BitConverter.SingleToInt32Bits(f));
+				uint bits = BitConverter.SingleToUInt32Bits(f);
+				byte[] buff = new byte[sizeof(uint)];
 				for(int i = 0; i < sizeof(uint); ++i) {
-					byte b = unchecked((byte)bits);
-					await stream.WriteAsync(new byte[] { b }, cancellationToken).ConfigureAwait(false);
+					buff[i] = unchecked((byte)bits);
 					bits >>= 8;
 				}
+				await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
 
 				break;
 			}
@@ -124,15 +134,85 @@ public class ESExprBinaryWriter {
 			case Expr.Float64(var d): {
 				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
 
-				ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(d));
+				ulong bits = BitConverter.DoubleToUInt64Bits(d);
+				byte[] buff = new byte[sizeof(ulong)];
 				for(int i = 0; i < sizeof(ulong); ++i) {
-					byte b = unchecked((byte)bits);
-					await stream.WriteAsync(new byte[] { b }, cancellationToken).ConfigureAwait(false);
+					buff[i] = unchecked((byte)bits);
 					bits >>= 8;
+				}
+				await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+
+				break;
+			}
+
+			case Expr.Array8(var b):
+				await WriteToken(new BinToken(BinToken.TokenType.Array8, b.Length), cancellationToken).ConfigureAwait(false);
+				await stream.WriteAsync(b, cancellationToken).ConfigureAwait(false);
+				break;
+
+			case Expr.Array16(var b): {
+				await WriteToken(new BinToken(BinToken.TokenType.Array16, null), cancellationToken)
+					.ConfigureAwait(false);
+				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+				byte[] buff = new byte[sizeof(ushort)];
+				foreach(var value in b) {
+					buff[0] = unchecked((byte)value);
+					buff[1] = unchecked((byte)(value >> 8));
+					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+					;
 				}
 
 				break;
 			}
+
+			case Expr.Array32(var b): {
+				await WriteToken(new BinToken(BinToken.TokenType.Array32, null), cancellationToken)
+					.ConfigureAwait(false);
+				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+				byte[] buff = new byte[sizeof(uint)];
+				foreach(var value in b) {
+					buff[0] = unchecked((byte)value);
+					buff[1] = unchecked((byte)(value >> 8));
+					buff[2] = unchecked((byte)(value >> 16));
+					buff[3] = unchecked((byte)(value >> 24));
+					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+				}
+
+				break;
+			}
+
+			case Expr.Array64(var b): {
+				await WriteToken(new BinToken(BinToken.TokenType.Array64, null), cancellationToken)
+					.ConfigureAwait(false);
+				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+				byte[] buff = new byte[sizeof(ulong)];
+				foreach(var value in b) {
+					for(int i = 0; i < sizeof(ulong); i++) {
+						buff[i] = unchecked((byte)(value >> (8 * i)));
+					}
+
+					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+				}
+
+				break;
+			}
+
+			case Expr.Array128(var b): {
+				await WriteToken(new BinToken(BinToken.TokenType.Array128, null), cancellationToken)
+					.ConfigureAwait(false);
+				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+				byte[] buff = new byte[16];
+				foreach(var value in b) {
+					for(int i = 0; i < 16; i++) {
+						buff[i] = (byte)((value >> (8 * i)) & 0xFF);
+					}
+
+					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+				}
+
+				break;
+			}
+
 
 			case Expr.Null(var level):
 				if(level == 0) {
@@ -177,16 +257,21 @@ public class ESExprBinaryWriter {
 			BinToken.TokenType.NegInt => 0x40,
 			BinToken.TokenType.String => 0x60,
 			BinToken.TokenType.StringPoolIndex => 0x80,
-			BinToken.TokenType.Binary => 0xA0,
 			BinToken.TokenType.Keyword => 0xC0,
 			BinToken.TokenType.ConstructorEnd => 0xE0,
 			BinToken.TokenType.True => 0xE1,
 			BinToken.TokenType.False => 0xE2,
-			BinToken.TokenType.Null0 => 0xE3,
+			BinToken.TokenType.Float16 => 0xEC,
 			BinToken.TokenType.Float32 => 0xE4,
 			BinToken.TokenType.Float64 => 0xE5,
+			BinToken.TokenType.Array8 => 0xA0,
+			BinToken.TokenType.Array16 => 0xED,
+			BinToken.TokenType.Array32 => 0xEE,
+			BinToken.TokenType.Array64 => 0xEF,
+			BinToken.TokenType.Array128 => 0xF0,
 			BinToken.TokenType.ConstructorStartStringTable => 0xE6,
 			BinToken.TokenType.ConstructorStartList => 0xE7,
+			BinToken.TokenType.Null0 => 0xE3,
 			BinToken.TokenType.Null1 => 0xE8,
 			BinToken.TokenType.Null2 => 0xE9,
 			BinToken.TokenType.NullN => 0xEA,

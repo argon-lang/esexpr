@@ -44,8 +44,17 @@ public class BinaryFormatTests : TestBase {
 				JsonValueKind.Object when elem.TryGetProperty("int", out var intValue) =>
 					new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
 
-				JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
-					new Expr.Binary(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
+				JsonValueKind.Object when elem.TryGetProperty("float16", out var float16Value) =>
+					new Expr.Float32(float16Value.ValueKind switch {
+						JsonValueKind.String => float16Value.GetString() switch {
+							"+inf" => float.PositiveInfinity,
+							"-inf" => float.NegativeInfinity,
+							"nan" => float.NaN,
+							_ => throw new InvalidOperationException(),
+						},
+						JsonValueKind.Number => float16Value.GetSingle(),
+						_ => throw new InvalidOperationException(),
+					}),
 
 				JsonValueKind.Object when elem.TryGetProperty("float32", out var float32Value) =>
 					new Expr.Float32(float32Value.ValueKind switch {
@@ -71,10 +80,28 @@ public class BinaryFormatTests : TestBase {
 						_ => throw new InvalidOperationException()
 					}),
 
+				JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
+					new Expr.Array8(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException())),
+
+				JsonValueKind.Object when elem.TryGetProperty("array8", out var array8Value) =>
+					new Expr.Array8(ReadFixedArray<byte>(array8Value)),
+
+				JsonValueKind.Object when elem.TryGetProperty("array16", out var array16Value) =>
+					new Expr.Array16(ReadFixedArray<ushort>(array16Value)),
+
+				JsonValueKind.Object when elem.TryGetProperty("array32", out var array32Value) =>
+					new Expr.Array32(ReadFixedArray<uint>(array32Value)),
+
+				JsonValueKind.Object when elem.TryGetProperty("array64", out var array64Value) =>
+					new Expr.Array64(ReadFixedArray<ulong>(array64Value)),
+
+				JsonValueKind.Object when elem.TryGetProperty("array128", out var array128Value) =>
+					new Expr.Array128(ReadFixedArray<UInt128>(array128Value)),
+
 				JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
 					new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
 
-				_ => throw new ArgumentException(nameof(elem)),
+				_ => throw new ArgumentException($"Unexpected JSON: {elem}", nameof(elem)),
 			};
 
 		if(elem.ValueKind == JsonValueKind.Array) {
@@ -83,6 +110,20 @@ public class BinaryFormatTests : TestBase {
 		else {
 			return [DecodeJsonExpr(elem)];
 		}
+	}
+
+	private T[] ReadFixedArray<T>(JsonElement arrayValue)
+		where T : IUnsignedNumber<T> {
+		if(arrayValue.ValueKind != JsonValueKind.Array)
+			throw new ArgumentException("Expected array", nameof(arrayValue));
+
+		return arrayValue.EnumerateArray()
+			.Select(e => e.ValueKind switch {
+				JsonValueKind.String => T.Parse(e.GetString()!, null),
+				JsonValueKind.Number => T.CreateChecked(e.GetInt64()),
+				_ => throw new ArgumentException($"Unexpected value kind: {e.ValueKind}", nameof(arrayValue))
+			})
+			.ToArray();
 	}
 
 	private async ValueTask<List<Expr>> ReadJsonFile(string path) {

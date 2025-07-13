@@ -68,6 +68,9 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		}
 
 		switch(decl) {
+			case EnumDeclarationSyntax _:
+				return null;
+
 			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.SealedKeyword):
 				if((recordDecl.ParameterList?.Parameters.Count ?? 0) != 0) {
 					return new InvalidTypeSourceModel {
