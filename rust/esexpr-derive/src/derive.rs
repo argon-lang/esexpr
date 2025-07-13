@@ -316,6 +316,8 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 		},
 
 		Data::Enum(e) if attr.simple_enum.is_present() => {
+			let mut names = HashSet::new();
+			
 			let cases: proc_macro2::TokenStream = e
 				.variants
 				.iter()
@@ -324,7 +326,13 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 						ESExprVariantAttr::from_attributes(&c.attrs).map_err(darling::Error::write_errors)?;
 
 					let case_name = &c.ident;
-					let case_name_str = &make_constructor_name(variant_attr.constructor.as_ref(), case_name);
+					let case_name_str = make_constructor_name(variant_attr.constructor.as_ref(), case_name);
+					
+					if !names.insert(case_name_str.clone()) {
+						return Err(quote! {
+							compile_error!("Duplicate simple enum case name: {}", #case_name_str);
+						})
+					}
 
 					Ok(quote! {
 						#type_name::#case_name => ::esexpr::ESExpr::Str(::esexpr::cowstr::CowStr::Static(#case_name_str)),
@@ -340,6 +348,9 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 		},
 
 		Data::Enum(e) => {
+			let mut case_tag_exprs = Vec::new();
+			let mut case_tag_assertions = Vec::new();
+			
 			let cases: proc_macro2::TokenStream = e.variants.iter().map(|c| -> TokenRes {
                 fn make_field_name<'a>(name: Option<&'a Ident>, i: usize) -> proc_macro2::TokenStream {
                     let name =
@@ -387,6 +398,18 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
                     let field = get_inline_value_field(c)?;
                     let field_name = make_field_name(field.ident.as_ref(), 0);
                     let field_type = &field.ty;
+					
+					let field_tags = quote! {
+						<#field_type as ::esexpr::ESExprCodec>::TAGS
+					};
+
+					let message_disjoint = format!("Inline value case '{case_name}' must have distinct tags from immediately preceding optional positional arguments");
+					
+					case_tag_assertions.push(quote! {
+						assert!(::esexpr::ESExprTagCollection::Concat(&[ #(#case_tag_exprs,)* ]).is_disjoint(#field_tags), #message_disjoint);
+					});
+					
+					case_tag_exprs.push(field_tags);
 
                     Ok(quote! {
                         #pattern => {
@@ -412,6 +435,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
             }).collect::<Result<_, _>>()?;
 
 			quote! {
+				#(#case_tag_assertions)*
 				match self {
 					#cases
 				}
