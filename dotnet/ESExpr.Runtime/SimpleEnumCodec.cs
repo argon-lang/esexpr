@@ -34,6 +34,8 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 
 	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Str()];
 
+	public bool IsEncodedEqual(T a, T b) => EqualityComparer<T>.Default.Equals(a, b);
+
 	public Expr Encode(T value) {
 		if(strLookup.TryGetValue(value, out var s)) {
 			return new Expr.Str(s);

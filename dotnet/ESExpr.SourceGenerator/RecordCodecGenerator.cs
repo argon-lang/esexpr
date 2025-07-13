@@ -43,6 +43,9 @@ internal class RecordCodecGenerator : CodecGenerator<RecordSourceModel> {
 		);
 	}
 
+	protected override BlockSyntax GenerateIsEqualBody() =>
+		WriteIsEqualFields(TypeModel.Fields, IdentifierName("a"), IdentifierName("b"));
+
 	protected override BlockSyntax GenerateEncodeBody() =>
 		WriteEncodeFields(TypeModel.ConstructorName, TypeModel.Fields, IdentifierName("value"));
 

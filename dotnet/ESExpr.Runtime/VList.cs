@@ -90,6 +90,10 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 
 		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Constructor(ListConstructor)];
 
+		public bool IsEncodedEqual(VList<T> a, VList<T> b) =>
+			a.Count == b.Count &&
+				a.Zip(b, (aItem, bItem) => itemCodec.IsEncodedEqual(aItem, bItem)).All(x => x);
+
 		public Expr Encode(VList<T> value) {
 			return new Expr.Constructor(ListConstructor, value.Select(itemCodec.Encode).ToImmutableList(), ImmutableDictionary<string, Expr>.Empty);
 		}
@@ -114,6 +118,10 @@ public readonly struct VList<T> : IReadOnlyList<T>, IEquatable<VList<T>> {
 		}
 
 		private readonly IESExprCodec<T> itemCodec;
+
+		public bool IsEncodedEqual(VList<T> a, VList<T> b) =>
+			a.Count == b.Count &&
+			a.Zip(b, (aItem, bItem) => itemCodec.IsEncodedEqual(aItem, bItem)).All(x => x);
 
 		public IEnumerable<Expr> EncodeVararg(VList<T> value) {
 			return value.Select(itemCodec.Encode);

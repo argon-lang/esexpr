@@ -184,6 +184,9 @@ public abstract record Expr {
 
 	public sealed class Codec : IESExprCodec<Expr> {
 		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[];
+		
+		public bool IsEncodedEqual(Expr a, Expr b) => a == b;
+		
 		public Expr Encode(Expr value) => value;
 
 		public Expr Decode(Expr expr, DecodeFailurePath path) => expr;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ESExpr.Runtime.Codecs;
@@ -5,6 +6,10 @@ namespace ESExpr.Runtime.Codecs;
 [ESExprOverrideCodec]
 public sealed class DoubleCodec : IESExprCodec<double> {
 	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Float64()];
+	
+	public bool IsEncodedEqual(double a, double b) =>
+		BitConverter.DoubleToUInt64Bits(a) == BitConverter.DoubleToUInt64Bits(b);
+	
 	public Expr Encode(double value) => new Expr.Float64(value);
 
 	public double Decode(Expr expr, DecodeFailurePath path) {

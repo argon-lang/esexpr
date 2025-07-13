@@ -12,6 +12,8 @@ public record StringTable(VList<string> strings) {
 
 		internal const string StringTableConstructor = "string-table";
 
+		public bool IsEncodedEqual(StringTable a, StringTable b) => a == b;
+
 		public Expr Encode(StringTable value) {
 			return new Expr.Constructor(
 				StringTableConstructor,

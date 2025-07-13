@@ -92,6 +92,16 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 
 		private const string DictConstructor = "dict";
 
+		public bool IsEncodedEqual(VDict<T> a, VDict<T> b) =>
+			a.Count == b.Count &&
+				a.All(kvp => {
+					if(!b.TryGetValue(kvp.Key, out var bValue)) {
+						return false;
+					}
+					
+					return itemCodec.IsEncodedEqual(kvp.Value, bValue);
+				});
+
 		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Constructor(DictConstructor)];
 		public Expr Encode(VDict<T> value) {
 			var map = new DictCodec(itemCodec).EncodeDict(value);
@@ -122,6 +132,16 @@ public readonly struct VDict<T> : IReadOnlyDictionary<string, T>, IEquatable<VDi
 		}
 
 		private readonly IESExprCodec<T> itemCodec;
+		
+		public bool IsEncodedEqual(VDict<T> a, VDict<T> b) =>
+			a.Count == b.Count &&
+			a.All(kvp => {
+				if(!b.TryGetValue(kvp.Key, out var bValue)) {
+					return false;
+				}
+					
+				return itemCodec.IsEncodedEqual(kvp.Value, bValue);
+			});
 
 		public IReadOnlyDictionary<string, Expr> EncodeDict(VDict<T> value) {
 			return value.ToImmutableDictionary(

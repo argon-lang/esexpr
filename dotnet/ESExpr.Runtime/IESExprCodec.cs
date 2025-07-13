@@ -4,6 +4,7 @@ namespace ESExpr.Runtime;
 
 public interface IESExprCodec<T> {
 	ISet<ESExprTag> Tags { get; }
+	bool IsEncodedEqual(T a, T b);
 	Expr Encode(T value);
 	T Decode(Expr expr, DecodeFailurePath path);
 

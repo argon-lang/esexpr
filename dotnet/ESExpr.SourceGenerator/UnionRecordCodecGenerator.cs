@@ -77,6 +77,70 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 		);
 	}
 
+	protected override BlockSyntax GenerateIsEqualBody() {
+		var cases = new List<SwitchSectionSyntax>();
+
+		foreach(var c in TypeModel.Cases) {
+			
+
+			var label = CasePatternSwitchLabel(
+				DeclarationPattern(
+					IdentifierName(c.Name),
+					SingleVariableDesignation(Identifier("a2"))
+				),
+				Token(SyntaxKind.ColonToken)
+			);
+
+			BlockSyntax switchBody = WriteIsEqualFields(c.Fields, IdentifierName("a2"), IdentifierName("b2"));
+			switchBody = Block(
+				switchBody.Statements.Insert(
+					0,
+					IfStatement(
+						PrefixUnaryExpression(
+							SyntaxKind.LogicalNotExpression,
+							ParenthesizedExpression(
+								IsPatternExpression(
+									IdentifierName("b"),
+									DeclarationPattern(
+										IdentifierName(c.Name),
+										SingleVariableDesignation(
+											Identifier("b2")
+										)
+									)
+								)
+							)
+						),
+						Block(
+							ReturnStatement(
+								LiteralExpression(
+									SyntaxKind.FalseLiteralExpression
+								)
+							)
+						)
+					)
+				)
+			);
+			
+			cases.Add(SwitchSection(
+				List(new SwitchLabelSyntax[] { label }),
+				List(new StatementSyntax[] {
+					switchBody,
+				})
+			));
+		}
+
+		cases.Add(SwitchSection(
+			List(new SwitchLabelSyntax[] { DefaultSwitchLabel() }),
+			List(new StatementSyntax[] {
+				ParseStatement("throw new global::System.InvalidOperationException(\"Unexpected instance type\");"),
+			})
+		));
+
+		var swStmt = SwitchStatement(IdentifierName("a"), List(cases));
+
+		return Block(swStmt);
+	}
+
 	protected override BlockSyntax GenerateEncodeBody() {
 		var cases = new List<SwitchSectionSyntax>();
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ESExpr.Runtime.Codecs;
@@ -5,6 +6,10 @@ namespace ESExpr.Runtime.Codecs;
 [ESExprOverrideCodec]
 public sealed class FloatCodec : IESExprCodec<float> {
 	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Float32()];
+
+	public bool IsEncodedEqual(float a, float b) =>
+		BitConverter.SingleToUInt32Bits(a) == BitConverter.SingleToUInt32Bits(b);
+
 	public Expr Encode(float value) => new Expr.Float32(value);
 
 	public float Decode(Expr expr, DecodeFailurePath path) {

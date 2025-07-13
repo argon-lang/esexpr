@@ -5,6 +5,9 @@ namespace ESExpr.Runtime.Codecs;
 [ESExprOverrideCodec]
 public sealed class StringCodec : IESExprCodec<string> {
 	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Str()];
+
+	public bool IsEncodedEqual(string a, string b) => a == b;
+
 	public Expr Encode(string value) => new Expr.Str(value);
 
 	public string Decode(Expr expr, DecodeFailurePath path) {

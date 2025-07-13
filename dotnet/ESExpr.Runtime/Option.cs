@@ -71,6 +71,18 @@ public struct Option<T> : IEquatable<Option<T>> {
 			}
 		}
 
+		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
+			if(!a.hasValue) {
+				return !b.hasValue;
+			}
+
+			if(!b.hasValue) {
+				return false;
+			}
+
+			return elementCodec.IsEncodedEqual(a.value, b.value);
+		}
+
 		public Expr Encode(Option<T> value) {
 			if(value.TryGetValue(out var v)) {
 				var element = elementCodec.Encode(v);
@@ -107,6 +119,18 @@ public struct Option<T> : IEquatable<Option<T>> {
 		}
 
 		private readonly IESExprCodec<T> elementCodec;
+
+		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
+			if(!a.hasValue) {
+				return !b.hasValue;
+			}
+
+			if(!b.hasValue) {
+				return false;
+			}
+
+			return elementCodec.IsEncodedEqual(a.value, b.value);
+		}
 
 		public Expr? EncodeOptional(Option<T> value) {
 			if(value.TryGetValue(out var v)) {

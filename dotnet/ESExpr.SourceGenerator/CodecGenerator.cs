@@ -21,6 +21,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	public required TTypeModel TypeModel { get; init; }
 
 	protected abstract ExpressionSyntax GenerateTagsBody();
+	protected abstract BlockSyntax GenerateIsEqualBody();
 	protected abstract BlockSyntax GenerateEncodeBody();
 	protected abstract BlockSyntax GenerateDecodeBody();
 
@@ -110,6 +111,19 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 		members.Add(tagsProp);
 
+		var isEncodedEqualMethod =
+			MethodDeclaration(
+				PredefinedType(Token(SyntaxKind.BoolKeyword)),
+				Identifier("IsEncodedEqual")
+			)
+			.AddModifiers(Token(SyntaxKind.PublicKeyword))
+			.AddParameterListParameters(
+				Parameter(Identifier("a")).WithType(outerType),
+				Parameter(Identifier("b")).WithType(outerType)
+			)
+			.WithBody(GenerateIsEqualBody());
+		members.Add(isEncodedEqualMethod);
+		
 		var encodeMethod =
 			MethodDeclaration(
 					ESExprType,
@@ -182,6 +196,66 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 
 		Context.AddSource($"{fileNamePrefix}.ESExprCodec.g.cs", syntaxTree.GetText(Encoding.UTF8));
+	}
+
+	protected BlockSyntax WriteIsEqualFields(VList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
+		var stmts = new List<StatementSyntax>();
+
+		foreach(var field in fields) {
+			ExpressionSyntax memberAccessA = MemberAccessExpression(
+				SyntaxKind.SimpleMemberAccessExpression,
+				aExpr,
+				IdentifierName(field.Name)
+			);
+			ExpressionSyntax memberAccessB = MemberAccessExpression(
+				SyntaxKind.SimpleMemberAccessExpression,
+				bExpr,
+				IdentifierName(field.Name)
+			);
+
+			
+			ExpressionSyntax codecExpr;
+			if(field.IsVararg) {
+				codecExpr = GetVarargCodecExpr(field.Type);
+			}
+			else if(field.IsDict) {
+				codecExpr = GetDictCodecExpr(field.Type);
+			}
+			else if(field.IsOptional) {
+				codecExpr = GetOptionalCodecExpr(field.Type);
+			}
+			else {
+				codecExpr = GetCodecExpr(field.Type);
+			}
+
+			var isEqualCall = InvocationExpression(
+				MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					codecExpr,
+					IdentifierName("IsEncodedEqual")
+				),
+				ArgumentList(SeparatedList([
+					Argument(memberAccessA),
+					Argument(memberAccessB),
+				]))
+			);
+
+			stmts.Add(IfStatement(
+				PrefixUnaryExpression(
+					SyntaxKind.LogicalNotExpression,
+					isEqualCall
+				),
+				Block(ReturnStatement(
+					LiteralExpression(SyntaxKind.FalseLiteralExpression)
+				))
+			));
+		}
+
+		stmts.Add(ReturnStatement(
+			LiteralExpression(SyntaxKind.TrueLiteralExpression)
+		));
+
+		return Block(stmts);
 	}
 
 	protected BlockSyntax WriteEncodeFields(string constructorName, VList<SourceModelField> fields, ExpressionSyntax valueExpr) {

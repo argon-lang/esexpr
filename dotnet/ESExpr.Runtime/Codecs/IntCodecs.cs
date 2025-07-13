@@ -13,6 +13,10 @@ public abstract class IntCodecBase<I> : IESExprCodec<I>
 
 	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Int()];
 
+	public bool IsEncodedEqual(I a, I b) {
+		return a == b;
+	}
+
 	public Expr Encode(I value) {
 		return new Expr.Int(BigInteger.CreateChecked(value));
 	}
@@ -75,6 +79,8 @@ public sealed class UInt128Codec : IntCodecBase<UInt128> {
 [ESExprOverrideCodec]
 public sealed class BigIntegerCodec : IESExprCodec<BigInteger> {
 	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Int()];
+	
+	public bool IsEncodedEqual(BigInteger a, BigInteger b) => a == b;
 
 	public Expr Encode(BigInteger value) {
 		return new Expr.Int(value);
