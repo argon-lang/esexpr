@@ -4,8 +4,9 @@ using System.Collections.Generic;
 namespace ESExpr.Runtime.Codecs;
 
 [ESExprOverrideCodec]
+[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float16 ])]
 public sealed class HalfCodec : IESExprCodec<Half> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Float16()];
+	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Float16()]);
 
 	public bool IsEncodedEqual(Half a, Half b) =>
 		BitConverter.HalfToUInt16Bits(a) == BitConverter.HalfToUInt16Bits(b);

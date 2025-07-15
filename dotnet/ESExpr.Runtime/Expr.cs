@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Numerics;
+using System.Linq;
 
 namespace ESExpr.Runtime;
 
@@ -19,6 +20,47 @@ public abstract record Expr {
 			: this(constructor, args.ToImmutableList(), kwargs.ToImmutableDictionary()) { }
 
 		public override ESExprTag Tag => new ESExprTag.Constructor(constructor);
+
+		public override int GetHashCode() {
+			var hash = new HashCode();
+			hash.Add(constructor);
+			foreach(var arg in args) {
+				hash.Add(arg);
+			}
+			foreach(var kw in kwargs) {
+				hash.Add(kw.Key);
+				hash.Add(kw.Value);
+			}
+			return hash.ToHashCode();
+		}
+
+		public bool Equals(Constructor? other) {
+            if (other is null) return false;
+            
+            if (constructor != other.constructor) return false;
+            if (args.Count != other.args.Count) return false;
+            if (kwargs.Count != other.kwargs.Count) return false;
+            
+            for(int i = 0; i < args.Count; i++) {
+                if (!args[i].Equals(other.args[i])) return false;
+            }
+            
+            foreach(var kvp in kwargs) {
+                if (!other.kwargs.TryGetValue(kvp.Key, out var otherValue) || 
+                    !kvp.Value.Equals(otherValue)) return false;
+            }
+            
+            return true;
+		}
+
+		public override string ToString() {
+            var argsStr = string.Join(", ",
+	            args.Select(arg => arg.ToString())
+		            .Concat(kwargs.Select(kv => $"{kv.Key}: {kv.Value}"))
+	        );
+            
+	        return $"{constructor}({argsStr})";
+        }
 	}
 
 	public sealed record Bool(bool value) : Expr {
@@ -183,7 +225,7 @@ public abstract record Expr {
 
 
 	public sealed class Codec : IESExprCodec<Expr> {
-		public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[];
+		public ESExprTagSet Tags => ESExprTagSet.All;
 		
 		public bool IsEncodedEqual(Expr a, Expr b) => a == b;
 		

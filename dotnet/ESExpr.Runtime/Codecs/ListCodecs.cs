@@ -21,7 +21,7 @@ public abstract class ListCodecBase<T, TList> : IESExprCodec<TList>
 	protected abstract int GetCount(TList list);
 	
 	
-	public ISet<ESExprTag> Tags { get; } = new HashSet<ESExprTag>([new ESExprTag.Constructor(ListConstructor)]);
+	public ESExprTagSet Tags { get; } = ESExprTagSet.Create([new ESExprTag.Constructor(ListConstructor)]);
 
 
 	public bool IsEncodedEqual(TList a, TList b) =>
@@ -51,6 +51,7 @@ public abstract class ListCodecBase<T, TList> : IESExprCodec<TList>
 }
 
 [ESExprOverrideCodec]
+[ESExprTags(Constructors = [ ListCodecBase<int, List<int>>.ListConstructor ])]
 public class ListCodec<T> : ListCodecBase<T, List<T>> {
 	public ListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
@@ -60,6 +61,7 @@ public class ListCodec<T> : ListCodecBase<T, List<T>> {
 }
 
 [ESExprOverrideCodec]
+[ESExprTags(Constructors = [ ListConstructor ])]
 public class ImmutableListCodec<T> : ListCodecBase<T, ImmutableList<T>> {
 	public ImmutableListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
@@ -69,6 +71,7 @@ public class ImmutableListCodec<T> : ListCodecBase<T, ImmutableList<T>> {
 }
 
 [ESExprOverrideCodec]
+[ESExprTags(Constructors = [ ListConstructor ])]
 public class InterfaceListCodec<T> : ListCodecBase<T, IList<T>> {
 	public InterfaceListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
@@ -78,6 +81,7 @@ public class InterfaceListCodec<T> : ListCodecBase<T, IList<T>> {
 }
 
 [ESExprOverrideCodec]
+[ESExprTags(Constructors = [ ListConstructor ])]
 public class ReadOnlyListCodec<T> : ListCodecBase<T, IReadOnlyList<T>> {
 	public ReadOnlyListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
@@ -87,6 +91,7 @@ public class ReadOnlyListCodec<T> : ListCodecBase<T, IReadOnlyList<T>> {
 }
 
 [ESExprOverrideCodec]
+[ESExprTags(Constructors = [ ListConstructor ])]
 public class InterfaceImmutableListCodec<T> : ListCodecBase<T, IImmutableList<T>> {
 	public InterfaceImmutableListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
@@ -108,8 +113,7 @@ public abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList>
 	protected abstract TList CreateList(IEnumerable<T> items);
 	protected abstract int GetCount(TList list);
 	
-	
-	public ISet<ESExprTag> ElementTags { get; } = new HashSet<ESExprTag>([new ESExprTag.Constructor(ListCodecBase<T, TList>.ListConstructor)]);
+	public ESExprTagSet ElementTags => ESExprTagSet.Create([new ESExprTag.Constructor(ListCodecBase<T, TList>.ListConstructor)]);
 
 
 	public bool IsEncodedEqual(TList a, TList b) =>

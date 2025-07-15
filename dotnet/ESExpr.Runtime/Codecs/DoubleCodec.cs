@@ -4,8 +4,9 @@ using System.Collections.Generic;
 namespace ESExpr.Runtime.Codecs;
 
 [ESExprOverrideCodec]
+[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float64 ])]
 public sealed class DoubleCodec : IESExprCodec<double> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Float64()];
+	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Float64()]);
 	
 	public bool IsEncodedEqual(double a, double b) =>
 		BitConverter.DoubleToUInt64Bits(a) == BitConverter.DoubleToUInt64Bits(b);

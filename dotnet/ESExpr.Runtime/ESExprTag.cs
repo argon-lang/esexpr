@@ -1,4 +1,8 @@
+#if ESEXPR_SOURCE_GENERATOR
+namespace ESExpr.SourceGenerator;
+#else
 namespace ESExpr.Runtime;
+#endif
 
 public abstract record ESExprTag {
 	public sealed record Constructor(string constructor) : ESExprTag;
@@ -14,4 +18,19 @@ public abstract record ESExprTag {
 	public sealed record Array64() : ESExprTag;
 	public sealed record Array128() : ESExprTag;
 	public sealed record Null() : ESExprTag;
+
+	public enum ScalarType {
+		Bool,
+		Int,
+		Str,
+		Float16,
+		Float32,
+		Float64,
+		Array8,
+		Array16,
+		Array32,
+		Array64,
+		Array128,
+		Null,
+	}
 }

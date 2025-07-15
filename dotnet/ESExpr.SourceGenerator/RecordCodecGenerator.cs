@@ -6,43 +6,6 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ESExpr.SourceGenerator;
 
 internal class RecordCodecGenerator : CodecGenerator<RecordSourceModel> {
-	protected override ExpressionSyntax GenerateTagsBody() {
-		return CastExpression(
-			QualifiedName(
-				QualifiedName(
-					QualifiedName(
-						AliasQualifiedName(
-							IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-							IdentifierName("System")),
-						IdentifierName("Collections")
-					),
-					IdentifierName("Generic")
-				),
-				GenericName(Identifier("HashSet"))
-					.WithTypeArgumentList(
-						TypeArgumentList(SingletonSeparatedList<TypeSyntax>(
-							ESExprTagType
-						))
-					)
-			),
-			CollectionExpression(
-				SingletonSeparatedList<CollectionElementSyntax>(ExpressionElement(
-					ObjectCreationExpression(
-							QualifiedName(
-								ESExprTagType,
-								IdentifierName("Constructor")
-							)
-						)
-						.WithArgumentList(
-							ArgumentList(SingletonSeparatedList(
-								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(TypeModel.ConstructorName)))
-							))
-						)
-				))
-			)
-		);
-	}
-
 	protected override BlockSyntax GenerateIsEqualBody() =>
 		WriteIsEqualFields(TypeModel.Fields, IdentifierName("a"), IdentifierName("b"));
 

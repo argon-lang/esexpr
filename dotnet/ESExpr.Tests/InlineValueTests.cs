@@ -7,7 +7,7 @@ namespace ESExpr.Tests;
 public class InlineValueTests : TestBase {
 	[Test]
 	public void TestInlineValue() {
-		Assert.That(new InlineValueEnum.Codec().Tags, Is.EqualTo((HashSet<ESExprTag>)[new ESExprTag.Int(), new ESExprTag.Constructor("b")]));
+		Assert.That(new InlineValueEnum.Codec().Tags, Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Int(), new ESExprTag.Constructor("b")])));
 
 		AssertCodecMatch(
 			new InlineValueEnum.Codec(),

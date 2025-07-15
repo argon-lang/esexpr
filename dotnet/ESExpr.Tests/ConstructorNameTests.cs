@@ -9,7 +9,7 @@ public class Tests : TestBase {
 	public void ConstructorNameConversion() {
 		Assert.That(
 			new PrimitiveFields.Codec().Tags,
-			Is.EqualTo((HashSet<ESExprTag>)[new ESExprTag.Constructor("primitive-fields")])
+			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("primitive-fields")]))
 		);
 
 		AssertCodecMatch(
@@ -48,7 +48,7 @@ public class Tests : TestBase {
 
 		Assert.That(
 			new ConstructorName123Conversion.Codec().Tags,
-			Is.EqualTo((HashSet<ESExprTag>)[new ESExprTag.Constructor("constructor-name123-conversion")])
+			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("constructor-name123-conversion")]))
 		);
 
 		AssertCodecMatch(
@@ -65,7 +65,7 @@ public class Tests : TestBase {
 
 		Assert.That(
 			new ConstructorName_456Conversion.Codec().Tags,
-			Is.EqualTo((HashSet<ESExprTag>)[new ESExprTag.Constructor("constructor-name-456-conversion")])
+			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("constructor-name-456-conversion")]))
 		);
 
 		AssertCodecMatch(
@@ -82,7 +82,7 @@ public class Tests : TestBase {
 
 		Assert.That(
 			new MyEnum.Codec().Tags,
-			Is.EqualTo((HashSet<ESExprTag>)[new ESExprTag.Constructor("my-case-a"), new ESExprTag.Constructor("my-case-b")])
+			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("my-case-a"), new ESExprTag.Constructor("my-case-b")]))
 		);
 
 		AssertCodecMatch(

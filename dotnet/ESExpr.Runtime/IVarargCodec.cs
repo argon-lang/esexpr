@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace ESExpr.Runtime;
 
 public interface IVarargCodec<T> {
-	ISet<ESExprTag> ElementTags { get; }
+	ESExprTagSet ElementTags { get; }
 
 	bool IsEncodedEqual(T a, T b);
 	IEnumerable<Expr> EncodeVararg(T value);

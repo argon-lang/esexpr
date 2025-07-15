@@ -22,7 +22,7 @@ public abstract class DictionaryCodecBase<T, TDict> : IESExprCodec<TDict>
 	
 	internal const string DictConstructor = "dict";
 
-	public ISet<ESExprTag> Tags => itemCodec.Tags;
+	public ESExprTagSet Tags => itemCodec.Tags;
 	
 	public bool IsEncodedEqual(TDict a, TDict b) =>
 		GetCount(a) == GetCount(b) &&
@@ -65,6 +65,7 @@ public abstract class DictionaryCodecBase<T, TDict> : IESExprCodec<TDict>
 }
 
 [ESExprOverrideCodec]
+[ESExprTags(UnionWithTypeParameters = [ DictConstructor ])]
 public class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>> {
 	internal DictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
@@ -170,7 +171,7 @@ public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict>
 	
 	internal const string DictConstructor = "dict";
 
-	public ISet<ESExprTag> ElementTags => itemCodec.Tags;
+	public ESExprTagSet ElementTags => itemCodec.Tags;
 	
 	public bool IsEncodedEqual(TDict a, TDict b) =>
 		GetCount(a) == GetCount(b) &&

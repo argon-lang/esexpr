@@ -1,26 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using static ESExpr.SourceGenerator.GenUtils;
 
 namespace ESExpr.SourceGenerator;
 
-internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TTypeModel : ITypeSourceModelDeclaration {
+internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TTypeModel : TypeSourceModelDeclaration {
 
 	public required SourceProductionContext Context { get; init; }
-	public required CodecOverrideHandler CodecOverrideHandler { get; init; }
+	public required TypeInfoHandler TypeInfoHandler { get; init; }
 
 	public required TTypeModel TypeModel { get; init; }
 
-	protected abstract ExpressionSyntax GenerateTagsBody();
 	protected abstract BlockSyntax GenerateIsEqualBody();
 	protected abstract BlockSyntax GenerateEncodeBody();
 	protected abstract BlockSyntax GenerateDecodeBody();
@@ -82,30 +79,23 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			}
 		}
 
-		var tagsProp = PropertyDeclaration(
+		var tagsProp =
+			PropertyDeclaration(
 				QualifiedName(
 					QualifiedName(
-						QualifiedName(
-							AliasQualifiedName(
-								IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-								IdentifierName("System")),
-							IdentifierName("Collections")
-						),
-						IdentifierName("Generic")
+						AliasQualifiedName(
+							IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+							IdentifierName("ESExpr")),
+						IdentifierName("Runtime")
 					),
-					GenericName(Identifier("ISet"))
-						.WithTypeArgumentList(
-							TypeArgumentList(SingletonSeparatedList<TypeSyntax>(
-								ESExprTagType
-							))
-						)
+					IdentifierName("ESExprTagSet")
 				),
 				Identifier("Tags")
 			)
 			.AddModifiers(Token(SyntaxKind.PublicKeyword))
 			.WithExpressionBody(
 				ArrowExpressionClause(
-					GenerateTagsBody()
+					WriteTagsExpr()
 				)
 			)
 			.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
@@ -198,6 +188,163 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		Context.AddSource($"{fileNamePrefix}.ESExprCodec.g.cs", syntaxTree.GetText(Encoding.UTF8));
 	}
 
+	private ExpressionSyntax WriteTagsExpr() =>
+		TagsToExpr(GetTags(TypeModel.SourceModelType, ImmutableHashSet<SourceModelType>.Empty));
+
+	private ESExprTagSet GetTags(SourceModelType type, ImmutableHashSet<SourceModelType> seenTypes) {
+		var typeTags = TypeInfoHandler.GetTags(type);
+		if(typeTags == null) {
+			throw new Exception("Could not get tags for type: " + type);
+		}
+		
+		return typeTags.unionWithTypes.Aggregate(
+			typeTags.tags,
+			(tags, t) =>
+				tags.Union(GetTags(t, seenTypes.Add(type)))
+		);
+	}
+
+	private ExpressionSyntax TagsToExpr(ESExprTagSet tags) {
+		return tags.Visit<ExpressionSyntax>(
+			visitAll: () => MemberAccessExpression(
+				SyntaxKind.SimpleMemberAccessExpression,
+				ESExprTagSetType,
+				IdentifierName("All")
+			),
+			visitFinite: tags => 
+				InvocationExpression(
+					MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						ESExprTagSetType,
+						IdentifierName("Create")
+					),
+					ArgumentList(
+						SingletonSeparatedList(
+							Argument(
+								CollectionExpression(
+									SeparatedList<CollectionElementSyntax>(
+										tags.Select(tag => tag switch {
+											ESExprTag.Constructor(var constructor) => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Constructor))
+												),
+												ArgumentList([
+													Argument(
+														LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructor))
+													),
+												]),
+												null
+											),
+											ESExprTag.Bool => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Bool))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Int => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Int))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Str => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Str))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Float16 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Float16))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Float32 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Float32))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Float64 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Float64))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Array8 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Array8))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Array16 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Array16))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Array32 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Array32))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Array64 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Array64))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Array128 => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Array128))
+												),
+												ArgumentList([]),
+												null
+											),
+											ESExprTag.Null => ObjectCreationExpression(
+												QualifiedName(
+													ESExprTagType,
+													IdentifierName(nameof(ESExprTag.Null))
+												),
+												ArgumentList([]),
+												null
+											),
+											
+											_ => throw new Exception("Unknown tag type: " + tag.GetType()),
+										}).Select(ExpressionElement)
+									)
+								)
+							)
+						)
+					)
+				)
+		);
+
+	}
+	
 	protected BlockSyntax WriteIsEqualFields(VList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
 		var stmts = new List<StatementSyntax>();
 
@@ -1269,6 +1416,17 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		IdentifierName("ESExprTag")
 	);
 
+	protected NameSyntax ESExprTagSetType => QualifiedName(
+		QualifiedName(
+			AliasQualifiedName(
+				IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+				IdentifierName("ESExpr")
+			),
+			IdentifierName("Runtime")
+		),
+		IdentifierName("ESExprTagSet")
+	);
+
 	protected TypeSyntax ESExprCodecType(TypeSyntax elementType) => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
@@ -1439,7 +1597,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		TypeSyntax concreteCodecType;
 		IEnumerable<SourceModelType> typeArgs;
 
-		var overrideCodec = CodecOverrideHandler.GetOverriddenCodec(codecType);
+		var overrideCodec = TypeInfoHandler.GetOverriddenCodec(codecType);
 
 		if(overrideCodec != null) {
 			concreteCodecType = ConvertTypeToTypeSyntax(overrideCodec);
@@ -1507,8 +1665,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return ObjectCreationExpression(concreteCodecType)
 			.WithArgumentList(ArgumentList(SeparatedList(args)));
 	}
-
-
 
 	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
 		switch(t) {

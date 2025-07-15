@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp;
@@ -21,60 +20,6 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 		}
 
 		return c.Fields[0];
-	}
-
-	protected override ExpressionSyntax GenerateTagsBody() {
-		return CastExpression(
-			QualifiedName(
-				QualifiedName(
-					QualifiedName(
-						AliasQualifiedName(
-							IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-							IdentifierName("System")),
-						IdentifierName("Collections")
-					),
-					IdentifierName("Generic")
-				),
-				GenericName(Identifier("HashSet"))
-					.WithTypeArgumentList(
-						TypeArgumentList(SingletonSeparatedList<TypeSyntax>(
-							ESExprTagType
-						))
-					)
-			),
-			CollectionExpression(
-				SeparatedList<CollectionElementSyntax>(
-					TypeModel.Cases.Select<SourceModelEnumCase, CollectionElementSyntax>(c => {
-						if(c.IsInlineValue) {
-							var field = GetInlineValueField(c);
-
-							return SpreadElement(
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									GetCodecExpr(field.Type),
-									IdentifierName("Tags")
-								)
-							);
-						}
-						else {
-							return ExpressionElement(
-								ObjectCreationExpression(
-										QualifiedName(
-											ESExprTagType,
-											IdentifierName("Constructor")
-										)
-									)
-									.WithArgumentList(
-										ArgumentList(SingletonSeparatedList(
-											Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(c.ConstructorName)))
-										))
-									)
-							);
-						}
-					})
-				)
-			)
-		);
 	}
 
 	protected override BlockSyntax GenerateIsEqualBody() {

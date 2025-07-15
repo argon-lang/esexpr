@@ -63,13 +63,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 		private readonly IESExprCodec<T> elementCodec;
 
-		public ISet<ESExprTag> Tags {
-			get {
-				var tags = new HashSet<ESExprTag>(elementCodec.Tags);
-				tags.Add(new ESExprTag.Null());
-				return tags;
-			}
-		}
+		public ESExprTagSet Tags => elementCodec.Tags.Add(new ESExprTag.Null());
 
 		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
 			if(!a.hasValue) {
@@ -113,6 +107,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 		}
 	}
 
+	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Null ], UnionWithTypeParameters = [ nameof(T) ])]
 	public sealed class OptionalValueCodec : IOptionalValueCodec<Option<T>> {
 		public OptionalValueCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
@@ -120,7 +115,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 		private readonly IESExprCodec<T> elementCodec;
 
-		public ISet<ESExprTag> ElementTags => elementCodec.Tags;
+		public ESExprTagSet ElementTags => elementCodec.Tags;
 
 		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
 			if(!a.hasValue) {

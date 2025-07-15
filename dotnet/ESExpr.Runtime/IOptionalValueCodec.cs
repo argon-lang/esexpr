@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace ESExpr.Runtime;
 
 public interface IOptionalValueCodec<T> {
-	ISet<ESExprTag> ElementTags { get; }
+	ESExprTagSet ElementTags { get; }
 	
 	Expr? EncodeOptional(T value);
 	bool IsEncodedEqual(T a, T b);

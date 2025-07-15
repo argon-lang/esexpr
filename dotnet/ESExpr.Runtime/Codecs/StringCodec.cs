@@ -3,8 +3,9 @@ using System.Collections.Generic;
 namespace ESExpr.Runtime.Codecs;
 
 [ESExprOverrideCodec]
+[ESExprTags(Scalar = [ ESExprTag.ScalarType.Str ])]
 public sealed class StringCodec : IESExprCodec<string> {
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Str()];
+	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Str()]);
 
 	public bool IsEncodedEqual(string a, string b) => a == b;
 

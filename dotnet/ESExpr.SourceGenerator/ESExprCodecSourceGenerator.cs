@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ESExpr.SourceGenerator.GenUtils;
+using static ESExpr.SourceGenerator.NameUtils;
 
 namespace ESExpr.SourceGenerator;
 
@@ -25,8 +26,8 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 				transform: static (ctx, _) => CreateSourceModel(ctx))
 			.Where(static m => m is not null);
 
-		IncrementalValueProvider<CodecOverrideHandler> overrideHandler = context.CompilationProvider
-			.Select(static (compilation, _) => CodecOverrideHandler.Load(compilation));
+		IncrementalValueProvider<TypeInfoHandler> overrideHandler = context.CompilationProvider
+			.Select((compilation, _) => TypeInfoHandler.Load(compilation));
 
 		var valuesProvider = enumsToGenerate.Combine(overrideHandler);
 
@@ -86,7 +87,6 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 					TypeName = recordDecl.Identifier.ToString(),
 					Location = recordDecl.Identifier.GetLocation(),
 					ConstructorName = GetConstructorName(recordDecl, context.SemanticModel),
-					ParameterCount = recordDecl.ParameterList?.Parameters.Count ?? 0,
 					TypeParameters = GetTypeParameters(recordDecl),
 					Fields = GetFields(recordDecl, context.SemanticModel),
 				};
@@ -223,18 +223,6 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 	}
 
 
-	private static string GetConstructorName(TypeDeclarationSyntax decl, SemanticModel semanticModel) {
-		if(
-			GetAttribute(decl, "ESExpr.Runtime.ConstructorAttribute", semanticModel) is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
-		) {
-			return value.Token.ValueText;
-		}
-		else {
-			return NameToKebabCase(decl.Identifier.Text);
-		}
-	}
 
 	private static bool IsVararg(PropertyDeclarationSyntax decl, SemanticModel semanticModel) =>
 		HasAttribute(decl, "ESExpr.Runtime.VarargAttribute", semanticModel);
@@ -282,14 +270,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 
 	private static bool IsInlineValue(RecordDeclarationSyntax decl, SemanticModel semanticModel) =>
 		HasAttribute(decl, "ESExpr.Runtime.InlineValueAttribute", semanticModel);
-
-
-	private static string NameToKebabCase(string name) =>
-		string.Join(
-			"-",
-			Regex.Split(name, "(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])_(?=[0-9])")
-				.Select(s => s.ToLowerInvariant())
-		);
+	
 
 
 }

@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using static ESExpr.Runtime.NameUtils;
 
 namespace ESExpr.Runtime;
 
@@ -32,7 +33,7 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 	private readonly ImmutableDictionary<T, string> strLookup;
 
 
-	public ISet<ESExprTag> Tags => (HashSet<ESExprTag>)[new ESExprTag.Str()];
+	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Str()]);
 
 	public bool IsEncodedEqual(T a, T b) => EqualityComparer<T>.Default.Equals(a, b);
 
@@ -60,30 +61,7 @@ public partial class SimpleEnumCodec<T> : IESExprCodec<T>
 	}
 
 
-	private static string GetConstructorName(T value) {
-		var name = Enum.GetName(value);
-		if(name == null) {
-			throw new Exception("Could not get enum value name");
-		}
 
-		if(typeof(T).GetField(name)?.GetCustomAttribute<ConstructorAttribute>() is { } ctor) {
-			return ctor.Name;
-		}
-		else {
-			return NameToKebabCase(name);
-		}
-	}
-
-	[GeneratedRegex("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])_(?=[0-9])", RegexOptions.CultureInvariant)]
-	private static partial Regex NameSeparatorRegex();
-
-	private static string NameToKebabCase(string name) =>
-		string.Join(
-			"-",
-			NameSeparatorRegex()
-				.Split(name)
-				.Select(s => s.ToLowerInvariant())
-		);
 
 
 }
