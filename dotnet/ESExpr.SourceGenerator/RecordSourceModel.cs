@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -6,7 +7,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 internal class RecordSourceModel : TypeSourceModelDeclaration {
 	public required string ConstructorName { get; init; }
-	public required VList<SourceModelField> Fields { get; init; }
+	public required ImmutableList<SourceModelField> Fields { get; init; }
 
 	public override ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler) {
 		return new RecordCodecGenerator {

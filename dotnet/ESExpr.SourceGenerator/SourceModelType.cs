@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
@@ -19,7 +20,7 @@ public abstract record SourceModelType {
 
 			case INamedTypeSymbol named: {
 				SourceModelType res = new NamedSymbol(GetNamespaceFromSymbol(named.ContainingNamespace), named.Name) {
-					TypeArguments = VList.From(named.TypeArguments.Select(FromSymbol)),
+					TypeArguments = named.TypeArguments.Select(FromSymbol).ToImmutableList(),
 					IsEnum = named.TypeKind == TypeKind.Enum,
 				};
 
@@ -44,15 +45,15 @@ public abstract record SourceModelType {
 		}
 	}
 
-	private static VList<string> GetNamespaceFromSymbol(INamespaceSymbol? ns) {
-		var parts = new List<string>();
+	private static ImmutableList<string> GetNamespaceFromSymbol(INamespaceSymbol? ns) {
+		var parts = ImmutableList.CreateBuilder<string>();
 
 		while(ns != null && !ns.IsGlobalNamespace) {
 			parts.Insert(0, ns.Name);
 			ns = ns.ContainingNamespace;
 		}
 
-		return VList.From(parts);
+		return parts.ToImmutable();
 	}
 
 
@@ -68,15 +69,37 @@ public abstract record SourceModelType {
 		}
 	}
 
-	public record NamedSymbol(VList<string> Namespace, string Name) : SourceModelType {
-		public required VList<SourceModelType> TypeArguments { get; init; }
+	public record NamedSymbol(ImmutableList<string> Namespace, string Name) : SourceModelType {
+		public required ImmutableList<SourceModelType> TypeArguments { get; init; }
 		public required bool IsEnum { get; init; }
 
 		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
 			return new NamedSymbol(Namespace, Name) {
-				TypeArguments = VList.From(TypeArguments.Select(tp => tp.Substitute(paramMapping))),
+				TypeArguments = TypeArguments.Select(tp => tp.Substitute(paramMapping)).ToImmutableList(),
 				IsEnum = this.IsEnum,
 			};
+		}
+
+		public override int GetHashCode() {
+            int hash = 17;
+            foreach (var ns in Namespace) {
+                hash = hash * 31 + ns.GetHashCode();
+            }
+            hash = hash * 31 + Name.GetHashCode();
+            foreach (var typeArg in TypeArguments) {
+                hash = hash * 31 + typeArg.GetHashCode();
+            }
+            hash = hash * 31 + IsEnum.GetHashCode();
+            return hash;
+        }
+
+		public virtual bool Equals(NamedSymbol? other) {
+		    if (other is null) return false;
+		    
+		    return Namespace.SequenceEqual(other.Namespace) &&
+		           Name == other.Name &&
+		           TypeArguments.SequenceEqual(other.TypeArguments) &&
+		           IsEnum == other.IsEnum;
 		}
 	}
 

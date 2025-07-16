@@ -64,7 +64,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			return new InvalidTypeSourceModel {
 				Descriptor = Errors.InvalidNestedESExprType,
 				Location = decl.Identifier.GetLocation(),
-				MessageArgs = VList.Of(decl.Identifier.ToString()),
+				MessageArgs = [decl.Identifier.ToString()],
 			};
 		}
 
@@ -77,7 +77,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 					return new InvalidTypeSourceModel {
 						Descriptor = Errors.InvalidESExprEnumDeclaration,
 						Location = decl.Identifier.GetLocation(),
-						MessageArgs = VList.Of(decl.Identifier.ToString()),
+						MessageArgs = [decl.Identifier.ToString()],
 					};
 				}
 
@@ -96,7 +96,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 					return new InvalidTypeSourceModel {
 						Descriptor = Errors.InvalidESExprEnumDeclaration,
 						Location = decl.Identifier.GetLocation(),
-						MessageArgs = VList.Of(decl.Identifier.ToString()),
+						MessageArgs = [decl.Identifier.ToString()],
 					};
 				}
 
@@ -106,28 +106,24 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 					TypeName = recordDecl.Identifier.ToString(),
 					Location = recordDecl.Identifier.GetLocation(),
 					TypeParameters = GetTypeParameters(recordDecl),
-					Cases = VList.From(
-						recordDecl.Members
-							.OfType<RecordDeclarationSyntax>()
-							.Where(caseDecl => caseDecl.Modifiers.Any(SyntaxKind.PublicKeyword))
-							.Select(caseDecl => {
-								return new SourceModelEnumCase {
-
-									Name = caseDecl.Identifier.ToString(),
-									Location = caseDecl.Identifier.GetLocation(),
-									ConstructorName = GetConstructorName(caseDecl, context.SemanticModel),
-									IsInlineValue = IsInlineValue(caseDecl, context.SemanticModel),
-									Fields = GetFields(caseDecl, context.SemanticModel),
-								};
-							})
-					),
+					Cases = recordDecl.Members
+						.OfType<RecordDeclarationSyntax>()
+						.Where(caseDecl => caseDecl.Modifiers.Any(SyntaxKind.PublicKeyword))
+						.Select(caseDecl => new SourceModelEnumCase {
+							Name = caseDecl.Identifier.ToString(),
+							Location = caseDecl.Identifier.GetLocation(),
+							ConstructorName = GetConstructorName(caseDecl, context.SemanticModel),
+							IsInlineValue = IsInlineValue(caseDecl, context.SemanticModel),
+							Fields = GetFields(caseDecl, context.SemanticModel),
+						})
+						.ToImmutableList(),
 				};
 
 			default:
 				return new InvalidTypeSourceModel {
 					Descriptor = Errors.InvalidESExprTypeDeclaration,
 					Location = decl.Identifier.GetLocation(),
-					MessageArgs = VList.Of(decl.Identifier.ToString()),
+					MessageArgs = [decl.Identifier.ToString()],
 				};
 		}
 	}
@@ -150,8 +146,8 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 
 
 
-	private static VList<string> GetNamespaceFromNamespaceNodes(SyntaxNode? syntax) {
-		var ns = new List<string>();
+	private static ImmutableList<string> GetNamespaceFromNamespaceNodes(SyntaxNode? syntax) {
+		var ns = ImmutableList.CreateBuilder<string>();
 
 		void AddFromNode(SyntaxNode? syntax) {
 			if(syntax is not BaseNamespaceDeclarationSyntax ns) {
@@ -182,46 +178,48 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		}
 
 		AddFromNode(syntax);
-		return VList.From(ns);
+		return ns.ToImmutable();
 	}
 
-	private static VList<SourceModelSyntax<UsingDirectiveSyntax>> GetUsings(TypeDeclarationSyntax decl) {
-		return VList.From(
-			decl.SyntaxTree.GetCompilationUnitRoot().Usings
-				.Select(u => new SourceModelSyntax<UsingDirectiveSyntax>(u))
-		);
+	private static ImmutableList<SourceModelSyntax<UsingDirectiveSyntax>> GetUsings(TypeDeclarationSyntax decl) {
+		return decl.SyntaxTree.GetCompilationUnitRoot().Usings
+			.Select(u => new SourceModelSyntax<UsingDirectiveSyntax>(u))
+			.ToImmutableList();
 	}
 
-	private static VList<SourceModelSyntax<TypeParameterSyntax>> GetTypeParameters(TypeDeclarationSyntax decl) {
+	private static ImmutableList<SourceModelSyntax<TypeParameterSyntax>> GetTypeParameters(TypeDeclarationSyntax decl) {
 		var typeParams = decl.TypeParameterList;
 		if(typeParams is null) {
-			return new();
+			return [];
 		}
 
-		return VList.From(typeParams.Parameters.Select(tp => new SourceModelSyntax<TypeParameterSyntax>(tp)));
+		return typeParams.Parameters
+			.Select(tp => new SourceModelSyntax<TypeParameterSyntax>(tp))
+			.ToImmutableList();
 	}
 
-	private static VList<SourceModelField> GetFields(TypeDeclarationSyntax decl, SemanticModel semanticModel) {
-		return VList.From(decl.Members.OfType<PropertyDeclarationSyntax>().Select(prop => {
-			var t = semanticModel.GetTypeInfo(prop.Type).Type;
-			if(t is null) {
-				throw new Exception("Could not get type of field");
-			}
+	private static ImmutableList<SourceModelField> GetFields(TypeDeclarationSyntax decl, SemanticModel semanticModel) =>
+		decl.Members
+			.OfType<PropertyDeclarationSyntax>()
+			.Select(prop => {
+				var t = semanticModel.GetTypeInfo(prop.Type).Type;
+				if(t is null) {
+					throw new Exception("Could not get type of field");
+				}
 
-			return new SourceModelField {
-				Name = prop.Identifier.ToString(),
-				Location = prop.Identifier.GetLocation(),
-				Type = SourceModelType.FromSymbol(t),
-				IsDict = IsDict(prop, semanticModel),
-				IsVararg = IsVararg(prop, semanticModel),
-				IsOptional = IsOptional(prop, semanticModel),
-				DefaultValue = IsDefaultValue(prop, semanticModel) is { } defaultValue
-					? new SourceModelSyntax<ExpressionSyntax>(defaultValue) : null,
-				IsKeyword = IsKeyword(prop, semanticModel),
-			};
-		}));
-	}
-
+				return new SourceModelField {
+					Name = prop.Identifier.ToString(),
+					Location = prop.Identifier.GetLocation(),
+					Type = SourceModelType.FromSymbol(t),
+					IsDict = IsDict(prop, semanticModel),
+					IsVararg = IsVararg(prop, semanticModel),
+					IsOptional = IsOptional(prop, semanticModel),
+					DefaultValue = IsDefaultValue(prop, semanticModel) is { } defaultValue
+						? new SourceModelSyntax<ExpressionSyntax>(defaultValue) : null,
+					IsKeyword = IsKeyword(prop, semanticModel),
+				};
+			})
+			.ToImmutableList();
 
 
 	private static bool IsVararg(PropertyDeclarationSyntax decl, SemanticModel semanticModel) =>

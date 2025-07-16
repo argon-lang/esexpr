@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
@@ -13,23 +14,26 @@ namespace ESExpr.SourceGenerator;
 
 internal class TypeInfoHandler {
 	private TypeInfoHandler(
-		VDictionary<SourceModelType, OverrideInfo> codecOverrides,
-		VDictionary<SourceModelType, TypeTags> intrinsicTags
+		ImmutableDictionary<SourceModelType, OverrideInfo> codecOverrides,
+		ImmutableDictionary<SourceModelType, TypeTags> intrinsicTags
 	) {
 		this.codecOverrides = codecOverrides;
 		this.intrinsicTags = intrinsicTags;
 	}
 
-	private readonly VDictionary<SourceModelType, OverrideInfo> codecOverrides;
-	private readonly VDictionary<SourceModelType, TypeTags> intrinsicTags;
+	private readonly ImmutableDictionary<SourceModelType, OverrideInfo> codecOverrides;
+	private readonly ImmutableDictionary<SourceModelType, TypeTags> intrinsicTags;
 
 	private record OverrideInfo {
-		public required TypeTags Tags { get; init; }
+		public required TypeTags? Tags { get; init; }
 		
-		public required VList<SourceModelType> Overrides { get; init; }
+		public required ImmutableList<SourceModelType> Overrides { get; init; }
 	}
 	
-	public record TypeTags(ESExprTagSet tags, VList<SourceModelType> unionWithTypes);
+	public record TypeTags(ESExprTagSet tags, ImmutableList<SourceModelType> unionWithTypes);
+
+	// Used to indicate that a codec was found, but may not have type tags. 
+	private record CodecTypeTags(TypeTags? Tags);
 
 	public static TypeInfoHandler Load(Compilation compilation) {
 		var overrides = LoadOverrides(compilation);
@@ -38,15 +42,14 @@ internal class TypeInfoHandler {
 		return new TypeInfoHandler(overrides, intrinsicTags);
 	}
 
-	private static VDictionary<SourceModelType, OverrideInfo> LoadOverrides(Compilation compilation) =>
-		VDictionary.From(
-			AllAssemblies(compilation)
-				.SelectMany(ScanAssemblyForCodecOverrides)
-				.Select(GetOverrideInfo)
-		);
+	private static ImmutableDictionary<SourceModelType, OverrideInfo> LoadOverrides(Compilation compilation) =>
+		AllAssemblies(compilation)
+			.SelectMany(ScanAssemblyForCodecOverrides)
+			.Select(GetOverrideInfo)
+			.ToImmutableDictionary();
 
 	private static KeyValuePair<SourceModelType, OverrideInfo> GetOverrideInfo(INamedTypeSymbol codecOverride) {
-		var baseTypes = VList.From(GetAllBaseInterfaces(codecOverride));
+		var baseTypes = GetAllBaseInterfaces(codecOverride).ToImmutableList();
 		
 		var overrideInfo = new OverrideInfo {
 			Tags = LoadESExprTags(codecOverride),
@@ -58,8 +61,8 @@ internal class TypeInfoHandler {
 
 
 
-	private static VDictionary<SourceModelType, TypeTags> LoadAllIntrinsicTypeTags(Compilation compilation) {
-		var tags = new Dictionary<SourceModelType, TypeTags>();
+	private static ImmutableDictionary<SourceModelType, TypeTags> LoadAllIntrinsicTypeTags(Compilation compilation) {
+		var tags = ImmutableDictionary.CreateBuilder<SourceModelType, TypeTags>();
 
 		foreach(var t in AllAssemblies(compilation).SelectMany(GetAllTypes)) {
 			var modelType = SourceModelType.FromSymbol(t);
@@ -85,7 +88,7 @@ internal class TypeInfoHandler {
 			}
 		}
 		
-		return VDictionary.From(tags);
+		return tags.ToImmutable();
 	}
 			
 
@@ -96,7 +99,7 @@ internal class TypeInfoHandler {
 		}
 		
 		bool isCodec = GetAllBaseInterfaces(codecType).Any(i => i is SourceModelType.NamedSymbol named &&
-			named.Namespace == VList.Of("ESExpr", "Runtime") &&
+			named.Namespace.SequenceEqual(["ESExpr", "Runtime"]) &&
 			named.Name == "IESExprCodec"
 		);
 				
@@ -116,12 +119,12 @@ internal class TypeInfoHandler {
 			var constructorName = GetConstructorName(t);
 			return new TypeTags(
 				ESExprTagSet.Create([new ESExprTag.Constructor(constructorName)]),
-				VList<SourceModelType>.Empty
+				[]
 			);
 		}
 		else if(t.IsRecord && t.IsAbstract) {
 			var tags = new HashSet<ESExprTag>();
-			var unionWithTypes = new List<SourceModelType>();
+			var unionWithTypes = ImmutableList.CreateBuilder<SourceModelType>();
 
 			var cases = t.GetTypeMembers()
 				.Where(caseRec =>
@@ -152,7 +155,7 @@ internal class TypeInfoHandler {
 			
 			return new TypeTags(
 				ESExprTagSet.Create(tags),
-				VList.From(unionWithTypes)
+				unionWithTypes.ToImmutable()
 			);
 		}
 		else {
@@ -203,75 +206,77 @@ internal class TypeInfoHandler {
 		}
 	}
 	
-	private static TypeTags LoadESExprTags(INamedTypeSymbol codecType) {
+	private static TypeTags? LoadESExprTags(INamedTypeSymbol codecType) {
 		ESExprTagSet tags = ESExprTagSet.Empty;
-		VList<SourceModelType> unionWithTypes = VList<SourceModelType>.Empty;
+		ImmutableList<SourceModelType> unionWithTypes = [];
 
 		var tagsAttr = GetAttribute(codecType, "ESExpr.Runtime.ESExprTagsAttribute");
-		if(tagsAttr is not null) {
-			TypedConstant? GetAttribute(string name) =>
-				tagsAttr.NamedArguments
-					.Where(kvp => kvp.Key == name)
-					.Select(kvp => new TypedConstant?(kvp.Value))
-					.FirstOrDefault();
-			
-			if(GetAttribute("Scalar") is {} scalars) {
-				foreach(var scalar in scalars.Values) {
-					if(scalar.Value is not int intValue) {
-						throw new Exception("Expected int enum value for scalar tag");
-					}
-
-					var enumValue = (ESExprTag.ScalarType)intValue;
-
-					tags = tags.Add(enumValue switch {
-						ESExprTag.ScalarType.Bool => new ESExprTag.Bool(),
-						ESExprTag.ScalarType.Int => new ESExprTag.Int(),
-						ESExprTag.ScalarType.Str => new ESExprTag.Str(),
-						ESExprTag.ScalarType.Float16 => new ESExprTag.Float16(),
-						ESExprTag.ScalarType.Float32 => new ESExprTag.Float32(),
-						ESExprTag.ScalarType.Float64 => new ESExprTag.Float64(),
-						ESExprTag.ScalarType.Array8 => new ESExprTag.Array8(),
-						ESExprTag.ScalarType.Array16 => new ESExprTag.Array16(),
-						ESExprTag.ScalarType.Array32 => new ESExprTag.Array32(),
-						ESExprTag.ScalarType.Array64 => new ESExprTag.Array64(),
-						ESExprTag.ScalarType.Array128 => new ESExprTag.Array128(),
-						ESExprTag.ScalarType.Null => new ESExprTag.Null(),
-						_ => throw new Exception("Unknown enum value: " + (int)enumValue),
-					});
+		if(tagsAttr is null) {
+			return null;
+		}
+		
+		TypedConstant? GetAttributeField(string name) =>
+			tagsAttr.NamedArguments
+				.Where(kvp => kvp.Key == name)
+				.Select(kvp => new TypedConstant?(kvp.Value))
+				.FirstOrDefault();
+		
+		if(GetAttributeField("Scalar") is {} scalars) {
+			foreach(var scalar in scalars.Values) {
+				if(scalar.Value is not int intValue) {
+					throw new Exception("Expected int enum value for scalar tag");
 				}
+
+				var enumValue = (ESExprTag.ScalarType)intValue;
+
+				tags = tags.Add(enumValue switch {
+					ESExprTag.ScalarType.Bool => new ESExprTag.Bool(),
+					ESExprTag.ScalarType.Int => new ESExprTag.Int(),
+					ESExprTag.ScalarType.Str => new ESExprTag.Str(),
+					ESExprTag.ScalarType.Float16 => new ESExprTag.Float16(),
+					ESExprTag.ScalarType.Float32 => new ESExprTag.Float32(),
+					ESExprTag.ScalarType.Float64 => new ESExprTag.Float64(),
+					ESExprTag.ScalarType.Array8 => new ESExprTag.Array8(),
+					ESExprTag.ScalarType.Array16 => new ESExprTag.Array16(),
+					ESExprTag.ScalarType.Array32 => new ESExprTag.Array32(),
+					ESExprTag.ScalarType.Array64 => new ESExprTag.Array64(),
+					ESExprTag.ScalarType.Array128 => new ESExprTag.Array128(),
+					ESExprTag.ScalarType.Null => new ESExprTag.Null(),
+					_ => throw new Exception("Unknown enum value: " + (int)enumValue),
+				});
+			}
+		}
+
+		if(GetAttributeField("Constructors") is {} constructors) {
+			foreach(var constructor in constructors.Values) {
+				if(constructor.Value is not string s) {
+					throw new Exception("Expected string value for constructor tag");
+				}
+
+				tags = tags.Add(new ESExprTag.Constructor(s));
+			}
+		}
+
+		if(GetAttributeField("All") is {} all) {
+			if(all.Value is not bool b) {
+				throw new Exception("Expected bool value for all tag");
 			}
 
-			if(GetAttribute("Constructors") is {} constructors) {
-				foreach(var constructor in constructors.Values) {
-					if(constructor.Value is not string s) {
+			if(b) {
+				tags = ESExprTagSet.All;
+			}
+		}
+
+		if(GetAttributeField("UnionWithTypeParameters") is {} tps) {
+			unionWithTypes = tps.Values
+				.Select(tp => {
+					if(tp.Value is not string tpName) {
 						throw new Exception("Expected string value for constructor tag");
 					}
 
-					tags = tags.Add(new ESExprTag.Constructor(s));
-				}
-			}
-
-			if(GetAttribute("All") is {} all) {
-				if(all.Value is not bool b) {
-					throw new Exception("Expected bool value for all tag");
-				}
-
-				if(b) {
-					tags = ESExprTagSet.All;
-				}
-			}
-
-			if(GetAttribute("UnionWithTypeParameters") is {} tps) {
-				unionWithTypes = VList.From<SourceModelType>(
-					tps.Values.Select(tp => {
-						if(tp.Value is not string tpName) {
-							throw new Exception("Expected string value for constructor tag");
-						}
-
-						return new SourceModelType.TypeParameter(tpName);
-					})
-				);
-			}
+					return new SourceModelType.TypeParameter(tpName);
+				})
+				.ToImmutableList<SourceModelType>();
 		}
 		
 		return new TypeTags(tags, unionWithTypes);
@@ -289,30 +294,44 @@ internal class TypeInfoHandler {
 			? named.TypeArguments[0].Substitute(paramMapping)
 			: null
 		);
-	
-	
-	public TypeTags? GetTags(SourceModelType t) =>
-		GetOverriddenTags(
-			new SourceModelType.NamedSymbol(VList.Of("ESExpr", "Runtime"), "IESExprCodec") {
-				TypeArguments = VList.Of(t),
+
+
+	public TypeTags? GetTags(SourceModelType t) {
+		var codecTags = GetOverriddenTags(
+			new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IESExprCodec") {
+				TypeArguments = [t],
 				IsEnum = false,
 			}
-		) ??
-			GetIntrinsicTags(t);
+		);
 
-	private TypeTags? GetOverriddenTags(SourceModelType codecType) =>
+		if(codecTags is not null) {
+			return codecTags.Tags;
+		}
+		
+		return GetIntrinsicTags(t);
+	}
+
+	private CodecTypeTags? GetOverriddenTags(SourceModelType codecType) =>
 		GetOverriddenCodecWith(codecType, (_, overrideInfo, _, paramMapping) => LookupTags(overrideInfo, paramMapping));
 
-	private TypeTags LookupTags(OverrideInfo overrideInfo, Dictionary<string, SourceModelType> paramMapping) {
-		return new TypeTags(
-			overrideInfo.Tags.tags,
-			VList.From(overrideInfo.Tags.unionWithTypes.Select(tp => tp.Substitute(paramMapping)))
+	private CodecTypeTags LookupTags(OverrideInfo overrideInfo, Dictionary<string, SourceModelType> paramMapping) {
+		if(overrideInfo.Tags is null) {
+			return new CodecTypeTags(null);
+		}
+		
+		return new CodecTypeTags(
+			new TypeTags(
+				overrideInfo.Tags.tags,
+				overrideInfo.Tags.unionWithTypes
+					.Select(tp => tp.Substitute(paramMapping))
+					.ToImmutableList()
+			)
 		);
 	}
 	
 	private TypeTags? GetIntrinsicTags(SourceModelType t) {
 		if(t is SourceModelType.NamedSymbol { IsEnum: true }) {
-			return new TypeTags(ESExprTagSet.Create([new ESExprTag.Bool()]), VList<SourceModelType>.Empty);
+			return new TypeTags(ESExprTagSet.Create([new ESExprTag.Bool()]), []);
 		}
 		
 		intrinsicTags.TryGetValue(t, out var tags);
@@ -376,7 +395,7 @@ internal class TypeInfoHandler {
 						return false;
 					}
 
-					if(actualNamed.Namespace != expectedNamed.Namespace || actualNamed.Name != expectedNamed.Name) {
+					if(!actualNamed.Namespace.SequenceEqual(expectedNamed.Namespace) || actualNamed.Name != expectedNamed.Name) {
 						return false;
 					}
 

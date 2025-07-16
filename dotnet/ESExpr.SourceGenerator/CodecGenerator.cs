@@ -345,7 +345,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	}
 	
-	protected BlockSyntax WriteIsEqualFields(VList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
+	protected BlockSyntax WriteIsEqualFields(IReadOnlyList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
 		var stmts = new List<StatementSyntax>();
 
 		foreach(var field in fields) {
@@ -405,7 +405,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return Block(stmts);
 	}
 
-	protected BlockSyntax WriteEncodeFields(string constructorName, VList<SourceModelField> fields, ExpressionSyntax valueExpr) {
+	protected BlockSyntax WriteEncodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, ExpressionSyntax valueExpr) {
 		// var args = new global::System.Collections.Generic.List<global::ESExpr.Runtime.ESExpr>();
 		var argsDeclaration = LocalDeclarationStatement(
 			VariableDeclaration(IdentifierName("var"))
@@ -829,7 +829,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return Block(stmts);
 	}
 
-	protected BlockSyntax WriteDecodeFields(string constructorName, VList<SourceModelField> fields, TypeSyntax objectType) {
+	protected BlockSyntax WriteDecodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, TypeSyntax objectType) {
 		var stmts = new List<StatementSyntax>();
 
 		var fieldInits = new List<ExpressionSyntax>();
@@ -1513,7 +1513,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			)
 		);
 
-	protected static TypeSyntax GetDeclarationAsType(string name, VList<SourceModelSyntax<TypeParameterSyntax>> typeParameters) {
+	protected static TypeSyntax GetDeclarationAsType(string name, IReadOnlyList<SourceModelSyntax<TypeParameterSyntax>> typeParameters) {
 		if(typeParameters.Count == 0) {
 			return IdentifierName(name);
 		}
@@ -1588,8 +1588,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		GetCodecLikeExpr(t, "IDictCodec", "DictCodec");
 
 	protected ExpressionSyntax GetCodecLikeExpr(SourceModelType t, string codecTypeName, string nestedClassName) {
-		SourceModelType codecType = new SourceModelType.NamedSymbol(VList.Of("ESExpr", "Runtime"), codecTypeName) {
-			TypeArguments = VList.Of(t),
+		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], codecTypeName) {
+			TypeArguments = [t],
 			IsEnum = false,
 		};
 
@@ -1703,7 +1703,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		}
 	}
 
-	private static NameSyntax GetNamespaceMemberSyntax(VList<string> ns, int nsPartCount, SimpleNameSyntax memberName) {
+	private static NameSyntax GetNamespaceMemberSyntax(ImmutableList<string> ns, int nsPartCount, SimpleNameSyntax memberName) {
 		if(nsPartCount > 0) {
 			return QualifiedName(GetNamespaceMemberSyntax(ns, nsPartCount - 1, IdentifierName(ns[nsPartCount - 1])), memberName);
 		}

@@ -103,7 +103,7 @@ public class CompileTests : TestBase {
 			@"[ESExprCodec]
 			public sealed partial record HelloWorld {
 				[Vararg]
-				public required VList<string> A { get; init; }
+				public required ImmutableList<string> A { get; init; }
 				public required string B { get; init; }
 			}
 			"
@@ -118,9 +118,9 @@ public class CompileTests : TestBase {
 			@"[ESExprCodec]
 			public sealed partial record HelloWorld {
 				[Vararg]
-				public required VList<string> A { get; init; }
+				public required ImmutableList<string> A { get; init; }
 				[Vararg]
-				public required VList<string> B { get; init; }
+				public required ImmutableList<string> B { get; init; }
 			}
 			"
 		);
