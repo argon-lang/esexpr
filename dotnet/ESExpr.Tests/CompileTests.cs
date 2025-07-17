@@ -52,8 +52,8 @@ public class CompileTests : TestBase {
 	[Test]
 	public void GenerateForClass() {
 		AssertFails(
-		"ESX0003",
-		Imports + "[ESExprCodec] public class HelloWorld {}"
+			"ESX0003",
+			Imports + "[ESExprCodec] public class HelloWorld {}"
 		);
 	}
 
@@ -123,6 +123,22 @@ public class CompileTests : TestBase {
 				public required ImmutableList<string> A { get; init; }
 				[Vararg]
 				public required ImmutableList<string> B { get; init; }
+			}
+			"
+		);
+	}
+
+	[Test]
+	public void SimpleEnumOverlap() {
+		AssertFails(
+			"ESX0009",
+			Imports +
+			@"[ESExprCodec]
+			public enum MySimpleEnum {
+				[Constructor(""a"")]
+				A1,
+				[Constructor(""a"")]
+				A2,
 			}
 			"
 		);

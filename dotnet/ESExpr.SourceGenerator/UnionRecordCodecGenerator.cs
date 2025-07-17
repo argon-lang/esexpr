@@ -26,8 +26,6 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 		var cases = new List<SwitchSectionSyntax>();
 
 		foreach(var c in TypeModel.Cases) {
-			
-
 			var label = CasePatternSwitchLabel(
 				DeclarationPattern(
 					IdentifierName(c.Name),
@@ -89,6 +87,8 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 	protected override BlockSyntax GenerateEncodeBody() {
 		var cases = new List<SwitchSectionSyntax>();
 
+		var prevTags = ESExprTagSet.Empty;
+		
 		foreach(var c in TypeModel.Cases) {
 			var identName = "value2";
 
@@ -99,6 +99,36 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				),
 				Token(SyntaxKind.ColonToken)
 			);
+			
+			if(c.IsInlineValue) {
+				var field = GetInlineValueField(c);
+				var tags = GetTags(field.Type, field.Location);
+				if(!prevTags.IsDisjointFrom(tags)) {
+					Context.ReportDiagnostic(Diagnostic.Create(
+						Errors.OverlappingEnumConstructors,
+						field.Location,
+						TypeModel.TypeName,
+						tags,
+						prevTags
+					));
+				}
+				
+				prevTags = prevTags.Union(tags);
+			}
+			else {
+				var tag = new ESExprTag.Constructor(c.ConstructorName);
+				if(prevTags.Contains(tag)) {
+					Context.ReportDiagnostic(Diagnostic.Create(
+						Errors.OverlappingEnumConstructors,
+						c.Location,
+						TypeModel.TypeName,
+						tag,
+						prevTags
+					));
+				}
+				
+				prevTags = prevTags.Add(tag);
+			}
 
 			StatementSyntax switchBody;
 

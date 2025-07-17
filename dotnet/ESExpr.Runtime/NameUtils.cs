@@ -34,6 +34,19 @@ internal static partial class NameUtils {
 		}
 	}
 	
+	public static string GetConstructorName(EnumMemberDeclarationSyntax decl, SemanticModel semanticModel) {
+		if(
+			GetAttribute(decl, "ESExpr.Runtime.ConstructorAttribute", semanticModel) is { ArgumentList.Arguments: var args } &&
+			args.Count == 1 &&
+			args[0].Expression is LiteralExpressionSyntax value
+		) {
+			return value.Token.ValueText;
+		}
+		else {
+			return NameToKebabCase(decl.Identifier.Text);
+		}
+	}
+	
 	
 	public static string GetConstructorName(INamedTypeSymbol symbol) {
 		var attr = GetAttribute(symbol, "ESExpr.Runtime.ESExprConstructorAttribute");

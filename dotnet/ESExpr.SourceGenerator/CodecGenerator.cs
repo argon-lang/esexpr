@@ -192,7 +192,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		TagsToExpr(GetTags(TypeModel.SourceModelType, this.TypeModel.Location, ImmutableHashSet<SourceModelType>.Empty));
 
 	
-	private ESExprTagSet GetTags(SourceModelType type, Location location) =>
+	protected ESExprTagSet GetTags(SourceModelType type, Location location) =>
 		GetTags(type, location, ImmutableHashSet<SourceModelType>.Empty);
 	
 	private ESExprTagSet GetTags(SourceModelType type, Location location, ImmutableHashSet<SourceModelType> seenTypes) {

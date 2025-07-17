@@ -69,8 +69,20 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		}
 
 		switch(decl) {
-			case EnumDeclarationSyntax _:
-				return null;
+			case EnumDeclarationSyntax enumDecl:
+				return new SimpleEnumSourceModel {
+					Usings = GetUsings(enumDecl),
+					Namespace = GetNamespaceFromNamespaceNodes(enumDecl.Parent),
+					TypeName = enumDecl.Identifier.ToString(),
+					Location = enumDecl.Identifier.GetLocation(),
+					Cases = enumDecl.Members
+						.Select(m => new SourceModelSimpleEnumCase {
+							Name = m.Identifier.ToString(),
+							Location = m.Identifier.GetLocation(),
+							ConstructorName = GetConstructorName(m, context.SemanticModel),
+						})
+						.ToImmutableList(),
+				};
 
 			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.SealedKeyword):
 				if((recordDecl.ParameterList?.Parameters.Count ?? 0) != 0) {
@@ -181,7 +193,7 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		return ns.ToImmutable();
 	}
 
-	private static ImmutableList<SourceModelSyntax<UsingDirectiveSyntax>> GetUsings(TypeDeclarationSyntax decl) {
+	private static ImmutableList<SourceModelSyntax<UsingDirectiveSyntax>> GetUsings(BaseTypeDeclarationSyntax decl) {
 		return decl.SyntaxTree.GetCompilationUnitRoot().Usings
 			.Select(u => new SourceModelSyntax<UsingDirectiveSyntax>(u))
 			.ToImmutableList();
@@ -272,4 +284,3 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 
 
 }
-

@@ -78,7 +78,7 @@ internal static class Errors {
 	public static readonly DiagnosticDescriptor OverlappingEnumConstructors = new DiagnosticDescriptor(
 		id: "ESX0009",
 		title: "Overlapping enum constructors",
-		messageFormat: "Enum '{0}' has overlapping constructor tags",
+		messageFormat: "Enum '{0}' has overlapping constructor tags. Tags: {1}. Previous tags: {2}.",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
