@@ -108,7 +108,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 	}
 
 	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Null ], UnionWithTypeParameters = [ nameof(T) ])]
-	public sealed class OptionalValueCodec : IOptionalValueCodec<Option<T>> {
+	public sealed class OptionalValueCodec : IOptionalValueCodec<Option<T>, T> {
 		public OptionalValueCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
 		}

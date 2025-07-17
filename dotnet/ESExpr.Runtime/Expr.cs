@@ -16,9 +16,6 @@ public abstract record Expr {
 		ImmutableList<Expr> args,
 		ImmutableDictionary<string, Expr> kwargs
 	) : Expr {
-		public Constructor(string constructor, IReadOnlyList<Expr> args, IReadOnlyDictionary<string, Expr> kwargs)
-			: this(constructor, args.ToImmutableList(), kwargs.ToImmutableDictionary()) { }
-
 		public override ESExprTag Tag => new ESExprTag.Constructor(constructor);
 
 		public override int GetHashCode() {

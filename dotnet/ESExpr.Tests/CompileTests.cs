@@ -16,6 +16,7 @@ public class CompileTests : TestBase {
 		{
 			"System.Private.CoreLib",
 			"System.Runtime",
+			"System.Collections.Immutable",
 		};
 
 
@@ -44,6 +45,7 @@ public class CompileTests : TestBase {
 
 	private const string Imports = @"
 		using System;
+		using System.Collections.Immutable;
 		using ESExpr.Runtime;
 	";
 
@@ -98,7 +100,7 @@ public class CompileTests : TestBase {
 	[Test]
 	public void PositionalAfterVararg() {
 		AssertFails(
-			"ESX0009",
+			"ESX0008",
 			Imports +
 			@"[ESExprCodec]
 			public sealed partial record HelloWorld {

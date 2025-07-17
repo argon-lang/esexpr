@@ -100,7 +100,7 @@ public class InterfaceImmutableListCodec<T> : ListCodecBase<T, IImmutableList<T>
 	protected override int GetCount(IImmutableList<T> list) => list.Count;
 }
 
-public abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList>
+public abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList, T>
 	where TList : IEnumerable<T> {
 	
 	

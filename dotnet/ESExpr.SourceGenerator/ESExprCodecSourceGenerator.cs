@@ -34,9 +34,9 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 		context.RegisterSourceOutput(
 			valuesProvider,
 			static (context, valuesTuple) => {
-				var (typeModel, overrideHandler) = valuesTuple;
+				var (typeModel, typeInfoHandler) = valuesTuple;
 				try {
-					typeModel?.Generator(context, overrideHandler).Generate();
+					typeModel?.Generator(context, typeInfoHandler).Generate();
 				}
 				catch(AbortGenerationException ex) {
 					context.ReportDiagnostic(ex.Diagnostic);

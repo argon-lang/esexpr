@@ -155,7 +155,7 @@ public class InterfaceImmutableDictionaryCodec<T> : DictionaryCodecBase<T, IImmu
 	}
 }
 
-public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict>
+public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict, T>
 	where TDict : IEnumerable<KeyValuePair<string, T>>
 {
 	private protected DictionaryDictCodecBase(IESExprCodec<T> itemCodec) {

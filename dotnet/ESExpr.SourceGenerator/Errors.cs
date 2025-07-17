@@ -66,19 +66,19 @@ internal static class Errors {
 		isEnabledByDefault: true
 	);
 
-	public static readonly DiagnosticDescriptor MultipleVarargs = new DiagnosticDescriptor(
+	public static readonly DiagnosticDescriptor OverlappingFieldTags = new DiagnosticDescriptor(
 		id: "ESX0008",
-		title: "Multiple varargs",
-		messageFormat: "Only one vararg parameter is allowed",
+		title: "Overlapping tags",
+		messageFormat: "Field '{0}' must have distinct tags from immediately preceding optional positional arguments. Tags: {1}. Previous tags: {2}.",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
 
-	public static readonly DiagnosticDescriptor PositionalAfterVararg = new DiagnosticDescriptor(
+	public static readonly DiagnosticDescriptor OverlappingEnumConstructors = new DiagnosticDescriptor(
 		id: "ESX0009",
-		title: "Positional after vararg",
-		messageFormat: "Positional parmaeters must come before varargs",
+		title: "Overlapping enum constructors",
+		messageFormat: "Enum '{0}' has overlapping constructor tags",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
@@ -93,10 +93,10 @@ internal static class Errors {
 		isEnabledByDefault: true
 	);
 
-	public static readonly DiagnosticDescriptor KeywordAfterDict = new DiagnosticDescriptor(
+	public static readonly DiagnosticDescriptor KeywordWithDict = new DiagnosticDescriptor(
 		id: "ESX0011",
-		title: "Keyword after dict",
-		messageFormat: "Keyword parameters must come before dict",
+		title: "Keyword with dict",
+		messageFormat: "Keyword arguments cannot be used with dict arguments",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
@@ -106,6 +106,24 @@ internal static class Errors {
 		id: "ESX0012",
 		title: "Missing ESExprTagsAttribute",
 		messageFormat: "Codec must have an ESExprTagsAttribute",
+		category: "SourceGenerator",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor DuplicateKeyword = new DiagnosticDescriptor(
+		id: "ESX0013",
+		title: "Duplicate keyword",
+		messageFormat: "Duplicate keyword argument \"{0}\"",
+		category: "SourceGenerator",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ElementCodec = new DiagnosticDescriptor(
+		id: "ESX0014",
+		title: "Codec element",
+		messageFormat: "Could not determine element type from codec type {0}",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true

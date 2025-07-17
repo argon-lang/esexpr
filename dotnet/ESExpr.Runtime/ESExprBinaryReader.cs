@@ -306,13 +306,13 @@ public class ESExprBinaryReader {
 			await await ReadExprPlus(argVisitor, cancellationToken);
 		}
 
-		return new Expr.Constructor(constructor, argVisitor.Args, argVisitor.Kwargs);
+		return new Expr.Constructor(constructor, argVisitor.Args.ToImmutable(), argVisitor.Kwargs.ToImmutable());
 	}
 
 	private sealed class ConstructorArgumentVisitor(ESExprBinaryReader reader, CancellationToken cancellationToken)
 		: IExprPlusVisitor<ValueTask> {
-		public List<Expr> Args { get; } = new();
-		public Dictionary<string, Expr> Kwargs { get; } = new();
+		public ImmutableList<Expr>.Builder Args { get; } = ImmutableList.CreateBuilder<Expr>();
+		public ImmutableDictionary<string, Expr>.Builder Kwargs { get; } = ImmutableDictionary.CreateBuilder<string, Expr>();
 		public bool IsDone { get; private set; } = false;
 
 		public async ValueTask VisitExpr(Expr expr) {

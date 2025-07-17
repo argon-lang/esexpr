@@ -189,18 +189,29 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	}
 
 	private ExpressionSyntax WriteTagsExpr() =>
-		TagsToExpr(GetTags(TypeModel.SourceModelType, ImmutableHashSet<SourceModelType>.Empty));
+		TagsToExpr(GetTags(TypeModel.SourceModelType, this.TypeModel.Location, ImmutableHashSet<SourceModelType>.Empty));
 
-	private ESExprTagSet GetTags(SourceModelType type, ImmutableHashSet<SourceModelType> seenTypes) {
+	
+	private ESExprTagSet GetTags(SourceModelType type, Location location) =>
+		GetTags(type, location, ImmutableHashSet<SourceModelType>.Empty);
+	
+	private ESExprTagSet GetTags(SourceModelType type, Location location, ImmutableHashSet<SourceModelType> seenTypes) {
+		if(seenTypes.Contains(type)) {
+			throw new Exception("Circular tags detected");
+		}
+		
 		var typeTags = TypeInfoHandler.GetTags(type);
 		if(typeTags == null) {
-			throw new Exception("Could not get tags for type: " + type);
+			throw new AbortGenerationException(Diagnostic.Create(
+				Errors.MissingTagsAttribute,
+				location
+			));
 		}
 		
 		return typeTags.unionWithTypes.Aggregate(
 			typeTags.tags,
 			(tags, t) =>
-				tags.Union(GetTags(t, seenTypes.Add(type)))
+				tags.Union(GetTags(t, location, seenTypes.Add(type)))
 		);
 	}
 
@@ -406,39 +417,15 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	}
 
 	protected BlockSyntax WriteEncodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, ExpressionSyntax valueExpr) {
-		// var args = new global::System.Collections.Generic.List<global::ESExpr.Runtime.ESExpr>();
-		var argsDeclaration = LocalDeclarationStatement(
-			VariableDeclaration(IdentifierName("var"))
-				.WithVariables(
-					SingletonSeparatedList(
-						VariableDeclarator(Identifier("args"))
-							.WithInitializer(
-								EqualsValueClause(
-									ObjectCreationExpression(ListType(ESExprType))
-										.WithArgumentList(ArgumentList())
-								)
-							)
-					)
-				)
+		var argsDeclaration = ParseStatement(
+			"var args = global::System.Collections.Immutable.ImmutableList.CreateBuilder<global::ESExpr.Runtime.Expr>();"
 		);
 
-		// var kwargs = new global::System.Collections.Generic.Dictionary<string, global::ESExpr.Runtime.ESExpr>();
-		var kwargsDeclaration = LocalDeclarationStatement(
-			VariableDeclaration(IdentifierName("var"))
-				.WithVariables(
-					SingletonSeparatedList(
-						VariableDeclarator(Identifier("kwargs"))
-							.WithInitializer(
-								EqualsValueClause(
-									ObjectCreationExpression(DictionaryType(StringType, ESExprType))
-										.WithArgumentList(ArgumentList())
-								)
-							)
-					)
-				)
+		var kwargsDeclaration = ParseStatement(
+			"var kwargs = global::System.Collections.Immutable.ImmutableDictionary.CreateBuilder<string, global::ESExpr.Runtime.Expr>();"
 		);
-
-		// return new global::ESExpr.Runtime.ESExpr.Constructor(name, args, kwargs);
+		
+		// return new global::ESExpr.Runtime.Expr.Constructor(name, args.ToImmutable(), kwargs.ToImmutable());
 		var returnStatement = ReturnStatement(
 			ObjectCreationExpression(
 					QualifiedName(
@@ -450,8 +437,16 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					ArgumentList(
 						SeparatedList([
 							Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))),
-							Argument(IdentifierName("args")),
-							Argument(IdentifierName("kwargs")),
+							Argument(
+								InvocationExpression(
+									QualifiedName(IdentifierName("args"), IdentifierName("ToImmutable"))
+								)
+							),
+							Argument(
+								InvocationExpression(
+									QualifiedName(IdentifierName("kwargs"), IdentifierName("ToImmutable"))
+								)
+							),
 						])
 					)
 				)
@@ -463,8 +458,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		};
 
 		bool hasDict = false;
-		bool hasVararg = false;
-
+		var prevOptionalPositionalTags = ESExprTagSet.Empty;
+		var keywords = new HashSet<string>();
 
 		foreach(var field in fields) {
 			var propertyValue = MemberAccessExpression(
@@ -472,19 +467,40 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				valueExpr,
 				IdentifierName(field.Name)
 			);
+			
+			void PosTagCheck(ESExprTagSet tags) {
+				if(prevOptionalPositionalTags.IsEmpty) {
+					return;
+				}
+
+				if(!prevOptionalPositionalTags.IsDisjointFrom(tags)) {
+					Context.ReportDiagnostic(Diagnostic.Create(
+						Errors.OverlappingFieldTags,
+						field.Location,
+						field.Name,
+						tags,
+						prevOptionalPositionalTags
+					));
+				}
+			}
 
 			if(field.IsKeyword is { } keyword) {
 				if(hasDict) {
 					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.KeywordAfterDict,
+						Errors.KeywordWithDict,
+						field.Location
+					));
+				}
+
+				if(!keywords.Add(keyword)) {
+					Context.ReportDiagnostic(Diagnostic.Create(
+						Errors.DuplicateKeyword,
 						field.Location,
-						new object?[] { }
+						keyword
 					));
 				}
 
 				if(field.IsOptional) {
-
-
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -608,15 +624,10 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				}
 			}
 			else if(field.IsVararg) {
-				if(hasVararg) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.MultipleVarargs,
-						field.Location,
-						new object?[] { }
-					));
-				}
-
-				hasVararg = true;
+				var elementType = GetVarargElementType(field.Type, field.Location);
+				var tags = GetTags(elementType, field.Location);
+				PosTagCheck(tags);
+				prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
 
 				var encodedExpr = InvocationExpression(
 					MemberAccessExpression(
@@ -687,15 +698,12 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				stmts.Add(loop);
 			}
 			else {
-				if(hasVararg) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.PositionalAfterVararg,
-						field.Location,
-						new object?[] { }
-					));
-				}
-
 				if(field.IsOptional) {
+					var elementType = GetOptionalElementType(field.Type, field.Location);
+					var tags = GetTags(elementType, field.Location);
+					PosTagCheck(tags);
+					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+					
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -738,6 +746,10 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					));
 				}
 				else if(field.DefaultValue is { } defaultValue) {
+					var tags = GetTags(field.Type, field.Location);
+					PosTagCheck(tags);
+					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+					
 					var codecExpr = GetCodecExpr(field.Type);
 
 					stmts.Add(Block(
@@ -797,6 +809,12 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					));
 				}
 				else {
+					if(!prevOptionalPositionalTags.IsEmpty) {
+						var tags = GetTags(field.Type, field.Location);
+						PosTagCheck(tags);
+						prevOptionalPositionalTags = ESExprTagSet.Empty;
+					}
+					
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -833,6 +851,9 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		var stmts = new List<StatementSyntax>();
 
 		var fieldInits = new List<ExpressionSyntax>();
+		
+		
+		
 
 		int positionalIndex = 0;
 
@@ -1029,26 +1050,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							)
 						)
 				));
-
-
-				var sliceStatement = ExpressionStatement(
-					AssignmentExpression(
-						SyntaxKind.SimpleAssignmentExpression,
-						IdentifierName("args"),
-						InvocationExpression(
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									IdentifierName("args"),
-									IdentifierName("Slice")))
-							.WithArgumentList(
-								ArgumentList(SeparatedList([
-									Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))),
-									Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))),
-								]))
-							)
-					)
-				);
-				stmts.Add(sliceStatement);
 			}
 			else if(field.IsDict) {
 				var pathExpr = SimpleLambdaExpression(
@@ -1455,27 +1456,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		IdentifierName("DecodeFailurePath")
 	);
 
-	protected TypeSyntax ListType(TypeSyntax elementType) =>
-		QualifiedName(
-			QualifiedName(
-				QualifiedName(
-					AliasQualifiedName(
-						IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-						IdentifierName("System")
-					),
-					IdentifierName("Collections")
-				),
-				IdentifierName("Generic")
-			),
-			GenericName(
-				Identifier("List"),
-				TypeArgumentList(
-					SeparatedList([elementType])
-				)
-			)
-
-		);
-
 	protected TypeSyntax DictionaryType(TypeSyntax keyType, TypeSyntax valueType) =>
 		QualifiedName(
 			QualifiedName(
@@ -1586,10 +1566,11 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	protected ExpressionSyntax GetDictCodecExpr(SourceModelType t) =>
 		GetCodecLikeExpr(t, "IDictCodec", "DictCodec");
+		
 
 	protected ExpressionSyntax GetCodecLikeExpr(SourceModelType t, string codecTypeName, string nestedClassName) {
 		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], codecTypeName) {
-			TypeArguments = [t],
+			TypeArguments = codecTypeName == "IESExprCodec" ? [t] : [t, new SourceModelType.Wildcard("Wildcard")],
 			IsEnum = false,
 		};
 
@@ -1664,6 +1645,44 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 		return ObjectCreationExpression(concreteCodecType)
 			.WithArgumentList(ArgumentList(SeparatedList(args)));
+	}
+
+	private SourceModelType GetVarargElementType(SourceModelType t, Location location) {
+		var placeholder = new SourceModelType.Wildcard("Wildcard");
+		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IVarargCodec") {
+			TypeArguments = [t, placeholder],
+			IsEnum = false,
+		};
+		
+		var elementType = TypeInfoHandler.GetElementType(codecType, placeholder);
+		if(elementType is null) {
+			throw new AbortGenerationException(Diagnostic.Create(
+				Errors.ElementCodec,
+				location,
+				codecType
+			));
+		}
+
+		return elementType;
+	}
+
+	private SourceModelType GetOptionalElementType(SourceModelType t, Location location) {
+		var placeholder = new SourceModelType.Wildcard("Wildcard");
+		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IOptionalValueCodec") {
+			TypeArguments = [t, placeholder],
+			IsEnum = false,
+		};
+		
+		var elementType = TypeInfoHandler.GetElementType(codecType, placeholder);
+		if(elementType is null) {
+			throw new AbortGenerationException(Diagnostic.Create(
+				Errors.ElementCodec,
+				location,
+				codecType
+			));
+		}
+
+		return elementType;
 	}
 
 	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
