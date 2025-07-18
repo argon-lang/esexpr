@@ -6,8 +6,8 @@ ESExpr is a serialization format that consists of exprssions of the following fo
 - Booleans
 - Integers
 - Strings
-- Binary Data
-- Float32/64
+- Array8/16/32/64
+- Float16/32/64
 - Null
 
 Constructor and keyword names are stored in a string table to prevent duplication.

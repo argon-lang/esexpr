@@ -6,6 +6,9 @@ import scala.sys.process.Process
 
 val zioVersion = "2.1.19"
 
+name := "esexpr"
+
+
 ThisBuild / scalaVersion := "3.7.1"
 
 publish / skip := true
