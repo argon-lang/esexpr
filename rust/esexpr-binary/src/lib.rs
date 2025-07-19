@@ -16,7 +16,7 @@ mod reader;
 mod writer;
 
 pub use reader::*;
-pub use writer::{ExprGenerator, ExprGeneratorAsync, ExprGeneratorSync};
+pub use writer::{GeneratorError, ExprGenerator, ExprGeneratorAsync, ExprGeneratorSync};
 
 #[cfg(test)]
 mod test {

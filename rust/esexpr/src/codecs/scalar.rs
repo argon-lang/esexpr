@@ -307,7 +307,7 @@ encoded_as_partial_eq!(());
 impl<'a> ESExprCodec<'a> for () {
 	const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Null]);
 
-	fn encode_esexpr(&self) -> ESExpr {
+	fn encode_esexpr<'b>(&'b self) -> ESExpr<'b> {
 		ESExpr::Null(Cow::Owned(BigUint::ZERO))
 	}
 

@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, Clone)]
 struct ConstructorName123Conversion {
 	a: i32,

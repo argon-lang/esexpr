@@ -73,7 +73,7 @@ impl<'a> ESExpr<'a> {
 
 	/// Get the tag of an expression.
 	#[must_use]
-	pub fn tag(&self) -> ESExprTag {
+	pub fn tag<'b>(&'b self) -> ESExprTag<'b> {
 		match self {
 			ESExpr::Constructor(ESExprConstructor { name, .. }) => ESExprTag::Constructor(name.as_borrowed()),
 			ESExpr::Bool(_) => ESExprTag::Bool,
@@ -219,6 +219,18 @@ impl<'a> ESExprCodec<'a> for ESExpr<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ESExprStatic(ESExpr<'static>);
 
+impl ESExprStatic {
+	/// Create an `ESExprStatic`
+	pub fn new(e: ESExpr<'static>) -> Self {
+		ESExprStatic(e)
+	}
+	
+	/// Get the underlying `ESExpr`.
+	pub fn into_inner(self) -> ESExpr<'static> {
+		self.0
+	}
+}
+
 impl ESExprEncodedEq for ESExprStatic {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
 		self == other
@@ -267,7 +279,7 @@ impl<'a> ESExprConstructor<'a> {
 		}
 	}
 
-	fn as_borrowed(&self) -> ESExprConstructor {
+	fn as_borrowed<'b>(&'b self) -> ESExprConstructor<'b> {
 		ESExprConstructor {
 			name: self.name.as_borrowed(),
 			args: self.args.as_borrowed(),

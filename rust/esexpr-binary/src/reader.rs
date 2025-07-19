@@ -153,7 +153,7 @@ macro_rules! reader_mod {
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
-									b.swap_bytes();
+									*b = b.swap_bytes();
 								}
 							}
 							ExprToken::Array16Value(buff)
@@ -168,7 +168,7 @@ macro_rules! reader_mod {
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
-									b.swap_bytes();
+									*b = b.swap_bytes();
 								}
 							}
 							ExprToken::Array32Value(buff)
@@ -183,7 +183,7 @@ macro_rules! reader_mod {
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
-									b.swap_bytes();
+									*b = b.swap_bytes();
 								}
 							}
 							ExprToken::Array64Value(buff)
@@ -198,7 +198,7 @@ macro_rules! reader_mod {
 							#[cfg(target_endian = "big")]
 							{
 								for b in buff.iter_mut() {
-									b.swap_bytes();
+									*b = b.swap_bytes();
 								}
 							}
 							ExprToken::Array128Value(buff)

@@ -248,34 +248,90 @@ macro_rules! writer_mod {
 						ESExpr::Array16(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY16))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							do_await!(
-								$syncness,
-								self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref()))
-							)?;
+							
+							#[cfg(target_endian = "little")]
+							{
+								do_await!(
+									$syncness,
+									self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref()))
+								)?;
+							}
+							
+							#[cfg(target_endian = "big")]
+							{
+								for value in b.iter().copied() {
+									do_await!(
+										$syncness,
+										self.out.write(&value.to_le_bytes())
+									)?;
+								}
+							}
 						},
 						ESExpr::Array32(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY32))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							do_await!(
-								$syncness,
-								self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref()))
-							)?;
+							
+							#[cfg(target_endian = "little")]
+							{
+								do_await!(
+									$syncness,
+									self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref()))
+								)?;
+							}
+							
+							#[cfg(target_endian = "big")]
+							{
+								for value in b.iter().copied() {
+									do_await!(
+										$syncness,
+										self.out.write(&value.to_le_bytes())
+									)?;
+								}
+							}
 						},
 						ESExpr::Array64(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY64))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							do_await!(
-								$syncness,
-								self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref()))
-							)?;
+							
+							#[cfg(target_endian = "little")]
+							{
+								do_await!(
+									$syncness,
+									self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref()))
+								)?;
+							}
+							
+							#[cfg(target_endian = "big")]
+							{
+								for value in b.iter().copied() {
+									do_await!(
+										$syncness,
+										self.out.write(&value.to_le_bytes())
+									)?;
+								}
+							}
 						},
 						ESExpr::Array128(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY128))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							do_await!(
-								$syncness,
-								self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref()))
-							)?;
+							
+							#[cfg(target_endian = "little")]
+							{
+								do_await!(
+									$syncness,
+									self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref()))
+								)?;
+							}
+							
+							#[cfg(target_endian = "big")]
+							{
+								for value in b.iter().copied() {
+									do_await!(
+										$syncness,
+										self.out.write(&value.to_le_bytes())
+									)?;
+								}
+							}
 						},
 
 						ESExpr::Null(level) => {
