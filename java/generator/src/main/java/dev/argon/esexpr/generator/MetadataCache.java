@@ -248,6 +248,10 @@ class MetadataCache {
 			}
 		}
 
+		if(t.getKind() == TypeKind.TYPEVAR) {
+			return new ESExprTagSet.All();
+		}
+
 		throw new AbortException("Could not determine tags of type " + t, associatedElement);
 	}
 
