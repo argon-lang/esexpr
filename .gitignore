@@ -8,9 +8,11 @@
 
 /scala/**/target/
 /scala/**/metals.sbt
+/scala/*.zip
 
 /java/**/build/
 /java/**/bin/
+/scala/*.zip
 
 /js/**/lib/
 /js/**/obj/
