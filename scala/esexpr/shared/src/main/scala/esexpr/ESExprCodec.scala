@@ -1095,7 +1095,7 @@ object ESExprCodec {
     def derivedSumMacro[T: Type, SubTypes <: Tuple: Type](codecMap: Expr[Seq[ESExprCodec[? <: T]]])(using q: Quotes): Expr[ESExprCodec[T]] =
       try '{
         new ESExprCodec[T] {
-          private val codecs: Seq[ESExprCodec[? <: T]] = ${codecMap}
+          private lazy val codecs: Seq[ESExprCodec[? <: T]] = ${codecMap}
 
           override lazy val tags: ESExprTagSet =
             codecs.foldLeft[ESExprTagSet](ESExprTagSet.Empty)(_ | _.tags)

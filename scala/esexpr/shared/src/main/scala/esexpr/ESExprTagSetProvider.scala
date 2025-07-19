@@ -42,6 +42,9 @@ object ESExprTagSetProvider {
           case _ => report.errorAndAbort("Could not get tags method body")
         }
 
+      case _ if t.typeSymbol.isTypeParam =>
+        '{ ESExprTagSet.All }
+        
       case _ =>
         getDerivedTags(
           t match {

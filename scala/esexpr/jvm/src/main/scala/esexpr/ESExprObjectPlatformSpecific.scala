@@ -1,6 +1,8 @@
 package esexpr
 
 import dev.argon.esexpr.ESExpr as JESExpr
+import org.eclipse.collections.api.factory.primitive.{ByteLists, IntLists, LongLists, ShortLists}
+
 import scala.jdk.CollectionConverters.*
 import zio.Chunk
 
@@ -28,11 +30,11 @@ trait ESExprObjectPlatformSpecific {
       case expr: JESExpr.Float32 => ESExpr.Float32(expr.f)
       case expr: JESExpr.Float64 => ESExpr.Float64(expr.d)
       case expr: JESExpr.Null => ESExpr.Null(expr.level().nn)
-      case expr: JESExpr.Array8 => ESExpr.Array8(Chunk.fromArray(expr.b))
-      case expr: JESExpr.Array16 => ESExpr.Array16(Chunk.fromArray(expr.b))
-      case expr: JESExpr.Array32 => ESExpr.Array32(Chunk.fromArray(expr.b))
-      case expr: JESExpr.Array64 => ESExpr.Array64(Chunk.fromArray(expr.b))
-      case expr: JESExpr.Array128 => ESExpr.Array128(Chunk.fromArray(expr.b))
+      case expr: JESExpr.Array8 => ESExpr.Array8(Chunk.fromArray(expr.b.toArray()))
+      case expr: JESExpr.Array16 => ESExpr.Array16(Chunk.fromArray(expr.b.toArray()))
+      case expr: JESExpr.Array32 => ESExpr.Array32(Chunk.fromArray(expr.b.toArray()))
+      case expr: JESExpr.Array64 => ESExpr.Array64(Chunk.fromArray(expr.b.toArray()))
+      case expr: JESExpr.Array128 => ESExpr.Array128(Chunk.fromArray(expr.b.toArray()))
       case _ => throw new MatchError(expr)
     }
 
@@ -55,11 +57,11 @@ trait ESExprObjectPlatformSpecific {
       case ESExpr.Float64(d) => JESExpr.Float64(d)
       case ESExpr.Float64NaN(bits) => JESExpr.Float64(java.lang.Double.longBitsToDouble(bits))
       case ESExpr.Null(level) => JESExpr.Null(level.bigInteger)
-      case ESExpr.Array8(b) => JESExpr.Array8(b.toArray)
-      case ESExpr.Array16(b) => JESExpr.Array16(b.toArray)
-      case ESExpr.Array32(b) => JESExpr.Array32(b.toArray)
-      case ESExpr.Array64(b) => JESExpr.Array64(b.toArray)
-      case ESExpr.Array128(b) => JESExpr.Array128(b.toArray)
+      case ESExpr.Array8(b) => JESExpr.Array8(ByteLists.immutable.of(b.toArray*))
+      case ESExpr.Array16(b) => JESExpr.Array16(ShortLists.immutable.of(b.toArray*))
+      case ESExpr.Array32(b) => JESExpr.Array32(IntLists.immutable.of(b.toArray*))
+      case ESExpr.Array64(b) => JESExpr.Array64(LongLists.immutable.of(b.toArray*))
+      case ESExpr.Array128(b) => JESExpr.Array128(LongLists.immutable.of(b.toArray*))
     }
     
 }
