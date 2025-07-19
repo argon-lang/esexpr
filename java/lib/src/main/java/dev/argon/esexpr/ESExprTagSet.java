@@ -1,7 +1,6 @@
 package dev.argon.esexpr;
 
 import com.google.common.collect.ImmutableSet;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 
@@ -24,7 +23,7 @@ public sealed interface ESExprTagSet {
 		}
 
 		@Override
-		public boolean contains(@NotNull ESExprTag tag) {
+		public boolean contains(ESExprTag tag) {
 			return true;
 		}
 
@@ -39,7 +38,7 @@ public sealed interface ESExprTagSet {
 		}
 
 		@Override
-		public boolean isDisjoint(@NotNull ESExprTagSet other) {
+		public boolean isDisjoint(ESExprTagSet other) {
 			return other.isEmpty();
 		}
 	}
@@ -48,7 +47,7 @@ public sealed interface ESExprTagSet {
 	 * A finite set of tags.
 	 * @param tags The tags.
 	 */
-	record Tags(ImmutableSet<@NotNull ESExprTag> tags) implements ESExprTagSet {
+	record Tags(ImmutableSet<ESExprTag> tags) implements ESExprTagSet {
 		@Override
 		public ESExprTagSet add(ESExprTag tag) {
 			if(tags.contains(tag)) {
@@ -87,12 +86,12 @@ public sealed interface ESExprTagSet {
 		}
 
 		@Override
-		public boolean contains(@NotNull ESExprTag tag) {
+		public boolean contains(ESExprTag tag) {
 			return tags.contains(tag);
 		}
 
 		@Override
-		public boolean isDisjoint(@NotNull ESExprTagSet other) {
+		public boolean isDisjoint(ESExprTagSet other) {
 			return switch(other) {
 				case All() -> isEmpty();
 				case Tags(var otherTags) -> Collections.disjoint(tags, otherTags);
@@ -115,14 +114,14 @@ public sealed interface ESExprTagSet {
 	 * @param tag The tag to add.
 	 * @return The updated set.
 	 */
-	@NotNull ESExprTagSet add(@NotNull ESExprTag tag);
+	ESExprTagSet add(ESExprTag tag);
 
 	/**
 	 * Creates a tag set with all elements of this and another set.
 	 * @param other The other set.
 	 * @return The updated set.
 	 */
-	@NotNull ESExprTagSet union(@NotNull ESExprTagSet other);
+	ESExprTagSet union(ESExprTagSet other);
 
 	/**
 	 * {@return true iff the set is empty}
@@ -139,12 +138,12 @@ public sealed interface ESExprTagSet {
 	 * @param tag The tag to check.
 	 * @return true iff the set contains the tag.
 	 */
-	boolean contains(@NotNull ESExprTag tag);
+	boolean contains(ESExprTag tag);
 
 	/**
 	 * Checks if sets are disjoint.
 	 * @param other The other set.
 	 * @return true iff there are no common elements between the sets.
 	 */
-	boolean isDisjoint(@NotNull ESExprTagSet other);
+	boolean isDisjoint(ESExprTagSet other);
 }

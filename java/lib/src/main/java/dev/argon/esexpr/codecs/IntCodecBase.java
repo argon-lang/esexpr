@@ -4,7 +4,6 @@ import java.math.BigInteger;
 import java.util.Set;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Base type for sized integer codecs.
@@ -20,17 +19,17 @@ public abstract class IntCodecBase<T> extends ESExprCodec<T> {
 	private final BigInteger max;
 
 	@Override
-	public final @NotNull ESExprTagSet tags() {
+	public final ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.INT);
 	}
 
 	@Override
-	public final @NotNull ESExpr encode(@NotNull T value) {
+	public final ESExpr encode(T value) {
 		return new ESExpr.Int(toBigInt(value));
 	}
 
 	@Override
-	public final @NotNull T decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public final T decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Int(var i)) {
 			if(i.compareTo(min) < 0 || i.compareTo(max) > 0) {
 				throw new DecodeException("Integer value out of range", path);
@@ -43,6 +42,6 @@ public abstract class IntCodecBase<T> extends ESExprCodec<T> {
 		}
 	}
 
-	abstract @NotNull T fromBigInt(@NotNull BigInteger value);
-	abstract @NotNull BigInteger toBigInt(@NotNull T value);
+	abstract T fromBigInt(BigInteger value);
+	abstract BigInteger toBigInt(T value);
 }

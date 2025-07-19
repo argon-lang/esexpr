@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.Set;
@@ -25,17 +24,17 @@ public class BigIntegerCodec extends ESExprCodec<BigInteger> {
 	}
 
 	@Override
-	public final @NotNull ESExprTagSet tags() {
+	public final ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.INT);
 	}
 
 	@Override
-	public final @NotNull ESExpr encode(@NotNull BigInteger value) {
+	public final ESExpr encode(BigInteger value) {
 		return new ESExpr.Int(value);
 	}
 
 	@Override
-	public final @NotNull BigInteger decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public final BigInteger decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Int(var i)) {
 			return i;
 		}

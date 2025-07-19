@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
@@ -42,7 +41,7 @@ public class OptionalOptionalValueCodec<T> implements OptionalValueCodec<Optiona
 	}
 
 	@Override
-	public Optional<T> decodeOptional(Optional<ESExpr> expr, @NotNull ESExprCodec.FailurePath path) throws DecodeException {
+	public Optional<T> decodeOptional(Optional<ESExpr> expr, ESExprCodec.FailurePath path) throws DecodeException {
 		var expr2 = expr.orElse(null);
 		if(expr2 == null) {
 			return Optional.empty();

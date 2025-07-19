@@ -1,7 +1,10 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.eclipse.collections.api.factory.primitive.ByteLists;
+import org.eclipse.collections.api.factory.primitive.IntLists;
+import org.eclipse.collections.api.factory.primitive.LongLists;
+import org.eclipse.collections.api.factory.primitive.ShortLists;
+import org.jspecify.annotations.Nullable;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -20,7 +23,7 @@ public class ESExprBinaryReader {
 	 * @param symbolTable The symbol table used when parsing.
 	 * @param is The stream.
 	 */
-	public ESExprBinaryReader(@NotNull List<String> symbolTable, @NotNull InputStream is) {
+	public ESExprBinaryReader(List<String> symbolTable, InputStream is) {
 		this.symbolTable = new ArrayList<>(symbolTable);
 		this.is = is;
 	}
@@ -29,13 +32,13 @@ public class ESExprBinaryReader {
 	 * Create a reader for the ESExpr binary format.
 	 * @param is The stream.
 	 */
-	public ESExprBinaryReader(@NotNull InputStream is) {
+	public ESExprBinaryReader(InputStream is) {
 		this.symbolTable = new ArrayList<>();
 		this.is = is;
 	}
 
 	private final List<String> symbolTable;
-	private final @NotNull InputStream is;
+	private final InputStream is;
 	private int nextByte = -1;
 
 	/**
@@ -62,7 +65,7 @@ public class ESExprBinaryReader {
 	 * @throws IOException when an error occurs in the underlying stream.
 	 * @throws SyntaxException when an expression cannot be read.
 	 */
-	public @NotNull ESExpr read() throws IOException, SyntaxException {
+	public ESExpr read() throws IOException, SyntaxException {
 		var expr = tryRead();
 		if(expr == null) {
 			throw new EOFException();
@@ -74,7 +77,7 @@ public class ESExprBinaryReader {
 	 * Reads all ESExpr values from the stream.
 	 * @return A stream of ESExpr values.
 	 */
-	public @NotNull Stream<@NotNull ESExpr> readAll() {
+	public Stream<ESExpr> readAll() {
 		return Stream
 			.generate(() -> {
 				try {
@@ -172,7 +175,7 @@ public class ESExprBinaryReader {
 		record EndOfFile() implements ExprPlus {}
 	}
 
-	private @NotNull ExprPlus readExprPlus() throws SyntaxException, IOException {
+	private ExprPlus readExprPlus() throws SyntaxException, IOException {
 		return switch(nextToken()) {
 			case null -> new ExprPlus.EndOfFile();
 			
@@ -207,7 +210,7 @@ public class ESExprBinaryReader {
 						throw new EOFException();
 					}
 
-					yield new ExprPlus.Expr(new ESExpr.Array8(b));
+					yield new ExprPlus.Expr(new ESExpr.Array8(ByteLists.immutable.of(b)));
 				}
 
 				case KEYWORD -> {
@@ -305,7 +308,7 @@ public class ESExprBinaryReader {
 						}
 						b[i] = value;
 					}
-					yield new ExprPlus.Expr(new ESExpr.Array16(b));
+					yield new ExprPlus.Expr(new ESExpr.Array16(ShortLists.immutable.of(b)));
 				}
 				case ARRAY32 -> {
 					var n = readInt(BigInteger.ZERO, 0);
@@ -322,7 +325,7 @@ public class ESExprBinaryReader {
 						}
 						b[i] = value;
 					}
-					yield new ExprPlus.Expr(new ESExpr.Array32(b));
+					yield new ExprPlus.Expr(new ESExpr.Array32(IntLists.immutable.of(b)));
 				}
 				case ARRAY64 -> {
 					var n = readInt(BigInteger.ZERO, 0);
@@ -339,7 +342,7 @@ public class ESExprBinaryReader {
 						}
 						b[i] = value;
 					}
-					yield new ExprPlus.Expr(new ESExpr.Array64(b));
+					yield new ExprPlus.Expr(new ESExpr.Array64(LongLists.immutable.of(b)));
 				}
 				case ARRAY128 -> {
 					var n = readInt(BigInteger.ZERO, 0);
@@ -356,13 +359,13 @@ public class ESExprBinaryReader {
 						}
 						b[i] = value;
 					}
-					yield new ExprPlus.Expr(new ESExpr.Array128(b));
+					yield new ExprPlus.Expr(new ESExpr.Array128(LongLists.immutable.of(b)));
 				}
 			};
 		};
 	}
 
-	private @NotNull ESExpr readConstructor(String name) throws IOException, SyntaxException {
+	private ESExpr readConstructor(String name) throws IOException, SyntaxException {
 		var args = new ArrayList<ESExpr>();
 		var kwargs = new HashMap<String, ESExpr>();
 

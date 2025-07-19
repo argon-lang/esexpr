@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +33,7 @@ public interface DictCodec<T, E> {
 	 * @return The dictionary argument value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	T decodeDict(Map<String, ESExpr> exprs, @NotNull KeywordPathBuilder pathBuilder) throws DecodeException;
+	T decodeDict(Map<String, ESExpr> exprs, KeywordPathBuilder pathBuilder) throws DecodeException;
 
 	/**
 	 * Builds paths for elements of a dictionary argument.
@@ -45,6 +44,6 @@ public interface DictCodec<T, E> {
 		 * @param keyword The keyword of the element.
 		 * @return A path for the element with the keyword.
 		 */
-		@NotNull ESExprCodec.FailurePath pathAt(String keyword);
+		ESExprCodec.FailurePath pathAt(String keyword);
 	}
 }

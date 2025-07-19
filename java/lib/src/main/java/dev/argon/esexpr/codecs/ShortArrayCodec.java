@@ -1,27 +1,26 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
+import org.eclipse.collections.api.factory.primitive.ShortLists;
 
 import java.util.Arrays;
-import java.util.Set;
 
 /**
  * A codec for Array16 values.
  */
-public class Array16ESExprCodec extends ESExprCodec<short[]> {
-	private Array16ESExprCodec() {}
+public class ShortArrayCodec extends ESExprCodec<short[]> {
+	private ShortArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
 	@ESExprOverrideCodec(short[].class)
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY16 })
-	public static final ESExprCodec<short[]> INSTANCE = new Array16ESExprCodec();
+	public static final ESExprCodec<short[]> INSTANCE = new ShortArrayCodec();
 
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.ARRAY16);
 	}
 
@@ -31,14 +30,14 @@ public class Array16ESExprCodec extends ESExprCodec<short[]> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(short @NotNull [] value) {
-		return new ESExpr.Array16(value);
+	public ESExpr encode(short[] value) {
+		return new ESExpr.Array16(ShortLists.immutable.of(value));
 	}
 
 	@Override
-	public short @NotNull [] decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public short[] decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Array16(var b)) {
-			return b;
+			return b.toArray();
 		}
 		else {
 			throw new DecodeException("Expected an array16 value", path);

@@ -1,5 +1,7 @@
 package dev.argon.esexpr.generator;
 
+import org.jspecify.annotations.Nullable;
+
 import javax.lang.model.element.Element;
 
 class AbortException extends Exception {
@@ -12,5 +14,5 @@ class AbortException extends Exception {
 		this.element = element;
 	}
 
-	public final Element element;
+	public final @Nullable Element element;
 }

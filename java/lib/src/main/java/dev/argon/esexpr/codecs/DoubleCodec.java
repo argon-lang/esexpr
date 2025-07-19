@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -20,7 +19,7 @@ public class DoubleCodec extends ESExprCodec<Double> {
 	public static final ESExprCodec<Double> INSTANCE = new DoubleCodec();
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.FLOAT64);
 	}
 
@@ -30,12 +29,12 @@ public class DoubleCodec extends ESExprCodec<Double> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(@NotNull Double value) {
+	public ESExpr encode(Double value) {
 		return new ESExpr.Float64(value);
 	}
 
 	@Override
-	public @NotNull Double decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public Double decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Float64(var d)) {
 			return d;
 		}

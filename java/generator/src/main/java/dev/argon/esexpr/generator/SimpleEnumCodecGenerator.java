@@ -15,6 +15,8 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 
+import static dev.argon.esexpr.generator.NameUtils.getConstructorName;
+
 final class SimpleEnumCodecGenerator extends GeneratorBase {
 	public SimpleEnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
 		super(writer, env, metadataCache, elem);
@@ -36,11 +38,6 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 	}
 
 	@Override
-	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
-		return ESExprTagSet.of(ESExprTag.STR);
-	}
-
-	@Override
 	protected void writeEncodedEqualImpl() throws IOException, AbortException {
 		println("return x.equals(y);");
 	}
@@ -53,7 +50,7 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 		var names = new HashSet<String>();
 
 		for(var c : getCases()) {
-			var name = getConstructorNameSimpleEnum(c);
+			var name = getConstructorName(c);
 			if(!names.add(name)) {
 				env.getMessager().printError("Duplicate enum value: " + name, elem);
 			}
@@ -81,7 +78,7 @@ final class SimpleEnumCodecGenerator extends GeneratorBase {
 
 		for(var c : getCases()) {
 			print("case ");
-			printStringLiteral(getConstructorNameSimpleEnum(c));
+			printStringLiteral(getConstructorName(c));
 			print(" -> ");
 			print(elem.getQualifiedName());
 			print(".");

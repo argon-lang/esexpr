@@ -1,27 +1,26 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
+import org.eclipse.collections.api.factory.primitive.LongLists;
 
 import java.util.Arrays;
-import java.util.Set;
 
 /**
  * A codec for Array64 values.
  */
-public class Array64ESExprCodec extends ESExprCodec<long[]> {
-	private Array64ESExprCodec() {}
+public class LongArrayCodec extends ESExprCodec<long[]> {
+	private LongArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
 	@ESExprOverrideCodec(long[].class)
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY64 })
-	public static final ESExprCodec<long[]> INSTANCE = new Array64ESExprCodec();
+	public static final ESExprCodec<long[]> INSTANCE = new LongArrayCodec();
 
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.ARRAY64);
 	}
 
@@ -31,14 +30,14 @@ public class Array64ESExprCodec extends ESExprCodec<long[]> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(long @NotNull [] value) {
-		return new ESExpr.Array64(value);
+	public ESExpr encode(long[] value) {
+		return new ESExpr.Array64(LongLists.immutable.of(value));
 	}
 
 	@Override
-	public long @NotNull [] decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public long[] decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Array64(var b)) {
-			return b;
+			return b.toArray();
 		}
 		else {
 			throw new DecodeException("Expected an array64 value", path);

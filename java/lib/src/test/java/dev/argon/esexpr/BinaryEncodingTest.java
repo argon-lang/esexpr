@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.errorprone.annotations.MustBeClosed;
 import org.apache.commons.io.FilenameUtils;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -87,6 +88,7 @@ class BinaryEncodingTest {
 		return os.toByteArray();
 	}
 
+	@MustBeClosed
 	public static Stream<Path> fileProvider() throws IOException {
 		Path directory = Paths.get("../../tests");
 		return Files.list(directory)

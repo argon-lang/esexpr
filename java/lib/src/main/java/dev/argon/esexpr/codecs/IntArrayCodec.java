@@ -1,27 +1,27 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
+import org.eclipse.collections.api.factory.primitive.IntLists;
+import org.eclipse.collections.api.list.primitive.ImmutableIntList;
 
 import java.util.Arrays;
-import java.util.Set;
 
 /**
  * A codec for Array32 values.
  */
-public class Array32ESExprCodec extends ESExprCodec<int[]> {
-	private Array32ESExprCodec() {}
+public class IntArrayCodec extends ESExprCodec<int[]> {
+	private IntArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
 	@ESExprOverrideCodec(int[].class)
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY32 })
-	public static final ESExprCodec<int[]> INSTANCE = new Array32ESExprCodec();
+	public static final ESExprCodec<int[]> INSTANCE = new IntArrayCodec();
 
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.ARRAY32);
 	}
 
@@ -31,14 +31,14 @@ public class Array32ESExprCodec extends ESExprCodec<int[]> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(int @NotNull [] value) {
-		return new ESExpr.Array32(value);
+	public ESExpr encode(int[] value) {
+		return new ESExpr.Array32(IntLists.immutable.of(value));
 	}
 
 	@Override
-	public int @NotNull [] decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public int[] decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Array32(var b)) {
-			return b;
+			return b.toArray();
 		}
 		else {
 			throw new DecodeException("Expected an array8 value", path);

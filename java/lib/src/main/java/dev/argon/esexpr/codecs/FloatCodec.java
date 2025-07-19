@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -20,7 +19,7 @@ public class FloatCodec extends ESExprCodec<Float> {
 	public static final ESExprCodec<Float> INSTANCE = new FloatCodec();
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.FLOAT32);
 	}
 
@@ -30,12 +29,12 @@ public class FloatCodec extends ESExprCodec<Float> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(@NotNull Float value) {
+	public ESExpr encode(Float value) {
 		return new ESExpr.Float32(value);
 	}
 
 	@Override
-	public @NotNull Float decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public Float decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Float32(var f)) {
 			return f;
 		}

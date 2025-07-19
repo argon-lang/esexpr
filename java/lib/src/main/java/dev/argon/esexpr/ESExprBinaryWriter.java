@@ -1,7 +1,5 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -21,7 +19,7 @@ public class ESExprBinaryWriter {
 	 * @param symbolTable The initial symbol table used when writing.
 	 * @param os The stream.
 	 */
-	public ESExprBinaryWriter(@NotNull List<? extends @NotNull String> symbolTable, OutputStream os) {
+	public ESExprBinaryWriter(List<? extends String> symbolTable, OutputStream os) {
 		this.symbolTable = new ArrayList<>(symbolTable);
 		symbolSet = new HashSet<>(symbolTable);
 		this.os = os;
@@ -37,8 +35,8 @@ public class ESExprBinaryWriter {
 		this.os = os;
 	}
 
-	private final List<@NotNull String> symbolTable;
-	private final Set<@NotNull String> symbolSet;
+	private final List<String> symbolTable;
+	private final Set<String> symbolSet;
 	private final OutputStream os;
 
 	/**
@@ -138,14 +136,18 @@ public class ESExprBinaryWriter {
 			}
 
 			case ESExpr.Array8(var b) -> {
-				writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.ARRAY8, BigInteger.valueOf(b.length)));
-				os.write(b);
+				writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.ARRAY8, BigInteger.valueOf(b.size())));
+
+				for(int i = 0; i < b.size(); ++i) {
+					os.write(b.get(i) & 0xFF);
+				}
 			}
 
 			case ESExpr.Array16(var b) -> {
 				writeToken(BinToken.Fixed.ARRAY16);
-				writeInt(BigInteger.valueOf(b.length));
-				for(short value : b) {
+				writeInt(BigInteger.valueOf(b.size()));
+				for(int i = 0; i < b.size(); ++i) {
+					short value = b.get(i);
 					os.write(value & 0xFF);
 					os.write((value >> 8) & 0xFF);
 				}
@@ -153,8 +155,9 @@ public class ESExprBinaryWriter {
 
 			case ESExpr.Array32(var b) -> {
 				writeToken(BinToken.Fixed.ARRAY32);
-				writeInt(BigInteger.valueOf(b.length));
-				for(int value : b) {
+				writeInt(BigInteger.valueOf(b.size()));
+				for(int i = 0; i < b.size(); ++i) {
+					int value = b.get(i);
 					os.write(value & 0xFF);
 					os.write((value >> 8) & 0xFF);
 					os.write((value >> 16) & 0xFF);
@@ -164,8 +167,9 @@ public class ESExprBinaryWriter {
 
 			case ESExpr.Array64(var b) -> {
 				writeToken(BinToken.Fixed.ARRAY64);
-				writeInt(BigInteger.valueOf(b.length));
-				for(long value : b) {
+				writeInt(BigInteger.valueOf(b.size()));
+				for(int i = 0; i < b.size(); ++i) {
+					long value = b.get(i);
 					os.write((int) value & 0xFF);
 					os.write((int) (value >> 8) & 0xFF);
 					os.write((int) (value >> 16) & 0xFF);
@@ -178,12 +182,13 @@ public class ESExprBinaryWriter {
 			}
 
 			case ESExpr.Array128(var b) -> {
-				if((b.length % 2) != 0) {
+				if((b.size() % 2) != 0) {
 					throw new IllegalArgumentException("Array128 must have even length");
 				}
 				writeToken(BinToken.Fixed.ARRAY128);
-				writeInt(BigInteger.valueOf(b.length / 2));
-				for(long value : b) {
+				writeInt(BigInteger.valueOf(b.size() / 2));
+				for(int i = 0; i < b.size(); ++i) {
+					long value = b.get(i);
 					os.write((int) value & 0xFF);
 					os.write((int) (value >> 8) & 0xFF);
 					os.write((int) (value >> 16) & 0xFF);
@@ -286,7 +291,7 @@ public class ESExprBinaryWriter {
 	}
 
 
-	private void addSymbols(@NotNull ESExpr expr) {
+	private void addSymbols(ESExpr expr) {
 		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
 			if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
 				addSymbol(name);
@@ -303,7 +308,7 @@ public class ESExprBinaryWriter {
 		}
 	}
 
-	private void addSymbol(@NotNull String symbol) {
+	private void addSymbol(String symbol) {
 		if(symbolSet.add(symbol)) {
 			symbolTable.add(symbol);
 		}

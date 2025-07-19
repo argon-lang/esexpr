@@ -2,8 +2,10 @@
  * ESExpr runtime library.
  */
 module dev.argon.esexpr {
-	requires static org.jetbrains.annotations;
 	requires transitive com.google.common;
-	exports dev.argon.esexpr;
+	requires transitive org.eclipse.collections.api;
+	requires transitive org.eclipse.collections.impl;
+    requires org.jspecify;
+    exports dev.argon.esexpr;
 	exports dev.argon.esexpr.codecs;
 }

@@ -2,7 +2,6 @@ package dev.argon.esexpr.codecs;
 
 import com.google.common.collect.ImmutableSet;
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -27,10 +26,10 @@ public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 	private final ESExprCodec<T> itemCodec;
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return switch(itemCodec.tags()) {
 			case ESExprTagSet.Tags(var elementTags) -> {
-				var tags = ImmutableSet.<@NotNull ESExprTag>builder();
+				var tags = ImmutableSet.<ESExprTag>builder();
 				tags.add(ESExprTag.NULL);
 				tags.addAll(elementTags);
 				yield new ESExprTagSet.Tags(tags.build());
@@ -53,7 +52,7 @@ public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(@NotNull Optional<T> value) {
+	public ESExpr encode(Optional<T> value) {
 		return value.map(x -> {
 			var res = itemCodec.encode(x);
 			if(res instanceof ESExpr.Null(var level)) {
@@ -66,7 +65,7 @@ public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
 	}
 
 	@Override
-	public @NotNull Optional<T> decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public Optional<T> decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Null(var level)) {
 			if(level.signum() == 0) {
 				return Optional.empty();

@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.Set;
  * @param map The underlying map.
  * @param <T> The element type.
  */
-public record KeywordMapping<T>(@NotNull Map<String, T> map) {
+public record KeywordMapping<T>(Map<String, T> map) {
 	/**
 	 * Get a codec for the keyword mapping.
 	 * @param tCodec The element codec.
@@ -25,7 +24,7 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 			private static final String DICT_CONSTRUCTOR = "dict";
 
 			@Override
-			public @NotNull ESExprTagSet tags() {
+			public ESExprTagSet tags() {
 				return ESExprTagSet.of(new ESExprTag.Constructor(DICT_CONSTRUCTOR));
 			}
 
@@ -37,6 +36,9 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 
 				for(var entryA : x.map().entrySet()) {
 					var other = y.map().get(entryA.getKey());
+					if(other == null) {
+						return false;
+					}
 
 					if(!tCodec.isEncodedEqual(entryA.getValue(), other)) {
 						return false;
@@ -47,7 +49,7 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 			}
 
 			@Override
-			public @NotNull ESExpr encode(@NotNull KeywordMapping<T> value) {
+			public ESExpr encode(KeywordMapping<T> value) {
 				var map = dictCodec(tCodec).encodeDict(value);
 				return new ESExpr.Constructor(
 					DICT_CONSTRUCTOR,
@@ -57,7 +59,7 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 			}
 
 			@Override
-			public @NotNull KeywordMapping<T> decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+			public KeywordMapping<T> decode(ESExpr expr, FailurePath path) throws DecodeException {
 				if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals(DICT_CONSTRUCTOR)) {
 					if(!args.isEmpty()) {
 						throw new DecodeException("Invalid positional arguments for dict", path.withConstructor(name));
@@ -88,6 +90,9 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 
 				for(var entryA : x.map().entrySet()) {
 					var other = y.map().get(entryA.getKey());
+					if(other == null) {
+						return false;
+					}
 
 					if(!tCodec.isEncodedEqual(entryA.getValue(), other)) {
 						return false;
@@ -107,13 +112,11 @@ public record KeywordMapping<T>(@NotNull Map<String, T> map) {
 			}
 
 			@Override
-			public KeywordMapping<T> decodeDict(Map<String, ESExpr> exprs, @NotNull DictCodec.KeywordPathBuilder pathBuilder) throws DecodeException {
+			public KeywordMapping<T> decodeDict(Map<String, ESExpr> exprs, DictCodec.KeywordPathBuilder pathBuilder) throws DecodeException {
 				Map<String, T> values = new HashMap<>();
-				int i = 0;
 				for(var entry : exprs.entrySet()) {
 					var value = tCodec.decode(entry.getValue(), pathBuilder.pathAt(entry.getKey()));
 					values.put(entry.getKey(), value);
-					++i;
 				}
 				return new KeywordMapping<>(values);
 			}

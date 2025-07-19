@@ -1,15 +1,12 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Set;
 
 /**
  * A codec for boolean values.
  */
-public class BooleanESExprCodec extends ESExprCodec<Boolean> {
-	private BooleanESExprCodec() {}
+public class BooleanCodec extends ESExprCodec<Boolean> {
+	private BooleanCodec() {}
 
 	/**
 	 * A codec for boolean values.
@@ -17,7 +14,7 @@ public class BooleanESExprCodec extends ESExprCodec<Boolean> {
 	@ESExprOverrideCodec(boolean.class)
 	@ESExprOverrideCodec(Boolean.class)
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.BOOL })
-	public static final ESExprCodec<Boolean> INSTANCE = new BooleanESExprCodec();
+	public static final ESExprCodec<Boolean> INSTANCE = new BooleanCodec();
 
 	@Override
 	public boolean isEncodedEqual(Boolean x, Boolean y) {
@@ -25,17 +22,17 @@ public class BooleanESExprCodec extends ESExprCodec<Boolean> {
 	}
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.BOOL);
 	}
 
 	@Override
-	public @NotNull ESExpr encode(@NotNull Boolean value) {
+	public ESExpr encode(Boolean value) {
 		return new ESExpr.Bool(value);
 	}
 
 	@Override
-	public @NotNull Boolean decode(@NotNull ESExpr expr, @NotNull ESExprCodec.FailurePath path) throws DecodeException {
+	public Boolean decode(ESExpr expr, ESExprCodec.FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Bool(var b)) {
 			return b;
 		}

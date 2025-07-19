@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Deque;
 import java.util.List;
@@ -34,7 +33,7 @@ public interface VarargCodec<T, E> {
 	 * @return The variable argument value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	T decodeVararg(Deque<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException;
+	T decodeVararg(Deque<ESExpr> exprs, PositionalPathBuilder pathBuilder) throws DecodeException;
 
 	/**
 	 * Builds paths for elements of a variable argument.
@@ -45,6 +44,6 @@ public interface VarargCodec<T, E> {
 		 * @param index The index of the element.
 		 * @return A path for the element at the index.
 		 */
-		@NotNull ESExprCodec.FailurePath pathAt(int index);
+		ESExprCodec.FailurePath pathAt(int index);
 	}
 }

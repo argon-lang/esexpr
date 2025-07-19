@@ -5,7 +5,6 @@ import java.util.Optional;
 import java.util.function.IntFunction;
 
 import dev.argon.esexpr.codecs.OptionalCodec;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Encodes and Decodes ESExpr values into concrete types.
@@ -22,14 +21,14 @@ public abstract class ESExprCodec<T> {
 	 * Gets the set of tags of values for this type.
 	 * @return The set of tags.
 	 */
-	public abstract @NotNull ESExprTagSet tags();
+	public abstract ESExprTagSet tags();
 
 	/**
 	 * Encode a value into an ESExpr.
 	 * @param value The value to encode.
 	 * @return The encoded ESExpr.
 	 */
-	public abstract @NotNull ESExpr encode(@NotNull T value);
+	public abstract ESExpr encode(T value);
 
 	/**
 	 * Decode an ESExpr into a value.
@@ -37,7 +36,7 @@ public abstract class ESExprCodec<T> {
 	 * @return The decoded value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	public final @NotNull T decode(@NotNull ESExpr expr) throws DecodeException {
+	public final T decode(ESExpr expr) throws DecodeException {
 		return decode(expr, new FailurePath.Current());
 	}
 
@@ -48,7 +47,7 @@ public abstract class ESExprCodec<T> {
 	 * @return The decoded value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	public abstract @NotNull T decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException;
+	public abstract T decode(ESExpr expr, FailurePath path) throws DecodeException;
 
 	/**
 	 * Determines whether two values are equal when encoded as an `ESExpr`.

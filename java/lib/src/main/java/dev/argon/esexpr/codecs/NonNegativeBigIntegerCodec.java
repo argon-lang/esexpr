@@ -1,27 +1,25 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
-import java.util.Set;
 
 /**
  * A codec for non-negative bigint values.
  */
-public class NonNegativeBigIntegerESExprCodec extends ESExprCodec<BigInteger> {
-	private NonNegativeBigIntegerESExprCodec() {}
+public class NonNegativeBigIntegerCodec extends ESExprCodec<BigInteger> {
+	private NonNegativeBigIntegerCodec() {}
 
 	/**
 	 * A codec for non-negative bigint values.
 	 */
 	@ESExprOverrideCodec(value = BigInteger.class, requiredAnnotations = Unsigned.class)
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
-	public static final ESExprCodec<BigInteger> INSTANCE = new NonNegativeBigIntegerESExprCodec();
+	public static final ESExprCodec<BigInteger> INSTANCE = new NonNegativeBigIntegerCodec();
 
 
 	@Override
-	public final @NotNull ESExprTagSet tags() {
+	public final ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.INT);
 	}
 
@@ -31,12 +29,12 @@ public class NonNegativeBigIntegerESExprCodec extends ESExprCodec<BigInteger> {
 	}
 
 	@Override
-	public final @NotNull ESExpr encode(@NotNull BigInteger value) {
+	public final ESExpr encode(BigInteger value) {
 		return new ESExpr.Int(value);
 	}
 
 	@Override
-	public final @NotNull BigInteger decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public final BigInteger decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Int(var i)) {
 			if(i.compareTo(BigInteger.ZERO) < 0) {
 				throw new DecodeException("Integer value out of range", path);

@@ -15,6 +15,8 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
+import static dev.argon.esexpr.generator.NameUtils.getConstructorName;
+
 final class EnumCodecGenerator extends GeneratorBase {
 	public EnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
 		super(writer, env, metadataCache, elem);
@@ -22,6 +24,10 @@ final class EnumCodecGenerator extends GeneratorBase {
 
 
 	private List<TypeElement> getCases() {
+		return getEnumCases(elem, env);
+	}
+
+	public static List<TypeElement> getEnumCases(TypeElement elem, ProcessingEnvironment env) {
 		return elem.getEnclosedElements()
 			.stream()
 			.map(e -> e instanceof TypeElement te ? te : null)
@@ -34,30 +40,6 @@ final class EnumCodecGenerator extends GeneratorBase {
 		if(elem.getAnnotation(Constructor.class) != null) {
 			throw new AbortException("Constructor name may only be specified for records", elem);
 		}
-	}
-
-	@Override
-	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
-		var tags = ImmutableSet.<ESExprTag>builder();
-
-		for(var c : getCases()) {
-			if(isInlineValue(c)) {
-				var field = getFields(c).get(0);
-
-				switch(lookupTags(field.asType(), associatedElement)) {
-					case ESExprTagSet.All all -> {
-						return all;
-					}
-					case ESExprTagSet.Tags(var fieldTags) ->
-						tags.addAll(fieldTags);
-				}
-			}
-			else {
-				tags.add(new ESExprTag.Constructor(getConstructorName(c)));
-			}
-		}
-
-		return new ESExprTagSet.Tags(tags.build());
 	}
 
 	@Override
@@ -116,7 +98,7 @@ final class EnumCodecGenerator extends GeneratorBase {
 			if(isInlineValue(c)) {
 				var field = getFields(c).get(0);
 
-				caseTags = lookupTags(field.asType(), elem);
+				caseTags = metadataCache.lookupTags(field.asType(), elem, env);
 
 				print("yield ");
 				printCodecExpr(field.asType(), field);

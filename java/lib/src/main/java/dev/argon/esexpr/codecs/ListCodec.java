@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +26,7 @@ public class ListCodec<T> extends ESExprCodec<List<T>> {
 	private final ESExprCodec<T> itemCodec;
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(new ESExprTag.Constructor("list"));
 	}
 
@@ -47,12 +46,12 @@ public class ListCodec<T> extends ESExprCodec<List<T>> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(@NotNull List<T> value) {
+	public ESExpr encode(List<T> value) {
 		return new ESExpr.Constructor("list", value.stream().map(itemCodec::encode).toList(), new HashMap<>());
 	}
 
 	@Override
-	public @NotNull List<T> decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public List<T> decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("list")) {
 			if(!kwargs.isEmpty()) {
 				throw new DecodeException("Unexpected keyword arguments for list.", path.withConstructor("list"));

@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
@@ -33,5 +32,5 @@ public interface OptionalValueCodec<T, E> {
 	 * @return The optional value.
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
-	T decodeOptional(Optional<ESExpr> expr, @NotNull ESExprCodec.FailurePath path) throws DecodeException;
+	T decodeOptional(Optional<ESExpr> expr, ESExprCodec.FailurePath path) throws DecodeException;
 }

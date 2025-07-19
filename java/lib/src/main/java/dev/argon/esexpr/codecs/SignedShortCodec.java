@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 
@@ -27,12 +26,12 @@ public class SignedShortCodec extends IntCodecBase<Short> {
 	}
 
 	@Override
-	protected @NotNull Short fromBigInt(@NotNull BigInteger value) {
+	protected Short fromBigInt(BigInteger value) {
 		return value.shortValue();
 	}
 
 	@Override
-	protected @NotNull BigInteger toBigInt(@NotNull Short value) {
+	protected BigInteger toBigInt(Short value) {
 		return BigInteger.valueOf(value);
 	}
 }

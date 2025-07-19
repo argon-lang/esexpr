@@ -2,6 +2,7 @@ package dev.argon.esexpr.generator;
 
 import dev.argon.esexpr.ESExprCodecTags;
 import dev.argon.esexpr.ESExprEnableCodecOverrides;
+import org.jspecify.annotations.Nullable;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -11,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import static dev.argon.esexpr.generator.AnnotationUtils.getAnnotationArgument;
 
 record CodecOverride(
 	Element overridingElement,
@@ -84,7 +87,14 @@ record CodecOverride(
 				elem.getAnnotationMirrors()
 					.stream()
 					.filter(ann -> ((TypeElement)ann.getAnnotationType().asElement()).getQualifiedName().toString().equals("dev.argon.esexpr.ESExprCodecOverrideList"))
-					.flatMap(ann -> ((List<?>)GeneratorBase.getAnnotationArgument(ann, "value").get().getValue()).stream())
+					.flatMap(ann -> {
+						var arg = getAnnotationArgument(ann, "value");
+						if(arg == null) {
+							throw new RuntimeException("Could not get annotation argument for ESExprCodecOverrideList");
+						}
+
+						return ((List<?>)arg.getValue()).stream();
+					})
 					.map(ann -> (AnnotationMirror)((AnnotationValue)ann).getValue()),
 
 				elem.getAnnotationMirrors()
@@ -94,12 +104,17 @@ record CodecOverride(
 				.map(annObj -> {
 					var ann = (AnnotationMirror)((AnnotationValue)annObj).getValue();
 
+					var valueType = getAnnotationArgument(ann, "value");
+					if(valueType == null) {
+						throw new RuntimeException("Could not get annotation argument for ESExprOverrideCodec value");
+					}
+
 					return new CodecOverride(
 						elem,
-						(TypeMirror)GeneratorBase.getAnnotationArgument(ann, "value").get().getValue(),
-						castToCodecType(GeneratorBase.getAnnotationArgument(ann, "codecType")),
-						castToTypeMirrorArray(GeneratorBase.getAnnotationArgument(ann, "requiredAnnotations")),
-						castToTypeMirrorArray(GeneratorBase.getAnnotationArgument(ann, "excludedAnnotations"))
+						(TypeMirror)valueType.getValue(),
+						castToCodecType(getAnnotationArgument(ann, "codecType")),
+						castToTypeMirrorArray(getAnnotationArgument(ann, "requiredAnnotations")),
+						castToTypeMirrorArray(getAnnotationArgument(ann, "excludedAnnotations"))
 					);
 				}),
 
@@ -110,16 +125,20 @@ record CodecOverride(
 		);
 	}
 
-	private static CodecType castToCodecType(Optional<AnnotationValue> value) {
-		return value
-			.map(v -> CodecType.valueOf(((VariableElement)v.getValue()).getSimpleName().toString()))
-			.orElse(CodecType.VALUE);
+	private static CodecType castToCodecType(@Nullable AnnotationValue value) {
+		if(value == null) {
+			return CodecType.VALUE;
+		}
+
+		return CodecType.valueOf(((VariableElement)value.getValue()).getSimpleName().toString());
 	}
 
-	private static List<TypeMirror> castToTypeMirrorArray(Optional<AnnotationValue> value) {
-		return value
-			.map(v -> (List<?>)v.getValue())
-			.orElse(List.of())
+	private static List<TypeMirror> castToTypeMirrorArray(@Nullable AnnotationValue value) {
+		if(value == null) {
+			return List.of();
+		}
+
+		return ((List<?>)value.getValue())
 			.stream()
 			.map(item -> (TypeMirror)((AnnotationValue)item).getValue())
 			.toList();

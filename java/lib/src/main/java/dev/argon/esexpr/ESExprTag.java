@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-import org.jetbrains.annotations.NotNull;
 
 /**
  * A tag that indicates the type of ESExpr.
@@ -11,7 +10,7 @@ public sealed interface ESExprTag {
 	 * @param constructor The name of the constructor.
 	 */
     public static record Constructor(
-		@NotNull String constructor) implements ESExprTag {}
+		String constructor) implements ESExprTag {}
 
 
 	/**

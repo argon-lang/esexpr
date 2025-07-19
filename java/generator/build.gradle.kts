@@ -1,7 +1,10 @@
+import net.ltgt.gradle.errorprone.errorprone
+
 plugins {
     `java-library`
     `maven-publish`
     signing
+    alias(libs.plugins.errorprone)
 }
 
 group = "dev.argon.esexpr"
@@ -12,8 +15,11 @@ repositories {
 }
 
 dependencies {
-    implementation("org.apache.commons:commons-text:1.13.0")
+    implementation(libs.commons.text)
     implementation(project(":lib"))
+
+    errorprone(libs.nullaway)
+    errorprone(libs.errorprone)
 }
 
 java {
@@ -23,6 +29,16 @@ java {
 
     withSourcesJar()
     withJavadocJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.errorprone {
+        option("NullAway:OnlyNullMarked", "true")
+        option("NullAway:JSpecifyMode", "true")
+        error("NullAway")
+    }
+
+    options.compilerArgs.add("-Xlint:unchecked,deprecation,fallthrough,path,rawtypes")
 }
 
 publishing {

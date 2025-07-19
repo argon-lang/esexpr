@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 
@@ -27,12 +26,12 @@ public class UnsignedByteCodec extends IntCodecBase<Byte> {
 	}
 
 	@Override
-	protected @NotNull Byte fromBigInt(@NotNull BigInteger value) {
+	protected Byte fromBigInt(BigInteger value) {
 		return value.byteValue();
 	}
 
 	@Override
-	protected @NotNull BigInteger toBigInt(@NotNull Byte value) {
+	protected BigInteger toBigInt(Byte value) {
 		return BigInteger.valueOf(Byte.toUnsignedLong(value));
 	}
 }

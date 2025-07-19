@@ -1,0 +1,20 @@
+[versions]
+jackson = "2.18.2"
+
+[libraries]
+jspecify = { module = "org.jspecify:jspecify", version = "1.0.0" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version = "5.11.4" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+commons-io = { group = "commons-io", name = "commons-io", version = "2.18.0" }
+commons-collections = { group = "org.apache.commons", name = "commons-collections4", version = "4.4" }
+commons-text = { group = "org.apache.commons", name = "commons-text", version = "1.13.1" }
+jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
+jackson-annotations = { group = "com.fasterxml.jackson.core", name = "jackson-annotations", version.ref = "jackson" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+guava = { group = "com.google.guava", name = "guava", version = "33.4.8-jre" }
+eclipse-collections = { group = "org.eclipse.collections", name = "eclipse-collections", version = "13.0.0" }
+errorprone = { module = "com.google.errorprone:error_prone_core", version = "2.37.0" }
+nullaway = { module = "com.uber.nullaway:nullaway", version = "0.12.6" }
+
+[plugins]
+errorprone = { id = "net.ltgt.errorprone", version = "4.1.0" }

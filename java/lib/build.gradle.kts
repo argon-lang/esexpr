@@ -1,7 +1,10 @@
+import net.ltgt.gradle.errorprone.errorprone
+
 plugins {
     `java-library`
     `maven-publish`
     signing
+    alias(libs.plugins.errorprone)
 }
 
 group = "dev.argon.esexpr"
@@ -12,16 +15,20 @@ repositories {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
-    testImplementation("commons-io:commons-io:2.18.0")
-    testImplementation("org.apache.commons:commons-collections4:4.4")
+    compileOnly(libs.jspecify)
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.commons.io)
+    testImplementation(libs.commons.collections)
 
-    testImplementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
-    testImplementation("com.fasterxml.jackson.core:jackson-annotations:2.18.2")
-    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    implementation("org.jetbrains:annotations:26.0.0")
-    api("com.google.guava:guava:33.4.8-jre")
+    testImplementation(libs.jackson.core)
+    testImplementation(libs.jackson.annotations)
+    testImplementation(libs.jackson.databind)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    api(libs.guava)
+    api(libs.eclipse.collections)
+
+    errorprone(libs.nullaway)
+    errorprone(libs.errorprone)
 }
 
 java {
@@ -31,6 +38,16 @@ java {
 
     withSourcesJar()
     withJavadocJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.errorprone {
+        option("NullAway:OnlyNullMarked", "true")
+        option("NullAway:JSpecifyMode", "true")
+        error("NullAway")
+    }
+
+    options.compilerArgs.add("-Xlint:unchecked,deprecation,fallthrough,path,rawtypes")
 }
 
 publishing {

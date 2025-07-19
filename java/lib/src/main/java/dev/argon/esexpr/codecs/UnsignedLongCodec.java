@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 
@@ -27,12 +26,12 @@ public class UnsignedLongCodec extends IntCodecBase<Long> {
 	}
 
 	@Override
-	protected @NotNull Long fromBigInt(@NotNull BigInteger value) {
+	protected Long fromBigInt(BigInteger value) {
 		return value.longValue();
 	}
 
 	@Override
-	protected @NotNull BigInteger toBigInt(@NotNull Long value) {
+	protected BigInteger toBigInt(Long value) {
 		return BigInteger.valueOf(value).and(
 			BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE)
 		);

@@ -6,13 +6,12 @@ import java.util.List;
 import java.util.Set;
 
 import dev.argon.esexpr.codecs.StringCodec;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * A string table used while reading binary ESExprs.
  * @param values The strings in the string table.
  */
-public record StringTable(@NotNull List<@NotNull String> values) {
+public record StringTable(List<String> values) {
 
 	/**
 	 * StringTable codec.
@@ -26,7 +25,7 @@ public record StringTable(@NotNull List<@NotNull String> values) {
 	private static final ESExprCodec<StringTable> CODEC = new ESExprCodec<>() {
 
 		@Override
-		public @NotNull ESExprTagSet tags() {
+		public ESExprTagSet tags() {
 			return ESExprTagSet.of(new ESExprTag.Constructor(BinToken.StringTableName));
 		}
 
@@ -36,7 +35,7 @@ public record StringTable(@NotNull List<@NotNull String> values) {
 		}
 
 		@Override
-		public @NotNull ESExpr encode(@NotNull StringTable value) {
+		public ESExpr encode(StringTable value) {
 			return new ESExpr.Constructor(
 				BinToken.StringTableName,
 				value.values.stream().map(StringCodec.INSTANCE::encode).toList(),
@@ -45,7 +44,7 @@ public record StringTable(@NotNull List<@NotNull String> values) {
 		}
 
 		@Override
-		public @NotNull StringTable decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+		public StringTable decode(ESExpr expr, FailurePath path) throws DecodeException {
 			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals(BinToken.StringTableName)) {
 				if(!kwargs.isEmpty()) {
 					throw new DecodeException("Unexpected keyword arguments for string table", path.withConstructor(BinToken.StringTableName));

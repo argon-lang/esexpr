@@ -31,7 +31,7 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 	}
 
 	@Override
-    public void init(ProcessingEnvironment processingEnv) {
+    public synchronized void init(ProcessingEnvironment processingEnv) {
 		super.init(processingEnv);
 		this.metadataCache = new MetadataCache(processingEnv);
     }
@@ -74,7 +74,7 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
             }
         }
     
-        return true;
+        return false;
     }
 
 }

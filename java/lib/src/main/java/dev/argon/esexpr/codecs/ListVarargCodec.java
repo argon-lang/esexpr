@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -48,7 +47,7 @@ public class ListVarargCodec<T> implements VarargCodec<List<T>, T> {
 	}
 
 	@Override
-	public List<T> decodeVararg(Deque<ESExpr> exprs, @NotNull PositionalPathBuilder pathBuilder) throws DecodeException {
+	public List<T> decodeVararg(Deque<ESExpr> exprs, PositionalPathBuilder pathBuilder) throws DecodeException {
 		List<T> values = new ArrayList<>(exprs.size());
 		for(int i = 0;; ++i) {
 			var expr = exprs.peekFirst();

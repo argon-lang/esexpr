@@ -10,6 +10,8 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
+import static dev.argon.esexpr.generator.NameUtils.getConstructorName;
+
 final class RecordCodecGenerator extends GeneratorBase {
 	public RecordCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
 		super(writer, env, metadataCache, elem);
@@ -18,11 +20,6 @@ final class RecordCodecGenerator extends GeneratorBase {
 	@Override
 	protected void validateAnnotations() throws AbortException {
 
-	}
-
-	@Override
-	protected ESExprTagSet getTags(Element associatedElement) throws AbortException {
-		return ESExprTagSet.of(new ESExprTag.Constructor(getConstructorName(elem)));
 	}
 
 	@Override

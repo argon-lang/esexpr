@@ -1,7 +1,6 @@
 package dev.argon.esexpr.codecs;
 
 import dev.argon.esexpr.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -19,7 +18,7 @@ public class StringCodec extends ESExprCodec<String> {
 	public static final ESExprCodec<String> INSTANCE = new StringCodec();
 
 	@Override
-	public @NotNull ESExprTagSet tags() {
+	public ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.STR);
 	}
 
@@ -29,12 +28,12 @@ public class StringCodec extends ESExprCodec<String> {
 	}
 
 	@Override
-	public @NotNull ESExpr encode(@NotNull String value) {
+	public ESExpr encode(String value) {
 		return new ESExpr.Str(value);
 	}
 
 	@Override
-	public @NotNull String decode(@NotNull ESExpr expr, @NotNull FailurePath path) throws DecodeException {
+	public String decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Str(var s)) {
 			return s;
 		}
