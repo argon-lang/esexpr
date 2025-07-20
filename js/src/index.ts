@@ -499,6 +499,33 @@ export const intCodec: ESExprCodec<bigint> = {
     },
 };
 
+export const natCodec: ESExprCodec<bigint> = {
+    get tags(): ESExprTagSet {
+        return new Set([BigInt]);
+    },
+
+    isEncodedEqual(a, b) {
+        return a === b;
+    },
+
+    encode(value: bigint): ESExpr {
+        return value;
+    },
+
+    decode(expr: ESExpr): DecodeResult<bigint> {
+        const result = intCodec.decode(expr);
+        if(result.success && result.value < 0n) {
+            return {
+                success: false,
+                message: "Nat values must be non-negative",
+                path: { type: "current" },
+            };
+        }
+
+        return result;
+    },
+};
+
 class SmallIntCodec implements ESExprCodec<number> {
     constructor(min: number, max: number) {
         this.#min = min;
