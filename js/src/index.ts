@@ -464,7 +464,7 @@ export const boolCodec: ESExprCodec<boolean> = {
         else {
             return {
                 success: false,
-                message: "Expected a boolean",
+                message: "Expected a boolean, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -492,7 +492,7 @@ export const intCodec: ESExprCodec<bigint> = {
         else {
             return {
                 success: false,
-                message: "Expected a bigint",
+                message: "Expected a bigint, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -612,7 +612,7 @@ export const strCodec: ESExprCodec<string> = {
         else {
             return {
                 success: false,
-                message: "Expected a string",
+                message: "Expected a string, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -649,7 +649,7 @@ export const array8Codec: ESExprCodec<Uint8Array> = {
         else {
             return {
                 success: false,
-                message: "Expected an array8 value",
+                message: "Expected an array8 value, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -686,7 +686,7 @@ export const array16Codec: ESExprCodec<Uint16Array> = {
         else {
             return {
                 success: false,
-                message: "Expected an array16 value",
+                message: "Expected an array16 value, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -723,7 +723,7 @@ export const array32Codec: ESExprCodec<Uint32Array> = {
         else {
             return {
                 success: false,
-                message: "Expected an array32 value",
+                message: "Expected an array32 value, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -760,7 +760,7 @@ export const array64Codec: ESExprCodec<BigUint64Array> = {
         else {
             return {
                 success: false,
-                message: "Expected an array64 value",
+                message: "Expected an array64 value, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -790,7 +790,7 @@ export const float16Codec: ESExprCodec<number> = {
         else {
             return {
                 success: false,
-                message: "Expected a float16",
+                message: "Expected a float16, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -830,7 +830,7 @@ export const float16NaNCodec: ESExprCodec<number | ESExpr.Float16NaN> = {
         else {
             return {
                 success: false,
-                message: "Expected a float16",
+                message: "Expected a float16, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -860,7 +860,7 @@ export const float32Codec: ESExprCodec<number> = {
         else {
             return {
                 success: false,
-                message: "Expected a float32",
+                message: "Expected a float32, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -900,7 +900,7 @@ export const float32NaNCodec: ESExprCodec<number | ESExpr.Float32NaN> = {
         else {
             return {
                 success: false,
-                message: "Expected a float32",
+                message: "Expected a float32, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -930,7 +930,7 @@ export const float64Codec: ESExprCodec<number> = {
         else {
             return {
                 success: false,
-                message: "Expected a float64",
+                message: "Expected a float64, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -962,7 +962,7 @@ export const float64NaNCodec: ESExprCodec<number | ESExpr.Float64NaN> = {
         else {
             return {
                 success: false,
-                message: "Expected a float16",
+                message: "Expected a float16, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
