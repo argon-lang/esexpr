@@ -99,7 +99,7 @@ export namespace ESExpr {
     }
 
     export function isFloat64NaN(e: ESExpr): e is ESExpr.Float64NaN {
-        return typeof e === "object" && e !== null && "type" in e && e.type === "float32-nan";
+        return typeof e === "object" && e !== null && "type" in e && e.type === "float64-nan";
     }
 
     export function isNestedNull(e: ESExpr): e is ESExpr.NestedNull {
