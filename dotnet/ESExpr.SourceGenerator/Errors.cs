@@ -105,7 +105,7 @@ internal static class Errors {
 	public static readonly DiagnosticDescriptor MissingTagsAttribute = new DiagnosticDescriptor(
 		id: "ESX0012",
 		title: "Missing ESExprTagsAttribute",
-		messageFormat: "Codec must have an ESExprTagsAttribute",
+		messageFormat: "Codec ({0}) for {1} must have an ESExprTagsAttribute",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true

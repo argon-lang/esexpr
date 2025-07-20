@@ -28,6 +28,9 @@ internal class TypeInfoHandler {
 		public required TypeTags? Tags { get; init; }
 		
 		public required ImmutableList<SourceModelType> Overrides { get; init; }
+		
+		public override string ToString() => $"OverrideInfo(Tags: {Tags}, Overrides: [{string.Join(", ", Overrides)}])";
+		
 	}
 	
 	public record TypeTags(ESExprTagSet tags, ImmutableList<SourceModelType> unionWithTypes);
@@ -314,8 +317,6 @@ internal class TypeInfoHandler {
 		return new TypeTags(tags, unionWithTypes);
 	}
 
-
-
 	public SourceModelType? GetOverriddenCodec(SourceModelType codecType) =>
 		GetOverriddenCodecWith(codecType, (codecType, _, _, state) => codecType.Substitute(state.ParamMapping));
 
@@ -364,6 +365,10 @@ internal class TypeInfoHandler {
 
 		if(codecTags is not null) {
 			return codecTags.Tags;
+		}
+
+		if(t is SourceModelType.TypeParameter) {
+			return new TypeTags(ESExprTagSet.All, []);
 		}
 		
 		return GetIntrinsicTags(t);

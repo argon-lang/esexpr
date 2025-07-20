@@ -202,9 +202,16 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		
 		var typeTags = TypeInfoHandler.GetTags(type);
 		if(typeTags == null) {
+			var overriddenCodec = TypeInfoHandler.GetOverriddenCodec(new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IESExprCodec") {
+				TypeArguments = [type],
+				IsEnum = false,
+			});
+			var codec = GetCodecExpr(type);
 			throw new AbortGenerationException(Diagnostic.Create(
 				Errors.MissingTagsAttribute,
-				location
+				location,
+				overriddenCodec is null ? "intrinsic" : "overridden " + codec.ToString(),
+				type
 			));
 		}
 		
