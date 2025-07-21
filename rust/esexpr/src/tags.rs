@@ -1,7 +1,7 @@
 use crate::cowstr::CowStr;
 
 /// An expression tag.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ESExprTag<'a> {
 	/// A tag for a constructor with a specified name.
 	Constructor(CowStr<'a>),
