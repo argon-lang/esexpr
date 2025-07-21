@@ -49,7 +49,7 @@ internal static partial class NameUtils {
 	
 	
 	public static string GetConstructorName(INamedTypeSymbol symbol) {
-		var attr = GetAttribute(symbol, "ESExpr.Runtime.ESExprConstructorAttribute");
+		var attr = GetAttribute(symbol, "ESExpr.Runtime.ConstructorAttribute");
 		if(attr is not null && attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string name) {
 			return name;
 		}

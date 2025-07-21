@@ -1393,6 +1393,88 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				SeparatedList(fieldInits)
 			));
 
+		
+		
+		// if(args.Count > 0) throw new global::ESExpr.Runtime.DecodeException("Extra positional arguments", path.WithConstructor("<name>"));
+		stmts.Add(IfStatement(
+			BinaryExpression(
+				SyntaxKind.GreaterThanExpression,
+				MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					IdentifierName("args"),
+					IdentifierName("Count")
+				),
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+			),
+			Block(ThrowStatement(
+				ObjectCreationExpression(
+					QualifiedName(
+						QualifiedName(
+							AliasQualifiedName(
+								IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+								IdentifierName("ESExpr")
+							),
+							IdentifierName("Runtime")
+						),
+						IdentifierName("DecodeException")
+					)
+				)
+				.WithArgumentList(ArgumentList(SeparatedList([
+					Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Extra positional arguments"))),
+					Argument(InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							IdentifierName("path"),
+							IdentifierName("WithConstructor")
+						),
+						ArgumentList(SingletonSeparatedList(
+							Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName)))
+						))
+					)),
+				])))
+			))
+		));
+
+		// if(kwargs.Count > 0) throw new global::ESExpr.Runtime.DecodeException("Extra keyword arguments", path.WithConstructor("<name>"));
+		stmts.Add(IfStatement(
+			BinaryExpression(
+				SyntaxKind.GreaterThanExpression,
+				MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					IdentifierName("kwargs"),
+					IdentifierName("Count")
+				),
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+			),
+			Block(ThrowStatement(
+				ObjectCreationExpression(
+					QualifiedName(
+						QualifiedName(
+							AliasQualifiedName(
+								IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+								IdentifierName("ESExpr")
+							),
+							IdentifierName("Runtime")
+						),
+						IdentifierName("DecodeException")
+					)
+				)
+				.WithArgumentList(ArgumentList(SeparatedList([
+					Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Extra keyword arguments"))),
+					Argument(InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							IdentifierName("path"),
+							IdentifierName("WithConstructor")
+						),
+						ArgumentList(SingletonSeparatedList(
+							Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName)))
+						))
+					)),
+				])))
+			))
+		));
+		
 		stmts.Add(ReturnStatement(objExpr));
 
 		return Block(stmts);
