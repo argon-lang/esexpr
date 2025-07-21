@@ -4,7 +4,7 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<LangVersion>13.0</LangVersion>
 		<Nullable>Enable</Nullable>
-		<Version>0.1.4</Version>
+		<Version>0.2.0</Version>
 		<NoWarn>CS1998</NoWarn>
 	</PropertyGroup>
 
