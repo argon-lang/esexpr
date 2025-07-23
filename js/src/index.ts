@@ -102,6 +102,10 @@ export namespace ESExpr {
         return typeof e === "object" && e !== null && "type" in e && e.type === "float64-nan";
     }
 
+    export function isArray128(e: ESExpr): e is ESExpr.Array128 {
+        return typeof e === "object" && e !== null && "type" in e && e.type === "array128";
+    }
+
     export function isNestedNull(e: ESExpr): e is ESExpr.NestedNull {
         return typeof e === "object" && e !== null && "type" in e && e.type === "null";
     }
