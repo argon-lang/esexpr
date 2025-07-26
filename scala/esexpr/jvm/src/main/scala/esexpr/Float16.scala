@@ -12,6 +12,7 @@ object Float16Type {
     val NegativeInfinity: Float16 = JFloat.floatToFloat16(Float.NegativeInfinity)
     val MaxValue: Float16 = JFloat.floatToFloat16(65504.0f)
     val MinValue: Float16 = JFloat.floatToFloat16(-65504.0f)
+    val NaN: Float16 = JFloat.floatToFloat16(Float.NaN)
 
     def shortBitsToFloat16(bits: Short): Float16 =
       bits
@@ -41,6 +42,11 @@ object Float16Type {
         JFloat.float16ToFloat(a) >= JFloat.float16ToFloat(b)
 
       def toFloat: Float = JFloat.float16ToFloat(a)
+      def toDouble: Double = toFloat 
+      
+      def isNaN: Boolean = JFloat.float16ToFloat(a).isNaN
+      def isPosInfinity: Boolean = JFloat.float16ToFloat(a).isPosInfinity
+      def isNegInfinity: Boolean = JFloat.float16ToFloat(a).isNegInfinity
     end extension
   }
   

@@ -45,14 +45,14 @@ public class BinaryFormatTests : TestBase {
 					new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
 
 				JsonValueKind.Object when elem.TryGetProperty("float16", out var float16Value) =>
-					new Expr.Float32(float16Value.ValueKind switch {
+					new Expr.Float16(float16Value.ValueKind switch {
 						JsonValueKind.String => float16Value.GetString() switch {
-							"+inf" => float.PositiveInfinity,
-							"-inf" => float.NegativeInfinity,
-							"nan" => float.NaN,
+							"+inf" => Half.PositiveInfinity,
+							"-inf" => Half.NegativeInfinity,
+							"nan" => Half.NaN,
 							_ => throw new InvalidOperationException(),
 						},
-						JsonValueKind.Number => float16Value.GetSingle(),
+						JsonValueKind.Number => (Half)float16Value.GetSingle(),
 						_ => throw new InvalidOperationException(),
 					}),
 

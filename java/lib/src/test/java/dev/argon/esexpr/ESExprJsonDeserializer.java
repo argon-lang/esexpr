@@ -71,6 +71,22 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 			else if(node.has("int")) {
 				return new ESExpr.Int(new BigInteger(node.get("int").asText()));
 			}
+			else if(node.has("float16")) {
+				var fv = node.get("float16");
+				short value;
+				if(fv.isTextual()) {
+					value = switch (fv.asText()) {
+						case "+inf" -> Float.floatToFloat16(Float.POSITIVE_INFINITY);
+						case "-inf" -> Float.floatToFloat16(Float.NEGATIVE_INFINITY);
+						default -> throw new RuntimeException("Unexpected float text");
+					};
+				}
+				else {
+					value = Float.floatToFloat16(fv.floatValue());
+				}
+
+				return new ESExpr.Float16(value);
+			}
 			else if(node.has("float32")) {
 				var fv = node.get("float32");
 				float value;

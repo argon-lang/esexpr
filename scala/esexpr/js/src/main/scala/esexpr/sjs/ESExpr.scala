@@ -32,7 +32,7 @@ object ESExpr {
 
   trait Float16 extends js.Object {
     val `type`: "float16"
-    val value: Double
+    val value: esexpr.Float16
   }
 
   trait Float16NaN extends js.Object {

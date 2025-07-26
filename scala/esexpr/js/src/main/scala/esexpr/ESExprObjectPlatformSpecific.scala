@@ -51,7 +51,7 @@ trait ESExprObjectPlatformSpecific {
 
               case "float16" =>
                 val f16 = expr.asInstanceOf[JSESExpr.Float16]
-                ESExpr.Float16(f16.value.toFloat16)
+                ESExpr.Float16(f16.value)
 
               case "float16-nan" =>
                 val f16 = expr.asInstanceOf[JSESExpr.Float16NaN]
@@ -108,7 +108,7 @@ trait ESExprObjectPlatformSpecific {
       case ESExpr.Float16(f) =>
         new JSESExpr.Float16 {
           override val `type`: "float16" = "float16"
-          override val value: Double = f.toDouble
+          override val value: Float16 = f
         }
 
       case ESExpr.Float16NaN(fbits) =>

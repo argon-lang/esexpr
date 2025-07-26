@@ -242,7 +242,7 @@ public class ESExprBinaryReader {
 						bits |= (short)((b & 0xFF) << (i * 8));
 					}
 
-					yield new ExprPlus.Expr(new ESExpr.Float32(Float.intBitsToFloat(bits)));
+					yield new ExprPlus.Expr(new ESExpr.Float16(bits));
 				}
 				case FLOAT32 -> {
 					int bits = 0;

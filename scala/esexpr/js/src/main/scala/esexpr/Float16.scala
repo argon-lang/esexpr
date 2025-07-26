@@ -14,6 +14,7 @@ object Float16Type {
     val NegativeInfinity: Float16 = Double.NegativeInfinity
     val MaxValue: Float16 = 65504.0
     val MinValue: Float16 = -65504.0
+    val NaN: Float16 = Double.NaN
 
     def shortBitsToFloat16(bits: Short): Float16 =
       val buff = Int16Array(1)
@@ -50,6 +51,10 @@ object Float16Type {
 
       def toFloat: Float = (a: Double).toFloat
       def toDouble: Double = a
+
+      def isNaN: Boolean = java.lang.Double.isNaN(a)
+      def isPosInfinity: Boolean = a == java.lang.Double.POSITIVE_INFINITY
+      def isNegInfinity: Boolean = a == java.lang.Double.NEGATIVE_INFINITY
     end extension
   }
 
@@ -61,7 +66,7 @@ object Float16Type {
 
   @js.native
   @JSGlobal("Float16Array")
-  class Float16Array(length: Int) extends TypedArray[Float16, Float16Array] {
+  private class Float16Array(length: Int) extends TypedArray[Float16, Float16Array] {
     def this(typedArray: Float32Array) = this(0)
     def this(array: js.Iterable[Float16]) = this(0)
     def this(buffer: ArrayBuffer, byteOffset: Int = 0, length: Int = ???) = this(0)
