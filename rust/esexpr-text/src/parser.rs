@@ -30,6 +30,9 @@ pub enum LexErrorType {
 
 	/// Invalid unicode codepoint.
 	InvalidUnicodeCodePoint(u32),
+
+	/// Invalid NaN payload bits
+	InvalidNaNPayload(u64),
 }
 
 /// Parser that skips whitespace and comments.
@@ -185,18 +188,132 @@ fn parse_hex_float(s: &str) -> ESExpr<'static> {
 	}
 }
 
+fn float16_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
+	map_res(
+		(
+			tag("#float16:"),
+			opt(one_of("+-")),
+			tag("nan"),
+			opt(preceded(
+				tag(":"),
+				nom::character::complete::u16
+			))
+		),
+		|(_, sign, _, payload)| {
+			let is_neg = sign.is_some_and(|sign| sign == '-');
+
+			let Some(payload) = payload else {
+				if is_neg {
+					return Ok(ESExpr::Float16(-f16::NAN));
+				}
+				else {
+					return Ok(ESExpr::Float16(f16::NAN));
+				}
+			};
+
+			if (payload & 0xFC00) != 0 {
+				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)))
+			}
+
+			let sign_bit: u16 = if is_neg { 0x8000 } else { 0 };
+			let exponent: u16 = 0x7C00;
+
+			let f = f16::from_bits(sign_bit | exponent | payload);
+
+			Ok(ESExpr::Float16(f))
+		}
+	).parse(input)
+}
+
+fn float32_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
+	map_res(
+		(
+			tag("#float32:"),
+			opt(one_of("+-")),
+			tag("nan"),
+			opt(preceded(
+				tag(":"),
+				nom::character::complete::u32
+			))
+		),
+		|(_, sign, _, payload)| {
+			let is_neg = sign.is_some_and(|sign| sign == '-');
+
+			let Some(payload) = payload else {
+				if is_neg {
+					return Ok(ESExpr::Float32(-f32::NAN));
+				}
+				else {
+					return Ok(ESExpr::Float32(f32::NAN));
+				}
+			};
+
+			if (payload & 0xFF800000) != 0 {
+				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)))
+			}
+
+			let sign_bit: u32 = if is_neg { 0x80000000 } else { 0 };
+			let exponent: u32 = 0x7F800000;
+
+			let f = f32::from_bits(sign_bit | exponent | payload);
+
+			Ok(ESExpr::Float32(f))
+		}
+	).parse(input)
+}
+
+fn float64_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
+	map_res(
+		(
+			tag("#float64:"),
+			opt(one_of("+-")),
+			tag("nan"),
+			opt(preceded(
+				tag(":"),
+				nom::character::complete::u64
+			))
+		),
+		|(_, sign, _, payload)| {
+			let is_neg = sign.is_some_and(|sign| sign == '-');
+
+			let Some(payload) = payload else {
+				if is_neg {
+					return Ok(ESExpr::Float64(-f64::NAN));
+				}
+				else {
+					return Ok(ESExpr::Float64(f64::NAN));
+				}
+			};
+
+			if (payload & 0xFFF0000000000000) != 0 {
+				return Err(LexErrorType::InvalidNaNPayload(payload));
+			}
+
+			let sign_bit: u64 = if is_neg { 0x8000000000000000 } else { 0 };
+			let exponent: u64 = 0x7FF0000000000000;
+
+			let f = f64::from_bits(sign_bit | exponent | payload);
+
+			Ok(ESExpr::Float64(f))
+		}
+	).parse(input)
+}
+
 fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
 	preceded(
 		skip_ws,
 		alt((
 			float_decimal,
 			float_hex,
-			value(ESExpr::Float32(f32::NAN), tag("#float32:nan")),
-			value(ESExpr::Float32(f32::INFINITY), tag("#float32:+inf")),
-			value(ESExpr::Float32(f32::NEG_INFINITY), tag("#float32:-inf")),
-			value(ESExpr::Float64(f64::NAN), tag("#float64:nan")),
-			value(ESExpr::Float64(f64::INFINITY), tag("#float64:+inf")),
-			value(ESExpr::Float64(f64::NEG_INFINITY), tag("#float64:-inf")),
+			float16_nan,
+			atom(ESExpr::Float16(f16::INFINITY), "#float16:+inf"),
+			atom(ESExpr::Float16(f16::NEG_INFINITY), "#float16:-inf"),
+			float32_nan,
+			atom(ESExpr::Float32(f32::INFINITY), "#float32:+inf"),
+			atom(ESExpr::Float32(f32::NEG_INFINITY), "#float32:-inf"),
+			float64_nan,
+			atom(ESExpr::Float64(f64::INFINITY), "#float64:+inf"),
+			atom(ESExpr::Float64(f64::NEG_INFINITY), "#float64:-inf"),
 		)),
 	)
 	.parse(input)
@@ -279,7 +396,7 @@ fn string_impl<'a>(
 					value('\'', char('\'')),
 					delimited(
 						tag("u{"),
-						map_res(hex_digit1, |codepoint| {
+						map_res(hex_digit1, |codepoint| -> Result<core::primitive::char, LexErrorType> {
 							#[expect(
 								clippy::unwrap_used,
 								reason = "Shouldn't fail because the parser should ensure the format is valid."
