@@ -12,7 +12,7 @@
 
 /java/**/build/
 /java/**/bin/
-/scala/*.zip
+/java/*.zip
 
 /js/**/lib/
 /js/**/obj/
