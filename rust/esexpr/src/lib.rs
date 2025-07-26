@@ -16,10 +16,12 @@ extern crate std;
 extern crate alloc;
 extern crate core;
 
-/// Exported dependency modules.
+#[doc(hidden)]
 pub mod core_types {
 	pub extern crate alloc;
 	pub extern crate core;
+	pub extern crate num_bigint;
+	pub extern crate half;
 }
 
 pub use codecs::{ESExprEncodedEq, ESExprCodec, ESExprDictCodec, ESExprOptionalFieldCodec, ESExprVarArgCodec};
