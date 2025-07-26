@@ -11,6 +11,7 @@ version=$(sbt --client 'show esexprJVM/version' 2>/dev/null \
 
 echo "Project version: $version"
 
+rm -f esexpr-scala-*.zip
 sbt --client clean
 sbt --client publishSigned
 

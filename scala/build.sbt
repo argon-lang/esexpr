@@ -4,7 +4,7 @@ import _root_.io.circe.Json
 
 import scala.sys.process.Process
 
-val zioVersion = "2.1.19"
+val zioVersion = "2.1.20"
 
 name := "esexpr"
 
@@ -68,8 +68,6 @@ lazy val compilerOptions = Seq(
     "-Xmax-inlines", "128",
     "-Wconf:id=E029:e,id=E165:e,id=E190:e,cat=unchecked:e,cat=deprecation:e",
   ),
-
-  Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.nobleidl.core.scala"),
 )
 
 lazy val npmSetup = taskKey[Unit]("Setup npm dependencies before running tests")
@@ -79,8 +77,9 @@ lazy val npmSetup = taskKey[Unit]("Setup npm dependencies before running tests")
 lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full).in(file("esexpr"))
   .jvmConfigure(_.settings(
     jvmSettings,
+    Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.nobleidl.core.scala"),
     libraryDependencies ++= Seq(
-      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.3.1-SNAPSHOT",
+      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.3.1",
       "commons-io" % "commons-io" % "2.20.0" % Test,
     ),
   ))
@@ -115,7 +114,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
 
     name := "ESExpr Scala Runtime",
     organization := "dev.argon.esexpr",
-    version := "0.3.1-SNAPSHOT",
+    version := "0.3.1",
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.esexpr.scala"),
 
     description := "ESExpr Scala runtime library",
