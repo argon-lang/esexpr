@@ -8,8 +8,6 @@ object Float16Type {
   opaque type Float16 = Double
 
   object Float16 {
-    given CanEqual[Double, Double] = summon[CanEqual[Double, Double]]
-
     val PositiveInfinity: Float16 = Double.PositiveInfinity
     val NegativeInfinity: Float16 = Double.NegativeInfinity
     val MaxValue: Float16 = 65504.0

@@ -725,11 +725,9 @@ object ESExprCodec {
                   lazy val valueCodec = summonInline[ESExprCodec[htype]]
 
                   if caseFieldHasDefaultValue[T, htype](constValue[hlabel & String]) then
-                    val canEqual_HType = summonInline[CanEqual[htype, htype]]
-                    defaultKeywordProductCodec(keyName, valueCodec, caseFieldDefaultValue[T, htype](constValue[hlabel & String]))(using canEqual_HType)
+                    defaultKeywordProductCodec(keyName, valueCodec, caseFieldDefaultValue[T, htype](constValue[hlabel & String]))
                   else if caseFieldHasAnn[T, defaultValue[?]](constValue[hlabel & String]) then
-                    val canEqual_HType = summonInline[CanEqual[htype, htype]]
-                    defaultKeywordProductCodec(keyName, valueCodec, caseFieldGetAnn[T, defaultValue[htype]](constValue[hlabel & String]).value)(using canEqual_HType)
+                    defaultKeywordProductCodec(keyName, valueCodec, caseFieldGetAnn[T, defaultValue[htype]](constValue[hlabel & String]).value)
                   else
                     requiredKeywordProductCodec(keyName, valueCodec)
                   end if
@@ -787,11 +785,10 @@ object ESExprCodec {
                 (fieldCodec, tailCodec)
 
               else if caseFieldHasDefaultValue[T, htype](constValue[hlabel & String]) then
-                val canEqual_HType = summonInline[CanEqual[htype, htype]]
                 val valueCodec = summonInline[ESExprCodec[htype]]
                 validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype], constValue[hlabel & String])
 
-                val fieldCodec = defaultPositionalProductCodec(valueCodec, caseFieldDefaultValue[T, htype](constValue[hlabel & String]))(using canEqual_HType)
+                val fieldCodec = defaultPositionalProductCodec(valueCodec, caseFieldDefaultValue[T, htype](constValue[hlabel & String]))
                 val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
                   prevOptionalPositionalTags = ESExprTagSet.union(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype]),
                   keywords = keywords,
@@ -801,11 +798,10 @@ object ESExprCodec {
                 (fieldCodec, tailCodec)
 
               else if caseFieldHasAnn[T, defaultValue[?]](constValue[hlabel & String]) then
-                val canEqual_HType = summonInline[CanEqual[htype, htype]]
                 val valueCodec = summonInline[ESExprCodec[htype]]
                 validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype], constValue[hlabel & String])
 
-                val fieldCodec = defaultPositionalProductCodec(valueCodec, caseFieldGetAnn[T, defaultValue[htype]](constValue[hlabel & String]).value)(using canEqual_HType)
+                val fieldCodec = defaultPositionalProductCodec(valueCodec, caseFieldGetAnn[T, defaultValue[htype]](constValue[hlabel & String]).value)
                 val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
                   prevOptionalPositionalTags = ESExprTagSet.union(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype]),
                   keywords = keywords,
@@ -953,13 +949,13 @@ object ESExprCodec {
           }
       }
 
-    def defaultKeywordProductCodec[A](keyword: String, codec: ESExprCodec[A], defaultValue: => A)(using CanEqual[A, A]): ESExprCodecProduct[A] =
+    def defaultKeywordProductCodec[A](keyword: String, codec: ESExprCodec[A], defaultValue: => A): ESExprCodecProduct[A] =
       new ESExprCodecProduct[A] {
         override def isEncodedEqual(x: A, y: A): Boolean =
           codec.isEncodedEqual(x, y)
 
         override def encode(value: A): (Seq[ESExpr], Map[String, ESExpr]) =
-          if value == defaultValue then
+          if codec.isEncodedEqual(value, defaultValue) then
             (Seq(), Map())
           else
             (Seq(), Map(keyword -> codec.encode(value)))
@@ -1024,13 +1020,13 @@ object ESExprCodec {
           }
       }
 
-    def defaultPositionalProductCodec[A](codec: ESExprCodec[A], defaultValue: => A)(using CanEqual[A, A]): ESExprCodecProduct[A] =
+    def defaultPositionalProductCodec[A](codec: ESExprCodec[A], defaultValue: => A): ESExprCodecProduct[A] =
       new ESExprCodecProduct[A] {
         override def isEncodedEqual(x: A, y: A): Boolean =
           codec.isEncodedEqual(x, y)
 
         override def encode(value: A): (Seq[ESExpr], Map[String, ESExpr]) =
-          if value == defaultValue then
+          if codec.isEncodedEqual(value, defaultValue) then
             (Seq(), Map())
           else
             (Seq(codec.encode(value)), Map())

@@ -6,8 +6,6 @@ object Float16Type {
   opaque type Float16 = Short
 
   object Float16 {
-    given CanEqual[Float16, Float16] = summon[CanEqual[Short, Short]]
-
     val PositiveInfinity: Float16 = JFloat.floatToFloat16(Float.PositiveInfinity)
     val NegativeInfinity: Float16 = JFloat.floatToFloat16(Float.NegativeInfinity)
     val MaxValue: Float16 = JFloat.floatToFloat16(65504.0f)
