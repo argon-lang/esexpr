@@ -114,7 +114,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
 
     name := "ESExpr Scala Runtime",
     organization := "dev.argon.esexpr",
-    version := "0.3.2-SNAPSHOT",
+    version := "0.3.2",
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.esexpr.scala"),
 
     description := "ESExpr Scala runtime library",
