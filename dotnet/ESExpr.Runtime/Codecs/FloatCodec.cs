@@ -17,6 +17,9 @@ public sealed class FloatCodec : IESExprCodec<float> {
 		if(expr is Expr.Float32(var f)) {
 			return f;
 		}
+		else if(expr is Expr.Float32NaN(var bits)) {
+			return BitConverter.UInt32BitsToSingle(bits);
+		}
 		else {
 			throw new DecodeException("Expected a float32 value", path);
 		}

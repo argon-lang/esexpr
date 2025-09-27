@@ -17,6 +17,9 @@ public sealed class DoubleCodec : IESExprCodec<double> {
 		if(expr is Expr.Float64(var d)) {
 			return d;
 		}
+		else if(expr is Expr.Float64NaN(var bits)) {
+			return BitConverter.UInt64BitsToDouble(bits);
+		}
 		else {
 			throw new DecodeException("Expected a bool value", path);
 		}

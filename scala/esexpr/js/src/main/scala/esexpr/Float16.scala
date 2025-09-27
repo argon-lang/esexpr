@@ -14,12 +14,14 @@ object Float16Type {
     val MinValue: Float16 = -65504.0
     val NaN: Float16 = Double.NaN
 
+    @Deprecated
     def shortBitsToFloat16(bits: Short): Float16 =
       val buff = Int16Array(1)
       buff(0) = bits
       Float16Array(buff.buffer, 0, buff.length)(0)
     end shortBitsToFloat16
 
+    @Deprecated
     def float16ToRawShortBits(f: Float16): Short =
       val buff = Float16Array(1)
       buff(0) = f

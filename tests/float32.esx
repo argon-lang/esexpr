@@ -20,3 +20,4 @@
 0x1.86p10f
 #float32:+inf
 #float32:-inf
+#float32:nan

@@ -31,12 +31,18 @@ enum ESExpr derives CanEqual {
         case (Bool(b1), Bool(b2)) => b1 == b2
         case (Int(n1), Int(n2)) => n1 == n2
         case (Str(s1), Str(s2)) => s1 == s2
-        case (Float16(f1), Float16(f2)) => esexpr.Float16.float16ToRawShortBits(f1) == esexpr.Float16.float16ToRawShortBits(f2)
+        case (Float16(f1), Float16(f2)) => ESExpr.compareFloat16(f1, f2)
         case (Float16NaN(bits1), Float16NaN(bits2)) => bits1 == bits2
+        case (Float16(f1), Float16NaN(f2)) => ESExpr.compareFloat16ToBits(f1, f2)
+        case (Float16NaN(f1), Float16(f2)) => ESExpr.compareFloat16ToBits(f2, f1)
         case (Float32(f1), Float32(f2)) => ESExpr.compareFloat(f1, f2)
         case (Float32NaN(bits1), Float32NaN(bits2)) => bits1 == bits2
+        case (Float32(f1), Float32NaN(f2)) => ESExpr.compareFloatToBits(f1, f2)
+        case (Float32NaN(f1), Float32(f2)) => ESExpr.compareFloatToBits(f2, f1)
         case (Float64(d1), Float64(d2)) => ESExpr.compareDouble(d1, d2)
         case (Float64NaN(bits1), Float64NaN(bits2)) => bits1 == bits2
+        case (Float64(f1), Float64NaN(f2)) => ESExpr.compareDoubleToBits(f1, f2)
+        case (Float64NaN(f1), Float64(f2)) => ESExpr.compareDoubleToBits(f2, f1)
         case (Array8(b1), Array8(b2)) => b1 == b2
         case (Array16(b1), Array16(b2)) => b1 == b2
         case (Array32(b1), Array32(b2)) => b1 == b2

@@ -73,42 +73,26 @@ public abstract record Expr {
 
 	public sealed record Float16(Half value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Float16();
+	}
 
-		public override int GetHashCode() {
-			return value.GetHashCode();
-		}
-
-		public bool Equals(Float16? other) {
-			return other is not null &&
-				BitConverter.HalfToUInt16Bits(value) == BitConverter.HalfToUInt16Bits(other.value);
-		}
+	public sealed record Float16NaN(ushort bits) : Expr {
+		public override ESExprTag Tag => new ESExprTag.Float16();
 	}
 
 	public sealed record Float32(float value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Float32();
+	}
 
-
-		public override int GetHashCode() {
-			return value.GetHashCode();
-		}
-
-		public bool Equals(Float32? other) {
-			return other is not null &&
-				BitConverter.SingleToUInt32Bits(value) == BitConverter.SingleToUInt32Bits(other.value);
-		}
+	public sealed record Float32NaN(uint bits) : Expr {
+		public override ESExprTag Tag => new ESExprTag.Float32();
 	}
 
 	public sealed record Float64(double value) : Expr {
 		public override ESExprTag Tag => new ESExprTag.Float64();
+	}
 
-		public override int GetHashCode() {
-			return value.GetHashCode();
-		}
-
-		public bool Equals(Float64? other) {
-			return other is not null &&
-				BitConverter.DoubleToUInt64Bits(value) == BitConverter.DoubleToUInt64Bits(other.value);
-		}
+	public sealed record Float64NaN(ulong value) : Expr {
+		public override ESExprTag Tag => new ESExprTag.Float64();
 	}
 
 	public sealed record Array8(ImmutableArray<byte> value) : Expr {

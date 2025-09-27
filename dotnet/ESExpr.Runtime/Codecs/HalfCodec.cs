@@ -17,6 +17,9 @@ public sealed class HalfCodec : IESExprCodec<Half> {
 		if(expr is Expr.Float16(var f)) {
 			return f;
 		}
+		else if(expr is Expr.Float16NaN(var bits)) {
+			return BitConverter.UInt16BitsToHalf(bits);
+		}
 		else {
 			throw new DecodeException("Expected a float16 value", path);
 		}

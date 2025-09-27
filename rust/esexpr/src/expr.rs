@@ -324,7 +324,7 @@ impl<'a> ConstructorArgs<'a> {
 		}
 	}
 
-	fn as_borrowed(&self) -> ConstructorArgs {
+	fn as_borrowed<'b>(&'b self) -> ConstructorArgs<'b> {
 		ConstructorArgs {
 			args: match &self.args {
 				ConstructorArgsInner::Owned(args) => ConstructorArgsInner::Borrowed(args),
@@ -497,7 +497,7 @@ impl<'a> KeywordArgs<'a> {
 		}
 	}
 
-	fn as_borrowed(&self) -> KeywordArgs {
+	fn as_borrowed<'b>(&'b self) -> KeywordArgs<'b> {
 		KeywordArgs {
 			kwargs: match &self.kwargs {
 				KeywordArgsInner::Owned(kwargs) => KeywordArgsInner::Borrowed(kwargs),

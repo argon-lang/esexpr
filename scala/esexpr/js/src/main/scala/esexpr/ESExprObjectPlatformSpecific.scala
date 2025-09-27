@@ -8,11 +8,23 @@ import zio.{Chunk, ChunkBuilder}
 
 trait ESExprObjectPlatformSpecific {
 
+  private[esexpr] def compareFloat16(a: Float16, b: Float16): Boolean =
+    js.Object.is(a, b)
+
+  private[esexpr] def compareFloat16ToBits(a: Float16, b: Short): Boolean =
+    a.isNaN && b == 0x7E00
+
   private[esexpr] def compareFloat(a: Float, b: Float): Boolean =
     js.Object.is(a, b)
 
+  private[esexpr] def compareFloatToBits(a: Float, b: Int): Boolean =
+    a.isNaN && b == 0x7FC00000
+
   private[esexpr] def compareDouble(a: Double, b: Double): Boolean =
     js.Object.is(a, b)
+
+  private[esexpr] def compareDoubleToBits(a: Double, b: Long): Boolean =
+    a.isNaN && b == 0x7FF8000000000000L
 
   def fromJS(expr: JSESExpr): ESExpr =
     js.typeOf(expr) match {

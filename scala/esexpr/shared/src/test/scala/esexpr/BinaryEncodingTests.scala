@@ -73,31 +73,34 @@ object BinaryEncodingTests extends ZIOSpecDefault with EsxbTestLoader {
           .orElse {
             json.hcursor.downField("float16").as[Json].toOption
               .map { floatValue =>
-                ESExpr.Float16(floatValue.asString match {
-                  case Some("+inf") => Float16.PositiveInfinity
-                  case Some("-inf") => Float16.NegativeInfinity
-                  case _ => floatValue.asNumber.get.toFloat.toFloat16
-                })
+                floatValue.asString match {
+                  case Some("+inf") => ESExpr.Float16(Float16.PositiveInfinity)
+                  case Some("-inf") => ESExpr.Float16(Float16.NegativeInfinity)
+                  case Some("nan") => ESExpr.Float16NaN(0x7E00)
+                  case _ => ESExpr.Float16(floatValue.asNumber.get.toFloat.toFloat16)
+                }
               }
           }
           .orElse {
             json.hcursor.downField("float32").as[Json].toOption
               .map { floatValue =>
-                ESExpr.Float32(floatValue.asString match {
-                  case Some("+inf") => Float.PositiveInfinity
-                  case Some("-inf") => Float.NegativeInfinity
-                  case _ => floatValue.asNumber.get.toFloat
-                })
+                floatValue.asString match {
+                  case Some("+inf") => ESExpr.Float32(Float.PositiveInfinity)
+                  case Some("-inf") => ESExpr.Float32(Float.NegativeInfinity)
+                  case Some("nan") => ESExpr.Float32NaN(0x7FC00000)
+                  case _ => ESExpr.Float32(floatValue.asNumber.get.toFloat)
+                }
               }
           }
           .orElse {
             json.hcursor.downField("float64").as[Json].toOption
               .map { floatValue =>
-                ESExpr.Float64(floatValue.asString match {
-                  case Some("+inf") => Double.PositiveInfinity
-                  case Some("-inf") => Double.NegativeInfinity
-                  case _ => floatValue.asNumber.get.toDouble
-                })
+                floatValue.asString match {
+                  case Some("+inf") => ESExpr.Float64(Double.PositiveInfinity)
+                  case Some("-inf") => ESExpr.Float64(Double.NegativeInfinity)
+                  case Some("nan") => ESExpr.Float64NaN(0x7FF8000000000000L)
+                  case _ => ESExpr.Float64(floatValue.asNumber.get.toDouble)
+                }
               }
           }
           .orElse {

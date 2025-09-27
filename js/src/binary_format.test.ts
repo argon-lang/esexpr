@@ -17,9 +17,9 @@ type ESExprJson =
     | { constructor_name: string, args?: readonly ESExprJson[], kwargs?: KWArgs }
     | readonly ESExprJson[]
     | { int: string }
-    | { float16: number | "+inf" | "-inf" }
-    | { float32: number | "+inf" | "-inf" }
-    | { float64: number | "+inf" | "-inf" }
+    | { float16: number | "+inf" | "-inf" | "nan" }
+    | { float32: number | "+inf" | "-inf" | "nan" }
+    | { float64: number | "+inf" | "-inf" | "nan" }
     | { base64: string }
     | { array8: readonly number[] }
     | { array16: readonly number[] }
@@ -64,6 +64,9 @@ function json2esexpr(json: ESExprJson): ESExpr {
         else if(json.float16 === "-inf") {
             return { type: "float16", value: Number.NEGATIVE_INFINITY };
         }
+        else if(json.float16 === "nan") {
+            return { type: "float16-nan", bits: 0x7E00 };
+        }
         else {
             return { type: "float16", value: Math.f16round(json.float16) };
         }
@@ -75,6 +78,9 @@ function json2esexpr(json: ESExprJson): ESExpr {
         else if(json.float32 === "-inf") {
             return { type: "float32", value: Number.NEGATIVE_INFINITY };
         }
+        else if(json.float32 === "nan") {
+            return { type: "float32-nan", bits: 0x7FC00000 };
+        }
         else {
             return { type: "float32", value: Math.fround(json.float32) };
         }
@@ -85,6 +91,9 @@ function json2esexpr(json: ESExprJson): ESExpr {
         }
         else if(json.float64 === "-inf") {
             return Number.NEGATIVE_INFINITY;
+        }
+        else if(json.float64 === "nan") {
+            return { type: "float64-nan", bits: 0x7FF8000000000000n };
         }
         else {
             return json.float64;
@@ -178,7 +187,6 @@ async function* singleByteChunks(data: AsyncIterable<Uint8Array>): AsyncIterable
         }
     }
 }
-
 
 async function run_test_case(esxbFile: string): Promise<void> {
     const esxbData: Uint8Array = await fs.readFile(esxbFile);

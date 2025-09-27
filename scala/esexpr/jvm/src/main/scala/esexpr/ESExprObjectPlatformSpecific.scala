@@ -8,11 +8,23 @@ import zio.Chunk
 
 trait ESExprObjectPlatformSpecific {
 
+  private[esexpr] def compareFloat16(a: Float16, b: Float16): Boolean =
+    Float16.float16ToRawShortBits(a) == Float16.float16ToRawShortBits(b)
+    
+  private[esexpr] def compareFloat16ToBits(a: Float16, b: Short): Boolean =
+    Float16.float16ToRawShortBits(a) == b
+
   private[esexpr] def compareFloat(a: Float, b: Float): Boolean =
     java.lang.Float.floatToRawIntBits(a) == java.lang.Float.floatToRawIntBits(b)
 
+  private[esexpr] def compareFloatToBits(a: Float, b: Int): Boolean =
+    java.lang.Float.floatToRawIntBits(a) == b
+
   private[esexpr] def compareDouble(a: Double, b: Double): Boolean =
     java.lang.Double.doubleToRawLongBits(a) == java.lang.Double.doubleToRawLongBits(b)
+
+  private[esexpr] def compareDoubleToBits(a: Double, b: Long): Boolean =
+    java.lang.Double.doubleToRawLongBits(a) == b
 
   def fromJava(expr: JESExpr): ESExpr =
     expr match {

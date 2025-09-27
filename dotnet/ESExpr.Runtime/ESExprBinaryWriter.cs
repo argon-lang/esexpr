@@ -108,13 +108,14 @@ public class ESExprBinaryWriter {
 				await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
 
 				ushort bits = BitConverter.HalfToUInt16Bits(h);
-				byte[] buff = new byte[sizeof(ushort)];
-				for(int i = 0; i < sizeof(ushort); ++i) {
-					buff[i] = unchecked((byte)bits);
-					bits >>= 8;
-				}
-				await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+				await WriteFixed16(bits, cancellationToken);
 
+				break;
+			}
+
+			case Expr.Float16NaN(var bits): {
+				await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
+				await WriteFixed16(bits, cancellationToken);
 				break;
 			}
 
@@ -122,13 +123,14 @@ public class ESExprBinaryWriter {
 				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
 
 				uint bits = BitConverter.SingleToUInt32Bits(f);
-				byte[] buff = new byte[sizeof(uint)];
-				for(int i = 0; i < sizeof(uint); ++i) {
-					buff[i] = unchecked((byte)bits);
-					bits >>= 8;
-				}
-				await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+				await WriteFixed32(bits, cancellationToken);
 
+				break;
+			}
+
+			case Expr.Float32NaN(var bits): {
+				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
+				await WriteFixed32(bits, cancellationToken);
 				break;
 			}
 
@@ -136,13 +138,14 @@ public class ESExprBinaryWriter {
 				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
 
 				ulong bits = BitConverter.DoubleToUInt64Bits(d);
-				byte[] buff = new byte[sizeof(ulong)];
-				for(int i = 0; i < sizeof(ulong); ++i) {
-					buff[i] = unchecked((byte)bits);
-					bits >>= 8;
-				}
-				await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+				await WriteFixed64(bits, cancellationToken);
 
+				break;
+			}
+
+			case Expr.Float64NaN(var bits): {
+				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
+				await WriteFixed64(bits, cancellationToken);
 				break;
 			}
 
@@ -234,8 +237,36 @@ public class ESExprBinaryWriter {
 			default:
 				throw new InvalidOperationException();
 		}
+		
+		
 	}
 
+	private async Task WriteFixed64(ulong bits, CancellationToken cancellationToken) {
+		byte[] buff = new byte[sizeof(ulong)];
+		for(int i = 0; i < sizeof(ulong); ++i) {
+			buff[i] = unchecked((byte)bits);
+			bits >>= 8;
+		}
+		await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+	}
+
+	private async Task WriteFixed32(uint bits, CancellationToken cancellationToken) {
+		byte[] buff = new byte[sizeof(uint)];
+		for(int i = 0; i < sizeof(uint); ++i) {
+			buff[i] = unchecked((byte)bits);
+			bits >>= 8;
+		}
+		await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+	}
+
+	private async Task WriteFixed16(ushort bits, CancellationToken cancellationToken) {
+		byte[] buff = new byte[sizeof(ushort)];
+		for(int i = 0; i < sizeof(ushort); ++i) {
+			buff[i] = unchecked((byte)bits);
+			bits >>= 8;
+		}
+		await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+	}
 
 
 	private async ValueTask<BigInteger> GetSymbolIndex(string constructor, CancellationToken cancellationToken) {

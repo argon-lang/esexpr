@@ -3,6 +3,8 @@ dist/
 tsconfig.json
 *.tgz
 
+.nvmrc
+
 *.test.js
 *.test.js.map
 *.test.d.ts

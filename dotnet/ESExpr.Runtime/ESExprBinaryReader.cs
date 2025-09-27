@@ -183,20 +183,41 @@ public class ESExprBinaryReader {
 				break;
 
 			case BinToken.TokenType.Float16: {
-				var value = await ReadFixed<ushort, Half>(sizeof(ushort), BitConverter.UInt16BitsToHalf, cancellationToken);
-				expr = new Expr.Float16(value);
+				var bits = await ReadFixed<ushort>(sizeof(ushort), cancellationToken);
+				var value = BitConverter.UInt16BitsToHalf(bits);
+				if(Half.IsNaN(value)) {
+					expr = new Expr.Float16NaN(bits);					
+				}
+				else {
+					expr = new Expr.Float16(value);
+				}
+				
 				break;
 			}
 
 			case BinToken.TokenType.Float32: {
-				var value = await ReadFixed<uint, float>(sizeof(float), BitConverter.UInt32BitsToSingle, cancellationToken);
-				expr = new Expr.Float32(value);
+				var bits = await ReadFixed<uint>(sizeof(float), cancellationToken);
+				var value = BitConverter.UInt32BitsToSingle(bits);
+
+				if(float.IsNaN(value)) {
+					expr = new Expr.Float32NaN(bits);
+				}
+				else {
+					expr = new Expr.Float32(value);	
+				}
 				break;
 			}
 
 			case BinToken.TokenType.Float64: {
-				var value = await ReadFixed<ulong, double>(sizeof(double), BitConverter.UInt64BitsToDouble, cancellationToken);
-				expr = new Expr.Float64(value);
+				var bits = await ReadFixed<ulong>(sizeof(double), cancellationToken);
+				var value = BitConverter.UInt64BitsToDouble(bits);
+
+				if(double.IsNaN(value)) {
+					expr = new Expr.Float64NaN(bits);
+				}
+				else {
+					expr = new Expr.Float64(value);
+				}
 				break;
 			}
 
@@ -270,7 +291,7 @@ public class ESExprBinaryReader {
 		return visitor.VisitExpr(expr);
 	}
 
-	private async ValueTask<T> ReadFixed<N, T>(int size, Func<N, T> convert, CancellationToken cancellationToken = default)
+	private async ValueTask<N> ReadFixed<N>(int size, CancellationToken cancellationToken = default)
 		where N : IBinaryInteger<N> {
 		var bytes = await ReadBytes(size, cancellationToken);
 		N value = N.Zero;
@@ -278,7 +299,7 @@ public class ESExprBinaryReader {
 			value |= N.CreateTruncating(bytes[i]) << (i * 8);
 		}
 
-		return convert(value);
+		return value;
 	}
 
 	private async ValueTask<ImmutableArray<T>> ReadArrayN<T>(int byteSize, CancellationToken cancellationToken = default)

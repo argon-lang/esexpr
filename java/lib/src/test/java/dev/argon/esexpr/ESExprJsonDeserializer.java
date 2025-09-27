@@ -78,6 +78,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 					value = switch (fv.asText()) {
 						case "+inf" -> Float.floatToFloat16(Float.POSITIVE_INFINITY);
 						case "-inf" -> Float.floatToFloat16(Float.NEGATIVE_INFINITY);
+						case "nan" -> Float.floatToFloat16(Float.NaN);
 						default -> throw new RuntimeException("Unexpected float text");
 					};
 				}
@@ -94,6 +95,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 					value = switch (fv.asText()) {
 						case "+inf" -> Float.POSITIVE_INFINITY;
 						case "-inf" -> Float.NEGATIVE_INFINITY;
+						case "nan" -> Float.NaN;
 						default -> throw new RuntimeException("Unexpected float text");
 					};
 				}
@@ -110,6 +112,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 					value = switch (fv.asText()) {
 						case "+inf" -> Double.POSITIVE_INFINITY;
 						case "-inf" -> Double.NEGATIVE_INFINITY;
+						case "nan" -> Double.NaN;
 						default -> throw new RuntimeException("Unexpected float text");
 					};
 				}

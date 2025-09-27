@@ -45,40 +45,40 @@ public class BinaryFormatTests : TestBase {
 					new Expr.Int(BigInteger.Parse(intValue.GetString() ?? throw new InvalidOperationException())),
 
 				JsonValueKind.Object when elem.TryGetProperty("float16", out var float16Value) =>
-					new Expr.Float16(float16Value.ValueKind switch {
+					float16Value.ValueKind switch {
 						JsonValueKind.String => float16Value.GetString() switch {
-							"+inf" => Half.PositiveInfinity,
-							"-inf" => Half.NegativeInfinity,
-							"nan" => Half.NaN,
+							"+inf" => new Expr.Float16(Half.PositiveInfinity),
+							"-inf" => new Expr.Float16(Half.NegativeInfinity),
+							"nan" => new Expr.Float16NaN(0x7E00),
 							_ => throw new InvalidOperationException(),
 						},
-						JsonValueKind.Number => (Half)float16Value.GetSingle(),
+						JsonValueKind.Number => new Expr.Float16((Half)float16Value.GetSingle()),
 						_ => throw new InvalidOperationException(),
-					}),
+					},
 
 				JsonValueKind.Object when elem.TryGetProperty("float32", out var float32Value) =>
-					new Expr.Float32(float32Value.ValueKind switch {
+					float32Value.ValueKind switch {
 						JsonValueKind.String => float32Value.GetString() switch {
-							"+inf" => float.PositiveInfinity,
-							"-inf" => float.NegativeInfinity,
-							"nan" => float.NaN,
+							"+inf" => new Expr.Float32(float.PositiveInfinity),
+							"-inf" => new Expr.Float32(float.NegativeInfinity),
+							"nan" => new Expr.Float32NaN(0x7FC00000),
 							_ => throw new InvalidOperationException(),
 						},
-						JsonValueKind.Number => float32Value.GetSingle(),
+						JsonValueKind.Number => new Expr.Float32(float32Value.GetSingle()),
 						_ => throw new InvalidOperationException(),
-					}),
+					},
 
 				JsonValueKind.Object when elem.TryGetProperty("float64", out var float64Value) =>
-					new Expr.Float64(float64Value.ValueKind switch {
+					float64Value.ValueKind switch {
 						JsonValueKind.String => float64Value.GetString() switch {
-							"+inf" => double.PositiveInfinity,
-							"-inf" => double.NegativeInfinity,
-							"nan" => double.NaN,
+							"+inf" => new Expr.Float64(double.PositiveInfinity),
+							"-inf" => new Expr.Float64(double.NegativeInfinity),
+							"nan" => new Expr.Float64NaN(0x7FF8000000000000),
 							_ => throw new InvalidOperationException()
 						},
-						JsonValueKind.Number => float64Value.GetDouble(),
+						JsonValueKind.Number => new Expr.Float64(float64Value.GetDouble()),
 						_ => throw new InvalidOperationException()
-					}),
+					},
 
 				JsonValueKind.Object when elem.TryGetProperty("base64", out var binValue) =>
 					new Expr.Array8(Convert.FromBase64String(binValue.GetString() ?? throw new InvalidOperationException()).ToImmutableArray()),
