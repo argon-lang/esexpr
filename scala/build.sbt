@@ -4,12 +4,12 @@ import _root_.io.circe.Json
 
 import scala.sys.process.Process
 
-val zioVersion = "2.1.20"
+val zioVersion = "2.1.21"
 
 name := "esexpr"
 
 
-ThisBuild / scalaVersion := "3.7.1"
+ThisBuild / scalaVersion := "3.7.3"
 
 publish / skip := true
 
@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
   testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 
   libraryDependencies ++= Seq(
-    "dev.argon" %%% "argon-async-util" % "2.0.0",
+    "dev.argon" %%% "argon-async-util" % "2.1.1",
 
     "dev.zio" %%% "zio" % zioVersion,
     "dev.zio" %%% "zio-streams" % zioVersion,
