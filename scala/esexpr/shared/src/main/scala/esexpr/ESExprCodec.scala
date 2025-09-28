@@ -201,7 +201,7 @@ object ESExprCodec {
     override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Float16, ESExprTagSet.Empty)
 
     override def isEncodedEqual(x: Float16, y: Float16): Boolean =
-      Float16.float16ToRawShortBits(x) == Float16.float16ToRawShortBits(y)
+      ESExpr.compareFloat16(x, y)
 
     override def encode(value: Float16): ESExpr =
       ESExpr.Float16(value)
@@ -219,9 +219,10 @@ object ESExprCodec {
 
     override def isEncodedEqual(x: Either[ESExpr.Float16NaN, Float16], y: Either[ESExpr.Float16NaN, Float16]): Boolean =
       (x, y) match {
-        case (Right(x), Right(y)) => Float16.float16ToRawShortBits(x) == Float16.float16ToRawShortBits(y)
+        case (Right(x), Right(y)) => ESExpr.compareFloat16(x, y)
         case (Left(x), Left(y)) => x.bits == y.bits
-        case _ => false
+        case (Right(x), Left(y)) => ESExpr.compareFloat16ToBits(x, y.bits)
+        case (Left(x), Right(y)) => ESExpr.compareFloat16ToBits(y, x.bits)
       }
 
     override def encode(value: Either[ESExpr.Float16NaN, Float16]): ESExpr =
@@ -243,7 +244,7 @@ object ESExprCodec {
     override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Float32, ESExprTagSet.Empty)
 
     override def isEncodedEqual(x: Float, y: Float): Boolean =
-      java.lang.Float.floatToRawIntBits(x) == java.lang.Float.floatToRawIntBits(y)
+      ESExpr.compareFloat(x, y)
 
     override def encode(value: Float): ESExpr =
       ESExpr.Float32(value)
@@ -261,9 +262,10 @@ object ESExprCodec {
 
     override def isEncodedEqual(x: Either[ESExpr.Float32NaN, Float], y: Either[ESExpr.Float32NaN, Float]): Boolean =
       (x, y) match {
-        case (Right(x), Right(y)) => java.lang.Float.floatToRawIntBits(x) == java.lang.Float.floatToRawIntBits(y)
+        case (Right(x), Right(y)) => ESExpr.compareFloat(x, y)
         case (Left(x), Left(y)) => x.bits == y.bits
-        case _ => false
+        case (Right(x), Left(y)) => ESExpr.compareFloatToBits(x, y.bits)
+        case (Left(x), Right(y)) => ESExpr.compareFloatToBits(y, x.bits)
       }
 
     override def encode(value: Either[ESExpr.Float32NaN, Float]): ESExpr =
@@ -284,7 +286,7 @@ object ESExprCodec {
     override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Float64, ESExprTagSet.Empty)
 
     override def isEncodedEqual(x: Double, y: Double): Boolean =
-      java.lang.Double.doubleToRawLongBits(x) == java.lang.Double.doubleToRawLongBits(y)
+      ESExpr.compareDouble(x, y)
 
     override def encode(value: Double): ESExpr =
       ESExpr.Float64(value)
@@ -302,9 +304,10 @@ object ESExprCodec {
 
     override def isEncodedEqual(x: Either[ESExpr.Float64NaN, Double], y: Either[ESExpr.Float64NaN, Double]): Boolean =
       (x, y) match {
-        case (Right(x), Right(y)) => java.lang.Double.doubleToRawLongBits(x) == java.lang.Double.doubleToRawLongBits(y)
+        case (Right(x), Right(y)) => ESExpr.compareDouble(x, y)
         case (Left(x), Left(y)) => x.bits == y.bits
-        case _ => false
+        case (Right(x), Left(y)) => ESExpr.compareDoubleToBits(x, y.bits)
+        case (Left(x), Right(y)) => ESExpr.compareDoubleToBits(y, x.bits)
       }
 
     override def encode(value: Either[ESExpr.Float64NaN, Double]): ESExpr =
@@ -910,10 +913,13 @@ object ESExprCodec {
           (varargCodec.encodeVararg(value), Map())
 
         override def decode(state: ProductDecodeState): Either[ProductDecodeError, (A, ProductDecodeState)] =
-          varargCodec.decodeVararg(state.args) match {
+          val argExprs = state.args.takeWhile(arg => varargCodec.elementTags.contains(arg.tag))
+
+          varargCodec.decodeVararg(argExprs) match {
             case Left((i, DecodeError(message, path))) => Left(ProductDecodeError(message, ProductErrorPath.Positional(state.positionalIndex + i, path)))
-            case Right(a) => Right((a, state.copy(args = Seq(), positionalIndex = state.positionalIndex + state.args.size)))
+            case Right(a) => Right((a, state.copy(args = state.args.drop(argExprs.size), positionalIndex = state.positionalIndex + argExprs.size)))
           }
+        end decode
       }
 
     def dictProductCodec[A](dictCodec: DictCodec[A]): ESExprCodecProduct[A] =

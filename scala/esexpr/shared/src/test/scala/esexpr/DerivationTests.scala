@@ -280,6 +280,27 @@ object DerivationTests extends ZIOSpecDefault {
       },
 
       {
+        final case class MultipleVarargs(
+          @vararg args1: Seq[Boolean],
+          @vararg args2: Seq[String],
+        ) derives ESExprCodec, CanEqual
+
+        val expr = ESExpr.Constructor(
+          "multiple-varargs",
+          Seq(ESExpr.Bool(true), ESExpr.Bool(true), ESExpr.Bool(false), ESExpr.Str("A"), ESExpr.Str("B")),
+          Map(),
+        )
+
+        codecTest("MultipleVarargs")(
+          expr = expr,
+          value = MultipleVarargs(
+            Seq(true, true, false),
+            Seq("A", "B"),
+          ),
+        )
+      },
+
+      {
         final case class OptionalPositional(
           @optional a: Option[Boolean],
           @optional b: Option[String],
