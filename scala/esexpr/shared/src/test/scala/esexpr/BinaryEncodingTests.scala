@@ -36,7 +36,7 @@ object BinaryEncodingTests extends ZIOSpecDefault with EsxbTestLoader {
           )
         }
         .runCollect
-        .tap { tests => if tests.isEmpty then ZIO.die(RuntimeException("Could not load test cases")) else ZIO.unit }
+        .tap { tests => ZIO.die(RuntimeException("Could not load test cases")).when(tests.isEmpty) }
         .map(Spec.multiple)
     )
   )
