@@ -149,7 +149,7 @@ impl<'a> ESExprTag<'a> {
 }
 
 const fn compare_str_bytes(s1: &[u8], s2: &[u8]) -> bool {
-	if s1.len() != s1.len() {
+	if s1.len() != s2.len() {
 		return false;
 	}
 
@@ -352,5 +352,26 @@ mod tests {
 			],)
 			.is_disjoint(<alloc::string::String as ESExprCodec>::TAGS)
 		);
+	}
+
+	#[test]
+	fn tag_collection_disjoint_substr() {
+		let t1: ESExprTagSet = ESExprTagSet::Tags(
+			&[
+				ESExprTag::Constructor(
+					CowStr::Borrowed("record"),
+				),
+			],
+		);
+
+		let t2: ESExprTagSet = ESExprTagSet::Tags(
+			&[
+				ESExprTag::Constructor(
+					CowStr::Borrowed("record-field-literal"),
+				),
+			],
+		);
+
+		assert!(t1.is_disjoint(t2));
 	}
 }
