@@ -1,8 +1,8 @@
 [package]
 name = "esexpr-json"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
-rust-version = "1.88.0"
+rust-version = "1.90.0"
 license = "Apache-2.0"
 description = "ESExpr serialization JSON encoding mappings."
 documentation = "https://docs.rs/esexpr-text"

@@ -1,8 +1,8 @@
-error[E0080]: evaluation of `<OptionalNoTag5 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#0}` failed
+error[E0080]: evaluation panicked: Field 'b' must have distinct tags from immediately preceding optional positional arguments
  --> error-test-cases/optional_full_tag5.rs:1:10
   |
 1 | #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
-  |          ^^^^^^^^^^^^^^^^^^^ evaluation panicked: Field 'b' must have distinct tags from immediately preceding optional positional arguments
+  |          ^^^^^^^^^^^^^^^^^^^ evaluation of `<OptionalNoTag5 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#0}` failed here
 
 note: erroneous constant encountered
  --> error-test-cases/optional_full_tag5.rs:1:10

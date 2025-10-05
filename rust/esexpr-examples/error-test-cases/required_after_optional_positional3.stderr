@@ -1,8 +1,8 @@
-error[E0080]: evaluation of `<RequiredAfterOptionalPositional3 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#1}` failed
+error[E0080]: evaluation panicked: Field 'c' must have distinct tags from immediately preceding optional positional arguments
  --> error-test-cases/required_after_optional_positional3.rs:1:10
   |
 1 | #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
-  |          ^^^^^^^^^^^^^^^^^^^ evaluation panicked: Field 'c' must have distinct tags from immediately preceding optional positional arguments
+  |          ^^^^^^^^^^^^^^^^^^^ evaluation of `<RequiredAfterOptionalPositional3 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#1}` failed here
 
 note: erroneous constant encountered
  --> error-test-cases/required_after_optional_positional3.rs:1:10

@@ -1,8 +1,8 @@
-error[E0080]: evaluation of `<OptionalNoTag3 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#0}` failed
+error[E0080]: evaluation panicked: Field 'b' cannot follow optional positional arguments with all tags
  --> error-test-cases/optional_full_tag3.rs:1:10
   |
 1 | #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
-  |          ^^^^^^^^^^^^^^^^^^^ evaluation panicked: Field 'b' cannot follow optional positional arguments with all tags
+  |          ^^^^^^^^^^^^^^^^^^^ evaluation of `<OptionalNoTag3 as esexpr::ESExprCodec<'_>>::encode_esexpr::{constant#0}` failed here
 
 note: erroneous constant encountered
  --> error-test-cases/optional_full_tag3.rs:1:10
