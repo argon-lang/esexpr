@@ -26,6 +26,7 @@ use syn::{
 	Variant,
 	parse_quote,
 };
+use syn::ext::IdentExt;
 
 #[derive(Debug, Default, FromAttributes)]
 #[darling(attributes(esexpr))]
@@ -354,7 +355,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 			let cases: proc_macro2::TokenStream = e.variants.iter().map(|c| -> TokenRes {
                 fn make_field_name<'a>(name: Option<&'a Ident>, i: usize) -> proc_macro2::TokenStream {
                     let name =
-                        if let Some(name) = name { format!("field_{name}") }
+                        if let Some(name) = name { format!("field_{}", name.unraw()) }
                         else { format!("field_{i}") };
 
                     let name = Ident::new(&name, Span::mixed_site());
@@ -907,7 +908,7 @@ fn make_kwarg_name(attr_name: Option<&String>, field_name: Option<&Ident>) -> Re
 	Ok(match attr_name {
 		Some(name) => name.clone(),
 		None => match field_name {
-			Some(name) => reformat_field_name(&name.to_string()),
+			Some(name) => reformat_field_name(name),
 			None => Err(
 				quote! { compile_error!("Keyword arguments for unnamed fields must specify a name: #[esexpr(keyword = \"name\")]"); },
 			)?,
@@ -983,11 +984,8 @@ fn reformat_type_name(name: &str) -> String {
 	res
 }
 
-fn reformat_field_name(mut name: &str) -> String {
-	if name.starts_with("r#") {
-		name = &name[2..];
-	}
-	
+fn reformat_field_name(name: &Ident) -> String {
+	let name = name.unraw().to_string();
 	name.replace('_', "-")
 }
 

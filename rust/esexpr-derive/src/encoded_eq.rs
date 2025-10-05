@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, GenericParam, TypeParamBound, parse_quote};
+use syn::ext::IdentExt;
 
 pub fn derive_encoded_eq_impl(input: TokenStream) -> TokenStream {
 	// Parse the input tokens into a syntax tree
@@ -83,8 +84,8 @@ pub fn derive_encoded_eq_impl(input: TokenStream) -> TokenStream {
                     Fields::Named(fields) => {
 						#[expect(clippy::unwrap_used, reason = "We know this is a named field")]
                         let field_names = fields.named.iter().map(|field| field.ident.as_ref().unwrap()).collect::<Vec<_>>();
-                        let self_fields = field_names.iter().map(|field| syn::Ident::new(&format!("self_{field}"), field.span())).collect::<Vec<_>>();
-                        let other_fields = field_names.iter().map(|field| syn::Ident::new(&format!("other_{field}"), field.span())).collect::<Vec<_>>();
+                        let self_fields = field_names.iter().map(|field| syn::Ident::new(&format!("self_{}", field.unraw()), field.span())).collect::<Vec<_>>();
+                        let other_fields = field_names.iter().map(|field| syn::Ident::new(&format!("other_{}", field.unraw()), field.span())).collect::<Vec<_>>();
 
                         let field_eq = fields.named.iter().zip(self_fields.iter()).zip(other_fields.iter()).map(|((field, self_field), other_field)| {
                             let field_type = &field.ty;

@@ -201,6 +201,15 @@ pub struct RustKeywords {
 	pub r#extern: alloc::string::String,
 }
 
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
+pub enum RustKeywordsEnum {
+	Keywords {
+		r#type: alloc::string::String,
+
+		#[esexpr(keyword)]
+		r#extern: alloc::string::String,
+	},
+}
 
 #[cfg(test)]
 mod tests {
@@ -611,6 +620,22 @@ mod tests {
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, RustKeywords::decode_esexpr(expr).unwrap());
+
+
+		let expr = ESExpr::Constructor(ESExprConstructor {
+			name: CowStr::Static("keywords"),
+			args: ConstructorArgs::from([ ESExpr::Str(CowStr::Static("A")) ]),
+			kwargs: KeywordArgs::from([
+				(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("B"))),
+			]),
+		});
+		let value = RustKeywordsEnum::Keywords {
+			r#type: "A".to_owned(),
+			r#extern: "B".to_owned(),
+		};
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, RustKeywordsEnum::decode_esexpr(expr).unwrap());
 	}
 
 	#[test]
