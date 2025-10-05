@@ -192,13 +192,23 @@ pub struct AnyExpr {
 	pub a: esexpr::ESExprStatic,
 }
 
+
+#[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
+pub struct RustKeywords {
+	pub r#type: alloc::string::String,
+
+	#[esexpr(keyword)]
+	pub r#extern: alloc::string::String,
+}
+
+
 #[cfg(test)]
 mod tests {
 	use alloc::borrow::ToOwned;
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 	use esexpr::cowstr::CowStr;
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagSet, ESExprEncodedEq, esexpr};
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagSet, ESExprEncodedEq, esexpr, ESExpr, ESExprConstructor, ConstructorArgs, KeywordArgs};
 
 	use super::*;
 
@@ -583,5 +593,37 @@ mod tests {
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, MultipleVararg::decode_esexpr(expr).unwrap());
+	}
+
+	#[test]
+	fn rust_keywords_test() {
+		let expr = ESExpr::Constructor(ESExprConstructor {
+			name: CowStr::Static("rust-keywords"),
+			args: ConstructorArgs::from([ ESExpr::Str(CowStr::Static("A")) ]),
+			kwargs: KeywordArgs::from([
+				(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("B"))),
+			]),
+		});
+		let value = RustKeywords {
+			r#type: "A".to_owned(),
+			r#extern: "B".to_owned(),
+		};
+
+		assert_eq!(expr, value.encode_esexpr());
+		assert_eq!(value, RustKeywords::decode_esexpr(expr).unwrap());
+	}
+
+	#[test]
+	fn esexpr_literal_keywords() {
+		let expr1 = esexpr! { ("f" "a" r#extern: "b") };
+		let expr2 = ESExpr::Constructor(ESExprConstructor {
+			name: CowStr::Static("f"),
+			args: ConstructorArgs::from([ ESExpr::Str(CowStr::Static("a")) ]),
+			kwargs: KeywordArgs::from([
+				(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("b"))),
+			]),
+		});
+
+		assert_eq!(expr1, expr2);
 	}
 }

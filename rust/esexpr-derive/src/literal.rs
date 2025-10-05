@@ -65,7 +65,14 @@ impl Parse for ESExprConstructorBody {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
 		let name = if input.peek(Ident) {
 			let ident: Ident = input.parse()?;
-			LitStr::new(&ident.to_string(), ident.span())
+			let name = ident.to_string();
+			let mut name = name.as_str();
+			if name.starts_with("r#") {
+				name = &name[2..];
+			}
+
+
+			LitStr::new(name, ident.span())
 		}
 		else {
 			input.parse()?
@@ -95,7 +102,12 @@ impl Parse for ESExprConstructorArgument {
 		}
 		else if input.peek(Ident) {
 			let name: Ident = input.parse()?;
-			let name = LitStr::new(&name.to_string(), name.span());
+			let name_str = name.to_string();
+			let mut name_str = name_str.as_str();
+			if name_str.starts_with("r#") {
+				name_str = &name_str[2..];
+			}
+			let name = LitStr::new(name_str, name.span());
 			let _: token::Colon = input.parse()?;
 			let value = input.parse()?;
 			Ok(ESExprConstructorArgument::Keyword(name, value))

@@ -983,7 +983,11 @@ fn reformat_type_name(name: &str) -> String {
 	res
 }
 
-fn reformat_field_name(name: &str) -> String {
+fn reformat_field_name(mut name: &str) -> String {
+	if name.starts_with("r#") {
+		name = &name[2..];
+	}
+	
 	name.replace('_', "-")
 }
 
