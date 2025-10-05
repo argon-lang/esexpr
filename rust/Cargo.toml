@@ -13,9 +13,9 @@ members = [
 
 [workspace.dependencies]
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
-bytemuck = { version = "1.23.1", features = ["extern_crate_alloc"] }
-ctrlc = { version = "3.4.7" }
-darling = "0.21.0"
+bytemuck = { version = "1.24.0", features = ["extern_crate_alloc"] }
+ctrlc = { version = "3.5.0" }
+darling = "0.21.3"
 derive_more = { version = "2.0.1", default-features = false, features = [ "full" ] }
 esexpr = { version = "0.2.3", path = "esexpr", default-features = false }
 esexpr-binary = { version = "0.2.3", path = "esexpr-binary", default-features = false }
@@ -27,13 +27,13 @@ half = { version = "2.6.0", default-features = false, features = ["alloc"] }
 hexponent = { version = "0.3.1", default-features = false }
 nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
-proc-macro2 = "1.0.95"
-quote = "1.0.40"
-serde = { version = "1.0.219", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.141", default-features = false, features = ["float_roundtrip", "alloc"] }
+proc-macro2 = "1.0.101"
+quote = "1.0.41"
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1.0.145", default-features = false, features = ["float_roundtrip", "alloc"] }
 static_assertions = "1.1.0"
-syn = { version = "2.0.104", features = ["derive", "full", "visit"] }
-tokio = "1.46.1"
+syn = { version = "2.0.106", features = ["derive", "full", "visit"] }
+tokio = "1.47.1"
 ui_test = "0.30.2"
 
 
