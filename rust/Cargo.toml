@@ -17,11 +17,11 @@ bytemuck = { version = "1.24.0", features = ["extern_crate_alloc"] }
 ctrlc = { version = "3.5.0" }
 darling = "0.21.3"
 derive_more = { version = "2.0.1", default-features = false, features = [ "full" ] }
-esexpr = { version = "0.2.3", path = "esexpr", default-features = false }
-esexpr-binary = { version = "0.2.3", path = "esexpr-binary", default-features = false }
-esexpr-derive = { version = "0.2.3", path = "esexpr-derive", default-features = false }
-esexpr-json = { version = "0.2.3", path = "esexpr-json", default-features = false }
-esexpr-text = { version = "0.2.3", path = "esexpr-text", default-features = false }
+esexpr = { version = "0.2.4", path = "esexpr", default-features = false }
+esexpr-binary = { version = "0.2.4", path = "esexpr-binary", default-features = false }
+esexpr-derive = { version = "0.2.4", path = "esexpr-derive", default-features = false }
+esexpr-json = { version = "0.2.4", path = "esexpr-json", default-features = false }
+esexpr-text = { version = "0.2.4", path = "esexpr-text", default-features = false }
 futures = { version = "0.3.31", default-features = false }
 half = { version = "2.6.0", default-features = false, features = ["alloc"] }
 hexponent = { version = "0.3.1", default-features = false }

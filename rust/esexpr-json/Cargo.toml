@@ -1,6 +1,6 @@
 [package]
 name = "esexpr-json"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2024"
 rust-version = "1.90.0"
 license = "Apache-2.0"
