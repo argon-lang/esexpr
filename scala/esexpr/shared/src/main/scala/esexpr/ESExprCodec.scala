@@ -746,7 +746,7 @@ object ESExprCodec {
 
             else if caseFieldHasAnn[T, vararg](constValue[hlabel & String]) then
               val varargCodec = summonInline[VarargCodec[htype]]
-              validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype], constValue[hlabel & String])
+              validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsForVararg[htype], constValue[hlabel & String])
 
               val fieldCodec = varargProductCodec(varargCodec)
               val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
@@ -839,10 +839,10 @@ object ESExprCodec {
 
     private inline def validatePositionalTags(inline prevOptionalPositionalTags: ESExprTagSet, inline tags: ESExprTagSet, inline fieldName: String): Unit =
       inline if ESExprTagSet.isAll(prevOptionalPositionalTags) then
-          scala.compiletime.error(s"Field '${fieldName}' cannot follow optional positional arguments with all tags")
+          scala.compiletime.error("Field '" + fieldName + "' cannot follow optional positional arguments with all tags")
 
       inline if !ESExprTagSet.isDisjoint(prevOptionalPositionalTags, tags) then
-        scala.compiletime.error(s"Field '${fieldName}' must have distinct tags from immediately preceding optional positional arguments")
+        scala.compiletime.error("Field '" + fieldName + "' must have distinct tags from immediately preceding optional positional arguments")
     end validatePositionalTags
 
     private inline def getKeywordName[T, HLabel]: String =
