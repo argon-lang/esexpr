@@ -3,6 +3,9 @@ package dev.argon.esexpr.generator.gen.tests;
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.ESExprTag;
 import dev.argon.esexpr.ESExprTagSet;
+import dev.argon.esexpr.codecs.FloatCodec;
+import dev.argon.esexpr.codecs.StringCodec;
+import dev.argon.esexpr.generator.gen.GenericInlineValue;
 import dev.argon.esexpr.generator.gen.InlineValueEnum;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +34,24 @@ public class InlineValueTests extends TestBase {
 				Map.of()
 			),
 			new InlineValueEnum.B(0.0f)
+		);
+	}
+
+	@Test
+	public void testGenericInlineValue() throws Throwable {
+		assertCodecMatch(
+			GenericInlineValue.codec(FloatCodec.INSTANCE),
+			new ESExpr.Constructor(
+				"wrapped-a",
+				List.of(new ESExpr.Float32(4.5f)),
+				Map.of()
+			),
+			new GenericInlineValue.WrappedA<>(4.5f)
+		);
+		assertCodecMatch(
+			GenericInlineValue.codec(FloatCodec.INSTANCE),
+			new ESExpr.Str("abc"),
+			new GenericInlineValue.WrappedString<>("abc")
 		);
 	}
 

@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ESExpr.SourceGenerator;
 
-public record SourceModelEnumCase {
+record SourceModelEnumCase {
 	public required string Name { get; init; }
 	public required Location Location { get; init; }
 	public required string ConstructorName { get; init; }

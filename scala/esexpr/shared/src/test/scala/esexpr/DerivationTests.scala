@@ -425,6 +425,88 @@ object DerivationTests extends ZIOSpecDefault {
           ),
         )
       },
+
+      {
+        @flags
+        final case class TwoFlags(
+          @flagmask(0b01)
+          a: Boolean,
+          @flagmask(0b10)
+          b: Boolean,
+        ) derives ESExprCodec, CanEqual
+
+
+
+        enum FlagEnumB {
+          @flagmask(0b000)
+          case A
+          
+          @flagmask(0b010)
+          case B
+          
+          @flagmask(0b100)
+          case C
+        }
+
+        @flags
+        final case class FlagWithEnum(
+          @flagmask(0b001)
+          a: Boolean,
+          b: FlagEnumB
+        ) derives ESExprCodec, CanEqual
+
+        suite("Flags")(
+          codecTest("two flags 0b00")(
+            expr = ESExpr.Int(0b00),
+            value = TwoFlags(false, false),
+          ),
+          codecTest("two flags 0b01")(
+            expr = ESExpr.Int(0b01),
+            value = TwoFlags(true, false),
+          ),
+          codecTest("two flags 0b10")(
+            expr = ESExpr.Int(0b10),
+            value = TwoFlags(false, true),
+          ),
+          codecTest("two flags 0b11")(
+            expr = ESExpr.Int(0b11),
+            value = TwoFlags(true, true),
+          ),
+          codecTest("flag with enum - A")(
+            expr = ESExpr.Int(0b000),
+            value = FlagWithEnum(false, FlagEnumB.A),
+          ),
+          codecTest("flag with enum - B")(
+            expr = ESExpr.Int(0b011),
+            value = FlagWithEnum(true, FlagEnumB.B),
+          ),
+          codecTest("flag with enum - C")(
+            expr = ESExpr.Int(0b100),
+            value = FlagWithEnum(false, FlagEnumB.C),
+            invalidExprs = Seq(ESExpr.Int(0b110)),
+          ),
+        )
+      },
+      
+      {
+        enum StringOrA[A] derives ESExprCodec, CanEqual {
+          @inlineValue
+          case StrValue(s: String)
+
+          case A(a: A)
+        }
+
+        suite("StringOrA")(
+          codecTest[StringOrA[Int]]("str")(
+            expr = ESExpr.Str("abc"),
+            value = StringOrA.StrValue("abc"),
+          ),
+          codecTest("A")(
+            expr = ESExpr.Constructor("a", Seq(ESExpr.Int(5)), Map()),
+            value = StringOrA.A(5),
+          ),
+        )
+      }
     )
 
 

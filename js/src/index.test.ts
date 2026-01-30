@@ -360,4 +360,49 @@ test("Multiple vararg", () => {
     );
 });
 
+test("Flags", () => {
+    interface MyFlags {
+        readonly a: boolean;
+        readonly b: boolean;
+        readonly c: "v1" | "v2";
+    }
+
+    const codec = esexpr.flags<MyFlags>({
+        a: esexpr.flagBit(1n),
+        b: esexpr.flagBit(2n),
+        c: esexpr.flagsEnum({
+            v1: 4n,
+            v2: 8n,
+        }),
+    });
+
+    expect(codec.tags).toEqual(new Set([BigInt]));
+
+    expectCodecMatch(codec, 4n, { a: false, b: false, c: "v1" });
+    expectCodecMatch(codec, 1n | 4n, { a: true, b: false, c: "v1" });
+    expectCodecMatch(codec, 2n | 4n, { a: false, b: true, c: "v1" });
+    expectCodecMatch(codec, 4n, { a: false, b: false, c: "v1" });
+    expectCodecMatch(codec, 8n, { a: false, b: false, c: "v2" });
+    expectCodecMatch(codec, 1n | 2n | 8n, { a: true, b: true, c: "v2" });
+
+    expectDecodeFailure(codec, 12n); // Overlapping bits for 'c' but not matching any case
+    expectDecodeFailure(codec, "not a bigint");
+
+    expect(() => {
+        esexpr.flags({
+            a: esexpr.flagBit(1n),
+            b: esexpr.flagBit(1n),
+        });
+    }).toThrowError("Flag masks have overlapping bits");
+
+    expect(() => {
+        esexpr.flagBit(0n);
+    }).toThrowError("Flag bit must be set exactly once");
+
+    expect(() => {
+        esexpr.flagBit(3n);
+    }).toThrowError("Flag bit must be set exactly once");
+});
+
+
 

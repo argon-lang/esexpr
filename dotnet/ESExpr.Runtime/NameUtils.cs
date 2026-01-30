@@ -24,9 +24,12 @@ internal static partial class NameUtils {
 	public static string GetConstructorName(TypeDeclarationSyntax decl, SemanticModel semanticModel) {
 		if(
 			GetAttribute(decl, "ESExpr.Runtime.ConstructorAttribute", semanticModel) is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
+			args.Count == 1
 		) {
+			if(args[0].Expression is not LiteralExpressionSyntax value) {
+				throw new Exception("ConstructorAttribute must have a string literal argument");
+			}
+
 			return value.Token.ValueText;
 		}
 		else {
@@ -37,9 +40,12 @@ internal static partial class NameUtils {
 	public static string GetConstructorName(EnumMemberDeclarationSyntax decl, SemanticModel semanticModel) {
 		if(
 			GetAttribute(decl, "ESExpr.Runtime.ConstructorAttribute", semanticModel) is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
+			args.Count == 1
 		) {
+			if(args[0].Expression is not LiteralExpressionSyntax value) {
+				throw new Exception("ConstructorAttribute must have a string literal argument");
+			}
+
 			return value.Token.ValueText;
 		}
 		else {
@@ -50,7 +56,11 @@ internal static partial class NameUtils {
 	
 	public static string GetConstructorName(INamedTypeSymbol symbol) {
 		var attr = GetAttribute(symbol, "ESExpr.Runtime.ConstructorAttribute");
-		if(attr is not null && attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string name) {
+		if(attr is not null && attr.ConstructorArguments.Length == 1) {
+			if(attr.ConstructorArguments[0].Value is not string name) {
+				throw new Exception("ConstructorAttribute must have a string argument");
+			}
+
 			return name;
 		}
 

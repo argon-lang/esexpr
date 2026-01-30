@@ -1208,9 +1208,155 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 
 export function optionCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<Option<T>> {
     return new OptionCodec(itemCodec);
+}
+
+
+export type ESExprFlagsMap<T> = {
+    readonly [Key in keyof T]-?: ESExprFlagsFieldCodec<T[Key]>;
 };
 
+export type ESExprFlagsFieldCodec<T> = {
+    readonly mask: bigint;
+    
+    encode(value: T): bigint;
+    decode(bits: bigint): DecodeResult<T>;
+};
 
+export type ESExprFlagsEnumMap<T extends string> = {
+    readonly [Key in T]: bigint;
+}
+
+export function flags<T>(flagsMap: ESExprFlagsMap<T>): ESExprCodec<T> {
+    return new FlagsCodec(flagsMap);
+}
+
+class FlagsCodec<T> implements ESExprCodec<T> {
+    constructor(flagsMap: ESExprFlagsMap<T>) {
+        const masks = Object.values(flagsMap).map(f => (f as { readonly mask: bigint }).mask);
+        for (let i = 0; i < masks.length; i++) {
+            for (let j = i + 1; j < masks.length; j++) {
+                if ((masks[i]! & masks[j]!) !== 0n) {
+                    throw new Error("Flag masks have overlapping bits");
+                }
+            }
+        }
+
+        this.#flagsMap = flagsMap;
+    }
+
+    readonly #flagsMap: ESExprFlagsMap<T>;
+
+    readonly tags: ESExprTagSet = new Set([BigInt]);
+
+    isEncodedEqual(a: T, b: T): boolean {
+        return this.encode(a) === this.encode(b);
+    }
+
+    encode(value: T): ESExpr {
+        let bits = 0n;
+        for(const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
+            bits |= this.#flagsMap[field].encode(value[field]);
+        }
+        return bits;
+    }
+
+    decode(expr: ESExpr): DecodeResult<T> {
+        if(typeof(expr) !== "bigint") {
+            return {
+                success: false,
+                message: "Expected a bigint for flags, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
+                path: { type: "current" },
+            };
+        }
+
+        const obj: any = {};
+
+        for(const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
+            const result = this.#flagsMap[field].decode(expr);
+            if(!result.success) {
+                return result;
+            }
+
+            if(field in Object.prototype) {
+                Object.defineProperty(obj, field, { value: result.value, enumerable: true });
+            }
+            else {
+                obj[field] = result.value;
+            }
+        }
+
+        return {
+            success: true,
+            value: obj,
+        };
+    }
+}
+
+
+export function flagBit(bit: bigint): ESExprFlagsFieldCodec<boolean> {
+    return new FlagBitFieldCodec(bit);
+}
+
+class FlagBitFieldCodec implements ESExprFlagsFieldCodec<boolean> {
+    constructor(bit: bigint) {
+        if (bit === 0n || (bit & (bit - 1n)) !== 0n) {
+            throw new Error("Flag bit must be set exactly once");
+        }
+
+        this.#bit = bit;
+    }
+    
+    readonly #bit: bigint;
+    get mask() {
+        return this.#bit;
+    }
+
+    
+    encode(value: boolean): bigint {
+        return value ? this.#bit : 0n;
+    }
+
+    decode(bits: bigint): DecodeResult<boolean> {
+        return { success: true, value: (bits & this.#bit) !== 0n };
+    }
+    
+}
+
+export function flagsEnum<T extends string>(cases: ESExprFlagsEnumMap<T>): ESExprFlagsFieldCodec<T> {
+    return new FlagsEnumFieldCodec(cases);
+}
+
+class FlagsEnumFieldCodec<T extends string> implements ESExprFlagsFieldCodec<T> {
+    constructor(cases: ESExprFlagsEnumMap<T>) {
+        this.#cases = cases;
+
+        let mask = 0n;
+        let valueLookup = new Map<bigint, T>();
+        for(const [caseName, bitValue] of Object.entries(cases) as [T, bigint][]) {
+            mask |= bitValue;
+            valueLookup.set(bitValue, caseName);
+        }
+        this.mask = mask;
+        this.#valueLookup = valueLookup;
+    }
+
+    readonly #cases: ESExprFlagsEnumMap<T>;
+    readonly #valueLookup: ReadonlyMap<bigint, T>;
+
+    readonly mask: bigint;
+
+    encode(value: T): bigint {
+        return this.#cases[value];
+    }
+
+    decode(bits: bigint): DecodeResult<T> {
+        const value = this.#valueLookup.get(bits & this.mask);
+        if(value === undefined) {
+            return { success: false, message: "Invalid flag value", path: { type: "current" } };
+        }
+        return { success: true, value };
+    }
+}
 
 
 
@@ -1296,7 +1442,13 @@ class RecordCodec<T> implements ESExprCodec<T> {
             if(!result.success) {
                 return result;
             }
-            obj[field] = result.value;
+
+            if(field in Object.prototype) {
+                Object.defineProperty(obj, field, { value: result.value, enumerable: true });
+            }
+            else {
+                obj[field] = result.value;
+            }
         }
 
         if(state.args.length > 0) {

@@ -312,6 +312,7 @@ dependencies = [
  "esexpr-derive",
  "half",
  "num-bigint",
+ "num-traits",
 ]
 
 [[package]]
@@ -335,6 +336,8 @@ name = "esexpr-derive"
 version = "0.2.5"
 dependencies = [
  "darling",
+ "num-bigint",
+ "num-traits",
  "proc-macro2",
  "quote",
  "syn",

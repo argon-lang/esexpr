@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -87,21 +89,43 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.SealedKeyword):
 				if((recordDecl.ParameterList?.Parameters.Count ?? 0) != 0) {
 					return new InvalidTypeSourceModel {
-						Descriptor = Errors.InvalidESExprEnumDeclaration,
+						Descriptor = Errors.InvalidESExprRecordDeclaration,
 						Location = decl.Identifier.GetLocation(),
 						MessageArgs = [decl.Identifier.ToString()],
 					};
 				}
 
-				return new RecordSourceModel {
-					Usings = GetUsings(recordDecl),
-					Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
-					TypeName = recordDecl.Identifier.ToString(),
-					Location = recordDecl.Identifier.GetLocation(),
-					ConstructorName = GetConstructorName(recordDecl, context.SemanticModel),
-					TypeParameters = GetTypeParameters(recordDecl),
-					Fields = GetFields(recordDecl, context.SemanticModel),
-				};
+				var codecAttr = GetAttribute(recordDecl, "ESExpr.Runtime.ESExprCodecAttribute", context.SemanticModel);
+				
+				if(
+					codecAttr?.ArgumentList?.Arguments
+						.Any(arg =>
+							arg.NameEquals?.Name.ToString() == "Flags" &&
+							arg.Expression is LiteralExpressionSyntax { Token.Value: true }
+						)
+					?? false
+				) {
+					return new FlagsSourceModel {
+						Usings = GetUsings(recordDecl),
+						Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
+						TypeName = recordDecl.Identifier.ToString(),
+						Location = recordDecl.Identifier.GetLocation(),
+						TypeParameters = GetTypeParameters(recordDecl),
+						Fields = GetFlagsFields(recordDecl, context.SemanticModel),
+					};
+				}
+				else {
+					return new RecordSourceModel {
+						Usings = GetUsings(recordDecl),
+						Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
+						TypeName = recordDecl.Identifier.ToString(),
+						Location = recordDecl.Identifier.GetLocation(),
+						ConstructorName = GetConstructorName(recordDecl, context.SemanticModel),
+						TypeParameters = GetTypeParameters(recordDecl),
+						Fields = GetFields(recordDecl, context.SemanticModel),
+					};
+				}
+
 
 			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.AbstractKeyword):
 				if(!IsValidEnumRecord(recordDecl)) {
@@ -233,6 +257,108 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			})
 			.ToImmutableList();
 
+	private static ImmutableList<SourceModelFlagsField> GetFlagsFields(TypeDeclarationSyntax decl, SemanticModel semanticModel) =>
+		decl.Members
+			.OfType<PropertyDeclarationSyntax>()
+			.Select(prop => {
+				var t = semanticModel.GetTypeInfo(prop.Type).Type;
+				if(t is null) {
+					throw new Exception("Could not get type of field");
+				}
+				
+				var declType = semanticModel.GetDeclaredSymbol(decl);
+				if(declType is null) {
+					throw new Exception("Could not get declared symbol for flags type declaration");
+				}
+
+				SourceModelFlagsField field;
+
+				if(t.SpecialType == SpecialType.System_Boolean) {
+					var flagBitsAttr = GetAttribute(prop, "ESExpr.Runtime.FlagBitsAttribute", semanticModel);
+					if(flagBitsAttr is not { ArgumentList.Arguments: var args } || args.Count != 1) {
+						throw new Exception("Flag must specify FlagBitsAttribute with exactly one constructor argument");
+					}
+					
+					var maskExpr = args[0].Expression;
+					var maskValue = semanticModel.GetConstantValue(maskExpr);
+					if(!maskValue.HasValue) {
+						throw new Exception("FlagBitsAttribute mask must be a constant value");
+					}
+					
+					BigInteger mask = maskValue.Value switch {
+						string s => BigInteger.Parse(s, CultureInfo.InvariantCulture),
+						byte b => b,
+						sbyte sb => sb,
+						short s2 => s2,
+						ushort us => us,
+						int i => i,
+						uint ui => ui,
+						long l => l,
+						ulong ul => ul,
+						_ => throw new Exception("FlagBitsAttribute mask must be a ulong or string"),
+					};
+
+					if(mask < 0) {
+						throw new Exception("FlagBitsAttribute mask must be non-negative");
+					}
+
+					field = new SourceModelFlagsFieldFlag {
+						Name = prop.Identifier.ToString(),
+						Location = prop.Identifier.GetLocation(),
+						Mask = mask,
+					};
+				}
+				else if(t is INamedTypeSymbol { EnumUnderlyingType: not null } enumType) {
+					field = new SourceModelFlagsFieldEnum {
+						Name = prop.Identifier.ToString(),
+						Location = prop.Identifier.GetLocation(),
+						Type = SourceModelType.FromSymbol(t),
+						Cases = enumType.GetMembers()
+							.OfType<IFieldSymbol>()
+							.Where(f => f.IsConst)
+							.Select(f => {
+								var attr = GetAttribute(f, "ESExpr.Runtime.FlagBitsAttribute");
+
+								if(attr is null) {
+									throw new Exception("Enum field must be marked with FlagBitsAttribute");
+								}
+								
+								if(attr.ConstructorArguments.Length != 1) {
+									throw new Exception("FlagBitsAttribute must have exactly one constructor argument");
+								}
+
+								BigInteger value = attr.ConstructorArguments[0].Value switch {
+									string s => BigInteger.Parse(s, CultureInfo.InvariantCulture),
+									byte b => b,
+									sbyte sb => sb,
+									short s2 => s2,
+									ushort us => us,
+									int i => i,
+									uint ui => ui,
+									long l => l,
+									ulong ul => ul,
+									_ => throw new Exception("FlagBitsAttribute value must be a ulong or string"),
+								};
+								
+								if(value < 0) {
+									throw new Exception("FlagBitsAttribute value must be non-negative");
+								}
+								
+								return new SourceModelFlagsEnumCase {
+									Name = f.Name,
+									Value = value,
+								};
+							})
+							.ToImmutableList(),
+					};
+				}
+				else {
+					throw new Exception("Enum field type must be a bool or enum defined as a nested type.");
+				}
+				
+				return field;
+			})
+			.ToImmutableList();
 
 	private static bool IsVararg(PropertyDeclarationSyntax decl, SemanticModel semanticModel) =>
 		HasAttribute(decl, "ESExpr.Runtime.VarargAttribute", semanticModel);
@@ -268,9 +394,12 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 
 		if(
 			attr is { ArgumentList.Arguments: var args } &&
-			args.Count == 1 &&
-			args[0].Expression is LiteralExpressionSyntax value
+			args.Count == 1
 		) {
+			if(args[0].Expression is not LiteralExpressionSyntax value) {
+				throw new Exception("KeywordAttribute must have a string literal argument");
+			}
+			
 			return value.Token.ValueText;
 		}
 		else {

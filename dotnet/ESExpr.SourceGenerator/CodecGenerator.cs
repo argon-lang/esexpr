@@ -202,7 +202,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		
 		var typeTags = TypeInfoHandler.GetTags(type);
 		if(typeTags == null) {
-			var overriddenCodec = TypeInfoHandler.GetOverriddenCodec(new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IESExprCodec") {
+			var overriddenCodec = TypeInfoHandler.GetOverriddenCodec(new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IESExprCodec") {
 				TypeArguments = [type],
 				IsEnum = false,
 			});
@@ -1658,7 +1658,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		
 
 	protected ExpressionSyntax GetCodecLikeExpr(SourceModelType t, string codecTypeName, string nestedClassName) {
-		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], codecTypeName) {
+		SourceModelType codecType = new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), codecTypeName) {
 			TypeArguments = codecTypeName == "IESExprCodec" ? [t] : [t, new SourceModelType.Wildcard("Wildcard")],
 			IsEnum = false,
 		};
@@ -1738,7 +1738,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	private SourceModelType GetVarargElementType(SourceModelType t, Location location) {
 		var placeholder = new SourceModelType.Wildcard("Wildcard");
-		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IVarargCodec") {
+		SourceModelType codecType = new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IVarargCodec") {
 			TypeArguments = [t, placeholder],
 			IsEnum = false,
 		};
@@ -1757,7 +1757,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	private SourceModelType GetOptionalElementType(SourceModelType t, Location location) {
 		var placeholder = new SourceModelType.Wildcard("Wildcard");
-		SourceModelType codecType = new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IOptionalValueCodec") {
+		SourceModelType codecType = new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IOptionalValueCodec") {
 			TypeArguments = [t, placeholder],
 			IsEnum = false,
 		};
@@ -1777,19 +1777,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
 		switch(t) {
 			case SourceModelType.NamedSymbol namedTypeSymbol: {
-				SimpleNameSyntax name;
-				if(namedTypeSymbol.TypeArguments.Count != 0) {
-					var genericArguments = namedTypeSymbol.TypeArguments.Select(ConvertTypeToTypeSyntax);
-					name = GenericName(
-						Identifier(namedTypeSymbol.Name),
-						TypeArgumentList(SeparatedList(genericArguments))
-					);
-				}
-				else {
-					name = IdentifierName(namedTypeSymbol.Name);
-				}
-
-				return GetNamespaceMemberSyntax(namedTypeSymbol.Namespace, namedTypeSymbol.Namespace.Count, name);
+				return GetNamedSymbolSyntax(namedTypeSymbol);
 			}
 
 			case SourceModelType.Array arrayTypeSymbol:
@@ -1808,6 +1796,35 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 			default:
 				throw new Exception("Unexpected SourceModelType");
+		}
+	}
+	
+	private static NameSyntax GetNamedSymbolSyntax(SourceModelType.NamedSymbol namedTypeSymbol) {
+		SimpleNameSyntax name;
+		if(namedTypeSymbol.TypeArguments.Count != 0) {
+			var genericArguments = namedTypeSymbol.TypeArguments.Select(ConvertTypeToTypeSyntax);
+			name = GenericName(
+				Identifier(namedTypeSymbol.Name),
+				TypeArgumentList(SeparatedList(genericArguments))
+			);
+		}
+		else {
+			name = IdentifierName(namedTypeSymbol.Name);
+		}
+
+		return GetNamedParentMemberSyntax(namedTypeSymbol.Parent, name);
+	}
+	
+	private static NameSyntax GetNamedParentMemberSyntax(SourceModelType.INamedSymbolParent parent, SimpleNameSyntax name) {
+		switch(parent) {
+			case SourceModelType.NamespaceSymbolParent nsParent:
+				return GetNamespaceMemberSyntax(nsParent.Namespace, nsParent.Namespace.Count, name);
+			
+			case SourceModelType.NamedSymbol namedParent:
+				return QualifiedName(GetNamedSymbolSyntax(namedParent), name);
+			
+			default:
+				throw new Exception("Unexpected parent type");
 		}
 	}
 

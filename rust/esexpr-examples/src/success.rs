@@ -217,7 +217,9 @@ mod tests {
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
 	use esexpr::cowstr::CowStr;
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagSet, ESExprEncodedEq, esexpr, ESExpr, ESExprConstructor, ConstructorArgs, KeywordArgs};
+	use esexpr::{ESExprCodec, ESExprTag, ESExprTagSet, ESExprEncodedEq, esexpr, ESExpr, ESExprConstructor, ConstructorArgs, KeywordArgs, esexpr_flags};
+	use num_bigint::{BigInt, BigUint};
+	use alloc::borrow::Cow;
 
 	use super::*;
 
@@ -650,5 +652,115 @@ mod tests {
 		});
 
 		assert_eq!(expr1, expr2);
+	}
+
+	#[test]
+	fn esexpr_flags_bits() {
+		esexpr_flags! {
+			MyFlags:
+			flag1 = 0b01,
+			flag2 = 0b10,
+			flag3 = 0b100,
+		}
+
+		let check = |flags: MyFlags, expected: BigUint| {
+			let expr = flags.encode_esexpr();
+			assert_eq!(expr, ESExpr::Int(Cow::Owned(BigInt::from(expected.clone()))));
+			let decoded: MyFlags = MyFlags::decode_esexpr(expr).unwrap();
+			assert_eq!(flags, decoded);
+
+			let decoded_from_int: MyFlags = MyFlags::decode_esexpr(ESExpr::Int(Cow::Owned(BigInt::from(expected)))).unwrap();
+			assert_eq!(flags, decoded_from_int);
+		};
+
+		check(MyFlags { flag1: false, flag2: false, flag3: false }, 0u8.into());
+		check(MyFlags { flag1: true, flag2: false, flag3: false }, 1u8.into());
+		check(MyFlags { flag1: false, flag2: true, flag3: false }, 2u8.into());
+		check(MyFlags { flag1: true, flag2: true, flag3: false }, 3u8.into());
+		check(MyFlags { flag1: false, flag2: false, flag3: true }, 4u8.into());
+		check(MyFlags { flag1: true, flag2: false, flag3: true }, 5u8.into());
+		check(MyFlags { flag1: false, flag2: true, flag3: true }, 6u8.into());
+		check(MyFlags { flag1: true, flag2: true, flag3: true }, 7u8.into());
+
+		// Test decoding with extra bits
+		let decoded: MyFlags = MyFlags::decode_esexpr(esexpr! { 0b1111 }).unwrap();
+		assert_eq!(decoded, MyFlags { flag1: true, flag2: true, flag3: true });
+
+		let decoded: MyFlags = MyFlags::decode_esexpr(esexpr! { 0b1000 }).unwrap();
+		assert_eq!(decoded, MyFlags { flag1: false, flag2: false, flag3: false });
+	}
+
+	#[test]
+	fn esexpr_flags_enum() {
+		esexpr_flags! {
+			MyFlags:
+			enum my_enum1 {
+				A = 0b00,
+				B = 0b01,
+				C = 0b10,
+			}
+
+			enum my_enum2 {
+				A = 0b0000,
+				B = 0b0100,
+				C = 0b1000,
+				D = 0b1100,
+			}
+		}
+
+		let check = |flags: MyFlags, expected: BigUint| {
+			let expr = flags.encode_esexpr();
+			assert_eq!(expr, ESExpr::Int(Cow::Owned(BigInt::from(expected.clone()))));
+			let decoded: MyFlags = MyFlags::decode_esexpr(expr).unwrap();
+			assert_eq!(flags, decoded);
+
+			let decoded_from_int: MyFlags = MyFlags::decode_esexpr(ESExpr::Int(Cow::Owned(BigInt::from(expected)))).unwrap();
+			assert_eq!(flags, decoded_from_int);
+		};
+
+		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::A }, 0u8.into());
+		check(MyFlags { my_enum1: MyFlags__my_enum1::B, my_enum2: MyFlags__my_enum2::A }, 1u8.into());
+		check(MyFlags { my_enum1: MyFlags__my_enum1::C, my_enum2: MyFlags__my_enum2::A }, 2u8.into());
+		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::B }, 4u8.into());
+		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::C }, 8u8.into());
+		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::D }, 12u8.into());
+		check(MyFlags { my_enum1: MyFlags__my_enum1::C, my_enum2: MyFlags__my_enum2::D }, 14u8.into());
+
+		// Test invalid bits for enums
+		let decoded = MyFlags::decode_esexpr(esexpr! { 0b11 });
+		assert!(decoded.is_err());
+
+		// Test decoding with extra unrelated bits
+		let decoded = MyFlags::decode_esexpr(esexpr! { 30 }).unwrap();
+		assert_eq!(decoded, MyFlags { my_enum1: MyFlags__my_enum1::C, my_enum2: MyFlags__my_enum2::D });
+	}
+
+	#[test]
+	fn esexpr_flags_mixed() {
+		esexpr_flags! {
+			MixedFlags:
+			flag1 = 1,
+			enum e1 {
+				A = 0,
+				B = 2,
+				C = 4,
+			}
+			flag2 = 8,
+		}
+
+		let check = |flags: MixedFlags, expected: BigUint| {
+			let expr = flags.encode_esexpr();
+			assert_eq!(expr, ESExpr::Int(Cow::Owned(BigInt::from(expected.clone()))));
+			let decoded: MixedFlags = MixedFlags::decode_esexpr(expr).unwrap();
+			assert_eq!(flags, decoded);
+		};
+
+		check(MixedFlags { flag1: false, e1: MixedFlags__e1::A, flag2: false }, 0u8.into());
+		check(MixedFlags { flag1: true, e1: MixedFlags__e1::B, flag2: true }, 11u8.into());
+		check(MixedFlags { flag1: false, e1: MixedFlags__e1::C, flag2: true }, 12u8.into());
+
+		// Overlapping enum bits: e1 uses bits for 2 and 4. 2 | 4 = 6.
+		// If we pass 6, it should fail because 6 is not A(0), B(2), or C(4).
+		assert!(MixedFlags::decode_esexpr(esexpr! { 6 }).is_err());
 	}
 }

@@ -27,6 +27,7 @@ half = { version = "2.6.0", default-features = false, features = ["alloc"] }
 hexponent = { version = "0.3.1", default-features = false }
 nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
+num-traits = { version = "0.2.19", default-features = false }
 proc-macro2 = "1.0.101"
 quote = "1.0.41"
 serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }

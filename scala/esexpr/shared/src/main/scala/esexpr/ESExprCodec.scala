@@ -1,7 +1,7 @@
 package esexpr
 
 import cats.*
-import cats.data.{NonEmptySeq, NonEmptyList, NonEmptyVector}
+import cats.data.{NonEmptyList, NonEmptySeq, NonEmptyVector}
 import cats.implicits.given
 import esexpr.ESExprCodec.DecodeError
 import esexpr.unsigned.*
@@ -10,7 +10,6 @@ import scala.deriving.Mirror
 import scala.quoted.*
 import scala.compiletime.{asMatchable, constValue, erasedValue, summonInline}
 import scala.deriving.Mirror.ProductOf
-
 import zio.Chunk
 
 trait ESExprCodec[T] {
@@ -549,7 +548,7 @@ object ESExprCodec {
   export CodecDerivation.derived
 
   object CodecDerivation:
-    import MacroUtils.*
+    import MacroUtils.{*, given}
     inline def derived[T](using m: Mirror.Of[T]): ESExprCodec[T] =
       inline m match {
         case m: Mirror.SumOf[T] => derivedSum[T](using m)
@@ -570,12 +569,12 @@ object ESExprCodec {
     inline def simpleEnumCaseNames[Cases <: Tuple](inline prevNames: Set[String]): List[String] =
       inline erasedValue[Cases] match
         case _: (head *: tail) =>
-          if setContains(prevNames, getConstructorInline[head]) then
-            scala.compiletime.error("Overlapping constructors for simple enum cases: " + setShow(prevNames) + " with " + getConstructorInline[head])
+          if StringSetOps.contains(prevNames, getConstructorInline[head]) then
+            scala.compiletime.error("Overlapping constructors for simple enum cases: " + StringSetOps.show(prevNames) + " with " + getConstructorInline[head])
 
           val name = getConstructorInline[head]
 
-          name :: simpleEnumCaseNames[tail](setAdd(prevNames, getConstructorInline[head]))
+          name :: simpleEnumCaseNames[tail](StringSetOps.add(prevNames, getConstructorInline[head]))
 
         case _: EmptyTuple =>
           Nil
@@ -620,8 +619,17 @@ object ESExprCodec {
             summonInline[ESExprCodec[T & Product] =:= ESExprCodec[T]](codec)
         }
 
+      else if typeHasAnn[T, flags] then
+        val derivedTuple = derivedProductFlagsTuple[T, m.MirroredElemLabels, m.MirroredElemTypes](0)
+        given CanEqual[T, T] = CanEqual.derived
+
+        var codec: ESExprCodec[T & Product] = DerivedFlagsProductCodec[T & Product, m.MirroredElemTypes](derivedTuple)(
+          using summonInline[Mirror.ProductOf[T] {type MirroredElemTypes = m.MirroredElemTypes} =:= Mirror.ProductOf[T & Product] {type MirroredElemTypes = m.MirroredElemTypes}](m)
+        )
+
+        summonInline[ESExprCodec[T & Product] =:= ESExprCodec[T]](codec)
       else
-        val derivedTuple = derivedProductTuple[T, m.MirroredLabel, m.MirroredElemLabels, m.MirroredElemTypes](
+        val derivedTuple = derivedProductTuple[T, m.MirroredElemLabels, m.MirroredElemTypes](
           prevOptionalPositionalTags = ESExprTagSet.Empty,
           keywords = Set[String](),
           hasDict = false,
@@ -702,7 +710,7 @@ object ESExprCodec {
         })
     }
 
-    inline def derivedProductTuple[T, TypeLabel <: String, Labels <: Tuple, Types <: Tuple](
+    inline def derivedProductTuple[T, Labels <: Tuple, Types <: Tuple](
       inline prevOptionalPositionalTags: ESExprTagSet,
       inline keywords: Set[String],
       inline hasDict: Boolean,
@@ -716,7 +724,7 @@ object ESExprCodec {
               inline if hasDict then
                 scala.compiletime.error("Keyword arguments cannot be used with dict arguments")
 
-              inline if setContains(keywords, getKeywordName[T, hlabel]) then
+              inline if StringSetOps.contains(keywords, getKeywordName[T, hlabel]) then
                 scala.compiletime.error(s"Duplicate keyword argument \"${getKeywordName[T, hlabel]}\"")
 
 
@@ -736,9 +744,9 @@ object ESExprCodec {
                   end if
                 end if
 
-              val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+              val tailCodec = derivedProductTuple[T, tlabels, ttype](
                 prevOptionalPositionalTags = prevOptionalPositionalTags,
-                keywords = setAdd(keywords, getKeywordName[T, hlabel]),
+                keywords = StringSetOps.add(keywords, getKeywordName[T, hlabel]),
                 hasDict = hasDict,
               )
 
@@ -749,7 +757,7 @@ object ESExprCodec {
               validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsForVararg[htype], constValue[hlabel & String])
 
               val fieldCodec = varargProductCodec(varargCodec)
-              val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+              val tailCodec = derivedProductTuple[T, tlabels, ttype](
                 prevOptionalPositionalTags = ESExprTagSet.union(prevOptionalPositionalTags, ESExprTagSetProvider.tagsForVararg[htype]),
                 keywords = keywords,
                 hasDict = hasDict,
@@ -761,12 +769,12 @@ object ESExprCodec {
               inline if hasDict then
                 scala.compiletime.error("Only a single dict argument is allowed")
 
-              inline if setNonEmpty(keywords) then
+              inline if StringSetOps.isNonEmpty(keywords) then
                 scala.compiletime.error("Keyword arguments cannot be used with dict arguments")
 
               lazy val dictCodec = summonInline[DictCodec[htype]]
               val fieldCodec = dictProductCodec(dictCodec)
-              val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+              val tailCodec = derivedProductTuple[T, tlabels, ttype](
                 prevOptionalPositionalTags = prevOptionalPositionalTags,
                 keywords = keywords,
                 hasDict = true,
@@ -779,7 +787,7 @@ object ESExprCodec {
                 validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsForOptional[htype], constValue[hlabel & String])
 
                 val fieldCodec = optionalPositionalProductCodec(optionalValueCodec)
-                val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+                val tailCodec = derivedProductTuple[T, tlabels, ttype](
                   prevOptionalPositionalTags = ESExprTagSet.union(prevOptionalPositionalTags, ESExprTagSetProvider.tagsForOptional[htype]),
                   keywords = keywords,
                   hasDict = hasDict,
@@ -792,7 +800,7 @@ object ESExprCodec {
                 validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype], constValue[hlabel & String])
 
                 val fieldCodec = defaultPositionalProductCodec(valueCodec, caseFieldDefaultValue[T, htype](constValue[hlabel & String]))
-                val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+                val tailCodec = derivedProductTuple[T, tlabels, ttype](
                   prevOptionalPositionalTags = ESExprTagSet.union(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype]),
                   keywords = keywords,
                   hasDict = hasDict,
@@ -805,7 +813,7 @@ object ESExprCodec {
                 validatePositionalTags(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype], constValue[hlabel & String])
 
                 val fieldCodec = defaultPositionalProductCodec(valueCodec, caseFieldGetAnn[T, defaultValue[htype]](constValue[hlabel & String]).value)
-                val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+                val tailCodec = derivedProductTuple[T, tlabels, ttype](
                   prevOptionalPositionalTags = ESExprTagSet.union(prevOptionalPositionalTags, ESExprTagSetProvider.tagsFor[htype]),
                   keywords = keywords,
                   hasDict = hasDict,
@@ -816,7 +824,7 @@ object ESExprCodec {
                 val valueCodec = summonInline[ESExprCodec[htype]]
                 val fieldCodec = requiredPositionalProductCodec(valueCodec)
 
-                val tailCodec = derivedProductTuple[T, TypeLabel, tlabels, ttype](
+                val tailCodec = derivedProductTuple[T, tlabels, ttype](
                   prevOptionalPositionalTags = ESExprTagSet.Empty,
                   keywords = keywords,
                   hasDict = hasDict,
@@ -836,6 +844,216 @@ object ESExprCodec {
           summonInline[ESExprCodecProduct[EmptyTuple] =:= ESExprCodecProduct[Types]](emptyProductCodec)
       end match
 
+
+    final class DerivedFlagsProductCodec[T <: Product, Types <: Tuple](derivedTuple: ESExprCodecFlagsProduct[Types])(using m: Mirror.ProductOf[T] { type MirroredElemTypes = Types }, eq: CanEqual[T, T]) extends ESExprCodec[T] {
+      override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Int, ESExprTagSet.Empty)
+
+      override def isEncodedEqual(x: T, y: T): Boolean =
+        x == y
+
+      override def encode(value: T): ESExpr =
+        ESExpr.Int(derivedTuple.encode(Tuple.fromProductTyped[T](value)(using m)))
+
+      override def decode(expr: ESExpr): Either[DecodeError, T] =
+        expr match {
+          case ESExpr.Int(value) =>
+            derivedTuple.decode(value).map(m.fromTuple)
+          case _ =>
+            Left(DecodeError("Expected an integer", ErrorPath.Current))
+        }
+    }
+
+    trait ESExprCodecFlagsProduct[T] {
+      def encode(value: T): BigInt
+      def decode(bits: BigInt): Either[DecodeError, T]
+    }
+
+    final class FlagsProductConsCodec[HType, TType <: Tuple](fieldCodec: ESExprCodecFlagsProduct[HType], tailCodec: ESExprCodecFlagsProduct[TType]) extends ESExprCodecFlagsProduct[HType *: TType] {
+      override def encode(value: HType *: TType): BigInt =
+        val (head *: tail) = value
+
+        val i1 = fieldCodec.encode(head)
+        val i2 = tailCodec.encode(tail)
+        i1 | i2
+      end encode
+
+      override def decode(bits: BigInt): Either[DecodeError, HType *: TType] =
+        for
+          h <- fieldCodec.decode(bits)
+          t <- tailCodec.decode(bits)
+        yield h *: t
+    }
+
+    object FlagsProductEmptyCodec extends ESExprCodecFlagsProduct[EmptyTuple] {
+      override def encode(value: EmptyTuple): BigInt = 0
+      override def decode(bits: BigInt): Either[DecodeError, EmptyTuple] =
+        Right(EmptyTuple)
+    }
+
+    final class FlagsProductBooleanCodec(mask: BigInt) extends ESExprCodecFlagsProduct[Boolean] {
+      override def encode(value: Boolean): BigInt =
+        if value then mask else 0
+
+      override def decode(bits: BigInt): Either[DecodeError, Boolean] =
+        Right((bits & mask) != 0)
+    }
+
+    final class FlagsProductEnumCodec[T](mask: BigInt, maskLookup: Map[T, BigInt]) extends ESExprCodecFlagsProduct[T] {
+      private val valueLookup = maskLookup.map(_.swap)
+
+      override def encode(value: T): BigInt =
+        maskLookup(value)
+
+      override def decode(bits: BigInt): Either[DecodeError, T] =
+        valueLookup
+          .get(bits & mask)
+          .toRight(DecodeError(s"Invalid enum value: $bits", ErrorPath.Current))
+    }
+
+
+    private def getEnumSymbolMaskMap[T: Type](using q: Quotes): Seq[(q.reflect.Symbol, BigInt)] =
+      import q.reflect.*
+
+      val children = TypeRepr.of[T].typeSymbol.children
+
+      if children.isEmpty then
+        report.error(s"Flags enum type ${Type.show[T]} has no children")
+
+      children
+        .map { child =>
+          val bitsExpr = child
+            .getAnnotation(TypeRepr.of[flagmask].typeSymbol)
+            .getOrElse {
+              report.errorAndAbort("Could not find flagmask annotation")
+            }
+            .asExprOf[flagmask]
+
+          val bits = bitsExpr match {
+            case '{ new esexpr.flagmask(${ Expr(bits) }) } =>
+              bits
+
+            case _ =>
+              report.errorAndAbort(s"Flags enum type ${Type.show[T]} has no children")
+          }
+
+          child -> bits
+        }
+    end getEnumSymbolMaskMap
+
+
+    private inline def getFlagsEnumMask[T]: BigInt =
+      ${ getFlagsEnumMaskMacro[T] }
+
+    private def getFlagsEnumMaskMacro[T: Type](using q: Quotes): Expr[BigInt] =
+      val mask = getEnumSymbolMaskMap[T]
+        .map { _._2 }
+        .fold(0 : BigInt)(_ | _)
+
+      Expr(mask)
+    end getFlagsEnumMaskMacro
+
+    private inline def getFlagsEnumMaskLookupMap[T]: Map[T, BigInt] =
+      ${ getFlagsEnumMaskLookupMapMacro[T] }
+
+    private def getFlagsEnumMaskLookupMapMacro[T: Type](using q: Quotes): Expr[Map[T, BigInt]] =
+      import q.reflect.*
+
+      val symMaskMap = getEnumSymbolMaskMap[T]
+
+      val maskCount = symMaskMap.groupBy(_._2)
+      maskCount.find(_._2.length > 1) match {
+        case Some((mask, dupSyms)) =>
+          report.errorAndAbort(s"Flags enum type ${Type.show[T]} has duplicate mask ${mask.toString(16)} for symbols ${dupSyms.map(_._1.name).mkString(", ")}")
+
+        case None =>
+      }
+
+
+      val maskLookupPairs = symMaskMap
+        .map { (sym, bits) =>
+          if !sym.isTerm then
+            report.errorAndAbort(s"Flags enum type ${Type.show[T]} has a non-constant child symbol: ${sym.name}")
+
+          val caseValue = Ref(sym).asExprOf[T]
+
+          '{ $caseValue -> ${Expr(bits)} }
+        }
+
+      '{ Map(${Varargs(maskLookupPairs)}*) }
+    end getFlagsEnumMaskLookupMapMacro
+
+    private inline def derivedProductFlagsTuple[T, Labels <: Tuple, Types <: Tuple](inline usedMask: BigInt): ESExprCodecFlagsProduct[Types] =
+      inline (erasedValue[Labels], erasedValue[Types]) match
+        case _: ((hlabel *: tlabels), (Boolean *: ttype)) =>
+          inline if !caseFieldHasAnn[T, flagmask](constValue[hlabel & String]) then
+            scala.compiletime.error("Boolean field of flags type must be annotated with @flagmask")
+
+          validateBitMaskDisjoint(usedMask, extractFlagsMask(caseFieldGetAnn[T, flagmask](constValue[hlabel & String])))
+          validateSingleBit(extractFlagsMask(caseFieldGetAnn[T, flagmask](constValue[hlabel & String])))
+
+          val fieldCodec = FlagsProductBooleanCodec(
+            caseFieldGetAnn[T, flagmask](constValue[hlabel & String]).bits
+          )
+
+          val tailCodec = derivedProductFlagsTuple[T, tlabels, ttype](bigIntOr(usedMask, extractFlagsMask(caseFieldGetAnn[T, flagmask](constValue[hlabel & String]))))
+
+          summonInline[ESExprCodecFlagsProduct[Boolean *: ttype] <:< ESExprCodecFlagsProduct[Types]](
+            FlagsProductConsCodec[Boolean, ttype](fieldCodec, tailCodec)
+          )
+
+        case _: ((hlabel *: tlabels), (htype *: ttype)) =>
+          validateBitMaskDisjoint(usedMask, getFlagsEnumMask[htype])
+
+          val fieldCodec = FlagsProductEnumCodec[htype](
+            getFlagsEnumMask[htype],
+            getFlagsEnumMaskLookupMap[htype],
+          )
+
+          val tailCodec = derivedProductFlagsTuple[T, tlabels, ttype](bigIntOr(usedMask, getFlagsEnumMask[htype]))
+
+          summonInline[ESExprCodecFlagsProduct[htype *: ttype] <:< ESExprCodecFlagsProduct[Types]](
+            FlagsProductConsCodec[htype, ttype](fieldCodec, tailCodec)
+          )
+
+
+        case _: (EmptyTuple, EmptyTuple) =>
+          summonInline[ESExprCodecFlagsProduct[EmptyTuple] =:= ESExprCodecFlagsProduct[Types]](FlagsProductEmptyCodec)
+      end match
+
+    private inline def validateBitMaskDisjoint(inline mask1: BigInt, inline mask2: BigInt): Unit =
+      ${ validateBitMaskDisjointMacro('mask1, 'mask2) }
+
+    private def validateBitMaskDisjointMacro(mask1: Expr[BigInt], mask2: Expr[BigInt])(using q: Quotes): Expr[Unit] =
+      import q.reflect.*
+
+      if (Expr.betaReduce(mask1).valueOrAbort & Expr.betaReduce(mask2).valueOrAbort) != 0 then
+        report.errorAndAbort(s"Overlapping bits found between masks")
+      else
+        '{ () }
+    end validateBitMaskDisjointMacro
+
+    private inline def validateSingleBit(inline mask: BigInt): Unit =
+      ${ validateSingleBitMacro('mask) }
+
+    private def validateSingleBitMacro(mask: Expr[BigInt])(using q: Quotes): Expr[Unit] =
+      import q.reflect.*
+
+      val numBits = mask.valueOrAbort.bitCount
+      if numBits != 1 then
+        report.errorAndAbort("Flag must be represented with a single bit")
+
+      '{ () }
+    end validateSingleBitMacro
+
+
+    private inline def bigIntOr(inline mask1: BigInt, inline mask2: BigInt): BigInt =
+      ${ bigIntOrMacro('mask1, 'mask2) }
+
+    private def bigIntOrMacro(mask1: Expr[BigInt], mask2: Expr[BigInt])(using q: Quotes): Expr[BigInt] =
+      import q.reflect.*
+
+      Expr(mask1.valueOrAbort | mask2.valueOrAbort)
+    end bigIntOrMacro
 
     private inline def validatePositionalTags(inline prevOptionalPositionalTags: ESExprTagSet, inline tags: ESExprTagSet, inline fieldName: String): Unit =
       inline if ESExprTagSet.isAll(prevOptionalPositionalTags) then
@@ -868,6 +1086,24 @@ object ESExprCodec {
       }
 
     end extractKeywordNameMacro
+
+
+    private inline def extractFlagsMask(inline maskValue: flagmask): BigInt =
+      ${ extractFlagsMaskMacro('maskValue) }
+
+    private def extractFlagsMaskMacro(kwValue: Expr[flagmask])(using q: Quotes): Expr[BigInt] =
+      import q.reflect.*
+
+      kwValue match {
+        case '{ new esexpr.flagmask(${Expr(i)}) } =>
+          if i < 0 then report.errorAndAbort("Flag mask must be non-negative")
+          Expr(i)
+
+        case kwExpr => report.errorAndAbort("Invalid keyword annotation: " + kwExpr.show)
+      }
+
+    end extractFlagsMaskMacro
+
 
     final class ProductConsCodec[HType, TType <: Tuple](fieldCodec: ESExprCodecProduct[HType], tailCodec: ESExprCodecProduct[TType]) extends ESExprCodecProduct[HType *: TType] {
       override def isEncodedEqual(x: HType *: TType, y: HType *: TType): Boolean =
@@ -945,7 +1181,7 @@ object ESExprCodec {
         override def encode(value: A): (Seq[ESExpr], Map[String, ESExpr]) =
           optionalValueCodec.encodeOptional(value) match {
             case Some(expr) => (Seq(), Map(keyword -> expr))
-            case _: None.type => (Seq(), Map())
+            case None => (Seq(), Map())
           }
 
         override def decode(state: ProductDecodeState): Either[ProductDecodeError, (A, ProductDecodeState)] =
@@ -1007,7 +1243,7 @@ object ESExprCodec {
         override def encode(value: A): (Seq[ESExpr], Map[String, ESExpr]) =
           optionalValueCodec.encodeOptional(value) match {
             case Some(expr) => (Seq(expr), Map())
-            case _: None.type => (Seq(), Map())
+            case None => (Seq(), Map())
           }
 
         override def decode(state: ProductDecodeState): Either[ProductDecodeError, (A, ProductDecodeState)] =
@@ -1095,7 +1331,7 @@ object ESExprCodec {
       ${ derivedSumMacro[T, m.MirroredElemTypes]('codecMap) }
 
     def derivedSumMacro[T: Type, SubTypes <: Tuple: Type](codecMap: Expr[Seq[ESExprCodec[? <: T]]])(using q: Quotes): Expr[ESExprCodec[T]] =
-      try '{
+      '{
         new ESExprCodec[T] {
           private lazy val codecs: Seq[ESExprCodec[? <: T]] = ${codecMap}
 
@@ -1136,11 +1372,6 @@ object ESExprCodec {
           end decode
         }
       }
-      catch {
-        case e: Throwable =>
-          e.printStackTrace()
-          throw e
-      }
     
 
     def inlineValueCodec[T <: Product, Elem](elemCodec: ESExprCodec[Elem])(using m: Mirror.ProductOf[T] { type MirroredElemTypes = Elem *: EmptyTuple }): ESExprCodec[T] =
@@ -1163,7 +1394,7 @@ object ESExprCodec {
             m.fromTuple(res *: EmptyTuple)
           )
       }
-
+    
 
     def toSExprName(name: String): String =
       name
@@ -1205,38 +1436,6 @@ object ESExprCodec {
           toSExprName(t.name)
         }
     end getConstructor
-
-    private inline def setContains(inline s: Set[String], inline value: String): Boolean =
-      ${ setContainsMacro('s, 'value) }
-
-    private def setContainsMacro(s: Expr[Set[String]], value: Expr[String])(using q: Quotes): Expr[Boolean] =
-      import q.reflect.*
-      Expr(s.valueOrAbort.contains(value.valueOrAbort))
-    end setContainsMacro
-
-    private inline def setShow(inline s: Set[String]): String =
-      ${ setShowMacro('s) }
-
-    private def setShowMacro(s: Expr[Set[String]])(using q: Quotes): Expr[String] =
-      import q.reflect.*
-      Expr(s.valueOrAbort.toString())
-    end setShowMacro
-
-    private inline def setNonEmpty(inline s: Set[String]): Boolean =
-      ${ setNonEmptyMacro('s) }
-
-    private def setNonEmptyMacro[A: Type](s: Expr[Set[String]])(using q: Quotes): Expr[Boolean] =
-      import q.reflect.*
-      Expr(s.valueOrAbort.nonEmpty)
-    end setNonEmptyMacro
-
-    private inline def setAdd(inline s: Set[String], inline value: String): Set[String] =
-      ${ setAddMacro('s, 'value) }
-
-    private def setAddMacro(s: Expr[Set[String]], value: Expr[String])(using q: Quotes): Expr[Set[String]] =
-      import q.reflect.*
-      Expr(s.valueOrAbort + value.valueOrAbort)
-    end setAddMacro
 
   end CodecDerivation
 

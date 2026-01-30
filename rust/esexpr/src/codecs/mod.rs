@@ -8,7 +8,6 @@ mod vec;
 
 use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
-
 use crate::cowstr::CowStr;
 use crate::{DecodeError, ESExpr, ESExprTagSet};
 
@@ -87,3 +86,4 @@ where
 		constructor_name: &str,
 	) -> Result<Self, DecodeError>;
 }
+

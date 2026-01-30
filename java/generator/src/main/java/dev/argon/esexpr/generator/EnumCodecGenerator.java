@@ -13,6 +13,7 @@ import java.util.List;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 
 import static dev.argon.esexpr.generator.NameUtils.getConstructorName;
@@ -23,16 +24,37 @@ final class EnumCodecGenerator extends GeneratorBase {
 	}
 
 
-	private List<TypeElement> getCases() {
+	private List<TypeElement> getCases() throws AbortException {
 		return getEnumCases(elem, env);
 	}
 
-	public static List<TypeElement> getEnumCases(TypeElement elem, ProcessingEnvironment env) {
-		return elem.getEnclosedElements()
+	public static List<TypeElement> getEnumCases(TypeElement elem, ProcessingEnvironment env) throws AbortException {
+		var cases = elem.getEnclosedElements()
 			.stream()
 			.map(e -> e instanceof TypeElement te ? te : null)
-			.filter(te -> te != null && te.getInterfaces().stream().anyMatch((TypeMirror iface) -> env.getTypeUtils().isSameType(iface, elem.asType())))
+			.filter(te -> {
+				if(te == null) {
+					return false;
+				}
+
+				return te.getInterfaces().stream().anyMatch((TypeMirror ifaceMirror) -> {
+					var iface = (DeclaredType)ifaceMirror;
+					if(iface.getTypeArguments().size() != elem.getTypeParameters().size()) {
+						return false;
+					}
+
+					var elemType = env.getTypeUtils().getDeclaredType(elem, iface.getTypeArguments().toArray(TypeMirror[]::new));
+
+					return env.getTypeUtils().isSameType(iface, elemType);
+				});
+			})
 			.toList();
+
+		if(cases.isEmpty()) {
+			throw new AbortException("No cases found for enum " + elem.getQualifiedName(), elem);
+		}
+
+		return cases;
 	}
 
 	@Override

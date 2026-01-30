@@ -43,8 +43,8 @@ object ESExprTagSet {
     override def | (other: ESExprTagSet): ESExprTagSet =
       other match {
         case Cons(head, tail) => add(head) | tail
-        case _: Empty.type => this
-        case _: All.type => All
+        case Empty => this
+        case All => All
       }
 
     def toSet: Set[ESExprTag]
@@ -83,13 +83,13 @@ object ESExprTagSet {
 
   inline def isEmpty(inline a: ESExprTagSet): Boolean =
     inline a match
-      case _: ESExprTagSet.Empty.type => true
+      case ESExprTagSet.Empty => true
       case _ => false
     end match
 
   inline def isAll(inline a: ESExprTagSet): Boolean =
     inline a match
-      case _: ESExprTagSet.All.type => true
+      case ESExprTagSet.All => true
       case _ => false
     end match
 
@@ -100,8 +100,8 @@ object ESExprTagSet {
 
   inline def isDisjoint(inline a: ESExprTagSet, inline b: ESExprTagSet): Boolean =
     inline a match
-      case _: All.type => isEmpty(b)
-      case _: Empty.type => true
+      case All => isEmpty(b)
+      case Empty => true
       case _: Cons if contains(b, head(a)) => false
       case _: Cons => isDisjoint(tail(a), b)
     end match
@@ -130,8 +130,8 @@ object ESExprTagSet {
 
   inline def contains(inline a: ESExprTagSet, inline x: ESExprTag): Boolean =
     inline a match
-      case _: ESExprTagSet.All.type => true
-      case _: ESExprTagSet.Empty.type => false
+      case ESExprTagSet.All => true
+      case ESExprTagSet.Empty => false
       case _: ESExprTagSet.Cons =>
         inline if ESExprTag.tagEqualsInline(head(a), x) then
           true
@@ -160,8 +160,8 @@ object ESExprTagSet {
   inline def union(inline a: ESExprTagSet, inline b: ESExprTagSet): ESExprTagSet =
     inline a match
       case _: Cons => union(tail(a), add(b, head(a)))
-      case _: Empty.type => b
-      case _: All.type => All
+      case Empty => b
+      case All => All
     end match
 
   given FromExpr[ESExprTagSet]:

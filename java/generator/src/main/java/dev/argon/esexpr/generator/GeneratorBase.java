@@ -34,6 +34,9 @@ abstract class GeneratorBase extends GeneratorBaseWriter {
 	public static Function<PrintWriter, GeneratorBase> forElement(ProcessingEnvironment processingEnv, MetadataCache metadataCache, TypeElement typeElem) throws AbortException {
 		switch(typeElem.getKind()) {
 			case RECORD -> {
+				if(typeElem.getAnnotation(Flags.class) != null) {
+					return writer -> new FlagsCodecGenerator(writer, processingEnv, metadataCache, typeElem);
+				}
 				return writer -> new RecordCodecGenerator(writer, processingEnv, metadataCache, typeElem);
 			}
 			case INTERFACE -> {

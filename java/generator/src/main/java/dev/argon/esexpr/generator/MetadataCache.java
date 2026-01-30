@@ -211,7 +211,12 @@ class MetadataCache {
 
 			switch(te.getKind()) {
 				case RECORD -> {
-					return ESExprTagSet.of(new ESExprTag.Constructor(getConstructorName(te)));
+					if(te.getAnnotation(Flags.class) != null) {
+						return ESExprTagSet.of(ESExprTag.INT);
+					}
+					else {
+						return ESExprTagSet.of(new ESExprTag.Constructor(getConstructorName(te)));
+					}
 				}
 				case INTERFACE -> {
 					if(te.getModifiers().contains(Modifier.SEALED)) {

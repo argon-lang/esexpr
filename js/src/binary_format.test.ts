@@ -132,8 +132,7 @@ function json2esexpr(json: ESExprJson): ESExpr {
         return { type: "null", level: BigInt(json.null) };
     }
     else {
-        console.error(json);
-        return unreachable(json, "Invalid ESExpr JSON");
+        return unreachable(json, "Invalid ESExpr JSON: " + json);
     }
 }
 
@@ -218,7 +217,6 @@ for(const file of await fs.readdir(dir, { withFileTypes: true })) {
     const fileName = path.join(dir, file.name);
     
     test("Binary Format " + file.name, async () => {
-        console.log("Test case", fileName);
         await run_test_case(fileName);
     });
 

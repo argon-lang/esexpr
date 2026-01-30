@@ -14,7 +14,7 @@ internal abstract class BaseTypeSourceModelDeclaration : ITypeSourceModel {
 	public abstract ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler);
 
 	public virtual SourceModelType SourceModelType =>
-		new SourceModelType.NamedSymbol(Namespace, TypeName) {
+		new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(Namespace), TypeName) {
 			TypeArguments = [],
 			IsEnum = false,
 		};

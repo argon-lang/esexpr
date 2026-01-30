@@ -9,7 +9,7 @@ internal abstract class TypeSourceModelDeclaration : BaseTypeSourceModelDeclarat
 	public required ImmutableList<SourceModelSyntax<TypeParameterSyntax>> TypeParameters { get; init; }
 
 	public override SourceModelType SourceModelType =>
-		new SourceModelType.NamedSymbol(Namespace, TypeName) {
+		new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(Namespace), TypeName) {
 			TypeArguments =
 				TypeParameters
 					.Select(tp => new SourceModelType.TypeParameter(tp.Syntax.Identifier.Text))

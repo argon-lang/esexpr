@@ -107,8 +107,9 @@ internal class TypeInfoHandler {
 				return null;
 			}
 		
-			bool isCodec = GetAllBaseInterfaces(codecType).Any(i => i is SourceModelType.NamedSymbol named &&
-				named.Namespace.SequenceEqual(["ESExpr", "Runtime"]) &&
+			bool isCodec = GetAllBaseInterfaces(codecType).Any(i =>
+				i is SourceModelType.NamedSymbol { Parent: SourceModelType.NamespaceSymbolParent ns } named &&
+				ns.Namespace.SequenceEqual(["ESExpr", "Runtime"]) &&
 				named.Name == codecInterface
 			);
 				
@@ -141,11 +142,22 @@ internal class TypeInfoHandler {
 
 		TypeTags typeTags;
 		if(t.IsRecord && t.IsSealed) {
-			var constructorName = GetConstructorName(t);
-			typeTags = new TypeTags(
-				ESExprTagSet.Create([new ESExprTag.Constructor(constructorName)]),
-				[]
-			);
+			if(
+				GetAttribute(t, "ESExpr.Runtime.ESExprCodecAttribute") is { } codecAttr &&
+				codecAttr.NamedArguments.FirstOrDefault(kvp => kvp.Key == "Flags") is { Value: { Value: true } }
+			) {
+				typeTags = new TypeTags(
+					ESExprTagSet.Create([new ESExprTag.Int()]),
+					[]
+				);
+			}
+			else {
+				var constructorName = GetConstructorName(t);
+				typeTags = new TypeTags(
+					ESExprTagSet.Create([new ESExprTag.Constructor(constructorName)]),
+					[]
+				);
+			}
 		}
 		else if(t.IsRecord && t.IsAbstract) {
 			var tags = new HashSet<ESExprTag>();
@@ -189,7 +201,7 @@ internal class TypeInfoHandler {
 		
 		return new IntrinsicTypeInfo(typeTags, [
 			new SourceModelType.NamedSymbol(
-				["ESExpr", "Runtime"],
+				new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]),
 				"IESExprCodec"
 			) {
 				TypeArguments = [SourceModelType.FromSymbol(t)],
@@ -357,7 +369,7 @@ internal class TypeInfoHandler {
 
 	public TypeTags? GetTags(SourceModelType t) {
 		var codecTags = GetOverriddenTags(
-			new SourceModelType.NamedSymbol(["ESExpr", "Runtime"], "IESExprCodec") {
+			new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IESExprCodec") {
 				TypeArguments = [t],
 				IsEnum = false,
 			}
@@ -481,7 +493,7 @@ internal class TypeInfoHandler {
 						return false;
 					}
 
-					if(!actualNamed.Namespace.SequenceEqual(expectedNamed.Namespace) || actualNamed.Name != expectedNamed.Name) {
+					if(!UnifyParent(actualNamed.Parent, expectedNamed.Parent, state) || actualNamed.Name != expectedNamed.Name) {
 						return false;
 					}
 
@@ -526,6 +538,19 @@ internal class TypeInfoHandler {
 
 				default:
 					throw new Exception("Unexpected type symbol");
+			}
+		}
+
+		bool UnifyParent(SourceModelType.INamedSymbolParent actual, SourceModelType.INamedSymbolParent expected, UnifyState state) {
+			switch(expected) {
+				case SourceModelType.NamespaceSymbolParent:
+					return expected.Equals(actual);
+				
+				case SourceModelType.NamedSymbol expectedNamed:
+					return actual is SourceModelType.NamedSymbol actualNamed && Unify(actualNamed, expectedNamed, state);
+				
+				default:
+					throw new Exception("Unexpected parent type symbol");
 			}
 		}
 

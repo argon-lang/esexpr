@@ -14,10 +14,7 @@ object Option {
     o.orNull
   
   def toScalaOption[A](o: Option[A]): scala.Option[A] =
-    if o.asInstanceOf[AnyRef | Null] eq null then
-      None
-    else
-      Some(get(o.asInstanceOf[Some[A]]))
+    scala.Option(o).map(get)
 
   @JSImport("@argon-lang/esexpr", "Option")
   @js.native

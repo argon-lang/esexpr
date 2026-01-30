@@ -14,7 +14,11 @@ object ESExprTagSetProvider {
     ${ tagsForMacro[A] }
 
   private def tagsForMacro[A: Type](using q: Quotes): Expr[ESExprTagSet] =
-    tagsForImpl(q.reflect.TypeRepr.of[A])
+    tagsForImpl0(q.reflect.TypeRepr.of[A])
+
+  private def tagsForImpl0(using q: Quotes)(t: q.reflect.TypeRepr): Expr[ESExprTagSet] =
+    tagsForImpl(t)
+
 
   private def tagsForImpl(using q: Quotes)(t: q.reflect.TypeRepr): Expr[ESExprTagSet] =
     import q.reflect.*
@@ -58,13 +62,20 @@ object ESExprTagSetProvider {
 
   private def getDerivedTags(using q: Quotes)(t: q.reflect.Symbol): Expr[ESExprTagSet] =
     import q.reflect.*
+
     if t.flags.is(Flags.Case) then
       if t.hasAnnotation(TypeRepr.of[inlineValue].typeSymbol) then
-        val inlineValueField = t.primaryConstructor.paramSymss.head.head
-        val ivType = inlineValueField.tree match {
-          case fieldTree: ValDef => fieldTree.tpt.tpe
-          case _ => report.errorAndAbort("Could not get field type")
-        }
+        val ivType =
+          t.primaryConstructor.paramSymss
+            .iterator
+            .flatten
+            .map { _.tree }
+            .collectFirst {
+              case fieldTree: ValDef => fieldTree.tpt.tpe
+            }
+            .getOrElse {
+              report.errorAndAbort("Could not get field type")
+            }
         tagsForImpl(ivType)
       else
         val ctorName = ESExprCodec.CodecDerivation.getConstructor(t)
