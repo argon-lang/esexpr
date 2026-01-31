@@ -310,7 +310,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 
 			quote! {
 				let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
-				let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr>::new();
+				let mut kwargs = ::esexpr::core_types::hashbrown::HashMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr>::new();
 				#encode_fields
 				::esexpr::ESExpr::constructor(#constructor_name, args, kwargs)
 			}
@@ -425,7 +425,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
                     case_tokens = quote! {
                         #pattern => {
                             let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
-                            let mut kwargs = ::esexpr::core_types::alloc::collections::BTreeMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
+                            let mut kwargs = ::esexpr::core_types::hashbrown::HashMap::<::esexpr::cowstr::CowStr<'esexpr_lifetime>, ::esexpr::ESExpr<'esexpr_lifetime>>::new();
                             #encode_fields
                             ::esexpr::ESExpr::constructor(#constructor_name, args, kwargs)
                         }
@@ -616,7 +616,7 @@ fn get_esexpr_decode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 						<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::ConstructorArgs<'_>>>::from(args)
 					);
 					let mut arg_index = 0_usize;
-					let mut kwargs = <::esexpr::core_types::alloc::collections::BTreeMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
+					let mut kwargs = <::esexpr::core_types::hashbrown::HashMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
 					if name == #constructor_name {
 						Ok(#decode_fields)
 					}
@@ -720,7 +720,7 @@ fn get_esexpr_decode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 									<::esexpr::core_types::alloc::vec::Vec<::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::ConstructorArgs<'_>>>::from(args)
 								);
 								let mut arg_index = 0_usize;
-								let mut kwargs = <::esexpr::core_types::alloc::collections::BTreeMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
+								let mut kwargs = <::esexpr::core_types::hashbrown::HashMap<::esexpr::cowstr::CowStr<'_>, ::esexpr::ESExpr<'_>> as ::esexpr::core_types::core::convert::From<::esexpr::KeywordArgs<'_>>>::from(kwargs);
 								::esexpr::core_types::core::result::Result::Ok(#decode_fields)
 							},
 						})

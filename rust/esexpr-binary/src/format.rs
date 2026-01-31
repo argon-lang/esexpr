@@ -56,6 +56,8 @@ pub const TAG_FLOAT32: u8 = 0xE4;
 pub const TAG_FLOAT64: u8 = 0xE5;
 pub const TAG_CONSTRUCTOR_START_STRING_TABLE: u8 = 0xE6;
 pub const TAG_CONSTRUCTOR_START_LIST: u8 = 0xE7;
+pub const TAG_CONSTRUCTOR_START_MAP: u8 = 0xF1;
+pub const TAG_CONSTRUCTOR_START_SET: u8 = 0xF2;
 pub const TAG_APPEND_STRING_TABLE: u8 = 0xEB;
 
 pub const TAG_ARRAY16: u8 = 0xED;

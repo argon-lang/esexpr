@@ -1,4 +1,11 @@
-import { unreachable, valuesEqual } from "./util.js";
+export {VMap} from "./vmap.js";
+export {VSet} from "./vset.js";
+export {HashEq} from "./hash.js";
+import { valuesEqual } from "./util.js";
+import { VMap } from "./vmap.js";
+import { VSet } from "./vset.js";
+
+import type {HashEq} from "./hash.js";
 
 export type ESExpr =
     | ESExpr.Constructor
@@ -157,7 +164,7 @@ export namespace ESExpr {
             return ESExprTagSet.All;
         },
 
-        isEncodedEqual(a, b) {
+        isEncodedEqual(a: ESExpr, b: ESExpr): boolean {
             if(typeof a !== "object") {
                 return typeof b !== "object" && Object.is(a, b);
             }
@@ -265,7 +272,7 @@ export namespace ESExpr {
                     return b.type === "array128" && array8Codec.isEncodedEqual(a.value, b.value);
 
                 default:
-                    unreachable(a, "Unexpected ESExpr value");
+                    throw new Error("Unexpected expression type: " + (a satisfies never));
             }
         },
 
@@ -798,6 +805,46 @@ export const array64Codec: ESExprCodec<BigUint64Array> = {
     },
 };
 
+export const array128Codec: ESExprCodec<Uint8Array> = {
+    get tags(): ESExprTagSet {
+        return new Set([Array128Symbol]);
+    },
+
+    isEncodedEqual(a, b) {
+        if(a.length !== b.length) {
+            return false;
+        }
+
+        for(let i = 0; i < a.length; ++i) {
+            if(a[i] !== b[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    },
+
+    encode: function (value: Uint8Array): ESExpr {
+        return {
+            type: "array128",
+            value,
+        };
+    },
+
+    decode: function (expr: ESExpr): DecodeResult<Uint8Array> {
+        if(ESExpr.isArray128(expr)) {
+            return { success: true, value: expr.value };
+        }
+        else {
+            return {
+                success: false,
+                message: "Expected an array128 value, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
+                path: { type: "current" },
+            };
+        }
+    },
+};
+
 export const float16Codec: ESExprCodec<number> = {
     get tags(): ESExprTagSet {
         return new Set([Float16Symbol]);
@@ -1209,6 +1256,190 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 export function optionCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<Option<T>> {
     return new OptionCodec(itemCodec);
 }
+
+class VMapCodec<K, V> implements ESExprCodec<VMap<K, V>> {
+    constructor(keyHash: HashEq<K>, keyCodec: ESExprCodec<K>, valueCodec: ESExprCodec<V>) {
+        this.#keyHash = keyHash;
+        this.#keyCodec = keyCodec;
+        this.#valueCodec = valueCodec;
+    }
+
+    readonly #keyHash: HashEq<K>;
+    readonly #keyCodec: ESExprCodec<K>;
+    readonly #valueCodec: ESExprCodec<V>;
+
+    get tags(): ESExprTagSet {
+        return new Set(["map"]);
+    }
+
+    isEncodedEqual(a: VMap<K, V>, b: VMap<K, V>): boolean {
+        if(a.size !== b.size) {
+            return false;
+        }
+
+        for(const [k, va] of a) {
+            if(!b.has(k)) {
+                return false;
+            }
+
+            const vb: V = b.get(k)!;;
+            if(!this.#valueCodec.isEncodedEqual(va, vb)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    encode(value: VMap<K, V>): ESExpr {
+        const args: ESExpr[] = [];
+        for(const [k, v] of value) {
+            args.push(this.#keyCodec.encode(k));
+            args.push(this.#valueCodec.encode(v));
+        }
+
+        return {
+            type: "constructor",
+            name: "map",
+            args,
+            kwargs: new Map(),
+        };
+    }
+
+    decode(expr: ESExpr): DecodeResult<VMap<K, V>> {
+        if(!ESExpr.isConstructor(expr) || expr.name !== "map") {
+            return {
+                success: false,
+                message: "Expected a map constructor",
+                path: { type: "current" },
+            };
+        }
+
+        if(expr.kwargs.size > 0) {
+            return {
+                success: false,
+                message: "Map must not have keyword arguments",
+                path: { type: "current" },
+            };
+        }
+
+        const items: [K, V][] = [];
+        for(let i = 0; i < expr.args.length; i += 2) {
+            const k = this.#keyCodec.decode(expr.args[i]!);
+            if(!k.success) {
+                return {
+                    success: false,
+                    message: k.message,
+                    path: { type: "positional", constructor: "map", index: i, next: k.path }
+                };
+            }
+
+            const v = this.#valueCodec.decode(expr.args[i + 1]!);
+            if(!v.success) {
+                return {
+                    success: false,
+                    message: v.message,
+                    path: { type: "positional", constructor: "map", index: i + 1, next: v.path }
+                };
+            }
+
+            items.push([k.value, v.value]);
+        }
+
+        return {
+            success: true,
+            value: VMap.create(this.#keyHash, items),
+        };
+    }
+}
+
+export function vmapCodec<K, V>(keyHash: HashEq<K>, keyCodec: ESExprCodec<K>, valueCodec: ESExprCodec<V>): ESExprCodec<VMap<K, V>> {
+    return new VMapCodec(keyHash, keyCodec, valueCodec);
+}
+
+class VSetCodec<A> implements ESExprCodec<VSet<A>> {
+    constructor(itemHash: HashEq<A>, itemCodec: ESExprCodec<A>) {
+        this.#itemHash = itemHash;
+        this.#itemCodec = itemCodec;
+    }
+
+    readonly #itemHash: HashEq<A>;
+    readonly #itemCodec: ESExprCodec<A>;
+
+    get tags(): ESExprTagSet {
+        return new Set(["set"]);
+    }
+
+    isEncodedEqual(a: VSet<A>, b: VSet<A>): boolean {
+        if(a.size !== b.size) {
+            return false;
+        }
+
+        for(const item of a) {
+            if(!b.has(item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    encode(value: VSet<A>): ESExpr {
+        const args: ESExpr[] = [];
+        for(const item of value) {
+            args.push(this.#itemCodec.encode(item));
+        }
+
+        return {
+            type: "constructor",
+            name: "set",
+            args,
+            kwargs: new Map(),
+        };
+    }
+
+    decode(expr: ESExpr): DecodeResult<VSet<A>> {
+        if(!ESExpr.isConstructor(expr) || expr.name !== "set") {
+            return {
+                success: false,
+                message: "Expected a set constructor",
+                path: { type: "current" },
+            };
+        }
+
+        if(expr.kwargs.size > 0) {
+            return {
+                success: false,
+                message: "Set must not have keyword arguments",
+                path: { type: "current" },
+            };
+        }
+
+        const items: A[] = [];
+        for(let i = 0; i < expr.args.length; i++) {
+            const item = this.#itemCodec.decode(expr.args[i]!);
+            if(!item.success) {
+                return {
+                    success: false,
+                    message: item.message,
+                    path: { type: "positional", constructor: "set", index: i, next: item.path }
+                };
+            }
+
+            items.push(item.value);
+        }
+
+        return {
+            success: true,
+            value: VSet.create(this.#itemHash, items),
+        };
+    }
+}
+
+export function vsetCodec<A>(itemHash: HashEq<A>, itemCodec: ESExprCodec<A>): ESExprCodec<VSet<A>> {
+    return new VSetCodec(itemHash, itemCodec);
+}
+
 
 
 export type ESExprFlagsMap<T> = {

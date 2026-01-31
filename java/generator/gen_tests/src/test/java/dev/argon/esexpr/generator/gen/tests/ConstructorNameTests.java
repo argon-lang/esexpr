@@ -1,5 +1,7 @@
 package dev.argon.esexpr.generator.gen.tests;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import dev.argon.esexpr.*;
 import dev.argon.esexpr.generator.gen.*;
 import org.junit.jupiter.api.Test;
@@ -19,7 +21,7 @@ public class ConstructorNameTests extends TestBase {
 			PrimitiveFields.codec(),
 			new ESExpr.Constructor(
 				"primitive-fields",
-				List.of(
+				ImmutableList.of(
 					new ESExpr.Bool(false),
 					new ESExpr.Int(BigInteger.ZERO),
 					new ESExpr.Int(BigInteger.valueOf(255)),
@@ -32,7 +34,7 @@ public class ConstructorNameTests extends TestBase {
 					new ESExpr.Float32(0.0f),
 					new ESExpr.Float64(0.0)
 				),
-				Map.of()
+				ImmutableMap.of()
 			),
 			new PrimitiveFields(false, (byte)0, (byte)-1, (short)0, (short)-1, 0, -1, 0L, -1L, 0.0f, 0.0)
 		);
@@ -42,8 +44,8 @@ public class ConstructorNameTests extends TestBase {
 			ConstructorName123Conversion.codec(),
 			new ESExpr.Constructor(
 				"constructor-name123-conversion",
-				List.of(new ESExpr.Int(BigInteger.ZERO)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new ConstructorName123Conversion(0)
 		);
@@ -53,8 +55,8 @@ public class ConstructorNameTests extends TestBase {
 			ConstructorName_456Conversion.codec(),
 			new ESExpr.Constructor(
 				"constructor-name-456-conversion",
-				List.of(new ESExpr.Int(BigInteger.ZERO)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new ConstructorName_456Conversion(0)
 		);
@@ -64,8 +66,8 @@ public class ConstructorNameTests extends TestBase {
 			MyEnum.codec(),
 			new ESExpr.Constructor(
 				"my-case-a",
-				List.of(new ESExpr.Int(BigInteger.ZERO)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new MyEnum.MyCaseA(0)
 		);
@@ -73,8 +75,8 @@ public class ConstructorNameTests extends TestBase {
 			MyEnum.codec(),
 			new ESExpr.Constructor(
 				"my-case-b",
-				List.of(new ESExpr.Float32(0.0f)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Float32(0.0f)),
+				ImmutableMap.of()
 			),
 			new MyEnum.MyCaseB(0.0f)
 		);
@@ -88,8 +90,8 @@ public class ConstructorNameTests extends TestBase {
 			CustomConstructorRecord.codec(),
 			new ESExpr.Constructor(
 				"my-ctor-name",
-				List.of(new ESExpr.Bool(true)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Bool(true)),
+				ImmutableMap.of()
 			),
 			new CustomConstructorRecord(true)
 		);
@@ -100,8 +102,8 @@ public class ConstructorNameTests extends TestBase {
 			CustomConstructorEnum.codec(),
 			new ESExpr.Constructor(
 				"my-ctor-name",
-				List.of(new ESExpr.Int(BigInteger.ZERO)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new CustomConstructorEnum.CustomNameCase(0)
 		);
@@ -109,8 +111,8 @@ public class ConstructorNameTests extends TestBase {
 			CustomConstructorEnum.codec(),
 			new ESExpr.Constructor(
 				"normal-name-case",
-				List.of(new ESExpr.Float32(0.0f)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Float32(0.0f)),
+				ImmutableMap.of()
 			),
 			new CustomConstructorEnum.NormalNameCase(0.0f)
 		);

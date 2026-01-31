@@ -174,6 +174,8 @@ macro_rules! writer_mod {
 							match &**name {
 								"string-table" => do_await!($syncness, self.write(TAG_CONSTRUCTOR_START_STRING_TABLE))?,
 								"list" => do_await!($syncness, self.write(TAG_CONSTRUCTOR_START_LIST))?,
+								"map" => do_await!($syncness, self.write(TAG_CONSTRUCTOR_START_MAP))?,
+								"set" => do_await!($syncness, self.write(TAG_CONSTRUCTOR_START_SET))?,
 								_ => {
 									let index = do_await!($syncness, self.get_string_pool_index(name))?;
 									do_await!(

@@ -1,10 +1,11 @@
 package dev.argon.esexpr;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.eclipse.collections.api.factory.primitive.ByteLists;
 import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.ShortLists;
-import org.eclipse.collections.api.list.ImmutableList;
 import org.eclipse.collections.impl.factory.Lists;
 
 import com.fasterxml.jackson.core.JacksonException;
@@ -33,7 +34,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 			return new ESExpr.Null(BigInteger.ZERO);
 		}
 		else if(node.isArray()) {
-			List<ESExpr> l = new ArrayList<>();
+			var l = ImmutableList.<ESExpr>builder();
 			for(var elem : node) {
 				var value = mapper.convertValue(elem, ESExpr.class);
 				l.add(value == null ? new ESExpr.Null(BigInteger.ZERO) : value);
@@ -41,15 +42,15 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 
 			return new ESExpr.Constructor(
 				"list",
-				l,
-				new HashMap<>()
+				l.build(),
+				ImmutableMap.of()
 			);
 		}
 		else if(node.isObject()) {
 			if(node.has("constructor_name")) {
 				var name = node.get("constructor_name").asText();
 
-				List<ESExpr> args = new ArrayList<>();
+				var args = ImmutableList.<ESExpr>builder();
 				if(node.has("args")) {
 					for(var elem : node.get("args")) {
 						args.add(mapper.convertValue(elem, ESExpr.class));
@@ -66,7 +67,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 					}
 				}
 
-				return new ESExpr.Constructor(name, args, kwargs);
+				return new ESExpr.Constructor(name, args.build(), ImmutableMap.copyOf(kwargs));
 			}
 			else if(node.has("int")) {
 				return new ESExpr.Int(new BigInteger(node.get("int").asText()));

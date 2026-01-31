@@ -37,8 +37,7 @@ object ESExprTagSetProvider {
 
         val tagsMethod = normTerm.tpe.typeSymbol
           .methodMember("tags")
-          .filter { tagsMember => tagsMember.paramSymss.isEmpty }
-          .headOption
+          .find { tagsMember => tagsMember.paramSymss.isEmpty }
           .getOrElse { report.errorAndAbort("Could not find tags method") }
 
         tagsMethod.tree match {

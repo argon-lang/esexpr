@@ -545,6 +545,120 @@ object ESExprCodec {
       }
   end given
 
+  given [K: ESExprCodec, V: ESExprCodec] => ESExprCodec[Map[K, V]]:
+    override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Constructor("map"), ESExprTagSet.Empty)
+
+    override def isEncodedEqual(x: Map[K, V], y: Map[K, V]): Boolean =
+      x.size == y.size && x.forall { case (k, v) =>
+        y.get(k).exists(v2 => summon[ESExprCodec[V]].isEncodedEqual(v, v2))
+      }
+
+    override def encode(value: Map[K, V]): ESExpr =
+      ESExpr.Constructor(
+        "map",
+        value
+          .iterator
+          .flatMap { case (k, v) => Seq(summon[ESExprCodec[K]].encode(k), summon[ESExprCodec[V]].encode(v)) }
+          .toSeq,
+        Map(),
+      )
+
+    override def decode(expr: ESExpr): Either[DecodeError, Map[K, V]] =
+      expr match {
+        case ESExpr.Constructor("map", _, kwargs) if kwargs.nonEmpty =>
+          Left(DecodeError("Unexpected keyword arguments for map", ErrorPath.Current))
+
+        case ESExpr.Constructor("map", args, _) if args.size % 2 != 0 =>
+          Left(DecodeError("Map constructor expects even number of arguments", ErrorPath.Current))
+        
+        case ESExpr.Constructor("map", args, _) =>
+          val argsIter = args.iterator
+          
+          sequenceIteratorMap(
+            Iterator
+              .continually {
+                if argsIter.hasNext then
+                  val kExpr = argsIter.next()
+                  if argsIter.hasNext then
+                    val vExpr = argsIter.next()
+                    Some((kExpr, vExpr))
+                  else
+                    None
+                else
+                  None
+              }
+              .takeWhile(_.nonEmpty)
+              .flatten
+              .map { (k, v) =>
+                for
+                  k <- summon[ESExprCodec[K]].decode(k)
+                  v <- summon[ESExprCodec[V]].decode(v)
+                yield k -> v
+              },
+          )
+
+
+        case _ =>
+          Left(DecodeError("Expected constructor for map", ErrorPath.Current))
+      }
+      
+    private def sequenceIteratorMap[E, K, V](it: Iterator[Either[E, (K, V)]]): Either[E, Map[K, V]] =
+      val b = Map.newBuilder[K, V]
+      while it.hasNext do
+        it.next() match
+          case Left(e) => return Left(e)
+          case Right(p) => b += p
+      Right(b.result())
+    end sequenceIteratorMap
+      
+  end given
+
+  given [A: ESExprCodec] => ESExprCodec[Set[A]]:
+    override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Constructor("set"), ESExprTagSet.Empty)
+
+    override def isEncodedEqual(x: Set[A], y: Set[A]): Boolean =
+      x.size == y.size && x.forall(y.contains)
+
+    override def encode(value: Set[A]): ESExpr =
+      ESExpr.Constructor(
+        "map",
+        value
+          .iterator
+          .map(summon[ESExprCodec[A]].encode)
+          .toSeq,
+        Map(),
+      )
+
+    override def decode(expr: ESExpr): Either[DecodeError, Set[A]] =
+      expr match {
+        case ESExpr.Constructor("map", _, kwargs) if kwargs.nonEmpty =>
+          Left(DecodeError("Unexpected keyword arguments for map", ErrorPath.Current))
+
+        case ESExpr.Constructor("map", args, _) =>
+          val argsIter = args.iterator
+
+          sequenceIteratorSet(
+            args
+              .iterator
+              .map(summon[ESExprCodec[A]].decode),
+          )
+
+
+        case _ =>
+          Left(DecodeError("Expected constructor for map", ErrorPath.Current))
+      }
+
+    private def sequenceIteratorSet[E, A](it: Iterator[Either[E, A]]): Either[E, Set[A]] =
+      val b = Set.newBuilder[A]
+      while it.hasNext do
+        it.next() match
+          case Left(e) => return Left(e)
+          case Right(a) => b += a
+      Right(b.result())
+    end sequenceIteratorSet
+
+  end given
+
   export CodecDerivation.derived
 
   object CodecDerivation:

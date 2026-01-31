@@ -20,6 +20,8 @@ num-bigint = { workspace = true }
 num-traits = { workspace = true }
 esexpr-derive = { workspace = true }
 half = { workspace = true }
+hashbrown = { workspace = true }
+itertools = { workspace = true }
 
 [lints]
 workspace = true

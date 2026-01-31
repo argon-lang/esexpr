@@ -1,5 +1,7 @@
 package dev.argon.esexpr;
 
+import com.google.common.collect.ImmutableList;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -54,7 +56,9 @@ public class ESExprBinaryWriter {
 				writeExprRaw(new ESExpr.Str(symbolTable.get(oldSize)));
 			}
 			else {
-				var appendTable = new StringTable(symbolTable.subList(oldSize, symbolTable.size()));
+				var appendTable = new StringTable(
+					ImmutableList.copyOf(symbolTable.subList(oldSize, symbolTable.size()))
+				);
 				writeExprRaw(StringTable.codec().encode(appendTable));
 			}
 		}
@@ -68,6 +72,8 @@ public class ESExprBinaryWriter {
 				switch(constructor) {
 					case BinToken.StringTableName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE);
 					case BinToken.ListName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_LIST);
+					case BinToken.MapName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_MAP);
+					case BinToken.SetName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_SET);
 					default -> {
 						var index = getSymbolIndex(constructor);
 						writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.CONSTRUCTOR, index));
@@ -257,6 +263,8 @@ public class ESExprBinaryWriter {
 					case FLOAT64 -> 0xE5;
 					case CONSTRUCTOR_START_STRING_TABLE -> 0xE6;
 					case CONSTRUCTOR_START_LIST -> 0xE7;
+					case CONSTRUCTOR_START_MAP -> 0xF1;
+					case CONSTRUCTOR_START_SET -> 0xF2;
 					case APPEND_STRING_TABLE -> 0xEB;
 					case ARRAY16 -> 0xED;
 					case ARRAY32 -> 0xEE;

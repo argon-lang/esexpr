@@ -1,5 +1,6 @@
 package dev.argon.esexpr.codecs;
 
+import com.google.common.collect.ImmutableList;
 import dev.argon.esexpr.*;
 
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public class ListVarargCodec<T> implements VarargCodec<List<T>, T> {
 	}
 
 	@Override
-	public void encodeVararg(List<T> value, List<ESExpr> exprs) {
+	public void encodeVararg(List<T> value, ImmutableList.Builder<ESExpr> exprs) {
 		for(var elem : value) {
 			exprs.add(elementCodec.encode(elem));
 		}

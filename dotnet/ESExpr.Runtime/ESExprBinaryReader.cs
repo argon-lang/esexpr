@@ -255,6 +255,14 @@ public class ESExprBinaryReader {
 			case BinToken.TokenType.ConstructorStartList:
 				expr = await ReadConstructor(ListCodecBase<int, List<int>>.ListConstructor, cancellationToken).ConfigureAwait(false);
 				break;
+			
+			case BinToken.TokenType.ConstructorStartMap:
+				expr = await ReadConstructor(MapCodecBase<int, int, Dictionary<int, int>>.MapConstructor, cancellationToken).ConfigureAwait(false);
+				break;
+			
+			case BinToken.TokenType.ConstructorStartSet:
+				expr = await ReadConstructor(SetCodecBase<int, HashSet<int>>.SetConstructor, cancellationToken).ConfigureAwait(false);
+				break;
 
 			case BinToken.TokenType.AppendStringTable: {
 				var newStringTableExpr = await Read(cancellationToken).ConfigureAwait(false);
@@ -417,6 +425,8 @@ public class ESExprBinaryReader {
 				0xF0 => BinToken.TokenType.Array128,
 				0xE6 => BinToken.TokenType.ConstructorStartStringTable,
 				0xE7 => BinToken.TokenType.ConstructorStartList,
+				0xF1 => BinToken.TokenType.ConstructorStartMap,
+				0xF2 => BinToken.TokenType.ConstructorStartSet,
 				0xEB => BinToken.TokenType.AppendStringTable,
 				_ => throw new SyntaxException(),
 			};

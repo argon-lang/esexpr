@@ -1,5 +1,7 @@
 package dev.argon.esexpr.generator.gen.tests;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import dev.argon.esexpr.DecodeException;
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.generator.gen.*;
@@ -18,17 +20,17 @@ public class OptionalTests {
     public void varargAfterOptional() throws DecodeException {
         ESExpr expr = new ESExpr.Constructor(
             "vararg-after-optional",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Int(BigInteger.valueOf(5)),
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f)
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         VarargAfterOptional value = new VarargAfterOptional(
             Optional.of(5),
-            List.of(1.0f, 2.0f, 3.0f)
+            ImmutableList.of(1.0f, 2.0f, 3.0f)
         );
 
 		assertEquals(expr, VarargAfterOptional.codec().encode(value));
@@ -36,16 +38,16 @@ public class OptionalTests {
 
 		expr = new ESExpr.Constructor(
             "vararg-after-optional",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f)
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         value = new VarargAfterOptional(
             Optional.empty(),
-            List.of(1.0f, 2.0f, 3.0f)
+            ImmutableList.of(1.0f, 2.0f, 3.0f)
         );
 
         assertEquals(expr, VarargAfterOptional.codec().encode(value));
@@ -53,20 +55,20 @@ public class OptionalTests {
 
         expr = new ESExpr.Constructor(
             "vararg-after-optional",
-            List.of(new ESExpr.Int(BigInteger.valueOf(5))),
-            java.util.Map.of()
+            ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))),
+            ImmutableMap.of()
         );
-        value = new VarargAfterOptional(Optional.of(5), List.of());
+        value = new VarargAfterOptional(Optional.of(5), ImmutableList.of());
 
         assertEquals(expr, VarargAfterOptional.codec().encode(value));
         assertEquals(value, VarargAfterOptional.codec().decode(expr));
 
         expr = new ESExpr.Constructor(
             "vararg-after-optional",
-            List.of(),
-            java.util.Map.of()
+            ImmutableList.of(),
+            ImmutableMap.of()
         );
-        value = new VarargAfterOptional(Optional.empty(), List.of());
+        value = new VarargAfterOptional(Optional.empty(), ImmutableList.of());
 
         assertEquals(expr, VarargAfterOptional.codec().encode(value));
         assertEquals(value, VarargAfterOptional.codec().decode(expr));
@@ -76,16 +78,16 @@ public class OptionalTests {
     public void optionalAfterVararg() throws DecodeException {
         ESExpr expr = new ESExpr.Constructor(
             "optional-after-vararg",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f),
                 new ESExpr.Int(BigInteger.valueOf(5))
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         OptionalAfterVararg value = new OptionalAfterVararg(
-            List.of(1.0f, 2.0f, 3.0f),
+            ImmutableList.of(1.0f, 2.0f, 3.0f),
             Optional.of(5)
         );
 
@@ -94,15 +96,15 @@ public class OptionalTests {
 
         expr = new ESExpr.Constructor(
             "optional-after-vararg",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f)
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         value = new OptionalAfterVararg(
-            List.of(1.0f, 2.0f, 3.0f),
+            ImmutableList.of(1.0f, 2.0f, 3.0f),
             Optional.empty()
         );
 
@@ -111,20 +113,20 @@ public class OptionalTests {
 
         expr = new ESExpr.Constructor(
             "optional-after-vararg",
-            List.of(new ESExpr.Int(BigInteger.valueOf(5))),
-            java.util.Map.of()
+            ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))),
+            ImmutableMap.of()
         );
-        value = new OptionalAfterVararg(List.of(), Optional.of(5));
+        value = new OptionalAfterVararg(ImmutableList.of(), Optional.of(5));
 
         assertEquals(expr, OptionalAfterVararg.codec().encode(value));
         assertEquals(value, OptionalAfterVararg.codec().decode(expr));
 
         expr = new ESExpr.Constructor(
             "optional-after-vararg",
-            List.of(),
-            java.util.Map.of()
+            ImmutableList.of(),
+            ImmutableMap.of()
         );
-        value = new OptionalAfterVararg(List.of(), Optional.empty());
+        value = new OptionalAfterVararg(ImmutableList.of(), Optional.empty());
 
         assertEquals(expr, OptionalAfterVararg.codec().encode(value));
         assertEquals(value, OptionalAfterVararg.codec().decode(expr));
@@ -134,16 +136,16 @@ public class OptionalTests {
     public void requiredAfterVararg() throws DecodeException {
         ESExpr expr = new ESExpr.Constructor(
             "required-after-vararg",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f),
                 new ESExpr.Int(BigInteger.valueOf(5))
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         RequiredAfterVararg value = new RequiredAfterVararg(
-            List.of(1.0f, 2.0f, 3.0f),
+            ImmutableList.of(1.0f, 2.0f, 3.0f),
             5
         );
 
@@ -152,10 +154,10 @@ public class OptionalTests {
 
         expr = new ESExpr.Constructor(
             "required-after-vararg",
-            List.of(new ESExpr.Int(BigInteger.valueOf(5))),
-            java.util.Map.of()
+            ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))),
+            ImmutableMap.of()
         );
-        value = new RequiredAfterVararg(List.of(), 5);
+        value = new RequiredAfterVararg(ImmutableList.of(), 5);
 
         assertEquals(expr, RequiredAfterVararg.codec().encode(value));
         assertEquals(value, RequiredAfterVararg.codec().decode(expr));
@@ -165,7 +167,7 @@ public class OptionalTests {
     public void multipleVararg() throws DecodeException {
         ESExpr expr = new ESExpr.Constructor(
             "multiple-vararg",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f),
@@ -173,11 +175,11 @@ public class OptionalTests {
                 new ESExpr.Int(BigInteger.valueOf(2)),
                 new ESExpr.Int(BigInteger.valueOf(3))
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         MultipleVararg value = new MultipleVararg(
-            List.of(1.0f, 2.0f, 3.0f),
-            List.of(1, 2, 3)
+            ImmutableList.of(1.0f, 2.0f, 3.0f),
+            ImmutableList.of(1, 2, 3)
         );
 
         assertEquals(expr, MultipleVararg.codec().encode(value));
@@ -185,16 +187,16 @@ public class OptionalTests {
 
         expr = new ESExpr.Constructor(
             "multiple-vararg",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Float32(1.0f),
                 new ESExpr.Float32(2.0f),
                 new ESExpr.Float32(3.0f)
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
         value = new MultipleVararg(
-            List.of(1.0f, 2.0f, 3.0f),
-            List.of()
+            ImmutableList.of(1.0f, 2.0f, 3.0f),
+            ImmutableList.of()
         );
 
         assertEquals(expr, MultipleVararg.codec().encode(value));
@@ -202,24 +204,24 @@ public class OptionalTests {
 
         expr = new ESExpr.Constructor(
             "multiple-vararg",
-            List.of(
+            ImmutableList.of(
                 new ESExpr.Int(BigInteger.valueOf(1)),
                 new ESExpr.Int(BigInteger.valueOf(2)),
                 new ESExpr.Int(BigInteger.valueOf(3))
             ),
-            java.util.Map.of()
+            ImmutableMap.of()
         );
-        value = new MultipleVararg(List.of(), List.of(1, 2, 3));
+        value = new MultipleVararg(ImmutableList.of(), ImmutableList.of(1, 2, 3));
 
         assertEquals(expr, MultipleVararg.codec().encode(value));
         assertEquals(value, MultipleVararg.codec().decode(expr));
 
         expr = new ESExpr.Constructor(
             "multiple-vararg",
-            List.of(),
-            java.util.Map.of()
+            ImmutableList.of(),
+            ImmutableMap.of()
         );
-        value = new MultipleVararg(List.of(), List.of());
+        value = new MultipleVararg(ImmutableList.of(), ImmutableList.of());
 
         assertEquals(expr, MultipleVararg.codec().encode(value));
         assertEquals(value, MultipleVararg.codec().decode(expr));
@@ -229,12 +231,12 @@ public class OptionalTests {
 	public void positionalDefaultValue() throws DecodeException {
 		ESExpr expr = new ESExpr.Constructor(
 			"positional-default-value",
-			List.of(
+			ImmutableList.of(
 				new ESExpr.Int(BigInteger.valueOf(10)),
 				new ESExpr.Float32(20.0f),
 				new ESExpr.Str("abc")
 			),
-			Map.of()
+			ImmutableMap.of()
 		);
 		PositionalDefaultValue value = new PositionalDefaultValue(10, 20.0f, "abc");
 
@@ -243,11 +245,11 @@ public class OptionalTests {
 
 		expr = new ESExpr.Constructor(
 			"positional-default-value",
-			List.of(
+			ImmutableList.of(
 				new ESExpr.Float32(20.0f),
 				new ESExpr.Str("abc")
 			),
-			Map.of()
+			ImmutableMap.of()
 		);
 		value = new PositionalDefaultValue(4, 20.0f, "abc");
 
@@ -256,11 +258,11 @@ public class OptionalTests {
 
 		expr = new ESExpr.Constructor(
 			"positional-default-value",
-			List.of(
+			ImmutableList.of(
 				new ESExpr.Int(BigInteger.valueOf(10)),
 				new ESExpr.Str("abc")
 			),
-			Map.of()
+			ImmutableMap.of()
 		);
 		value = new PositionalDefaultValue(10, 5.0f, "abc");
 
@@ -269,10 +271,10 @@ public class OptionalTests {
 
 		expr = new ESExpr.Constructor(
 			"positional-default-value",
-			List.of(
+			ImmutableList.of(
 				new ESExpr.Str("abc")
 			),
-			Map.of()
+			ImmutableMap.of()
 		);
 		value = new PositionalDefaultValue(4, 5.0f, "abc");
 

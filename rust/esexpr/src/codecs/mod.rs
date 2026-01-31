@@ -1,15 +1,25 @@
+#[macro_use]
+mod map;
+#[macro_use]
+mod set;
 mod boxed;
 mod btreemap;
+mod btreeset;
+mod hashbrown_map;
+mod hashbrown_set;
 #[cfg(feature = "std")]
 mod hashmap;
+#[cfg(feature = "std")]
+mod hashset;
 mod option;
 mod scalar;
 mod vec;
 
-use alloc::collections::{BTreeMap, VecDeque};
-use alloc::vec::Vec;
 use crate::cowstr::CowStr;
 use crate::{DecodeError, ESExpr, ESExprTagSet};
+use alloc::collections::VecDeque;
+use alloc::vec::Vec;
+use hashbrown::HashMap;
 
 /// Equality for the encoded ESExpr representation.
 pub trait ESExprEncodedEq {
@@ -75,14 +85,14 @@ where
 	type Element: ESExprCodec<'a> + 'a;
 
 	/// Encode dictionary arguments.
-	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>);
+	fn encode_dict_element(&'a self, kwargs: &mut HashMap<CowStr<'a>, ESExpr<'a>>);
 
 	/// Decode dictionary arguments.
 	///
 	/// # Errors
 	/// Will return `Err` if decoding fails.
 	fn decode_dict_element(
-		kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>,
+		kwargs: &mut HashMap<CowStr<'a>, ESExpr<'a>>,
 		constructor_name: &str,
 	) -> Result<Self, DecodeError>;
 }

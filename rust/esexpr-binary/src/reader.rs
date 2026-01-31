@@ -142,6 +142,8 @@ macro_rules! reader_mod {
 						},
 						TAG_CONSTRUCTOR_START_STRING_TABLE => ExprToken::ConstructorStartKnown("string-table"),
 						TAG_CONSTRUCTOR_START_LIST => ExprToken::ConstructorStartKnown("list"),
+						TAG_CONSTRUCTOR_START_MAP => ExprToken::ConstructorStartKnown("map"),
+						TAG_CONSTRUCTOR_START_SET => ExprToken::ConstructorStartKnown("set"),
 						TAG_APPEND_STRING_TABLE => ExprToken::AppendStringTable,
 						TAG_ARRAY16 => {
 							let n = get_length(do_await!($syncness, read_int_full(reader))?)?;

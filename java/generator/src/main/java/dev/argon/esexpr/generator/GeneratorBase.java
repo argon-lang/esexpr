@@ -348,8 +348,8 @@ abstract class GeneratorBase extends GeneratorBaseWriter {
 		var kwargNames = new HashSet<String>();
 		var prevOptionalPositionalTags = ESExprTagSet.of();
 
-		println("var args = new java.util.ArrayList<dev.argon.esexpr.ESExpr>();");
-		println("var kwargs = new java.util.HashMap<java.lang.String, dev.argon.esexpr.ESExpr>();");
+		println("var args = com.google.common.collect.ImmutableList.<dev.argon.esexpr.ESExpr>builder();");
+		println("var kwargs = com.google.common.collect.ImmutableMap.<java.lang.String, dev.argon.esexpr.ESExpr>builder();");
 
 		for(var field : getFields(te)) {
 			var kwAnn = getKeywordAnn(field).orElse(null);
@@ -451,19 +451,12 @@ abstract class GeneratorBase extends GeneratorBaseWriter {
 					throw new AbortException("Keyword arguments cannot be used with dict arguments", field);
 				}
 
-				print("for(var pair : ");
 				printCodecExpr(field.asType(), field, CodecOverride.CodecType.DICT);
 				print(".encodeDict(");
 				print(valueVarName);
 				print(".");
 				print(field.getSimpleName());
-				println("()).entrySet()) {");
-				indent();
-
-				println("kwargs.put(pair.getKey(), pair.getValue());");
-
-				dedent();
-				println("}");
+				println("(), kwargs);");
 				continue;
 			}
 
@@ -519,7 +512,7 @@ abstract class GeneratorBase extends GeneratorBaseWriter {
 		}
 		print(" new dev.argon.esexpr.ESExpr.Constructor(");
 		printStringLiteral(getConstructorName(te));
-		println(", args, kwargs);");
+		println(", args.build(), kwargs.build());");
 	}
 
 	private void posTagCheck(RecordComponentElement rce, ESExprTagSet prevTags, ESExprTagSet fieldTags) throws AbortException {

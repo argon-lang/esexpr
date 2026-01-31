@@ -1,6 +1,9 @@
 package dev.argon.esexpr;
 
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +14,7 @@ import java.util.Set;
  * @param map The underlying map.
  * @param <T> The element type.
  */
-public record KeywordMapping<T>(Map<String, T> map) {
+public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 	/**
 	 * Get a codec for the keyword mapping.
 	 * @param tCodec The element codec.
@@ -50,11 +53,12 @@ public record KeywordMapping<T>(Map<String, T> map) {
 
 			@Override
 			public ESExpr encode(KeywordMapping<T> value) {
-				var map = dictCodec(tCodec).encodeDict(value);
+				var builder = ImmutableMap.<String, ESExpr>builder();
+				dictCodec(tCodec).encodeDict(value, builder);
 				return new ESExpr.Constructor(
 					DICT_CONSTRUCTOR,
-					List.of(),
-					map
+					ImmutableList.of(),
+					builder.build()
 				);
 			}
 
@@ -103,22 +107,20 @@ public record KeywordMapping<T>(Map<String, T> map) {
 			}
 
 			@Override
-			public Map<String, ESExpr> encodeDict(KeywordMapping<T> value) {
-				Map<String, ESExpr> map = new HashMap<>();
+			public void encodeDict(KeywordMapping<T> value, ImmutableMap.Builder<String, ESExpr> builder) {
 				for(var entry : value.map().entrySet()) {
-					map.put(entry.getKey(), tCodec.encode(entry.getValue()));
+					builder.put(entry.getKey(), tCodec.encode(entry.getValue()));
 				}
-				return map;
 			}
 
 			@Override
 			public KeywordMapping<T> decodeDict(Map<String, ESExpr> exprs, DictCodec.KeywordPathBuilder pathBuilder) throws DecodeException {
-				Map<String, T> values = new HashMap<>();
+				var builder = ImmutableMap.<String, T>builder();
 				for(var entry : exprs.entrySet()) {
 					var value = tCodec.decode(entry.getValue(), pathBuilder.pathAt(entry.getKey()));
-					values.put(entry.getKey(), value);
+					builder.put(entry.getKey(), value);
 				}
-				return new KeywordMapping<>(values);
+				return new KeywordMapping<>(builder.build());
 			}
 		};
 	}

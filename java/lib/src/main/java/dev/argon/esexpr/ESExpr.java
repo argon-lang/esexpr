@@ -1,6 +1,8 @@
 package dev.argon.esexpr;
 
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.eclipse.collections.api.list.primitive.ImmutableByteList;
 import org.eclipse.collections.api.list.primitive.ImmutableIntList;
 import org.eclipse.collections.api.list.primitive.ImmutableLongList;
@@ -29,7 +31,7 @@ public sealed interface ESExpr {
 	 * @param args Positional arguments.
 	 * @param kwargs Keyword arguments.
 	 */
-    public static record Constructor(String constructor, List<ESExpr> args, Map<String, ESExpr> kwargs) implements ESExpr {
+    public static record Constructor(String constructor, ImmutableList<ESExpr> args, ImmutableMap<String, ESExpr> kwargs) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return new ESExprTag.Constructor(constructor);

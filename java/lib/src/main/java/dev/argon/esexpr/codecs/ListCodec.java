@@ -1,5 +1,6 @@
 package dev.argon.esexpr.codecs;
 
+import com.google.common.collect.ImmutableList;
 import dev.argon.esexpr.*;
 
 import java.util.ArrayList;
@@ -13,17 +14,15 @@ import java.util.Set;
  */
 @ESExprOverrideCodec(List.class)
 @ESExprCodecTags(constructors = { "list" })
-public class ListCodec<T> extends ESExprCodec<List<T>> {
+public class ListCodec<T> extends ListCodecBase<T, List<T>> {
 
 	/**
 	 * Create a codec for list values.
 	 * @param itemCodec The underlying codec for the values.
 	 */
 	public ListCodec(ESExprCodec<T> itemCodec) {
-		this.itemCodec = itemCodec;
+		super(itemCodec);
 	}
-
-	private final ESExprCodec<T> itemCodec;
 
 	@Override
 	public ESExprTagSet tags() {
@@ -31,43 +30,9 @@ public class ListCodec<T> extends ESExprCodec<List<T>> {
 	}
 
 	@Override
-	public boolean isEncodedEqual(List<T> x, List<T> y) {
-		if(x.size() != y.size()) {
-			return false;
-		}
-
-		for(int i = 0; i < x.size(); ++i) {
-			if(!itemCodec.isEncodedEqual(x.get(i), y.get(i))) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	@Override
-	public ESExpr encode(List<T> value) {
-		return new ESExpr.Constructor("list", value.stream().map(itemCodec::encode).toList(), new HashMap<>());
-	}
-
-	@Override
 	public List<T> decode(ESExpr expr, FailurePath path) throws DecodeException {
-		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("list")) {
-			if(!kwargs.isEmpty()) {
-				throw new DecodeException("Unexpected keyword arguments for list.", path.withConstructor("list"));
-			}
-
-			List<T> res = new ArrayList<T>(args.size());
-			int i = 0;
-			for(ESExpr item : args) {
-				res.add(itemCodec.decode(item, path.append("list", i)));
-
-				++i;
-			}
-			return res;
-		}
-		else {
-			throw new DecodeException("Expected a list constructor", path);
-		}
+		var builder = ImmutableList.<T>builder();
+		decodeInto(expr, path, builder::add);
+		return builder.build();
 	}
 }

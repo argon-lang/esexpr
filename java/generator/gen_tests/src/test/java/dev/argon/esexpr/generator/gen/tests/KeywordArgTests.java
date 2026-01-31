@@ -1,5 +1,7 @@
 package dev.argon.esexpr.generator.gen.tests;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.ESExprTag;
 import dev.argon.esexpr.DecodeException;
@@ -22,8 +24,8 @@ public class KeywordArgTests extends TestBase {
 			KeywordArguments.codec(),
 			new ESExpr.Constructor(
 				"keyword-arguments",
-				List.of(),
-				Map.of(
+				ImmutableList.of(),
+				ImmutableMap.of(
 					"a", new ESExpr.Bool(false),
 					"b2", new ESExpr.Bool(false),
 					"c2", new ESExpr.Bool(false),
@@ -42,8 +44,8 @@ public class KeywordArgTests extends TestBase {
 			KeywordArguments.codec(),
 			new ESExpr.Constructor(
 				"keyword-arguments",
-				List.of(),
-				Map.of(
+				ImmutableList.of(),
+				ImmutableMap.of(
 					"a", new ESExpr.Bool(false),
 					"b2", new ESExpr.Bool(false),
 					"f", new ESExpr.Null(BigInteger.ZERO)
@@ -60,8 +62,8 @@ public class KeywordArgTests extends TestBase {
 			() -> KeywordArguments.codec().decode(
 				new ESExpr.Constructor(
 					"keyword-arguments",
-					List.of(),
-					Map.of(
+					ImmutableList.of(),
+					ImmutableMap.of(
 						"a", new ESExpr.Bool(false),
 						"b2", new ESExpr.Bool(false)
 					)

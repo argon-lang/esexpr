@@ -4,10 +4,11 @@ use alloc::vec::Vec;
 use core::fmt::{Debug, Formatter};
 
 use half::f16;
+use hashbrown::HashMap;
 use num_bigint::{BigInt, BigUint};
 
 use crate::cowstr::CowStr;
-use crate::{DecodeError, ESExprCodec, ESExprEncodedEq, ESExprTag, ESExprTagSet};
+use crate::*;
 
 /// Representation of an `ESExpr` value.
 /// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
@@ -507,10 +508,30 @@ impl<'a> KeywordArgs<'a> {
 	}
 }
 
+impl<'a> From<HashMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
+	fn from(kwargs: HashMap<CowStr<'a>, ESExpr<'a>>) -> Self {
+		KeywordArgs {
+			kwargs: KeywordArgsInner::Owned(kwargs),
+		}
+	}
+}
+
+impl<'a> From<&'a HashMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
+	fn from(kwargs: &'a HashMap<CowStr<'a>, ESExpr<'a>>) -> Self {
+		KeywordArgs {
+			kwargs: KeywordArgsInner::Borrowed(kwargs),
+		}
+	}
+}
+
 impl<'a> From<BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	fn from(kwargs: BTreeMap<CowStr<'a>, ESExpr<'a>>) -> Self {
 		KeywordArgs {
-			kwargs: KeywordArgsInner::Owned(kwargs),
+			kwargs: KeywordArgsInner::Owned(
+				kwargs.into_iter()
+					.map(|(k, v)| (k.into_owned_cowstr(), v))
+					.collect::<HashMap<_, _>>()
+			),
 		}
 	}
 }
@@ -518,7 +539,11 @@ impl<'a> From<BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 impl<'a> From<&'a BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	fn from(kwargs: &'a BTreeMap<CowStr<'a>, ESExpr<'a>>) -> Self {
 		KeywordArgs {
-			kwargs: KeywordArgsInner::Borrowed(kwargs),
+			kwargs: KeywordArgsInner::Owned(
+				kwargs.iter()
+					.map(|(k, v)| (k.as_borrowed(), v.as_borrowed()))
+					.collect::<HashMap<_, _>>()
+			),
 		}
 	}
 }
@@ -526,12 +551,12 @@ impl<'a> From<&'a BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 impl<'a, const N: usize> From<[(CowStr<'a>, ESExpr<'a>); N]> for KeywordArgs<'a> {
 	fn from(value: [(CowStr<'a>, ESExpr<'a>); N]) -> Self {
 		KeywordArgs {
-			kwargs: KeywordArgsInner::Owned(BTreeMap::from(value)),
+			kwargs: KeywordArgsInner::Owned(HashMap::from(value)),
 		}
 	}
 }
 
-impl<'a> From<KeywordArgs<'a>> for BTreeMap<CowStr<'a>, ESExpr<'a>> {
+impl<'a> From<KeywordArgs<'a>> for HashMap<CowStr<'a>, ESExpr<'a>> {
 	fn from(kwargs: KeywordArgs<'a>) -> Self {
 		match kwargs.kwargs {
 			KeywordArgsInner::Owned(kwargs) => kwargs,
@@ -566,13 +591,13 @@ impl<'a> IntoIterator for &'a KeywordArgs<'a> {
 }
 
 #[derive(Clone)]
-pub enum KeywordArgsInner<'a> {
-	Owned(BTreeMap<CowStr<'a>, ESExpr<'a>>),
-	Borrowed(&'a BTreeMap<CowStr<'a>, ESExpr<'a>>),
+enum KeywordArgsInner<'a> {
+	Owned(HashMap<CowStr<'a>, ESExpr<'a>>),
+	Borrowed(&'a HashMap<CowStr<'a>, ESExpr<'a>>),
 }
 
 impl<'a> KeywordArgsInner<'a> {
-	fn as_map(&self) -> &BTreeMap<CowStr<'a>, ESExpr<'a>> {
+	fn as_map(&self) -> &HashMap<CowStr<'a>, ESExpr<'a>> {
 		match self {
 			KeywordArgsInner::Owned(kwargs) => kwargs,
 			KeywordArgsInner::Borrowed(kwargs) => kwargs,
@@ -608,8 +633,8 @@ impl<'a> Iterator for KeywordArgsIntoIter<'a> {
 }
 
 enum KeywordArgsInnerIntoIter<'a> {
-	Owned(alloc::collections::btree_map::IntoIter<CowStr<'a>, ESExpr<'a>>),
-	Borrowed(alloc::collections::btree_map::Iter<'a, CowStr<'a>, ESExpr<'a>>),
+	Owned(hashbrown::hash_map::IntoIter<CowStr<'a>, ESExpr<'a>>),
+	Borrowed(hashbrown::hash_map::Iter<'a, CowStr<'a>, ESExpr<'a>>),
 }
 
 impl<'a> Iterator for KeywordArgsInnerIntoIter<'a> {

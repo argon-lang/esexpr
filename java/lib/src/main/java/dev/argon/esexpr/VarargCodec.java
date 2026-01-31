@@ -1,6 +1,8 @@
 package dev.argon.esexpr;
 
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.Deque;
 import java.util.List;
 
@@ -24,7 +26,7 @@ public interface VarargCodec<T, E> {
 	 * @param value The variable argument value.
 	 * @param exprs The list to which any expressions will be appended.
 	 */
-	void encodeVararg(T value, List<ESExpr> exprs);
+	void encodeVararg(T value, ImmutableList.Builder<ESExpr> exprs);
 
 	/**
 	 * Decode a list of expressions into a variable argument value.

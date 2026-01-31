@@ -5,13 +5,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import dev.argon.esexpr.codecs.StringCodec;
 
 /**
  * A string table used while reading binary ESExprs.
  * @param values The strings in the string table.
  */
-public record StringTable(List<String> values) {
+public record StringTable(ImmutableList<String> values) {
 
 	/**
 	 * StringTable codec.
@@ -38,8 +40,8 @@ public record StringTable(List<String> values) {
 		public ESExpr encode(StringTable value) {
 			return new ESExpr.Constructor(
 				BinToken.StringTableName,
-				value.values.stream().map(StringCodec.INSTANCE::encode).toList(),
-				new HashMap<>()
+				value.values.stream().map(StringCodec.INSTANCE::encode).collect(ImmutableList.toImmutableList()),
+				ImmutableMap.of()
 			);
 		}
 
@@ -50,7 +52,7 @@ public record StringTable(List<String> values) {
 					throw new DecodeException("Unexpected keyword arguments for string table", path.withConstructor(BinToken.StringTableName));
 				}
 
-				var values = new ArrayList<String>(args.size());
+				var values = ImmutableList.<String>builder();
 				int i = 0;
 
 				for(var arg : args) {
@@ -58,7 +60,7 @@ public record StringTable(List<String> values) {
 					++i;
 				}
 
-				return new StringTable(values);
+				return new StringTable(values.build());
 			}
 			else {
 				throw new DecodeException("Expected a string-table constructor", path);

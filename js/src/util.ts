@@ -1,9 +1,4 @@
 
-export function unreachable(_x: never, message: string): never {
-    throw new Error(message);
-}
-
-
 export function valuesEqual(a: unknown, b: unknown): boolean {
     if(typeof a !== typeof b) {
         return false;

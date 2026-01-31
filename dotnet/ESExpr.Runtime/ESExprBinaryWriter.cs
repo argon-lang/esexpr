@@ -60,6 +60,14 @@ public class ESExprBinaryWriter {
 						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartList, null), cancellationToken).ConfigureAwait(false);
 						break;
 
+					case MapCodecBase<int, int, Dictionary<int, int>>.MapConstructor:
+						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartMap, null), cancellationToken).ConfigureAwait(false);
+						break;
+
+					case SetCodecBase<int, HashSet<int>>.SetConstructor:
+						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartSet, null), cancellationToken).ConfigureAwait(false);
+						break;
+
 					default:
 						var index = await GetSymbolIndex(constructor, cancellationToken);
 						await WriteToken(new BinToken(BinToken.TokenType.Constructor, index), cancellationToken).ConfigureAwait(false);

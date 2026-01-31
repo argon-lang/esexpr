@@ -1,6 +1,5 @@
 import * as esexpr from "./index.js";
 import type { ESExpr, ESExprCodec } from "./index.js";
-import { unreachable } from "./util.js";
 
 
 export class ESExprFormatError extends Error {}
@@ -60,6 +59,8 @@ const TAG_FLOAT32 = 0xE4;
 const TAG_FLOAT64 = 0xE5;
 const TAG_CONSTRUCTOR_START_STRING_TABLE = 0xE6;
 const TAG_CONSTRUCTOR_START_LIST = 0xE7;
+const TAG_CONSTRUCTOR_START_MAP = 0xF1;
+const TAG_CONSTRUCTOR_START_SET = 0xF2;
 const TAG_APPEND_STRING_TABLE = 0xEB;
 const TAG_ARRAY16 = 0xED;
 const TAG_ARRAY32 = 0xEE;
@@ -362,7 +363,7 @@ export class ExprReader {
                 };
 
             default:
-                unreachable(startToken, "Unexpected expression token");
+                throw new Error("Unexpected expression token: " + (startToken satisfies never));
         }
     }
 
@@ -502,6 +503,14 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 
                 case TAG_CONSTRUCTOR_START_LIST:
                     yield { type: "constructor_start_known", value: "list" };
+                    break;
+
+                case TAG_CONSTRUCTOR_START_MAP:
+                    yield { type: "constructor_start_known", value: "map" };
+                    break;
+
+                case TAG_CONSTRUCTOR_START_SET:
+                    yield { type: "constructor_start_known", value: "set" };
                     break;
 
                 case TAG_APPEND_STRING_TABLE:
@@ -742,11 +751,19 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                     {
                         switch(e.name) {
                             case "string-table":
-                                yield writeByte(0xE6);
+                                yield writeByte(TAG_CONSTRUCTOR_START_STRING_TABLE);
                                 break;
 
                             case "list":
-                                yield writeByte(0xE7);
+                                yield writeByte(TAG_CONSTRUCTOR_START_LIST);
+                                break;
+
+                            case "map":
+                                yield writeByte(TAG_CONSTRUCTOR_START_MAP);
+                                break;
+
+                            case "set":
+                                yield writeByte(TAG_CONSTRUCTOR_START_SET);
                                 break;
 
                             default:
@@ -835,7 +852,7 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
                     }
 
                     default:
-                        unreachable(e, "Unexpected esexpr value");
+                        throw new Error("Unexpected esexpr value: " + (e satisfies never));
                 }
             }
             break;

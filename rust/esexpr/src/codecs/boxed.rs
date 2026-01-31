@@ -1,9 +1,9 @@
-use alloc::boxed::Box;
-use alloc::collections::{BTreeMap, VecDeque};
-use alloc::vec::Vec;
-
 use crate::cowstr::CowStr;
-use crate::{DecodeError, ESExpr, ESExprCodec, ESExprDictCodec, ESExprEncodedEq, ESExprOptionalFieldCodec, ESExprTagSet, ESExprVarArgCodec};
+use crate::*;
+use alloc::boxed::Box;
+use alloc::collections::VecDeque;
+use alloc::vec::Vec;
+use hashbrown::HashMap;
 
 impl<A: ESExprEncodedEq> ESExprEncodedEq for Box<A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -55,12 +55,12 @@ impl<'a, F: ESExprVarArgCodec<'a>> ESExprVarArgCodec<'a> for Box<F> {
 impl<'a, F: ESExprDictCodec<'a>> ESExprDictCodec<'a> for Box<F> {
 	type Element = F::Element;
 
-	fn encode_dict_element(&'a self, kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>) {
+	fn encode_dict_element(&'a self, kwargs: &mut HashMap<CowStr<'a>, ESExpr<'a>>) {
 		(**self).encode_dict_element(kwargs);
 	}
 
 	fn decode_dict_element(
-		kwargs: &mut BTreeMap<CowStr<'a>, ESExpr<'a>>,
+		kwargs: &mut HashMap<CowStr<'a>, ESExpr<'a>>,
 		constructor_name: &str,
 	) -> Result<Self, DecodeError> {
 		F::decode_dict_element(kwargs, constructor_name).map(Box::new)

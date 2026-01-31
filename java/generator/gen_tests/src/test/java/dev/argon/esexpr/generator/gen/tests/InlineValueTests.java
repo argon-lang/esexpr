@@ -1,5 +1,7 @@
 package dev.argon.esexpr.generator.gen.tests;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import dev.argon.esexpr.ESExpr;
 import dev.argon.esexpr.ESExprTag;
 import dev.argon.esexpr.ESExprTagSet;
@@ -30,8 +32,8 @@ public class InlineValueTests extends TestBase {
 			InlineValueEnum.codec(),
 			new ESExpr.Constructor(
 				"b",
-				List.of(new ESExpr.Float32(0.0f)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Float32(0.0f)),
+				ImmutableMap.of()
 			),
 			new InlineValueEnum.B(0.0f)
 		);
@@ -43,8 +45,8 @@ public class InlineValueTests extends TestBase {
 			GenericInlineValue.codec(FloatCodec.INSTANCE),
 			new ESExpr.Constructor(
 				"wrapped-a",
-				List.of(new ESExpr.Float32(4.5f)),
-				Map.of()
+				ImmutableList.of(new ESExpr.Float32(4.5f)),
+				ImmutableMap.of()
 			),
 			new GenericInlineValue.WrappedA<>(4.5f)
 		);

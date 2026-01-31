@@ -4,7 +4,6 @@ import * as esxb from "./binary_format.js"
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { unreachable } from "./util.js";
 
 type KWArgs = {
     [K: string]: ESExprJson,
@@ -132,7 +131,7 @@ function json2esexpr(json: ESExprJson): ESExpr {
         return { type: "null", level: BigInt(json.null) };
     }
     else {
-        return unreachable(json, "Invalid ESExpr JSON: " + json);
+        throw new Error("Invalid ESExpr JSON: " + (json satisfies never));
     }
 }
 

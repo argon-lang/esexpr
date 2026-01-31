@@ -1,6 +1,8 @@
 package dev.argon.esexpr;
 
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,9 +24,9 @@ public interface DictCodec<T, E> {
 	/**
 	 * Encode a dictionary argument value into a map of expressions.
 	 * @param value The dictionary argument value.
-	 * @return The expressions.
+	 * @param builder The map to which any expressions will be added.
 	 */
-	Map<String, ESExpr> encodeDict(T value);
+	void encodeDict(T value, ImmutableMap.Builder<String, ESExpr> builder);
 
 	/**
 	 * Decode a map of expressions into a dictionary argument value.

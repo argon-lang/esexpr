@@ -27,6 +27,8 @@ internal record struct BinToken(BinToken.TokenType BinTokenType, BigInteger? Int
 		Array128,
 		ConstructorStartStringTable,
 		ConstructorStartList,
+		ConstructorStartMap,
+		ConstructorStartSet,
 		AppendStringTable,
 	}
 }

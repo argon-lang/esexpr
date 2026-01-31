@@ -26,6 +26,8 @@ import java.math.BigInteger;
 	11100101 Float64
 	11100110 constructor start "string-table"
 	11100111 constructor start "list"
+	11110001 constructor start "map"
+	11110010 constructor start "set"
 	11101011 append string table
 	11101101 Array16
 	11101110 Array32
@@ -59,6 +61,8 @@ sealed interface BinToken {
 		FLOAT64,
 		CONSTRUCTOR_START_STRING_TABLE,
 		CONSTRUCTOR_START_LIST,
+		CONSTRUCTOR_START_MAP,
+		CONSTRUCTOR_START_SET,
 		APPEND_STRING_TABLE,
 		ARRAY16,
 		ARRAY32,
@@ -68,4 +72,6 @@ sealed interface BinToken {
 
 	static final String StringTableName = "string-table";
 	static final String ListName = "list";
+	static final String MapName = "map";
+	static final String SetName = "set";
 }

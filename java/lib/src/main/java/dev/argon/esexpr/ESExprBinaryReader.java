@@ -1,5 +1,7 @@
 package dev.argon.esexpr;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.eclipse.collections.api.factory.primitive.ByteLists;
 import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
@@ -133,6 +135,8 @@ public class ESExprBinaryReader {
 				case 0xE5 -> BinToken.Fixed.FLOAT64;
 				case 0xE6 -> BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE;
 				case 0xE7 -> BinToken.Fixed.CONSTRUCTOR_START_LIST;
+				case 0xF1 -> BinToken.Fixed.CONSTRUCTOR_START_MAP;
+				case 0xF2 -> BinToken.Fixed.CONSTRUCTOR_START_SET;
 				case 0xEB -> BinToken.Fixed.APPEND_STRING_TABLE;
 				case 0xED -> BinToken.Fixed.ARRAY16;
 				case 0xEE -> BinToken.Fixed.ARRAY32;
@@ -273,6 +277,8 @@ public class ESExprBinaryReader {
 
 				case CONSTRUCTOR_START_STRING_TABLE -> new ExprPlus.Expr(readConstructor(BinToken.StringTableName));
 				case CONSTRUCTOR_START_LIST -> new ExprPlus.Expr(readConstructor(BinToken.ListName));
+				case CONSTRUCTOR_START_MAP -> new ExprPlus.Expr(readConstructor(BinToken.MapName));
+				case CONSTRUCTOR_START_SET -> new ExprPlus.Expr(readConstructor(BinToken.SetName));
 				case APPEND_STRING_TABLE -> {
 					var newStringTable = read();
 					if(newStringTable instanceof ESExpr.Str(var s)) {
@@ -366,8 +372,8 @@ public class ESExprBinaryReader {
 	}
 
 	private ESExpr readConstructor(String name) throws IOException, SyntaxException {
-		var args = new ArrayList<ESExpr>();
-		var kwargs = new HashMap<String, ESExpr>();
+		var args = ImmutableList.<ESExpr>builder();
+		var kwargs = ImmutableMap.<String, ESExpr>builder();
 
 		body:
 		while(true) {
@@ -385,7 +391,7 @@ public class ESExprBinaryReader {
 			}
 		}
 
-		return new ESExpr.Constructor(name, args, kwargs);
+		return new ESExpr.Constructor(name, args.build(), kwargs.build());
 	}
 
 }
