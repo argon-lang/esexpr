@@ -249,7 +249,7 @@ public class ESExprBinaryReader {
 
 
 			case BinToken.TokenType.ConstructorStartStringTable:
-				expr = await ReadConstructor(StringTable.Codec.StringTableConstructor, cancellationToken).ConfigureAwait(false);
+				expr = await ReadConstructor(StringTable.StringTableConstructor, cancellationToken).ConfigureAwait(false);
 				break;
 
 			case BinToken.TokenType.ConstructorStartList:
@@ -273,7 +273,7 @@ public class ESExprBinaryReader {
 				else {
 					StringTable newStringTable;
 					try {
-						IESExprCodec<StringTable> codec = new StringTable.Codec();
+						IESExprCodec<StringTable> codec = StringTable.Codec;
 						newStringTable = codec.Decode(newStringTableExpr);
 					}
 					catch(DecodeException ex) {

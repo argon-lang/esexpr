@@ -8,6 +8,7 @@ public sealed interface MyEnum {
 	record MyCaseB(float b) implements MyEnum {}
 
 
+	@TypeClassInstance
 	public static ESExprCodec<MyEnum> codec() {
 		return MyEnum_CodecImpl.INSTANCE;
 	}

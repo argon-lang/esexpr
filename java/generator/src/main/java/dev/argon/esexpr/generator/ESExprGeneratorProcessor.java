@@ -1,5 +1,9 @@
 package dev.argon.esexpr.generator;
 
+import dev.argon.esexpr.generator.codegen.AbortException;
+import dev.argon.esexpr.generator.codegen.GeneratorBase;
+import dev.argon.esexpr.generator.lookup.MetadataCache;
+
 import javax.annotation.processing.*;
 import javax.lang.model.*;
 import javax.lang.model.element.*;
@@ -13,7 +17,7 @@ import java.util.function.Function;
  * Annotation processor for ESExprCodecGen.
  * Generates ESExprCodecs.
  */
-@SupportedAnnotationTypes({"dev.argon.esexpr.ESExprCodecGen"})
+@SupportedAnnotationTypes({"dev.argon.esexpr.ESExprCodecGen", "dev.argon.esexpr.HashEqGen"})
 public class ESExprGeneratorProcessor extends AbstractProcessor {
 
 	/**
@@ -33,7 +37,7 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 	@Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
 		super.init(processingEnv);
-		this.metadataCache = new MetadataCache(processingEnv);
+		this.metadataCache = new MetadataCache();
     }
 
     @Override

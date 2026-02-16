@@ -6,4 +6,7 @@ namespace ESExpr.Tests;
 [ESExprCodec]
 public sealed partial record ListFields {
 	public required ImmutableList<string> MyList { get; init; }
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<ListFields> Codec { get; }
 }

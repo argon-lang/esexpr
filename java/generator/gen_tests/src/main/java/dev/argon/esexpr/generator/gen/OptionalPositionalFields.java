@@ -1,7 +1,6 @@
 package dev.argon.esexpr.generator.gen;
 
 import dev.argon.esexpr.*;
-import dev.argon.esexpr.codecs.OptionalOptionalValueCodec;
 
 import java.util.Optional;
 
@@ -21,5 +20,12 @@ public record OptionalPositionalFields(
 
 	@OptionalValue
 	Optional<String> h
-) {}
+) {
+
+	@TypeClassInstance
+	public static ESExprCodec<OptionalPositionalFields> codec() {
+		return OptionalPositionalFields_CodecImpl.INSTANCE;
+	}
+
+}
 

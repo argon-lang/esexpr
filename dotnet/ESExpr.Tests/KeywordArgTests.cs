@@ -7,7 +7,7 @@ public class KeywordArgTests : TestBase {
 	[Test]
 	public void OptionalFieldsPresent() {
 		AssertCodecMatch(
-			new KeywordArguments.Codec(),
+			KeywordArguments.Codec,
 			new Expr.Constructor(
 				"keyword-arguments",
 				[],
@@ -35,7 +35,7 @@ public class KeywordArgTests : TestBase {
 	[Test]
 	public void DefaultValueOmitted() {
 		AssertCodecMatch(
-			new KeywordArguments.Codec(),
+			KeywordArguments.Codec,
 			new Expr.Constructor(
 				"keyword-arguments",
 				[],

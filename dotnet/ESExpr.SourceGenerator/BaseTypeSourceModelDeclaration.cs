@@ -11,7 +11,7 @@ internal abstract class BaseTypeSourceModelDeclaration : ITypeSourceModel {
 	public required string TypeName { get; init; }
 	public required Location Location { get; init; }
 
-	public abstract ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler);
+	public abstract ICodecGenerator Generator(SourceProductionContext context);
 
 	public virtual SourceModelType SourceModelType =>
 		new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(Namespace), TypeName) {

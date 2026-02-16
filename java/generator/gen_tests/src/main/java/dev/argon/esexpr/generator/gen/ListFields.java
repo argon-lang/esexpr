@@ -16,5 +16,12 @@ public record ListFields(
 	List<@Unsigned Long> e2,
 	List<Float> f,
 	List<Double> g
-) {}
+) {
+
+	@TypeClassInstance
+	public static ESExprCodec<ListFields> codec() {
+		return ListFields_CodecImpl.INSTANCE;
+	}
+
+}
 

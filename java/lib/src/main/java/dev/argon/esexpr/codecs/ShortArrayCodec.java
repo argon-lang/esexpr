@@ -8,13 +8,13 @@ import java.util.Arrays;
 /**
  * A codec for Array16 values.
  */
-public class ShortArrayCodec extends ESExprCodec<short[]> {
+public class ShortArrayCodec implements ESExprCodec<short[]> {
 	private ShortArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(short[].class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY16 })
 	public static final ESExprCodec<short[]> INSTANCE = new ShortArrayCodec();
 

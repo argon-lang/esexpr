@@ -2,7 +2,6 @@ package esexpr
 
 import io.circe.DecodingFailure.Reason.WrongTypeExpectation
 import zio.test.*
-import zio.test.Assertion.*
 import zio.*
 import zio.stream.*
 import io.circe.{Decoder, DecodingFailure, HCursor, Json}

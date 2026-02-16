@@ -7,17 +7,17 @@ namespace ESExpr.Tests;
 public class InlineValueTests : TestBase {
 	[Test]
 	public void TestInlineValue() {
-		Assert.That(new InlineValueEnum.Codec().Tags, Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Int(), new ESExprTag.Constructor("b")])));
+		Assert.That(InlineValueEnum.Codec.Tags, Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Int(), new ESExprTag.Constructor("b")])));
 
 		AssertCodecMatch(
-			new InlineValueEnum.Codec(),
+			InlineValueEnum.Codec,
 			new Expr.Int(BigInteger.Zero),
 			new InlineValueEnum.A {
 				AValue = 0,
 			}
 		);
 		AssertCodecMatch(
-			new InlineValueEnum.Codec(),
+			InlineValueEnum.Codec,
 			new Expr.Constructor(
 				"b",
 				[new Expr.Float32(0.0f)],

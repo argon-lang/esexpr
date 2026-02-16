@@ -8,7 +8,7 @@ internal class InvalidTypeSourceModel : ITypeSourceModel {
 	public required Location Location { get; init; }
 	public required ImmutableList<string> MessageArgs { get; init; }
 
-	public ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler) {
+	public ICodecGenerator Generator(SourceProductionContext context) {
 		return new ErrorCodecGenerator(context, this);
 	}
 }

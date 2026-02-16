@@ -31,5 +31,24 @@ internal static class GenUtils {
 	public static bool HasAttribute(MemberDeclarationSyntax decl, string name, SemanticModel semanticModel) =>
 		GetAttribute(decl, name, semanticModel) != null;
 
+	
+
+	public static bool EnsureNonGenericType(ref INamedTypeSymbol typeSymbol) {
+		if(!typeSymbol.IsGenericType) return true;
+		
+		
+		if(typeSymbol.ContainingSymbol is not INamespaceOrTypeSymbol parent) {
+			return false;
+		}
+			
+		var t = parent.GetTypeMembers(typeSymbol.Name, 0).FirstOrDefault();
+		if(t is null) {
+			return false;
+		}
+			
+		typeSymbol = t;
+
+		return true;
+	}
 
 }

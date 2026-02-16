@@ -9,8 +9,6 @@ import java.util.Set;
  * A codec for mutable sets.
  * @param <T> The element type.
  */
-@ESExprOverrideCodec(Set.class)
-@ESExprCodecTags(constructors = { "set" })
 public class SetCodec<T> extends SetCodecBase<T, Set<T>> {
 
 	/**

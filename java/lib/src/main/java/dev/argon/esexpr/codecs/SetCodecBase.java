@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * @param <T> The type of set elements.
  * @param <S> The type of set being encoded and decoded.
  */
-public abstract class SetCodecBase<T, S extends Set<T>> extends ESExprCodec<S> {
+public abstract class SetCodecBase<T, S extends Set<T>> implements ESExprCodec<S> {
 
 	/**
 	 * Creates a codec for encoding and decoding Set-like structures.

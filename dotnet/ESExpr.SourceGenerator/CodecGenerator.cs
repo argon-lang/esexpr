@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using ESExpr.SourceGenerator.TypeClass;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,7 +15,6 @@ namespace ESExpr.SourceGenerator;
 internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TTypeModel : TypeSourceModelDeclaration {
 
 	public required SourceProductionContext Context { get; init; }
-	public required TypeInfoHandler TypeInfoHandler { get; init; }
 
 	public required TTypeModel TypeModel { get; init; }
 
@@ -27,58 +27,126 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		var syntaxTree = CompilationUnit()
 			.AddUsings(TypeModel.Usings.Select(u => u.Syntax).ToArray());
 
-		TypeSyntax outerType = IdentifierName(TypeModel.TypeName);
+		TypeSyntax outerType = TypeModel.TypeParameters.IsEmpty
+			? IdentifierName(TypeModel.TypeName)
+			: GenericName(Identifier(TypeModel.TypeName))
+				.AddTypeArgumentListArguments(
+					TypeModel.TypeParameters
+						.Select(tp => IdentifierName(tp.Syntax.Identifier.Text))
+						.ToArray<TypeSyntax>()
+				);
 
 		var members = new List<MemberDeclarationSyntax>();
 
-		{
-			if(TypeModel.TypeParameters.Count != 0) {
-				var constructor = ConstructorDeclaration("Codec")
-					.WithParameterList(ParameterList(SeparatedList(
-						TypeModel.TypeParameters.Select(tp =>
-							Parameter(Identifier(PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec"))
-								.WithType(ESExprCodecType(IdentifierName(tp.Syntax.Identifier.Text)))
-						)
-					)))
-					.WithBody(Block(List(
-						TypeModel.TypeParameters.Select(tp => {
-							var fieldName = PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec";
-
-							return ExpressionStatement(AssignmentExpression(
-								SyntaxKind.SimpleAssignmentExpression,
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									ThisExpression(),
-									IdentifierName(fieldName)
-								),
-								IdentifierName(fieldName)
-							));
-						})
-					)));
-
-				members.Add(constructor);
-
-				foreach(var tp in TypeModel.TypeParameters) {
-					members.Add(
-						FieldDeclaration(
-							VariableDeclaration(ESExprCodecType(IdentifierName(tp.Syntax.Identifier.Text)))
-								.WithVariables(SeparatedList(new VariableDeclaratorSyntax[] {
-									VariableDeclarator(Identifier(PascalCaseToCamelCase(tp.Syntax.Identifier.Text) + "Codec")),
-								}))
-						)
-							.AddModifiers(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.ReadOnlyKeyword))
-					);
-				}
-
-				outerType = GenericName(TypeModel.TypeName)
-					.AddTypeArgumentListArguments(
-						TypeModel.TypeParameters
-							.Select(tp => IdentifierName(tp.Syntax.Identifier.Text))
-							.ToArray<TypeSyntax>()
-					);
-			}
+		MemberDeclarationSyntax typeClassInstanceMember;
+		if(TypeModel.TypeClassInstanceAccessor.IsProperty) {
+			typeClassInstanceMember =
+				PropertyDeclaration(
+					ESExprCodecType(outerType),
+					TypeModel.TypeClassInstanceAccessor.Name
+				)
+				.AddAttributeLists(AttributeList(SeparatedList([
+					TagsToAttribute(TypeModel.Tags),
+				])))
+				.AddModifiers(
+					Token(SyntaxKind.PublicKeyword),
+					Token(SyntaxKind.StaticKeyword),
+					Token(SyntaxKind.PartialKeyword)
+				)
+				.WithExpressionBody(ArrowExpressionClause(
+					ObjectCreationExpression(IdentifierName("GeneratedCodecImpl"))
+						.WithArgumentList(ArgumentList([]))
+				))
+				.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 		}
+		else {
+			typeClassInstanceMember =
+				MethodDeclaration(
+					ESExprCodecType(outerType),
+					TypeModel.TypeClassInstanceAccessor.Name
+				)
+				.AddAttributeLists(AttributeList(SeparatedList([
+					TagsToAttribute(TypeModel.Tags),
+				])))
+				.AddModifiers(
+					Token(SyntaxKind.PublicKeyword),
+					Token(SyntaxKind.StaticKeyword),
+					Token(SyntaxKind.PartialKeyword)
+				)
+				.AddTypeParameterListParameters(
+					TypeModel.TypeParameters.Select(tp => tp.Syntax).ToArray()
+				)
+				.AddParameterListParameters(
+					TypeModel.TypeClassInstanceAccessor.Parameters
+						.Select(p =>
+							Parameter(Identifier(p.Name))
+								.WithType(ConvertTypeToTypeSyntax(p.Type))
+						)
+						.ToArray()
+				)
+				.WithExpressionBody(ArrowExpressionClause(
+					ObjectCreationExpression(
+						TypeModel.TypeParameters.IsEmpty
+							? IdentifierName("GeneratedCodecImpl")
+							: GenericName(Identifier("GeneratedCodecImpl"))
+								.AddTypeArgumentListArguments(
+									TypeModel.TypeParameters
+										.Select(tp => IdentifierName(tp.Syntax.Identifier.Text))
+										.ToArray<TypeSyntax>()
+								)
+					)
+						.AddArgumentListArguments(
+							TypeModel.TypeClassInstanceAccessor.Parameters
+								.Select(p => Argument(IdentifierName(p.Name)))
+								.ToArray()
+						)
+				))
+				.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+		}
+		
+		
 
+		
+		var constructor = ConstructorDeclaration("GeneratedCodecImpl")
+			.AddModifiers(Token(SyntaxKind.PublicKeyword))
+			.AddParameterListParameters(
+				TypeModel.TypeClassInstanceAccessor.Parameters
+					.Select(p =>
+						Parameter(Identifier("instance_" + p.Name))
+							.WithType(ConvertTypeToTypeSyntax(p.Type))
+					)
+					.ToArray()
+			)
+			.WithBody(Block(List(
+				TypeModel.TypeClassInstanceAccessor.Parameters.Select(p => {
+					var fieldName = "instance_" + p.Name;
+
+					return ExpressionStatement(AssignmentExpression(
+						SyntaxKind.SimpleAssignmentExpression,
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							ThisExpression(),
+							IdentifierName(fieldName)
+						),
+						IdentifierName(fieldName)
+					));
+				})
+			)));
+
+		members.Add(constructor);
+
+		foreach(var p in TypeModel.TypeClassInstanceAccessor.Parameters) {
+			members.Add(
+				FieldDeclaration(
+						VariableDeclaration(ConvertTypeToTypeSyntax(p.Type))
+							.WithVariables(SeparatedList(new VariableDeclaratorSyntax[] {
+								VariableDeclarator(Identifier("instance_" + p.Name)),
+							}))
+					)
+					.AddModifiers(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.ReadOnlyKeyword))
+			);
+		}
+		
 		var tagsProp =
 			PropertyDeclaration(
 				QualifiedName(
@@ -139,32 +207,34 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				.WithBody(GenerateDecodeBody());
 		members.Add(decodeMethod);
 
-		var codecClass = ClassDeclaration("Codec")
+		var codecClass = ClassDeclaration("GeneratedCodecImpl")
 			.WithBaseList(BaseList(
 				Token(SyntaxKind.ColonToken),
 				SeparatedList(new BaseTypeSyntax[] {
 					SimpleBaseType(ESExprCodecType(outerType)),
 				})
 			))
-			.AddModifiers(Token(SyntaxKind.PublicKeyword), Token(SyntaxKind.SealedKeyword))
+			.AddModifiers(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.SealedKeyword))
 			.AddMembers(members.ToArray());
 
-		var outerClass =
-			RecordDeclaration(
-				Token(SyntaxKind.RecordKeyword),
-				TypeModel.TypeName
-			)
+		// Use a static class if the original type is generic
+		var outerClass = RecordDeclaration(
+			Token(TypeModel.TypeParameters.Count == 0 ? SyntaxKind.RecordKeyword : SyntaxKind.ClassKeyword),
+			TypeModel.TypeName
+		);
+		
+		if(TypeModel.TypeParameters.Count != 0) {
+			outerClass = outerClass.AddModifiers(Token(SyntaxKind.StaticKeyword));
+			
+			codecClass = codecClass.AddTypeParameterListParameters(TypeModel.TypeParameters.Select(tp => tp.Syntax).ToArray());
+		}
+		
+		outerClass = outerClass			
 			.AddModifiers(Token(SyntaxKind.PartialKeyword))
 			.WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken))
 			.WithCloseBraceToken(Token(SyntaxKind.CloseBraceToken))
-			.AddMembers(codecClass);
-
-		{
-			if(TypeModel.TypeParameters.Count != 0) {
-				outerClass = outerClass.AddTypeParameterListParameters(TypeModel.TypeParameters.Select(tp => tp.Syntax).ToArray());
-			}
-		}
-
+			.AddMembers(typeClassInstanceMember, codecClass);
+		
 		// Generate the namespace with the class
 		var nsName = GetNamespaceName();
 
@@ -189,38 +259,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	}
 
 	private ExpressionSyntax WriteTagsExpr() =>
-		TagsToExpr(GetTags(TypeModel.SourceModelType, this.TypeModel.Location, ImmutableHashSet<SourceModelType>.Empty));
-
+		TagsToExpr(TypeModel.Tags);
 	
-	protected ESExprTagSet GetTags(SourceModelType type, Location location) =>
-		GetTags(type, location, ImmutableHashSet<SourceModelType>.Empty);
-	
-	private ESExprTagSet GetTags(SourceModelType type, Location location, ImmutableHashSet<SourceModelType> seenTypes) {
-		if(seenTypes.Contains(type)) {
-			throw new Exception("Circular tags detected");
-		}
-		
-		var typeTags = TypeInfoHandler.GetTags(type);
-		if(typeTags == null) {
-			var overriddenCodec = TypeInfoHandler.GetOverriddenCodec(new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IESExprCodec") {
-				TypeArguments = [type],
-				IsEnum = false,
-			});
-			var codec = GetCodecExpr(type);
-			throw new AbortGenerationException(Diagnostic.Create(
-				Errors.MissingTagsAttribute,
-				location,
-				overriddenCodec is null ? "intrinsic" : "overridden " + codec.ToString(),
-				type
-			));
-		}
-		
-		return typeTags.unionWithTypes.Aggregate(
-			typeTags.tags,
-			(tags, t) =>
-				tags.Union(GetTags(t, location, seenTypes.Add(type)))
-		);
-	}
 
 	private ExpressionSyntax TagsToExpr(ESExprTagSet tags) {
 		return tags.Visit<ExpressionSyntax>(
@@ -363,6 +403,97 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	}
 	
+	private AttributeSyntax TagsToAttribute(ESExprTagSet tags) {
+		var attrName = QualifiedName(
+			QualifiedName(
+				AliasQualifiedName(
+					IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+					IdentifierName("ESExpr")
+				),
+				IdentifierName("Runtime")
+			),
+			IdentifierName("ESExprTags")
+		);
+		
+		return tags.Visit<AttributeSyntax>(
+			visitAll: () => Attribute(
+				attrName,
+				AttributeArgumentList([
+					AttributeArgument(
+						NameEquals("All"),
+						null,
+						LiteralExpression(SyntaxKind.TrueLiteralExpression)
+					)
+				])
+			),
+			visitFinite: tags => Attribute(
+				attrName,
+				AttributeArgumentList([
+					AttributeArgument(
+						NameEquals("Scalar"),
+						null,
+						CollectionExpression(SeparatedList<CollectionElementSyntax>(
+							tags
+								.Select<ESExprTag, ESExprTag.ScalarType?>(t => t switch {
+									ESExprTag.Bool => ESExprTag.ScalarType.Bool,
+									ESExprTag.Int => ESExprTag.ScalarType.Int,
+									ESExprTag.Str => ESExprTag.ScalarType.Str,
+									ESExprTag.Float16 => ESExprTag.ScalarType.Float16,
+									ESExprTag.Float32 => ESExprTag.ScalarType.Float32,
+									ESExprTag.Float64 => ESExprTag.ScalarType.Float64,
+									ESExprTag.Array8 => ESExprTag.ScalarType.Array8,
+									ESExprTag.Array16 => ESExprTag.ScalarType.Array16,
+									ESExprTag.Array32 => ESExprTag.ScalarType.Array32,
+									ESExprTag.Array64 => ESExprTag.ScalarType.Array64,
+									ESExprTag.Array128 => ESExprTag.ScalarType.Array128,
+									ESExprTag.Null => ESExprTag.ScalarType.Null,
+									_ => null
+								})
+								.Where(t => t != null)
+								.Select(tNull => {
+									var t = tNull!.Value;
+									
+									return ExpressionElement(
+										QualifiedName(
+											QualifiedName(
+												QualifiedName(
+													QualifiedName(
+														AliasQualifiedName(
+															IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+															IdentifierName("ESExpr")
+														),
+														IdentifierName("Runtime")
+													),
+													IdentifierName("ESExprTag")
+												),
+												IdentifierName("ScalarType")
+											),
+											IdentifierName(t.ToString())
+										)
+									);
+								})
+							
+						))
+					),
+					AttributeArgument(
+						NameEquals("Constructors"),
+						null,
+						CollectionExpression(SeparatedList<CollectionElementSyntax>(
+							tags
+								.OfType<ESExprTag.Constructor>()
+								.Select(c => ExpressionElement(LiteralExpression(
+									SyntaxKind.StringLiteralExpression,
+									Literal(c.constructor)
+								)))
+						))
+					),
+				])
+			)
+				
+		);
+
+	}
+	
 	protected BlockSyntax WriteIsEqualFields(IReadOnlyList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
 		var stmts = new List<StatementSyntax>();
 
@@ -379,19 +510,13 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			);
 
 			
-			ExpressionSyntax codecExpr;
-			if(field.IsVararg) {
-				codecExpr = GetVarargCodecExpr(field.Type);
-			}
-			else if(field.IsDict) {
-				codecExpr = GetDictCodecExpr(field.Type);
-			}
-			else if(field.IsOptional) {
-				codecExpr = GetOptionalCodecExpr(field.Type);
-			}
-			else {
-				codecExpr = GetCodecExpr(field.Type);
-			}
+			ExpressionSyntax codecExpr = field.Mode switch {
+				SourceModelField.FieldMode.Normal { CodecInstance: var codec } => GetCodecExpr(codec),
+				SourceModelField.FieldMode.Optional { OptionalValueCodecInstance: var codec } => GetCodecExpr(codec),
+				SourceModelField.FieldMode.Dict { DictCodecInstance: var codec } => GetCodecExpr(codec),
+				SourceModelField.FieldMode.Vararg { VarargCodecInstance: var codec } => GetCodecExpr(codec),
+				_ => throw new ArgumentOutOfRangeException()
+			};
 
 			var isEqualCall = InvocationExpression(
 				MemberAccessExpression(
@@ -491,72 +616,21 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				}
 			}
 
-			if(field.IsKeyword is { } keyword) {
-				if(hasDict) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.KeywordWithDict,
-						field.Location
-					));
-				}
-
-				if(!keywords.Add(keyword)) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.DuplicateKeyword,
-						field.Location,
-						keyword
-					));
-				}
-
-				if(field.IsOptional) {
+			switch(field.Mode) {
+				case SourceModelField.FieldMode.Normal {
+					DefaultValue: null,
+					CodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
+				} normalField: {
+					if(!prevOptionalPositionalTags.IsEmpty) {
+						PosTagCheck(tags);
+						prevOptionalPositionalTags = ESExprTagSet.Empty;
+					}
+					
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(field.Type),
-							IdentifierName("EncodeOptional")
-						),
-						ArgumentList(SeparatedList([
-							Argument(propertyValue),
-						]))
-					);
-
-
-					var condition = IsPatternExpression(
-						encodedExpr,
-						RecursivePattern()
-							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
-							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
-					);
-
-					var ifStatement = IfStatement(
-						condition,
-						Block(
-							ExpressionStatement(InvocationExpression(
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									IdentifierName("kwargs"),
-									IdentifierName("Add")
-								),
-								ArgumentList(SeparatedList(new[] {
-									Argument(
-										LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(keyword))
-									),
-									Argument(
-										IdentifierName("encodedExpr")
-									),
-								}))
-							))
-						)
-					);
-
-					stmts.Add(Block(
-						ifStatement
-					));
-				}
-				else {
-					var encodedExpr = InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(field.Type),
+							GetCodecExpr(codec),
 							IdentifierName("Encode")
 						),
 						ArgumentList(SeparatedList([
@@ -564,200 +638,31 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						]))
 					);
 
-					if(field.DefaultValue is { } defaultValue) {
-						stmts.Add(Block(
-							LocalDeclarationStatement(
-								VariableDeclaration(ESExprType)
-									.WithVariables(
-										SingletonSeparatedList(
-											VariableDeclarator(Identifier("encodedExpr"))
-												.WithInitializer(
-													EqualsValueClause(encodedExpr)
-												)
-										)
-									)
-							),
-
-							IfStatement(
-								PrefixUnaryExpression(
-									SyntaxKind.LogicalNotExpression,
-									InvocationExpression(
-										MemberAccessExpression(
-											SyntaxKind.SimpleMemberAccessExpression,
-											GetCodecExpr(field.Type),
-											IdentifierName("IsEncodedEqual")
-										),
-										ArgumentList(SeparatedList([
-											Argument(propertyValue),
-											Argument(defaultValue.Syntax),
-										]))
-									)
-								),
-								Block(
-									ExpressionStatement(InvocationExpression(
-										MemberAccessExpression(
-											SyntaxKind.SimpleMemberAccessExpression,
-											IdentifierName("kwargs"),
-											IdentifierName("Add")
-										),
-										ArgumentList(SeparatedList(new[] {
-											Argument(
-												LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(keyword))
-											),
-											Argument(
-												IdentifierName("encodedExpr")
-											),
-										}))
-									))
-								)
-							)
-						));
-					}
-					else {
-						stmts.Add(ExpressionStatement(InvocationExpression(
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								IdentifierName("kwargs"),
-								IdentifierName("Add")
-							),
-							ArgumentList(SeparatedList(new[] {
-								Argument(
-									LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(keyword))
-								),
-								Argument(encodedExpr),
-							}))
-						)));
-					}
-				}
-			}
-			else if(field.IsVararg) {
-				var elementType = GetVarargElementType(field.Type, field.Location);
-				var tags = GetTags(elementType, field.Location);
-				PosTagCheck(tags);
-				prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
-
-				var encodedExpr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						GetVarargCodecExpr(field.Type),
-						IdentifierName("EncodeVararg")
-					),
-					ArgumentList(SeparatedList([
-						Argument(propertyValue),
-					]))
-				);
-
-				var expr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						IdentifierName("args"),
-						IdentifierName("AddRange")
-					),
-					ArgumentList(SeparatedList([
-						Argument(encodedExpr),
-					]))
-				);
-
-				stmts.Add(ExpressionStatement(expr));
-			}
-			else if(field.IsDict) {
-				if(hasDict) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.MultipleDict,
-						field.Location,
-						new object?[] { }
-					));
-				}
-
-				hasDict = true;
-
-
-				var encodedExpr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						GetDictCodecExpr(field.Type),
-						IdentifierName("EncodeDict")
-					),
-					ArgumentList(SeparatedList([
-						Argument(propertyValue),
-					]))
-				);
-
-				var loop = ForEachStatement(
-					IdentifierName("var"),
-					"kvp",
-					encodedExpr,
-					Block(
-						ExpressionStatement(InvocationExpression(
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								IdentifierName("kwargs"),
-								IdentifierName("Add")
-							),
-							ArgumentList(SeparatedList([
-								Argument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("kvp"), IdentifierName("Key"))),
-								Argument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("kvp"), IdentifierName("Value"))),
-							]))
-						))
-					)
-				);
-
-				stmts.Add(loop);
-			}
-			else {
-				if(field.IsOptional) {
-					var elementType = GetOptionalElementType(field.Type, field.Location);
-					var tags = GetTags(elementType, field.Location);
-					PosTagCheck(tags);
-					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
-					
-					var encodedExpr = InvocationExpression(
+					var expr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(field.Type),
-							IdentifierName("EncodeOptional")
+							IdentifierName("args"),
+							IdentifierName("Add")
 						),
 						ArgumentList(SeparatedList([
-							Argument(propertyValue),
+							Argument(encodedExpr),
 						]))
 					);
 
-
-					var condition = IsPatternExpression(
-						encodedExpr,
-						RecursivePattern()
-							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
-							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
-					);
-
-					var ifStatement = IfStatement(
-						condition,
-						Block(
-							ExpressionStatement(InvocationExpression(
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									IdentifierName("args"),
-									IdentifierName("Add")
-								),
-								ArgumentList(SeparatedList(new[] {
-									Argument(
-										IdentifierName("encodedExpr")
-									),
-								}))
-							))
-						)
-					);
-
-					stmts.Add(Block(
-						ifStatement
-					));
+					stmts.Add(ExpressionStatement(expr));
+					
+					break;
 				}
-				else if(field.DefaultValue is { } defaultValue) {
-					var tags = GetTags(field.Type, field.Location);
+				
+				case SourceModelField.FieldMode.Normal {
+					DefaultValue: {} defaultValue,
+					CodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
+				} normalField: {
 					PosTagCheck(tags);
 					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
 					
-					var codecExpr = GetCodecExpr(field.Type);
+					var codecExpr = GetCodecExpr(codec);
 
 					stmts.Add(Block(
 						LocalDeclarationStatement(
@@ -814,19 +719,292 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							)
 						)
 					));
+					
+					break;
 				}
-				else {
-					if(!prevOptionalPositionalTags.IsEmpty) {
-						var tags = GetTags(field.Type, field.Location);
-						PosTagCheck(tags);
-						prevOptionalPositionalTags = ESExprTagSet.Empty;
+				
+				case SourceModelField.FieldMode.Normal {
+					CodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
+				} normalField: {
+					if(hasDict) {
+						Context.ReportDiagnostic(Diagnostic.Create(
+							Errors.KeywordWithDict,
+							field.Location
+						));
 					}
+
+					if(!keywords.Add(keyword)) {
+						Context.ReportDiagnostic(Diagnostic.Create(
+							Errors.DuplicateKeyword,
+							field.Location,
+							keyword
+						));
+					}
+					
 					
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(field.Type),
+							GetCodecExpr(codec),
 							IdentifierName("Encode")
+						),
+						ArgumentList(SeparatedList([
+							Argument(propertyValue),
+						]))
+					);
+
+					if(normalField.DefaultValue is {} defaultValue) {
+						stmts.Add(Block(
+							LocalDeclarationStatement(
+								VariableDeclaration(ESExprType)
+									.WithVariables(
+										SingletonSeparatedList(
+											VariableDeclarator(Identifier("encodedExpr"))
+												.WithInitializer(
+													EqualsValueClause(encodedExpr)
+												)
+										)
+									)
+							),
+
+							IfStatement(
+								PrefixUnaryExpression(
+									SyntaxKind.LogicalNotExpression,
+									InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											GetCodecExpr(codec),
+											IdentifierName("IsEncodedEqual")
+										),
+										ArgumentList(SeparatedList([
+											Argument(propertyValue),
+											Argument(defaultValue.Syntax),
+										]))
+									)
+								),
+								Block(
+									ExpressionStatement(InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											IdentifierName("kwargs"),
+											IdentifierName("Add")
+										),
+										ArgumentList(SeparatedList(new[] {
+											Argument(
+												LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(keyword))
+											),
+											Argument(
+												IdentifierName("encodedExpr")
+											),
+										}))
+									))
+								)
+							)
+						));
+					}
+					else {
+						stmts.Add(ExpressionStatement(InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("kwargs"),
+								IdentifierName("Add")
+							),
+							ArgumentList(SeparatedList(new[] {
+								Argument(
+									LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(keyword))
+								),
+								Argument(encodedExpr),
+							}))
+						)));
+					}
+					
+					break;
+				}
+
+				case SourceModelField.FieldMode.Optional {
+					OptionalValueCodecInstance: var codec,
+					ElementType: var elementType,
+					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags },
+				}: {
+					PosTagCheck(tags);
+					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+					
+					var encodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(codec),
+							IdentifierName("EncodeOptional")
+						),
+						ArgumentList(SeparatedList([
+							Argument(propertyValue),
+						]))
+					);
+
+
+					var condition = IsPatternExpression(
+						encodedExpr,
+						RecursivePattern()
+							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
+							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
+					);
+
+					var ifStatement = IfStatement(
+						condition,
+						Block(
+							ExpressionStatement(InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									IdentifierName("args"),
+									IdentifierName("Add")
+								),
+								ArgumentList(SeparatedList(new[] {
+									Argument(
+										IdentifierName("encodedExpr")
+									),
+								}))
+							))
+						)
+					);
+
+					stmts.Add(Block(
+						ifStatement
+					));
+					
+					break;
+				}
+				
+				case SourceModelField.FieldMode.Optional {
+					 OptionalValueCodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
+				}: {
+					
+					if(hasDict) {
+						Context.ReportDiagnostic(Diagnostic.Create(
+							Errors.KeywordWithDict,
+							field.Location
+						));
+					}
+
+					if(!keywords.Add(keyword)) {
+						Context.ReportDiagnostic(Diagnostic.Create(
+							Errors.DuplicateKeyword,
+							field.Location,
+							keyword
+						));
+					}
+					
+					
+					var encodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(codec),
+							IdentifierName("EncodeOptional")
+						),
+						ArgumentList(SeparatedList([
+							Argument(propertyValue),
+						]))
+					);
+
+
+					var condition = IsPatternExpression(
+						encodedExpr,
+						RecursivePattern()
+							.WithDesignation(SingleVariableDesignation(Identifier("encodedExpr")))
+							.WithPropertyPatternClause(PropertyPatternClause(SeparatedList<SubpatternSyntax>()))
+					);
+
+					var ifStatement = IfStatement(
+						condition,
+						Block(
+							ExpressionStatement(InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									IdentifierName("kwargs"),
+									IdentifierName("Add")
+								),
+								ArgumentList(SeparatedList(new[] {
+									Argument(
+										LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(keyword))
+									),
+									Argument(
+										IdentifierName("encodedExpr")
+									),
+								}))
+							))
+						)
+					);
+
+					stmts.Add(Block(
+						ifStatement
+					));
+					
+					break;
+				}
+
+				case SourceModelField.FieldMode.Dict {
+					DictCodecInstance: var codec,
+				}: {
+					
+					if(hasDict) {
+						Context.ReportDiagnostic(Diagnostic.Create(
+							Errors.MultipleDict,
+							field.Location,
+							new object?[] { }
+						));
+					}
+
+					hasDict = true;
+
+
+					var encodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(codec),
+							IdentifierName("EncodeDict")
+						),
+						ArgumentList(SeparatedList([
+							Argument(propertyValue),
+						]))
+					);
+
+					var loop = ForEachStatement(
+						IdentifierName("var"),
+						"kvp",
+						encodedExpr,
+						Block(
+							ExpressionStatement(InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									IdentifierName("kwargs"),
+									IdentifierName("Add")
+								),
+								ArgumentList(SeparatedList([
+									Argument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("kvp"), IdentifierName("Key"))),
+									Argument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("kvp"), IdentifierName("Value"))),
+								]))
+							))
+						)
+					);
+
+					stmts.Add(loop);
+					
+					break;
+				}
+
+				case SourceModelField.FieldMode.Vararg {
+					VarargCodecInstance: var codec,
+					ElementType: var elementType,
+					ElementTags: var tags,
+				} varargField: {
+					PosTagCheck(tags);
+					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+
+					var encodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(codec),
+							IdentifierName("EncodeVararg")
 						),
 						ArgumentList(SeparatedList([
 							Argument(propertyValue),
@@ -837,7 +1015,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
 							IdentifierName("args"),
-							IdentifierName("Add")
+							IdentifierName("AddRange")
 						),
 						ArgumentList(SeparatedList([
 							Argument(encodedExpr),
@@ -845,7 +1023,12 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					);
 
 					stmts.Add(ExpressionStatement(expr));
+					
+					break;
 				}
+
+				default:
+					throw new Exception("Unexpected field mode");
 			}
 		}
 
@@ -867,7 +1050,496 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		foreach(var field in fields) {
 			var localName = "local_" + field.Name;
 
-			if(field.IsKeyword is { } keyword) {
+			
+			
+			switch(field.Mode) {
+				case SourceModelField.FieldMode.Normal {
+					CodecInstance: var codec,
+					DefaultValue: null,
+					KeywordMode: SourceModelField.KeywordMode.Positional
+				}: {
+					DecodePositionalCommon(posBlocks => {
+						var exprExpr = posBlocks.exprExpr;
+						var pathExpr = posBlocks.pathExpr;
+						var sliceStatement = posBlocks.sliceStatement;
+						
+						var ifCondition = BinaryExpression(
+							SyntaxKind.EqualsExpression,
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("args"),
+								IdentifierName("Count")),
+							LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+						);
+						
+						var codecExpr = GetCodecExpr(codec);
+
+						var throwStatement = ThrowStatement(
+							ObjectCreationExpression(
+									QualifiedName(
+										QualifiedName(
+											AliasQualifiedName(
+												IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+												IdentifierName("ESExpr")),
+											IdentifierName("Runtime")),
+										IdentifierName("DecodeException")))
+								.WithArgumentList(
+									ArgumentList(SeparatedList(new[] {
+										Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Not enough arguments"))),
+										Argument(
+											InvocationExpression(
+													MemberAccessExpression(
+														SyntaxKind.SimpleMemberAccessExpression,
+														IdentifierName("path"),
+														IdentifierName("WithConstructor"))
+												)
+												.WithArgumentList(
+													ArgumentList(SingletonSeparatedList(
+														Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))))))
+										),
+									}))
+								)
+						);
+
+						var ifStatement = IfStatement(ifCondition, Block(throwStatement));
+						stmts.Add(ifStatement);
+
+						var decodedExpr = InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								codecExpr,
+								IdentifierName("Decode")
+							),
+							ArgumentList(SeparatedList([
+								Argument(exprExpr),
+								Argument(pathExpr),
+							]))
+						);
+
+						stmts.Add(LocalDeclarationStatement(
+							VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
+								.WithVariables(
+									SingletonSeparatedList(
+										VariableDeclarator(Identifier(localName))
+											.WithInitializer(
+												EqualsValueClause(decodedExpr)
+											)
+									)
+								)
+						));
+						stmts.Add(sliceStatement);
+					});
+					break;
+				}
+				
+				case SourceModelField.FieldMode.Normal {
+					CodecInstance: var codec,
+					DefaultValue: {} defaultValue,
+					KeywordMode: SourceModelField.KeywordMode.Positional
+				}: {
+					DecodePositionalCommon(posBlocks => {
+						var exprExpr = posBlocks.exprExpr;
+						var pathExpr = posBlocks.pathExpr;
+						var sliceStatement = posBlocks.sliceStatement;
+						
+						var codecExpr = GetCodecExpr(codec);
+
+						stmts.Add(LocalDeclarationStatement(
+							VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
+								.WithVariables(
+									SingletonSeparatedList(
+										VariableDeclarator(Identifier(localName))
+									)
+								)
+						));
+						
+						var ifCondition = BinaryExpression(
+							SyntaxKind.LogicalAndExpression,
+							BinaryExpression(
+								SyntaxKind.NotEqualsExpression,
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									IdentifierName("args"),
+									IdentifierName("Count")),
+								LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+							),
+							InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										codecExpr,
+										IdentifierName("Tags")
+									),
+									IdentifierName("Contains")
+								),
+								ArgumentList(SingletonSeparatedList(
+									Argument(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											ElementAccessExpression(
+												IdentifierName("args"),
+												BracketedArgumentList(SingletonSeparatedList(
+													Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression,
+														Literal(0)))
+												))
+											),
+											IdentifierName("Tag")
+										)
+									)
+								))
+							)
+						);
+						
+						
+						var ifStatement = IfStatement(
+							ifCondition,
+							Block(
+								ExpressionStatement(
+									AssignmentExpression(
+										SyntaxKind.SimpleAssignmentExpression,
+										IdentifierName(localName),
+										InvocationExpression(
+											MemberAccessExpression(
+												SyntaxKind.SimpleMemberAccessExpression,
+												codecExpr,
+												IdentifierName("Decode")
+											),
+											ArgumentList(SeparatedList([
+												Argument(exprExpr),
+												Argument(pathExpr),
+											]))
+										)
+									)
+								),
+								sliceStatement
+							),
+							ElseClause(Block(
+								ExpressionStatement(
+									AssignmentExpression(
+										SyntaxKind.SimpleAssignmentExpression,
+										IdentifierName(localName),
+										defaultValue.Syntax
+									)
+								)
+							))
+						);
+						stmts.Add(ifStatement);
+						
+					});
+					
+					break;
+				}
+				
+				
+				case SourceModelField.FieldMode.Normal {
+					CodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
+				} normalField: {
+					DecodeKeywordCommon(keyword, pathExpr => {
+						var decodedExpr = InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								GetCodecExpr(codec),
+								IdentifierName("Decode")
+							),
+							ArgumentList(SeparatedList(new[] {
+								Argument(IdentifierName("kwargExpr")),
+								Argument(pathExpr),
+							}))
+						);
+
+						BlockSyntax falseBody;
+
+						if(normalField.DefaultValue is { } defaultValue) {
+							falseBody = Block(
+								ExpressionStatement(AssignmentExpression(
+									SyntaxKind.SimpleAssignmentExpression,
+									IdentifierName(localName),
+									defaultValue.Syntax
+								))
+							);
+						}
+						else {
+							var throwStatement = ThrowStatement(
+								ObjectCreationExpression(
+										QualifiedName(
+											QualifiedName(
+												AliasQualifiedName(
+													IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+													IdentifierName("ESExpr")),
+												IdentifierName("Runtime")),
+											IdentifierName("DecodeException")))
+									.WithArgumentList(
+										ArgumentList(SeparatedList(new[] {
+											Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Missing required keyword argument " + keyword))),
+											Argument(
+												InvocationExpression(
+														MemberAccessExpression(
+															SyntaxKind.SimpleMemberAccessExpression,
+															IdentifierName("path"),
+															IdentifierName("WithConstructor"))
+													)
+													.WithArgumentList(
+														ArgumentList(SingletonSeparatedList(
+															Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))))))
+											),
+										}))
+									)
+							);
+
+							falseBody = Block(throwStatement);
+						}
+						
+						return (decodedExpr, falseBody);
+					});
+
+					
+					break;
+				}
+
+				case SourceModelField.FieldMode.Optional {
+					OptionalValueCodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags },
+				}: {
+					DecodePositionalCommon(posBlocks => {
+						var exprExpr = posBlocks.exprExpr;
+						var pathExpr = posBlocks.pathExpr;
+						var sliceStatement = posBlocks.sliceStatement;
+						
+						ExpressionSyntax DecodeOptionalExpr(ExpressionSyntax expr) =>
+							AssignmentExpression(
+								SyntaxKind.SimpleAssignmentExpression,
+								IdentifierName(localName),
+								InvocationExpression(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										GetCodecExpr(codec),
+										IdentifierName("DecodeOptional")
+									),
+									ArgumentList(SeparatedList([
+										Argument(expr),
+										Argument(pathExpr),
+									]))
+								)
+							);
+
+						stmts.Add(LocalDeclarationStatement(
+							VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
+								.WithVariables(
+									SingletonSeparatedList(
+										VariableDeclarator(Identifier(localName))
+									)
+								)
+						));
+
+						var ifCondition = BinaryExpression(
+							SyntaxKind.LogicalAndExpression,
+							BinaryExpression(
+								SyntaxKind.NotEqualsExpression,
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									IdentifierName("args"),
+									IdentifierName("Count")),
+								LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
+							),
+							InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										GetCodecExpr(codec),
+										IdentifierName("ElementTags")
+									),
+									IdentifierName("Contains")
+								),
+								ArgumentList(SingletonSeparatedList(
+									Argument(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											exprExpr,
+											IdentifierName("Tag")
+										)
+									)
+								))
+							)
+						);
+
+						var ifStatement = IfStatement(
+							ifCondition,
+							Block(
+								ExpressionStatement(DecodeOptionalExpr(exprExpr)),
+								sliceStatement
+							),
+							ElseClause(Block(
+								ExpressionStatement(DecodeOptionalExpr(LiteralExpression(SyntaxKind.NullLiteralExpression)))
+							))
+						);
+						stmts.Add(ifStatement);
+					});
+					break;
+				}
+				
+				case SourceModelField.FieldMode.Optional {
+					OptionalValueCodecInstance: var codec,
+					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
+				}: {
+					DecodeKeywordCommon(keyword, pathExpr => {
+						var decodedExpr = InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								GetCodecExpr(codec),
+								IdentifierName("DecodeOptional")
+							),
+							ArgumentList(SeparatedList(new[] {
+								Argument(IdentifierName("kwargExpr")),
+								Argument(pathExpr),
+							}))
+						);
+
+						var emptyExpr = InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								GetCodecExpr(codec),
+								IdentifierName("DecodeOptional")
+							),
+							ArgumentList(SeparatedList(new[] {
+								Argument(LiteralExpression(SyntaxKind.NullLiteralExpression)),
+								Argument(pathExpr),
+							}))
+						);
+
+						var falseBody = Block(
+							ExpressionStatement(AssignmentExpression(
+								SyntaxKind.SimpleAssignmentExpression,
+								IdentifierName(localName),
+								emptyExpr
+							))
+						);
+
+						return (decodedExpr, falseBody);
+					});
+					
+					break;
+				}
+
+				case SourceModelField.FieldMode.Dict {
+					DictCodecInstance: var codec,
+				}: {
+					var pathExpr = SimpleLambdaExpression(
+						Parameter(Identifier("kw")),
+						InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("path"),
+								IdentifierName("Append")
+							),
+							ArgumentList(SeparatedList([
+								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))),
+								Argument(
+									BinaryExpression(
+										SyntaxKind.AddExpression,
+										IdentifierName("kw"),
+										LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))
+									)
+								),
+							]))
+						)
+					);
+
+					var decodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(codec),
+							IdentifierName("DecodeDict")
+						),
+						ArgumentList(SeparatedList([
+							Argument(IdentifierName("kwargs")),
+							Argument(pathExpr),
+						]))
+					);
+
+					stmts.Add(LocalDeclarationStatement(
+						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
+							.WithVariables(
+								SingletonSeparatedList(
+									VariableDeclarator(Identifier(localName))
+										.WithInitializer(
+											EqualsValueClause(decodedExpr)
+										)
+								)
+							)
+					));
+
+
+					var clearStatement = ExpressionStatement(
+						InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("kwargs"),
+								IdentifierName("Clear")))
+					);
+					stmts.Add(clearStatement);
+					break;
+				}
+
+				case SourceModelField.FieldMode.Vararg {
+					VarargCodecInstance: var codec,
+				}: {
+					var pathExpr = SimpleLambdaExpression(
+						Parameter(Identifier("i")),
+						InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								IdentifierName("path"),
+								IdentifierName("Append")
+							),
+							ArgumentList(SeparatedList([
+								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))),
+								Argument(
+									BinaryExpression(
+										SyntaxKind.AddExpression,
+										IdentifierName("i"),
+										LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))
+									)
+								),
+							]))
+						)
+					);
+
+					var decodedExpr = InvocationExpression(
+						MemberAccessExpression(
+							SyntaxKind.SimpleMemberAccessExpression,
+							GetCodecExpr(codec),
+							IdentifierName("DecodeVararg")
+						),
+						ArgumentList(SeparatedList([
+							Argument(IdentifierName("args"))
+								.WithRefOrOutKeyword(Token(SyntaxKind.RefKeyword)),
+							Argument(pathExpr),
+						]))
+					);
+
+					stmts.Add(LocalDeclarationStatement(
+						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
+							.WithVariables(
+								SingletonSeparatedList(
+									VariableDeclarator(Identifier(localName))
+										.WithInitializer(
+											EqualsValueClause(decodedExpr)
+										)
+								)
+							)
+					));
+					
+					break;
+				}
+
+				default:
+					throw new Exception("Unexpected field mode");
+			}
+
+			void DecodeKeywordCommon(string keyword, Func<ExpressionSyntax, (ExpressionSyntax decodedExpr, BlockSyntax falseBody)> buildDecode) {
 				stmts.Add(LocalDeclarationStatement(
 					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
 						.WithVariables(
@@ -906,95 +1578,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					]))
 				);
 
-				ExpressionSyntax decodedExpr;
-				BlockSyntax falseBody;
-
-				if(field.IsOptional) {
-					decodedExpr = InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(field.Type),
-							IdentifierName("DecodeOptional")
-						),
-						ArgumentList(SeparatedList(new[] {
-							Argument(IdentifierName("kwargExpr")),
-							Argument(pathExpr),
-						}))
-					);
-
-					var emptyExpr = InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							GetOptionalCodecExpr(field.Type),
-							IdentifierName("DecodeOptional")
-						),
-						ArgumentList(SeparatedList(new[] {
-							Argument(LiteralExpression(SyntaxKind.NullLiteralExpression)),
-							Argument(pathExpr),
-						}))
-					);
-
-					falseBody = Block(
-						ExpressionStatement(AssignmentExpression(
-							SyntaxKind.SimpleAssignmentExpression,
-							IdentifierName(localName),
-							emptyExpr
-						))
-					);
-				}
-				else {
-					decodedExpr = InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(field.Type),
-							IdentifierName("Decode")
-						),
-						ArgumentList(SeparatedList(new[] {
-							Argument(IdentifierName("kwargExpr")),
-							Argument(pathExpr),
-						}))
-					);
-
-					if(field.DefaultValue is { } defaultValue) {
-						falseBody = Block(
-							ExpressionStatement(AssignmentExpression(
-								SyntaxKind.SimpleAssignmentExpression,
-								IdentifierName(localName),
-								defaultValue.Syntax
-							))
-						);
-					}
-					else {
-						var throwStatement = ThrowStatement(
-							ObjectCreationExpression(
-									QualifiedName(
-										QualifiedName(
-											AliasQualifiedName(
-												IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-												IdentifierName("ESExpr")),
-											IdentifierName("Runtime")),
-										IdentifierName("DecodeException")))
-								.WithArgumentList(
-									ArgumentList(SeparatedList(new[] {
-										Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Missing required keyword argument " + keyword))),
-										Argument(
-											InvocationExpression(
-													MemberAccessExpression(
-														SyntaxKind.SimpleMemberAccessExpression,
-														IdentifierName("path"),
-														IdentifierName("WithConstructor"))
-												)
-												.WithArgumentList(
-													ArgumentList(SingletonSeparatedList(
-														Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))))))
-										),
-									}))
-								)
-						);
-
-						falseBody = Block(throwStatement);
-					}
-				}
+				var (decodedExpr, falseBody) = buildDecode(pathExpr);
 
 				var trueBody = Block(
 					ExpressionStatement(AssignmentExpression(
@@ -1009,112 +1593,9 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					trueBody,
 					ElseClause(falseBody)
 				)));
-
 			}
-			else if(field.IsVararg) {
-				var pathExpr = SimpleLambdaExpression(
-					Parameter(Identifier("i")),
-					InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							IdentifierName("path"),
-							IdentifierName("Append")
-						),
-						ArgumentList(SeparatedList([
-							Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))),
-							Argument(
-								BinaryExpression(
-									SyntaxKind.AddExpression,
-									IdentifierName("i"),
-									LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))
-								)
-							),
-						]))
-					)
-				);
 
-				var decodedExpr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						GetVarargCodecExpr(field.Type),
-						IdentifierName("DecodeVararg")
-					),
-					ArgumentList(SeparatedList([
-						Argument(IdentifierName("args"))
-							.WithRefOrOutKeyword(Token(SyntaxKind.RefKeyword)),
-						Argument(pathExpr),
-					]))
-				);
-
-				stmts.Add(LocalDeclarationStatement(
-					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
-						.WithVariables(
-							SingletonSeparatedList(
-								VariableDeclarator(Identifier(localName))
-									.WithInitializer(
-										EqualsValueClause(decodedExpr)
-									)
-							)
-						)
-				));
-			}
-			else if(field.IsDict) {
-				var pathExpr = SimpleLambdaExpression(
-					Parameter(Identifier("kw")),
-					InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							IdentifierName("path"),
-							IdentifierName("Append")
-						),
-						ArgumentList(SeparatedList([
-							Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))),
-							Argument(
-								BinaryExpression(
-									SyntaxKind.AddExpression,
-									IdentifierName("kw"),
-									LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(positionalIndex))
-								)
-							),
-						]))
-					)
-				);
-
-				var decodedExpr = InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						GetDictCodecExpr(field.Type),
-						IdentifierName("DecodeDict")
-					),
-					ArgumentList(SeparatedList([
-						Argument(IdentifierName("kwargs")),
-						Argument(pathExpr),
-					]))
-				);
-
-				stmts.Add(LocalDeclarationStatement(
-					VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
-						.WithVariables(
-							SingletonSeparatedList(
-								VariableDeclarator(Identifier(localName))
-									.WithInitializer(
-										EqualsValueClause(decodedExpr)
-									)
-							)
-						)
-				));
-
-
-				var clearStatement = ExpressionStatement(
-					InvocationExpression(
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								IdentifierName("kwargs"),
-								IdentifierName("Clear")))
-				);
-				stmts.Add(clearStatement);
-			}
-			else {
+			void DecodePositionalCommon(Action<(ExpressionSyntax exprExpr, ExpressionSyntax pathExpr, StatementSyntax sliceStatement)> buildDecode) {
 				var exprExpr =
 					ElementAccessExpression(IdentifierName("args"))
 						.WithArgumentList(
@@ -1153,232 +1634,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					)
 				);
 
-				if(field.IsOptional) {
-					ExpressionSyntax DecodeOptionalExpr(ExpressionSyntax expr) =>
-						AssignmentExpression(
-							SyntaxKind.SimpleAssignmentExpression,
-							IdentifierName(localName),
-							InvocationExpression(
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									GetOptionalCodecExpr(field.Type),
-									IdentifierName("DecodeOptional")
-								),
-								ArgumentList(SeparatedList([
-									Argument(expr),
-									Argument(pathExpr),
-								]))
-							)
-						);
-
-					stmts.Add(LocalDeclarationStatement(
-						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
-							.WithVariables(
-								SingletonSeparatedList(
-									VariableDeclarator(Identifier(localName))
-								)
-							)
-					));
-
-					var ifCondition = BinaryExpression(
-						SyntaxKind.LogicalAndExpression,
-						BinaryExpression(
-							SyntaxKind.NotEqualsExpression,
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								IdentifierName("args"),
-								IdentifierName("Count")),
-							LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
-						),
-						InvocationExpression(
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									GetOptionalCodecExpr(field.Type),
-									IdentifierName("ElementTags")
-								),
-								IdentifierName("Contains")
-							),
-							ArgumentList(SingletonSeparatedList(
-								Argument(
-									MemberAccessExpression(
-										SyntaxKind.SimpleMemberAccessExpression,
-										exprExpr,
-										IdentifierName("Tag")
-									)
-								)
-							))
-						)
-					);
-
-					var ifStatement = IfStatement(
-						ifCondition,
-						Block(
-							ExpressionStatement(DecodeOptionalExpr(exprExpr)),
-							sliceStatement
-						),
-						ElseClause(Block(
-							ExpressionStatement(DecodeOptionalExpr(LiteralExpression(SyntaxKind.NullLiteralExpression)))
-						))
-					);
-					stmts.Add(ifStatement);
-				}
-				else if(field.DefaultValue is { } defaultValue) {
-					var codecExpr = GetCodecExpr(field.Type);
-
-					stmts.Add(LocalDeclarationStatement(
-						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
-							.WithVariables(
-								SingletonSeparatedList(
-									VariableDeclarator(Identifier(localName))
-								)
-							)
-					));
-					
-					var ifCondition = BinaryExpression(
-						SyntaxKind.LogicalAndExpression,
-						BinaryExpression(
-							SyntaxKind.NotEqualsExpression,
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								IdentifierName("args"),
-								IdentifierName("Count")),
-							LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
-						),
-						InvocationExpression(
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								MemberAccessExpression(
-									SyntaxKind.SimpleMemberAccessExpression,
-									codecExpr,
-									IdentifierName("Tags")
-								),
-								IdentifierName("Contains")
-							),
-							ArgumentList(SingletonSeparatedList(
-								Argument(
-									MemberAccessExpression(
-										SyntaxKind.SimpleMemberAccessExpression,
-										ElementAccessExpression(
-											IdentifierName("args"),
-											BracketedArgumentList(SingletonSeparatedList(
-												Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression,
-													Literal(0)))
-											))
-										),
-										IdentifierName("Tag")
-									)
-								)
-							))
-						)
-					);
-					
-					
-					var ifStatement = IfStatement(
-						ifCondition,
-						Block(
-							ExpressionStatement(
-								AssignmentExpression(
-									SyntaxKind.SimpleAssignmentExpression,
-									IdentifierName(localName),
-									InvocationExpression(
-										MemberAccessExpression(
-											SyntaxKind.SimpleMemberAccessExpression,
-											codecExpr,
-											IdentifierName("Decode")
-										),
-										ArgumentList(SeparatedList([
-											Argument(exprExpr),
-											Argument(pathExpr),
-										]))
-									)
-								)
-							),
-							sliceStatement
-						),
-						ElseClause(Block(
-							ExpressionStatement(
-								AssignmentExpression(
-									SyntaxKind.SimpleAssignmentExpression,
-									IdentifierName(localName),
-									defaultValue.Syntax
-								)
-							)
-						))
-					);
-					stmts.Add(ifStatement);
-				}
-				else {
-					var ifCondition = BinaryExpression(
-						SyntaxKind.EqualsExpression,
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							IdentifierName("args"),
-							IdentifierName("Count")),
-						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
-					);
-					
-					var codecExpr = GetCodecExpr(field.Type);
-
-					var throwStatement = ThrowStatement(
-						ObjectCreationExpression(
-								QualifiedName(
-									QualifiedName(
-										AliasQualifiedName(
-											IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-											IdentifierName("ESExpr")),
-										IdentifierName("Runtime")),
-									IdentifierName("DecodeException")))
-							.WithArgumentList(
-								ArgumentList(SeparatedList(new[] {
-									Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Not enough arguments"))),
-									Argument(
-										InvocationExpression(
-												MemberAccessExpression(
-													SyntaxKind.SimpleMemberAccessExpression,
-													IdentifierName("path"),
-													IdentifierName("WithConstructor"))
-											)
-											.WithArgumentList(
-												ArgumentList(SingletonSeparatedList(
-													Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(constructorName))))))
-									),
-								}))
-							)
-					);
-
-					var ifStatement = IfStatement(ifCondition, Block(throwStatement));
-					stmts.Add(ifStatement);
-
-					var decodedExpr = InvocationExpression(
-						MemberAccessExpression(
-							SyntaxKind.SimpleMemberAccessExpression,
-							codecExpr,
-							IdentifierName("Decode")
-						),
-						ArgumentList(SeparatedList([
-							Argument(exprExpr),
-							Argument(pathExpr),
-						]))
-					);
-
-					stmts.Add(LocalDeclarationStatement(
-						VariableDeclaration(ConvertTypeToTypeSyntax(field.Type))
-							.WithVariables(
-								SingletonSeparatedList(
-									VariableDeclarator(Identifier(localName))
-										.WithInitializer(
-											EqualsValueClause(decodedExpr)
-										)
-								)
-							)
-					));
-					stmts.Add(sliceStatement);
-				}
-
+				buildDecode((exprExpr, pathExpr, sliceStatement));
 			}
-
 
 			fieldInits.Add(AssignmentExpression(
 				SyntaxKind.SimpleAssignmentExpression,
@@ -1644,136 +1901,43 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	}
 
 
-	protected ExpressionSyntax GetCodecExpr(SourceModelType t) =>
-		GetCodecLikeExpr(t, "IESExprCodec", "Codec");
+	protected ExpressionSyntax GetCodecExpr(SourceModelTypeClassInstance codec) {
+		switch(codec) {
+			case SourceModelTypeClassInstance.Local { Name: var name }:
+				return IdentifierName("instance_" + name);
+			
+			case SourceModelTypeClassInstance.Property property:
+				return MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					ConvertTypeToTypeSyntax(property.DeclaringType),
+					IdentifierName(property.Name)
+				);
+			
+			case SourceModelTypeClassInstance.Method method:
+				return InvocationExpression(
+					MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						ConvertTypeToTypeSyntax(method.DeclaringType),
 
-	protected ExpressionSyntax GetOptionalCodecExpr(SourceModelType t) =>
-		GetCodecLikeExpr(t, "IOptionalValueCodec", "OptionalValueCodec");
-
-	protected ExpressionSyntax GetVarargCodecExpr(SourceModelType t) =>
-		GetCodecLikeExpr(t, "IVarargCodec", "VarargCodec");
-
-	protected ExpressionSyntax GetDictCodecExpr(SourceModelType t) =>
-		GetCodecLikeExpr(t, "IDictCodec", "DictCodec");
-		
-
-	protected ExpressionSyntax GetCodecLikeExpr(SourceModelType t, string codecTypeName, string nestedClassName) {
-		SourceModelType codecType = new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), codecTypeName) {
-			TypeArguments = codecTypeName == "IESExprCodec" ? [t] : [t, new SourceModelType.Wildcard("Wildcard")],
-			IsEnum = false,
-		};
-
-
-		TypeSyntax concreteCodecType;
-		IEnumerable<SourceModelType> typeArgs;
-
-		var overrideCodec = TypeInfoHandler.GetOverriddenCodec(codecType);
-
-		if(overrideCodec != null) {
-			concreteCodecType = ConvertTypeToTypeSyntax(overrideCodec);
-			typeArgs = overrideCodec switch {
-				SourceModelType.NamedSymbol named => named.TypeArguments,
-				_ => [],
-			};
-		}
-		else if(t is SourceModelType.NamedSymbol { IsEnum: true }) {
-			return MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				QualifiedName(
-					QualifiedName(
-						AliasQualifiedName(
-							IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-							IdentifierName("ESExpr")
-						),
-						IdentifierName("Runtime")
+						method.TypeArguments.IsEmpty
+							? IdentifierName(method.Name)
+							: GenericName(method.Name).WithTypeArgumentList(TypeArgumentList(
+									SeparatedList<TypeSyntax>(
+										method.TypeArguments.Select(ConvertTypeToTypeSyntax)
+									)
+								)
+							)
 					),
-					GenericName(
-						Identifier("SimpleEnumCodec"),
-						TypeArgumentList(
-							SeparatedList([ConvertTypeToTypeSyntax(t)])
-						)
-					)
-				),
-				IdentifierName("Instance")
-			);
-		}
-		else if(t is SourceModelType.TypeParameter tp) {
-			return MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				ThisExpression(),
-				IdentifierName(PascalCaseToCamelCase(tp.Name) + "Codec")
-			);
-		}
-		else {
-			var tSyntax = ConvertTypeToTypeSyntax(t);
-			if(tSyntax is NameSyntax typeName) {
-				concreteCodecType = QualifiedName(
-					typeName,
-					IdentifierName(nestedClassName)
+					ArgumentList(SeparatedList<ArgumentSyntax>(
+						method.Arguments.Select(arg => Argument(GetCodecExpr(arg)))
+					))
 				);
-				typeArgs = t switch {
-					SourceModelType.NamedSymbol named => named.TypeArguments,
-					_ => [],
-				};
-			}
-			else {
-				throw new AbortGenerationException(
-					Diagnostic.Create(
-						Errors.CouldNotDetermineCodec,
-						TypeModel.Location,
-						codecTypeName,
-						tSyntax
-					)
-				);
-			}
+			
+			default:
+				throw new ArgumentException("Unknown SourceModelTypeClassInstance codec", nameof(codec));
 		}
-
-		var args = typeArgs.Select(arg =>
-			Argument(GetCodecExpr(arg))
-		);
-
-		return ObjectCreationExpression(concreteCodecType)
-			.WithArgumentList(ArgumentList(SeparatedList(args)));
 	}
-
-	private SourceModelType GetVarargElementType(SourceModelType t, Location location) {
-		var placeholder = new SourceModelType.Wildcard("Wildcard");
-		SourceModelType codecType = new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IVarargCodec") {
-			TypeArguments = [t, placeholder],
-			IsEnum = false,
-		};
-		
-		var elementType = TypeInfoHandler.GetElementType(codecType, placeholder);
-		if(elementType is null) {
-			throw new AbortGenerationException(Diagnostic.Create(
-				Errors.ElementCodec,
-				location,
-				codecType
-			));
-		}
-
-		return elementType;
-	}
-
-	private SourceModelType GetOptionalElementType(SourceModelType t, Location location) {
-		var placeholder = new SourceModelType.Wildcard("Wildcard");
-		SourceModelType codecType = new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(["ESExpr", "Runtime"]), "IOptionalValueCodec") {
-			TypeArguments = [t, placeholder],
-			IsEnum = false,
-		};
-		
-		var elementType = TypeInfoHandler.GetElementType(codecType, placeholder);
-		if(elementType is null) {
-			throw new AbortGenerationException(Diagnostic.Create(
-				Errors.ElementCodec,
-				location,
-				codecType
-			));
-		}
-
-		return elementType;
-	}
-
+	
 	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
 		switch(t) {
 			case SourceModelType.NamedSymbol namedTypeSymbol: {

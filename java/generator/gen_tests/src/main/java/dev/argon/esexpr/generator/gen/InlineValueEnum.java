@@ -8,6 +8,7 @@ public sealed interface InlineValueEnum {
 	record A(int a) implements InlineValueEnum {}
 	record B(float b) implements InlineValueEnum {}
 
+	@TypeClassInstance
 	public static ESExprCodec<InlineValueEnum> codec() {
 		return InlineValueEnum_CodecImpl.INSTANCE;
 	}

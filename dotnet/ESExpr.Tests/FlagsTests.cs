@@ -5,9 +5,9 @@ namespace ESExpr.Tests;
 
 public class FlagsTests : TestBase {
 	[Test]
-	public void TwoFlags() {
+	public void TwoFlagsTest() {
 		AssertCodecMatch(
-			new TwoFlags.Codec(),
+			TwoFlags.Codec,
 			new Expr.Int(0),
 			new TwoFlags {
 				A = false,
@@ -15,7 +15,7 @@ public class FlagsTests : TestBase {
 			}
 		);
 		AssertCodecMatch(
-			new TwoFlags.Codec(),
+			TwoFlags.Codec,
 			new Expr.Int(1),
 			new TwoFlags {
 				A = true,
@@ -23,7 +23,7 @@ public class FlagsTests : TestBase {
 			}
 		);
 		AssertCodecMatch(
-			new TwoFlags.Codec(),
+			TwoFlags.Codec,
 			new Expr.Int(2),
 			new TwoFlags {
 				A = false,
@@ -31,7 +31,7 @@ public class FlagsTests : TestBase {
 			}
 		);
 		AssertCodecMatch(
-			new TwoFlags.Codec(),
+			TwoFlags.Codec,
 			new Expr.Int(3),
 			new TwoFlags {
 				A = true,
@@ -42,7 +42,7 @@ public class FlagsTests : TestBase {
 
 	[Test]
 	public void FlagWithEnumTest() {
-		var codec = new FlagWithEnum.Codec();
+		var codec = FlagWithEnum.Codec;
 		
 		Assert.Throws<DecodeException>(() => ((IESExprCodec<FlagWithEnum>)codec).Decode(new Expr.Int(0)));
 		Assert.Throws<DecodeException>(() => ((IESExprCodec<FlagWithEnum>)codec).Decode(new Expr.Int(1)));

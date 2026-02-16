@@ -7,7 +7,7 @@ namespace ESExpr.SourceGenerator;
 internal class SimpleEnumSourceModel : BaseTypeSourceModelDeclaration {
 	public required ImmutableList<SourceModelSimpleEnumCase> Cases { get; init; }
 
-	public override ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler) {
+	public override ICodecGenerator Generator(SourceProductionContext context) {
 		return new SimpleEnumCodecGenerator(context, this);
 	}
 

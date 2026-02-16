@@ -17,4 +17,8 @@ public sealed partial record FlagWithEnum {
 		[FlagBits(0x6)]
 		Z,
 	}
+	
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<FlagWithEnum> Codec { get; }
 }

@@ -7,5 +7,4 @@ module dev.argon.esexpr {
 	requires transitive org.eclipse.collections.impl;
     requires static org.jspecify;
     exports dev.argon.esexpr;
-	exports dev.argon.esexpr.codecs;
 }

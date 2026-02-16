@@ -7,31 +7,23 @@ import java.math.BigInteger;
 /**
  * A codec for unsigned int values.
  */
-public class UnsignedIntegerCodec extends IntCodecBase<Integer> {
-	private UnsignedIntegerCodec() {
+public class UnsignedIntegerCodec extends IntCodecBase<UnsignedInteger> {
+	public UnsignedIntegerCodec() {
 		super(BigInteger.ZERO, BigInteger.valueOf(0xFFFFFFFFL));
 	}
 
-	/**
-	 * A codec for unsigned byte values.
-	 */
-	@ESExprOverrideCodec(value = int.class, requiredAnnotations = Unsigned.class)
-	@ESExprOverrideCodec(value = Integer.class, requiredAnnotations = Unsigned.class)
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
-	public static final ESExprCodec<Integer> INSTANCE = new UnsignedIntegerCodec();
-
 	@Override
-	public boolean isEncodedEqual(Integer x, Integer y) {
+	public boolean isEncodedEqual(UnsignedInteger x, UnsignedInteger y) {
 		return x.equals(y);
 	}
 
 	@Override
-	protected Integer fromBigInt(BigInteger value) {
-		return value.intValue();
+	protected UnsignedInteger fromBigInt(BigInteger value) {
+		return UnsignedInteger.valueOf(value.intValue());
 	}
 
 	@Override
-	protected BigInteger toBigInt(Integer value) {
-		return BigInteger.valueOf(Integer.toUnsignedLong(value));
+	protected BigInteger toBigInt(UnsignedInteger value) {
+		return BigInteger.valueOf(value.longValue());
 	}
 }

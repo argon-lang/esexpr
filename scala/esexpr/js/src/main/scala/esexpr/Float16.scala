@@ -1,5 +1,6 @@
 package esexpr
 
+import scala.annotation.unused
 import scala.scalajs.js.annotation.JSGlobal
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.{ArrayBuffer, Float32Array, Int16Array, TypedArray}
@@ -64,10 +65,10 @@ object Float16Type {
 
   @js.native
   @JSGlobal("Float16Array")
-  private class Float16Array(length: Int) extends TypedArray[Float16, Float16Array] {
-    def this(typedArray: Float32Array) = this(0)
-    def this(array: js.Iterable[Float16]) = this(0)
-    def this(buffer: ArrayBuffer, byteOffset: Int = 0, length: Int = ???) = this(0)
+  private class Float16Array(@unused length: Int) extends TypedArray[Float16, Float16Array] {
+    def this(@unused typedArray: Float32Array) = this(0)
+    def this(@unused array: js.Iterable[Float16]) = this(0)
+    def this(@unused buffer: ArrayBuffer, @unused byteOffset: Int = 0, @unused length: Int = ???) = this(0)
   }
 
   extension (a: Float)

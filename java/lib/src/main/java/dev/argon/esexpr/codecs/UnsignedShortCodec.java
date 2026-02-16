@@ -7,31 +7,24 @@ import java.math.BigInteger;
 /**
  * A codec for unsigned short values.
  */
-public class UnsignedShortCodec extends IntCodecBase<Short> {
-	private UnsignedShortCodec() {
+public class UnsignedShortCodec extends IntCodecBase<UnsignedShort> {
+	public UnsignedShortCodec() {
 		super(BigInteger.ZERO, BigInteger.valueOf(0xFFFF));
 	}
 
-	/**
-	 * A codec for unsigned short values.
-	 */
-	@ESExprOverrideCodec(value = short.class, requiredAnnotations = Unsigned.class)
-	@ESExprOverrideCodec(value = Short.class, requiredAnnotations = Unsigned.class)
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
-	public static final ESExprCodec<Short> INSTANCE = new UnsignedShortCodec();
 
 	@Override
-	public boolean isEncodedEqual(Short x, Short y) {
-		return x.shortValue() == y.shortValue();
+	public boolean isEncodedEqual(UnsignedShort x, UnsignedShort y) {
+		return x.equals(y);
 	}
 
 	@Override
-	protected Short fromBigInt(BigInteger value) {
-		return value.shortValue();
+	protected UnsignedShort fromBigInt(BigInteger value) {
+		return UnsignedShort.valueOf(value.shortValue());
 	}
 
 	@Override
-	protected BigInteger toBigInt(Short value) {
-		return BigInteger.valueOf(Short.toUnsignedLong(value));
+	protected BigInteger toBigInt(UnsignedShort value) {
+		return BigInteger.valueOf(value.intValue());
 	}
 }

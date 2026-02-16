@@ -2,7 +2,6 @@ package esexpr.sjs
 
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.{BigUint64Array, Uint16Array, Uint32Array, Uint8Array}
-import esexpr.ESExpr as SESExpr
 
 type ESExpr = ESExpr.Constructor
             | Boolean

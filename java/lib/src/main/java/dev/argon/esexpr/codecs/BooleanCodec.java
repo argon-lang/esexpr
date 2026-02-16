@@ -5,14 +5,14 @@ import dev.argon.esexpr.*;
 /**
  * A codec for boolean values.
  */
-public class BooleanCodec extends ESExprCodec<Boolean> {
+public class BooleanCodec implements ESExprCodec<Boolean> {
 	private BooleanCodec() {}
 
 	/**
 	 * A codec for boolean values.
 	 */
-	@ESExprOverrideCodec(boolean.class)
-	@ESExprOverrideCodec(Boolean.class)
+	
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.BOOL })
 	public static final ESExprCodec<Boolean> INSTANCE = new BooleanCodec();
 

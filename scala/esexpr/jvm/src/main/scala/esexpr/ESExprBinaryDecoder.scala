@@ -3,12 +3,9 @@ package esexpr
 import dev.argon.esexpr.{ESExpr as JESExpr, ESExprBinaryReader, SyntaxException}
 
 import dev.argon.util.async.ErrorWrapper
-import scala.jdk.CollectionConverters.*
-import java.util.stream.Stream as JStream
 import java.io.{IOException, InputStream}
-import zio.{ZIO, Cause}
+import zio.ZIO
 import zio.stream.ZStream
-import scala.reflect.TypeTest
 
 object ESExprBinaryDecoder {
   def readAll[R, E](data: ZStream[R, E, Byte])(using ErrorWrapper[E]): ZStream[R, E | IOException | ESExprFormatException, ESExpr] =

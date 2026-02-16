@@ -40,7 +40,7 @@ public class ESExprBinaryWriter {
 			}
 			else {
 				var newStrings = new StringTable(symbolTable.Skip(oldCount).ToImmutableList());
-				var newStringExpr = new StringTable.Codec().Encode(newStrings);
+				var newStringExpr = StringTable.Codec.Encode(newStrings);
 				await WriteRaw(newStringExpr, cancellationToken);
 			}
 		}
@@ -52,7 +52,7 @@ public class ESExprBinaryWriter {
 		switch(expr) {
 			case Expr.Constructor(var constructor, var args, var kwargs):
 				switch(constructor) {
-					case StringTable.Codec.StringTableConstructor:
+					case StringTable.StringTableConstructor:
 						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartStringTable, null), cancellationToken).ConfigureAwait(false);
 						break;
 
@@ -363,7 +363,7 @@ public class ESExprBinaryWriter {
 		}
 
 		if(expr is Expr.Constructor(var name, var args, var kwargs)) {
-			if(name != ListCodecBase<int, List<int>>.ListConstructor && name != StringTable.Codec.StringTableConstructor) {
+			if(name != ListCodecBase<int, List<int>>.ListConstructor && name != StringTable.StringTableConstructor) {
 				AddSymbol(name);
 			}
 

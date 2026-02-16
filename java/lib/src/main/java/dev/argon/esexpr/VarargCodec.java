@@ -2,6 +2,7 @@ package dev.argon.esexpr;
 
 
 import com.google.common.collect.ImmutableList;
+import dev.argon.esexpr.codecs.ListVarargCodec;
 
 import java.util.Deque;
 import java.util.List;
@@ -47,5 +48,17 @@ public interface VarargCodec<T, E> {
 		 * @return A path for the element at the index.
 		 */
 		ESExprCodec.FailurePath pathAt(int index);
+	}
+
+	/**
+	 * Creates a variable argument codec for a list of elements of type {@code T}.
+	 *
+	 * @param <T> The type of the elements in the list.
+	 * @param itemCodec The codec used for encoding and decoding individual elements.
+	 * @return A {@code VarargCodec} capable of encoding a list of elements of type {@code T}.
+	 */
+	@TypeClassInstance
+	static <T> VarargCodec<List<T>, T> listCodec(ESExprCodec<T> itemCodec) {
+		return new ListVarargCodec<>(itemCodec);
 	}
 }

@@ -7,33 +7,23 @@ import java.math.BigInteger;
 /**
  * A codec for unsigned long values.
  */
-public class UnsignedLongCodec extends IntCodecBase<Long> {
-	private UnsignedLongCodec() {
+public class UnsignedLongCodec extends IntCodecBase<UnsignedLong> {
+	public UnsignedLongCodec() {
 		super(BigInteger.ZERO, BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE));
 	}
 
-	/**
-	 * A codec for unsigned long values.
-	 */
-	@ESExprOverrideCodec(value = long.class, requiredAnnotations = Unsigned.class)
-	@ESExprOverrideCodec(value = Long.class, requiredAnnotations = Unsigned.class)
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
-	public static final ESExprCodec<Long> INSTANCE = new UnsignedLongCodec();
-
 	@Override
-	public boolean isEncodedEqual(Long x, Long y) {
-		return x.longValue() == y.longValue();
+	public boolean isEncodedEqual(UnsignedLong x, UnsignedLong y) {
+		return x.equals(y);
 	}
 
 	@Override
-	protected Long fromBigInt(BigInteger value) {
-		return value.longValue();
+	protected UnsignedLong fromBigInt(BigInteger value) {
+		return UnsignedLong.valueOf(value.longValue());
 	}
 
 	@Override
-	protected BigInteger toBigInt(Long value) {
-		return BigInteger.valueOf(value).and(
-			BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE)
-		);
+	protected BigInteger toBigInt(UnsignedLong value) {
+		return value.bigIntegerValue();
 	}
 }

@@ -27,4 +27,7 @@ public sealed partial record KeywordArguments {
 
 	[Keyword]
 	public required Option<bool> G { get; init; }
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<KeywordArguments> Codec { get; }
 }

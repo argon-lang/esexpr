@@ -7,14 +7,14 @@ import java.util.Set;
 /**
  * A codec for float values.
  */
-public class FloatCodec extends ESExprCodec<Float> {
+public class FloatCodec implements ESExprCodec<Float> {
 	private FloatCodec() {}
 
 	/**
 	 * A codec for float values.
 	 */
-	@ESExprOverrideCodec(float.class)
-	@ESExprOverrideCodec(Float.class)
+	
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.FLOAT32 })
 	public static final ESExprCodec<Float> INSTANCE = new FloatCodec();
 

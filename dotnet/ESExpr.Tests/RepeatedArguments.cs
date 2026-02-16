@@ -10,4 +10,7 @@ public sealed partial record RepeatedArguments {
 
 	[Dict]
 	public required ImmutableDictionary<string, string> Kwargs { get; init; }
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<RepeatedArguments> Codec { get; }
 }

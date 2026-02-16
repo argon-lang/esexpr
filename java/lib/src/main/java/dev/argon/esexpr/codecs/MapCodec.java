@@ -10,8 +10,6 @@ import java.util.Map;
  * @param <K> The key type.
  * @param <V> The value type.
  */
-@ESExprOverrideCodec(Map.class)
-@ESExprCodecTags(constructors = { "map" })
 public class MapCodec<K, V> extends MapCodecBase<K, V, Map<K, V>> {
 
 	/**

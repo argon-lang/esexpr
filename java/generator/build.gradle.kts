@@ -17,6 +17,9 @@ repositories {
 dependencies {
     implementation(libs.commons.text)
     implementation(project(":lib"))
+    testImplementation(libs.junit.jupiter)
+
+    testRuntimeOnly(libs.junit.platform.launcher)
 
     errorprone(libs.nullaway)
     errorprone(libs.errorprone)
@@ -40,6 +43,25 @@ tasks.withType<JavaCompile>().configureEach {
 
     options.compilerArgs.add("-Xlint:unchecked,deprecation,fallthrough,path,rawtypes")
 }
+
+tasks.javadoc {
+    val sourceSetDirectories = sourceSets
+        .main
+        .get()
+        .java
+        .sourceDirectories
+        .joinToString(":")
+
+    val coreOptions = options as CoreJavadocOptions
+    coreOptions.addStringOption("-source-path", sourceSetDirectories)
+
+
+    exclude("dev/argon/esexpr/generator/codegen/**")
+    exclude("dev/argon/esexpr/generator/lookup/**")
+    exclude("dev/argon/esexpr/generator/typeclass/**")
+    exclude("dev/argon/esexpr/generator/utils/**")
+}
+
 
 publishing {
     publications {
@@ -83,4 +105,8 @@ publishing {
 
 signing {
     sign(publishing.publications["mavenJava"])
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }

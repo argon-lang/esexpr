@@ -2,7 +2,6 @@ package dev.argon.esexpr.generator.gen;
 
 import java.util.Optional;
 import dev.argon.esexpr.*;
-import dev.argon.esexpr.codecs.OptionalOptionalValueCodec;
 
 @ESExprCodecGen
 public record KeywordArguments(
@@ -27,6 +26,7 @@ public record KeywordArguments(
 	@Keyword
 	Optional<Boolean> f
 ) {
+	@TypeClassInstance
 	public static ESExprCodec<KeywordArguments> codec() {
 		return KeywordArguments_CodecImpl.INSTANCE;
 	}

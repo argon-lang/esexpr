@@ -7,13 +7,13 @@ import java.util.Set;
 /**
  * A codec for string values.
  */
-public class StringCodec extends ESExprCodec<String> {
+public class StringCodec implements ESExprCodec<String> {
 	private StringCodec() {}
 
 	/**
 	 * A codec for string values.
 	 */
-	@ESExprOverrideCodec(String.class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.STR })
 	public static final ESExprCodec<String> INSTANCE = new StringCodec();
 

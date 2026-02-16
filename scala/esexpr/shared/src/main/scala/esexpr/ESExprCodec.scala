@@ -570,10 +570,10 @@ object ESExprCodec {
 
         case ESExpr.Constructor("map", args, _) if args.size % 2 != 0 =>
           Left(DecodeError("Map constructor expects even number of arguments", ErrorPath.Current))
-        
+
         case ESExpr.Constructor("map", args, _) =>
           val argsIter = args.iterator
-          
+
           sequenceIteratorMap(
             Iterator
               .continually {
@@ -601,7 +601,7 @@ object ESExprCodec {
         case _ =>
           Left(DecodeError("Expected constructor for map", ErrorPath.Current))
       }
-      
+
     private def sequenceIteratorMap[E, K, V](it: Iterator[Either[E, (K, V)]]): Either[E, Map[K, V]] =
       val b = Map.newBuilder[K, V]
       while it.hasNext do
@@ -610,7 +610,7 @@ object ESExprCodec {
           case Right(p) => b += p
       Right(b.result())
     end sequenceIteratorMap
-      
+
   end given
 
   given [A: ESExprCodec] => ESExprCodec[Set[A]]:
@@ -635,8 +635,6 @@ object ESExprCodec {
           Left(DecodeError("Unexpected keyword arguments for map", ErrorPath.Current))
 
         case ESExpr.Constructor("map", args, _) =>
-          val argsIter = args.iterator
-
           sequenceIteratorSet(
             args
               .iterator
@@ -737,7 +735,7 @@ object ESExprCodec {
         val derivedTuple = derivedProductFlagsTuple[T, m.MirroredElemLabels, m.MirroredElemTypes](0)
         given CanEqual[T, T] = CanEqual.derived
 
-        var codec: ESExprCodec[T & Product] = DerivedFlagsProductCodec[T & Product, m.MirroredElemTypes](derivedTuple)(
+        val codec: ESExprCodec[T & Product] = DerivedFlagsProductCodec[T & Product, m.MirroredElemTypes](derivedTuple)(
           using summonInline[Mirror.ProductOf[T] {type MirroredElemTypes = m.MirroredElemTypes} =:= Mirror.ProductOf[T & Product] {type MirroredElemTypes = m.MirroredElemTypes}](m)
         )
 
@@ -756,7 +754,7 @@ object ESExprCodec {
 
 
 
-        var codec: ESExprCodec[T & Product] = DerivedProductCodec[T & Product, m.MirroredElemTypes](constructor, derivedTuple)(
+        val codec: ESExprCodec[T & Product] = DerivedProductCodec[T & Product, m.MirroredElemTypes](constructor, derivedTuple)(
           using summonInline[Mirror.ProductOf[T] {type MirroredElemTypes = m.MirroredElemTypes} =:= Mirror.ProductOf[T & Product] {type MirroredElemTypes = m.MirroredElemTypes}](m)
         )
 
@@ -1115,7 +1113,7 @@ object ESExprCodec {
             FlagsProductConsCodec[Boolean, ttype](fieldCodec, tailCodec)
           )
 
-        case _: ((hlabel *: tlabels), (htype *: ttype)) =>
+        case _: ((_ *: tlabels), (htype *: ttype)) =>
           validateBitMaskDisjoint(usedMask, getFlagsEnumMask[htype])
 
           val fieldCodec = FlagsProductEnumCodec[htype](
@@ -1164,10 +1162,7 @@ object ESExprCodec {
       ${ bigIntOrMacro('mask1, 'mask2) }
 
     private def bigIntOrMacro(mask1: Expr[BigInt], mask2: Expr[BigInt])(using q: Quotes): Expr[BigInt] =
-      import q.reflect.*
-
       Expr(mask1.valueOrAbort | mask2.valueOrAbort)
-    end bigIntOrMacro
 
     private inline def validatePositionalTags(inline prevOptionalPositionalTags: ESExprTagSet, inline tags: ESExprTagSet, inline fieldName: String): Unit =
       inline if ESExprTagSet.isAll(prevOptionalPositionalTags) then
@@ -1455,8 +1450,7 @@ object ESExprCodec {
           override def isEncodedEqual(x: T, y: T): Boolean =
             ${
               val yValue = 'y
-              MacroUtils.patternMatch[T, SubTypes, Boolean]('x)([U] => (xValue: Expr[U], uType: Type[U]) => {
-                given Type[U] = uType
+              MacroUtils.patternMatch[T, SubTypes, Boolean]('x)([U] => (xValue: Expr[U], uType: Type[U]) ?=> {
                 '{
                   $yValue.asMatchable match {
                     case y2: U => ESExprCodec.derived[U](using summonInline[Mirror.Of[U]]).isEncodedEqual($xValue, y2)
@@ -1468,8 +1462,7 @@ object ESExprCodec {
 
           override def encode(value: T): ESExpr =
             ${
-              MacroUtils.patternMatch[T, SubTypes, ESExpr]('value)([U] => (uValue: Expr[U], uType: Type[U]) => {
-                given Type[U] = uType
+              MacroUtils.patternMatch[T, SubTypes, ESExpr]('value)([U] => (uValue: Expr[U], uType: Type[U]) ?=> {
                 '{
                   ESExprCodec.derived[U](using summonInline[Mirror.Of[U]]).encode($uValue)
                 }
@@ -1520,9 +1513,7 @@ object ESExprCodec {
       ${ toSExprNameMacro('name) }
 
     private def toSExprNameMacro(name: Expr[String])(using q: Quotes): Expr[String] =
-      import q.reflect.*
       Expr(toSExprName(name.valueOrAbort))
-    end toSExprNameMacro
 
     private inline def getConstructorInline[T]: String =
       ${ getConstructorMacro[T] }

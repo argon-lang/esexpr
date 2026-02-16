@@ -11,8 +11,6 @@ import java.util.Map;
  * @param <K> The key type.
  * @param <V> The value type.
  */
-@ESExprOverrideCodec(ImmutableMap.class)
-@ESExprCodecTags(constructors = { "map" })
 public class ImmutableMapCodec<K, V> extends MapCodecBase<K, V, ImmutableMap<K, V>> {
 	/**
 	 * Create a codec for immutable maps.

@@ -7,7 +7,7 @@ public class RepeatedArgumentsTest : TestBase {
 	[Test]
 	public void ManyArgsTest() {
 		AssertCodecMatch(
-			new RepeatedArguments.Codec(),
+			RepeatedArguments.Codec,
 			new Expr.Constructor(
 				"repeated-arguments",
 				[new Expr.Str("A"), new Expr.Str("B"), new Expr.Str("Z")],

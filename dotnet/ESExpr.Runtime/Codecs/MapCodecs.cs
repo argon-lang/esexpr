@@ -63,36 +63,28 @@ public abstract class MapCodecBase<K, V, TMap> : IESExprCodec<TMap>
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(UnionWithTypeParameters = [ MapConstructor ])]
-public class MapCodec<K, V> : MapCodecBase<K, V, Dictionary<K, V>> where K : notnull {
+internal class MapCodec<K, V> : MapCodecBase<K, V, Dictionary<K, V>> where K : notnull {
 	public MapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 
 	protected override Dictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Constructors = [ MapConstructor ])]
-public class ImmutableMapCodec<K, V> : MapCodecBase<K, V, ImmutableDictionary<K, V>> where K : notnull {
+internal class ImmutableMapCodec<K, V> : MapCodecBase<K, V, ImmutableDictionary<K, V>> where K : notnull {
 	public ImmutableMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 	
 	protected override ImmutableDictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToImmutableDictionary();
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Constructors = [ MapConstructor ])]
-public class ReadOnlyMapCodec<K, V> : MapCodecBase<K, V, IReadOnlyDictionary<K, V>> where K : notnull {
+internal class ReadOnlyMapCodec<K, V> : MapCodecBase<K, V, IReadOnlyDictionary<K, V>> where K : notnull {
 	public ReadOnlyMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 
 	protected override IReadOnlyDictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToImmutableDictionary();
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Constructors = [ MapConstructor ])]
-public class InterfaceImmutableMapCodec<K, V> : MapCodecBase<K, V, IImmutableDictionary<K, V>> where K : notnull {
+internal class InterfaceImmutableMapCodec<K, V> : MapCodecBase<K, V, IImmutableDictionary<K, V>> where K : notnull {
 	public InterfaceImmutableMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 	

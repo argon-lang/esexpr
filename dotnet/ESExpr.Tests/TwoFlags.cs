@@ -9,4 +9,7 @@ public sealed partial record TwoFlags {
 	
 	[FlagBits(0x2)]
 	public required bool B { get; init; }
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<TwoFlags> Codec { get; }
 }

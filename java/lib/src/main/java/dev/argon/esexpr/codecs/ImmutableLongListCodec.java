@@ -8,13 +8,13 @@ import java.util.Arrays;
 /**
  * A codec for Array64 values.
  */
-public class ImmutableLongListCodec extends ESExprCodec<ImmutableLongList> {
+public class ImmutableLongListCodec implements ESExprCodec<ImmutableLongList> {
 	private ImmutableLongListCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(ImmutableLongList.class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY64 })
 	public static final ESExprCodec<ImmutableLongList> INSTANCE = new ImmutableLongListCodec();
 

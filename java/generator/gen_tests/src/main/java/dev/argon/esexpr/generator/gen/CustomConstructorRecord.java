@@ -7,6 +7,7 @@ import dev.argon.esexpr.*;
 public record CustomConstructorRecord(
 	boolean a
 ) {
+	@TypeClassInstance
 	public static ESExprCodec<CustomConstructorRecord> codec() {
 		return CustomConstructorRecord_CodecImpl.INSTANCE;
 	}

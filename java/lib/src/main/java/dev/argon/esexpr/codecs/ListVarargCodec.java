@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @param <T> The element type.
  */
-@ESExprOverrideCodec(value = List.class, codecType = ESExprOverrideCodec.CodecType.VARARG)
+
 public class ListVarargCodec<T> implements VarargCodec<List<T>, T> {
 	/**
 	 * Creates a VarArgCodec for List values.

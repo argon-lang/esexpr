@@ -7,7 +7,7 @@ public class SimpleEnumTests : TestBase {
 	[Test]
 	public void SimpleEnum() {
 		AssertCodecMatch(
-			new SimpleEnumUser.Codec(),
+			SimpleEnumUser.Codec,
 			new Expr.Constructor(
 				"simple-enum-user",
 				[new Expr.Str("test-name123")],
@@ -18,7 +18,7 @@ public class SimpleEnumTests : TestBase {
 			}
 		);
 		AssertCodecMatch(
-			new SimpleEnumUser.Codec(),
+			SimpleEnumUser.Codec,
 			new Expr.Constructor(
 				"simple-enum-user",
 				[new Expr.Str("test-name-456")],
@@ -29,7 +29,7 @@ public class SimpleEnumTests : TestBase {
 			}
 		);
 		AssertCodecMatch(
-			new SimpleEnumUser.Codec(),
+			SimpleEnumUser.Codec,
 			new Expr.Constructor(
 				"simple-enum-user",
 				[new Expr.Str("other-name-here")],
@@ -40,7 +40,7 @@ public class SimpleEnumTests : TestBase {
 			}
 		);
 		AssertCodecMatch(
-			new SimpleEnumUser.Codec(),
+			SimpleEnumUser.Codec,
 			new Expr.Constructor(
 				"simple-enum-user",
 				[new Expr.Str("my-custom-name")],

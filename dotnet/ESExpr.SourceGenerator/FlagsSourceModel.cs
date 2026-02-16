@@ -8,10 +8,12 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 internal class FlagsSourceModel : TypeSourceModelDeclaration {
 	public required ImmutableList<SourceModelFlagsField> Fields { get; init; }
 
-	public override ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler) {
+	public override ESExprTagSet Tags { get; init; } = ESExprTagSet.Create([new ESExprTag.Int()]);
+
+
+	public override ICodecGenerator Generator(SourceProductionContext context) {
 		return new FlagsCodecGenerator {
 			Context = context,
-			TypeInfoHandler = overrideHandler,
 			TypeModel = this,
 		};
 	}

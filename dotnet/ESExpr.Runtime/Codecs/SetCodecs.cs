@@ -44,9 +44,7 @@ public abstract class SetCodecBase<T, TSet> : IESExprCodec<TSet>
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(UnionWithTypeParameters = [ SetConstructor ])]
-public class SetCodec<T> : SetCodecBase<T, HashSet<T>> {
+internal class SetCodec<T> : SetCodecBase<T, HashSet<T>> {
 	public SetCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -56,9 +54,7 @@ public class SetCodec<T> : SetCodecBase<T, HashSet<T>> {
 	protected override HashSet<T> CreateSet(IEnumerable<T> items) => items.ToHashSet();
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Constructors = [ SetConstructor ])]
-public class ImmutableHashSetCodec<T> : SetCodecBase<T, ImmutableHashSet<T>> {
+internal class ImmutableHashSetCodec<T> : SetCodecBase<T, ImmutableHashSet<T>> {
 	public ImmutableHashSetCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -68,9 +64,7 @@ public class ImmutableHashSetCodec<T> : SetCodecBase<T, ImmutableHashSet<T>> {
 	protected override ImmutableHashSet<T> CreateSet(IEnumerable<T> items) => items.ToImmutableHashSet();
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Constructors = [ SetConstructor ])]
-public class ReadOnlySetCodec<T> : SetCodecBase<T, IReadOnlySet<T>> {
+internal class ReadOnlySetCodec<T> : SetCodecBase<T, IReadOnlySet<T>> {
 	public ReadOnlySetCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -80,9 +74,7 @@ public class ReadOnlySetCodec<T> : SetCodecBase<T, IReadOnlySet<T>> {
 	protected override IReadOnlySet<T> CreateSet(IEnumerable<T> items) => items.ToImmutableHashSet();
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Constructors = [ SetConstructor ])]
-public class InterfaceImmutableSetCodec<T> : SetCodecBase<T, IImmutableSet<T>> {
+internal class InterfaceImmutableSetCodec<T> : SetCodecBase<T, IImmutableSet<T>> {
 	public InterfaceImmutableSetCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 

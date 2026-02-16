@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp;
@@ -102,7 +103,13 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 			
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
-				var tags = GetTags(field.Type, field.Location);
+
+				if(field.Mode is not SourceModelField.FieldMode.Normal {
+					   KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
+				}) {
+					throw new Exception("Inline value field must be a required positional argument");
+				}
+				
 				if(!prevTags.IsDisjointFrom(tags)) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.OverlappingEnumConstructors,
@@ -134,13 +141,20 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
+				
+				
+				if(field.Mode is not SourceModelField.FieldMode.Normal {
+					CodecInstance: var codec,
+				}) {
+					throw new Exception("Inline value field must be a required positional argument");
+				}
 
 
 				switchBody = ReturnStatement(
 					InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
-							GetCodecExpr(field.Type),
+							GetCodecExpr(codec),
 							IdentifierName("Encode")
 						),
 						ArgumentList(SeparatedList(new ArgumentSyntax[] {
@@ -185,6 +199,13 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
+				
+				
+				if(field.Mode is not SourceModelField.FieldMode.Normal {
+					CodecInstance: var codec,
+				}) {
+					throw new Exception("Inline value field must be a required positional argument");
+				}
 
 				var label = CasePatternSwitchLabel(
 					VarPattern(DiscardDesignation()),
@@ -196,7 +217,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 							MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
-								GetCodecExpr(field.Type),
+								GetCodecExpr(codec),
 								IdentifierName("Tags")
 							),
 							IdentifierName("Contains")
@@ -225,7 +246,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 											InvocationExpression(
 												MemberAccessExpression(
 													SyntaxKind.SimpleMemberAccessExpression,
-													GetCodecExpr(field.Type),
+													GetCodecExpr(codec),
 													IdentifierName("Decode")
 												),
 												ArgumentList(SeparatedList(new ArgumentSyntax[] {

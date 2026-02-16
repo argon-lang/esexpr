@@ -9,7 +9,7 @@ import java.util.Optional;
  *
  * @param <T> The element type.
  */
-@ESExprOverrideCodec(value = Optional.class, codecType = ESExprOverrideCodec.CodecType.OPTIONAL_VALUE)
+
 public class OptionalOptionalValueCodec<T> implements OptionalValueCodec<Optional<T>, T> {
 	/**
 	 * Creates an OptionalValueCodec for Optional values.

@@ -8,7 +8,7 @@ public class OptionalDefaultValuesTests : TestBase {
 	[Test]
 	public void OptionalValues() {
 		AssertCodecMatch(
-			new OptionalDefaultValues.Codec(),
+			OptionalDefaultValues.Codec,
 			new Expr.Constructor(
 				"optional-default-values",
 				[],
@@ -18,7 +18,7 @@ public class OptionalDefaultValuesTests : TestBase {
 		);
 		
 		AssertCodecMatch(
-			new OptionalDefaultValues.Codec(),
+			OptionalDefaultValues.Codec,
 			new Expr.Constructor(
 				"optional-default-values",
 				[ new Expr.Int(4), ],

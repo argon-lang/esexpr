@@ -3,18 +3,14 @@ package dev.argon.esexpr.generator.gen.tests;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import dev.argon.esexpr.ESExpr;
+import dev.argon.esexpr.ESExprCodec;
 import dev.argon.esexpr.ESExprTag;
 import dev.argon.esexpr.ESExprTagSet;
-import dev.argon.esexpr.codecs.FloatCodec;
-import dev.argon.esexpr.codecs.StringCodec;
 import dev.argon.esexpr.generator.gen.GenericInlineValue;
 import dev.argon.esexpr.generator.gen.InlineValueEnum;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -42,7 +38,7 @@ public class InlineValueTests extends TestBase {
 	@Test
 	public void testGenericInlineValue() throws Throwable {
 		assertCodecMatch(
-			GenericInlineValue.codec(FloatCodec.INSTANCE),
+			GenericInlineValue.codec(ESExprCodec.floatCodec()),
 			new ESExpr.Constructor(
 				"wrapped-a",
 				ImmutableList.of(new ESExpr.Float32(4.5f)),
@@ -51,7 +47,7 @@ public class InlineValueTests extends TestBase {
 			new GenericInlineValue.WrappedA<>(4.5f)
 		);
 		assertCodecMatch(
-			GenericInlineValue.codec(FloatCodec.INSTANCE),
+			GenericInlineValue.codec(ESExprCodec.stringCodec()),
 			new ESExpr.Str("abc"),
 			new GenericInlineValue.WrappedString<>("abc")
 		);

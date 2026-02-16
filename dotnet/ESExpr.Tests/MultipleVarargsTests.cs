@@ -8,7 +8,7 @@ public class MultipleVarargsTests : TestBase {
 	[Test]
 	public void MultipleVarargsTest() {
 		AssertCodecMatch(
-			new MultipleVarargs.Codec(),
+			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
 				[ new Expr.Str("A"), new Expr.Int(1) ],
@@ -21,7 +21,7 @@ public class MultipleVarargsTests : TestBase {
 		);
 		
 		AssertCodecMatch(
-			new MultipleVarargs.Codec(),
+			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
 				[ new Expr.Str("A") ],
@@ -34,7 +34,7 @@ public class MultipleVarargsTests : TestBase {
 		);
 		
 		AssertCodecMatch(
-			new MultipleVarargs.Codec(),
+			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
 				[ new Expr.Int(1) ],
@@ -47,7 +47,7 @@ public class MultipleVarargsTests : TestBase {
 		);
 		
 		AssertCodecMatch(
-			new MultipleVarargs.Codec(),
+			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
 				[],

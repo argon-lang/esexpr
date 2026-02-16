@@ -12,9 +12,7 @@ import java.util.Set;
  * A codec for optional values.
  * @param <T> The type of the optional value.
  */
-@ESExprOverrideCodec(Optional.class)
-@ESExprCodecTags(scalar = { ESExprTag.Scalar.NULL }, unionWithTypeParameters = "T")
-public class OptionalCodec<T> extends ESExprCodec<Optional<T>> {
+public class OptionalCodec<T> implements ESExprCodec<Optional<T>> {
 	/**
 	 * Create a codec for optional values.
 	 * @param itemCodec The underlying codec for the values.

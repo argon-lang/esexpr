@@ -8,13 +8,13 @@ import java.util.Arrays;
 /**
  * A codec for Array32 values.
  */
-public class ImmutableIntListCodec extends ESExprCodec<ImmutableIntList> {
+public class ImmutableIntListCodec implements ESExprCodec<ImmutableIntList> {
 	private ImmutableIntListCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(ImmutableIntList.class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY32 })
 	public static final ESExprCodec<ImmutableIntList> INSTANCE = new ImmutableIntListCodec();
 

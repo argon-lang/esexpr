@@ -7,8 +7,6 @@ import dev.argon.esexpr.*;
  * A codec for immutable sets.
  * @param <T> The element type.
  */
-@ESExprOverrideCodec(ImmutableSet.class)
-@ESExprCodecTags(constructors = { "set" })
 public class ImmutableSetCodec<T> extends SetCodecBase<T, ImmutableSet<T>> {
 	/**
 	 * Create a codec for immutable sets.

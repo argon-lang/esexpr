@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * @param <T> The type of the list elements.
  * @param <L> The type of the list.
  */
-public abstract class ListCodecBase<T, L extends List<T>> extends ESExprCodec<L> {
+public abstract class ListCodecBase<T, L extends List<T>> implements ESExprCodec<L> {
 
 	/**
 	 * Create a codec for list values.

@@ -3,9 +3,7 @@ using System.Collections.Generic;
 
 namespace ESExpr.Runtime.Codecs;
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float64 ])]
-public sealed class DoubleCodec : IESExprCodec<double> {
+internal sealed class DoubleCodec : IESExprCodec<double> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Float64()]);
 	
 	public bool IsEncodedEqual(double a, double b) =>

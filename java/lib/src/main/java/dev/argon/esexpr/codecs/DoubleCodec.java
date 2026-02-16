@@ -7,14 +7,14 @@ import java.util.Set;
 /**
  * A codec for double values.
  */
-public class DoubleCodec extends ESExprCodec<Double> {
+public class DoubleCodec implements ESExprCodec<Double> {
 	private DoubleCodec() {}
 
 	/**
 	 * A codec for double values.
 	 */
-	@ESExprOverrideCodec(double.class)
-	@ESExprOverrideCodec(Double.class)
+	
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.FLOAT64 })
 	public static final ESExprCodec<Double> INSTANCE = new DoubleCodec();
 

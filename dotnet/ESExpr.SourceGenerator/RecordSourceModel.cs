@@ -9,10 +9,11 @@ internal class RecordSourceModel : TypeSourceModelDeclaration {
 	public required string ConstructorName { get; init; }
 	public required ImmutableList<SourceModelField> Fields { get; init; }
 
-	public override ICodecGenerator Generator(SourceProductionContext context, TypeInfoHandler overrideHandler) {
+	public override required ESExprTagSet Tags { get; init; }
+
+	public override ICodecGenerator Generator(SourceProductionContext context) {
 		return new RecordCodecGenerator {
 			Context = context,
-			TypeInfoHandler = overrideHandler,
 			TypeModel = this,
 		};
 	}

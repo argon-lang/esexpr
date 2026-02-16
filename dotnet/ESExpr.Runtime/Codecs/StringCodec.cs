@@ -2,8 +2,6 @@ using System.Collections.Generic;
 
 namespace ESExpr.Runtime.Codecs;
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Str ])]
 public sealed class StringCodec : IESExprCodec<string> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Str()]);
 

@@ -109,7 +109,11 @@ public class CompileTests {
 				@Constructor("my-ctor")
 				public sealed interface ConstructorNameEnum {
 					record A() implements ConstructorNameEnum {}
-				}"""
+					
+					@TypeClassInstance
+					static ESExprCodec<ConstructorNameEnum> codec() { return ConstructorNameEnum_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -126,7 +130,12 @@ public class CompileTests {
 					
 					@Keyword
 					String b
-				) {}"""
+				) {
+					
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 		assertFails(
 			"Keyword arguments cannot be used with dict arguments",
@@ -139,7 +148,11 @@ public class CompileTests {
 					
 					@Dict
 					KeywordMapping<String> a
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -156,7 +169,11 @@ public class CompileTests {
 					
 					@Dict
 					KeywordMapping<String> b
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -173,7 +190,11 @@ public class CompileTests {
 					
 					@Vararg
 					List<String> b
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -189,7 +210,11 @@ public class CompileTests {
 					List<String> a,
 					
 					String b
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -206,7 +231,11 @@ public class CompileTests {
 					
 					@OptionalValue
 					Optional<String> b
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -223,7 +252,29 @@ public class CompileTests {
 					
 					@OptionalValue
 					Optional<String> b
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
+		);
+	}
+
+	@Test
+	public void multiplePosDefault() throws Throwable {
+		assertFails(
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
+			"MyRecord",
+			IMPORTS + """
+				@ESExprCodecGen
+				public record MyRecord(
+					@DefaultValue("\\"A\\"") String a,
+					@DefaultValue("\\"A\\"") String b
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 
@@ -239,7 +290,31 @@ public class CompileTests {
 					Optional<String> a,
 					
 					String b
-				) {}"""
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
+		);
+	}
+
+	@Test
+	public void argAfterPosDefault() throws Throwable {
+		assertFails(
+			"Field 'b' must have distinct tags from immediately preceding optional positional arguments",
+			"MyRecord",
+			IMPORTS + """
+				@ESExprCodecGen
+				public record MyRecord(
+					@DefaultValue("\\"A\\"")
+					Optional<String> a,
+					
+					String b
+				) {
+					@TypeClassInstance
+					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+				}
+				"""
 		);
 	}
 

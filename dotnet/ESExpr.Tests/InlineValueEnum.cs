@@ -15,4 +15,7 @@ public abstract partial record InlineValueEnum {
 		public required float BValue { get; init; }
 	}
 
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<InlineValueEnum> Codec { get; }
 }

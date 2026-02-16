@@ -8,13 +8,13 @@ import java.util.Arrays;
 /**
  * A codec for Array8 values.
  */
-public class ByteArrayCodec extends ESExprCodec<byte[]> {
+public class ByteArrayCodec implements ESExprCodec<byte[]> {
 	private ByteArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(byte[].class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY8 })
 	public static final ESExprCodec<byte[]> INSTANCE = new ByteArrayCodec();
 

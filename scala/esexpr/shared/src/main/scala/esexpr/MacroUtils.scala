@@ -1,41 +1,27 @@
 package esexpr
 
-import scala.deriving.Mirror
 import scala.quoted.*
-import cats.implicits.given
 
 import scala.reflect.ClassTag
 
 private[esexpr] object MacroUtils {
 
-//  given [T] => FromExpr[T] => FromExpr[Array[T]]:
-//    override def unapply(x: Expr[Array[T]])(using Quotes): Option[Array[T]] =
-//      x match {
-//        case '{  }
-//      }
-//  end given
-
   given FromExpr[Array[Byte]]:
     override def unapply(x: Expr[Array[Byte]])(using q: Quotes): Option[Array[Byte]] =
-      import q.reflect.*
-      
       x match {
         case '{ Array.emptyByteArray } => Some(Array.emptyByteArray)
         
         case '{ Array(${ Expr(h) }: Byte, (${ Varargs[Byte](Exprs(t)) }: Seq[Byte])*) } =>
           Some(Array(h, t*))
 
-        case '{ BigInt(Array[Byte](${ Varargs[Byte](Exprs(b)) }*)(using ${tag}: ClassTag[Byte])) } =>
+        case '{ BigInt(Array[Byte](${ Varargs[Byte](Exprs(b)) }*)(using ${_}: ClassTag[Byte])) } =>
           Some(b.toArray)
 
         case _ => None
       }
-    end unapply
 
   given FromExpr[BigInt]:
     override def unapply(x: Expr[BigInt])(using q: Quotes): Option[BigInt] =
-      import q.reflect.*        
-      
       x match {
         case '{ BigInt.int2bigInt(${ Expr(i) }) } => Some(BigInt(i))
         case '{ BigInt(${ Expr(i) }: Int) } => Some(BigInt(i))
@@ -44,8 +30,6 @@ private[esexpr] object MacroUtils {
 
         case _ => None
       }
-    end unapply
-
   end given
   
 
@@ -276,33 +260,25 @@ private[esexpr] object MacroUtils {
       ${ containsMacro('s, 'value) }
 
     private def containsMacro(s: Expr[Set[String]], value: Expr[String])(using q: Quotes): Expr[Boolean] =
-      import q.reflect.*
       Expr(s.valueOrAbort.contains(value.valueOrAbort))
-    end containsMacro
 
     inline def show(inline s: Set[String]): String =
       ${ showMacro('s) }
 
     def showMacro(s: Expr[Set[String]])(using q: Quotes): Expr[String] =
-      import q.reflect.*
       Expr(s.valueOrAbort.toString())
-    end showMacro
 
     inline def isNonEmpty(inline s: Set[String]): Boolean =
       ${ isNonEmptyMacro('s) }
 
     private def isNonEmptyMacro[A: Type](s: Expr[Set[String]])(using q: Quotes): Expr[Boolean] =
-      import q.reflect.*
       Expr(s.valueOrAbort.nonEmpty)
-    end isNonEmptyMacro
 
     inline def add(inline s: Set[String], inline value: String): Set[String] =
       ${ addMacro('s, 'value) }
 
     private def addMacro(s: Expr[Set[String]], value: Expr[String])(using q: Quotes): Expr[Set[String]] =
-      import q.reflect.*
       Expr(s.valueOrAbort + value.valueOrAbort)
-    end addMacro
   }
 
   object BigIntSetOps {
@@ -310,33 +286,25 @@ private[esexpr] object MacroUtils {
       ${ containsMacro('s, 'value) }
 
     private def containsMacro(s: Expr[Set[BigInt]], value: Expr[BigInt])(using q: Quotes): Expr[Boolean] =
-      import q.reflect.*
       Expr(s.valueOrAbort.contains(value.valueOrAbort))
-    end containsMacro
 
     inline def show(inline s: Set[BigInt]): String =
       ${ showMacro('s) }
 
     def showMacro(s: Expr[Set[BigInt]])(using q: Quotes): Expr[String] =
-      import q.reflect.*
       Expr(s.valueOrAbort.toString())
-    end showMacro
 
     inline def isNonEmpty(inline s: Set[BigInt]): Boolean =
       ${ isNonEmptyMacro('s) }
 
     private def isNonEmptyMacro[A: Type](s: Expr[Set[BigInt]])(using q: Quotes): Expr[Boolean] =
-      import q.reflect.*
       Expr(s.valueOrAbort.nonEmpty)
-    end isNonEmptyMacro
 
     inline def add(inline s: Set[BigInt], inline value: BigInt): Set[BigInt] =
       ${ addMacro('s, 'value) }
 
     private def addMacro(s: Expr[Set[BigInt]], value: Expr[BigInt])(using q: Quotes): Expr[Set[BigInt]] =
-      import q.reflect.*
       Expr(s.valueOrAbort + value.valueOrAbort)
-    end addMacro
   }
   
 

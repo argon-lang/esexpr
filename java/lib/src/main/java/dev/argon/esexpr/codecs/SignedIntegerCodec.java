@@ -16,8 +16,8 @@ public class SignedIntegerCodec extends IntCodecBase<Integer> {
 	/**
 	 * A codec for signed int values.
 	 */
-	@ESExprOverrideCodec(value = int.class, excludedAnnotations = Unsigned.class)
-	@ESExprOverrideCodec(value = Integer.class, excludedAnnotations = Unsigned.class)
+	
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static final ESExprCodec<Integer> INSTANCE = new SignedIntegerCodec();
 

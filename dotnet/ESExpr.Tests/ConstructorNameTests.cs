@@ -8,12 +8,12 @@ public class Tests : TestBase {
 	[Test]
 	public void ConstructorNameConversion() {
 		Assert.That(
-			new PrimitiveFields.Codec().Tags,
+			PrimitiveFields.Codec.Tags,
 			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("primitive-fields")]))
 		);
 
 		AssertCodecMatch(
-			new PrimitiveFields.Codec(),
+			PrimitiveFields.Codec,
 			new Expr.Constructor(
 				"primitive-fields",
 				[
@@ -47,12 +47,12 @@ public class Tests : TestBase {
 		);
 
 		Assert.That(
-			new ConstructorName123Conversion.Codec().Tags,
+			ConstructorName123Conversion.Codec.Tags,
 			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("constructor-name123-conversion")]))
 		);
 
 		AssertCodecMatch(
-			new ConstructorName123Conversion.Codec(),
+			ConstructorName123Conversion.Codec,
 			new Expr.Constructor(
 				"constructor-name123-conversion",
 				[new Expr.Int(BigInteger.Zero)],
@@ -64,12 +64,12 @@ public class Tests : TestBase {
 		);
 
 		Assert.That(
-			new ConstructorName_456Conversion.Codec().Tags,
+			ConstructorName_456Conversion.Codec.Tags,
 			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("constructor-name-456-conversion")]))
 		);
 
 		AssertCodecMatch(
-			new ConstructorName_456Conversion.Codec(),
+			ConstructorName_456Conversion.Codec,
 			new Expr.Constructor(
 				"constructor-name-456-conversion",
 				[new Expr.Int(BigInteger.Zero)],
@@ -81,12 +81,12 @@ public class Tests : TestBase {
 		);
 
 		Assert.That(
-			new MyEnum.Codec().Tags,
+			MyEnum.Codec.Tags,
 			Is.EqualTo(ESExprTagSet.Create([new ESExprTag.Constructor("my-case-a"), new ESExprTag.Constructor("my-case-b")]))
 		);
 
 		AssertCodecMatch(
-			new MyEnum.Codec(),
+			MyEnum.Codec,
 			new Expr.Constructor(
 				"my-case-a",
 				[new Expr.Int(BigInteger.Zero)],
@@ -98,7 +98,7 @@ public class Tests : TestBase {
 		);
 
 		AssertCodecMatch(
-			new MyEnum.Codec(),
+			MyEnum.Codec,
 			new Expr.Constructor(
 				"my-case-b",
 				[new Expr.Float32(0.0f)],

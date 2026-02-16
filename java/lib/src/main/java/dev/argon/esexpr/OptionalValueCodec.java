@@ -1,6 +1,8 @@
 package dev.argon.esexpr;
 
 
+import dev.argon.esexpr.codecs.OptionalOptionalValueCodec;
+
 import java.util.Optional;
 
 /**
@@ -33,4 +35,17 @@ public interface OptionalValueCodec<T, E> {
 	 * @throws DecodeException when the value cannot be decoded.
 	 */
 	T decodeOptional(Optional<ESExpr> expr, ESExprCodec.FailurePath path) throws DecodeException;
+
+
+	/**
+	 * Creates an {@link OptionalValueCodec} instance for handling optional values.
+	 *
+	 * @param <T> The type of the values contained within the optional value.
+	 * @param itemCodec The codec used to encode and decode the underlying value.
+	 * @return A new {@link OptionalValueCodec} instance configured with the provided item codec.
+	 */
+	@TypeClassInstance
+	static <T> OptionalValueCodec<Optional<T>, T> optionalValueCodec(ESExprCodec<T> itemCodec) {
+		return new OptionalOptionalValueCodec<T>(itemCodec);
+	}
 }

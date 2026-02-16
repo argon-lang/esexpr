@@ -64,9 +64,7 @@ public abstract class DictionaryCodecBase<T, TDict> : IESExprCodec<TDict>
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(UnionWithTypeParameters = [ DictConstructor ])]
-public class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>> {
+internal class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>> {
 	internal DictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -83,8 +81,7 @@ public class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>> 
 	}
 }
 
-[ESExprOverrideCodec]
-public class ImmutableDictionaryCodec<T> : DictionaryCodecBase<T, ImmutableDictionary<string, T>> {
+internal class ImmutableDictionaryCodec<T> : DictionaryCodecBase<T, ImmutableDictionary<string, T>> {
 	public ImmutableDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -101,8 +98,7 @@ public class ImmutableDictionaryCodec<T> : DictionaryCodecBase<T, ImmutableDicti
 	}
 }
 
-[ESExprOverrideCodec]
-public class InterfaceDictionaryCodec<T> : DictionaryCodecBase<T, IDictionary<string, T>> {
+internal class InterfaceDictionaryCodec<T> : DictionaryCodecBase<T, IDictionary<string, T>> {
 	public InterfaceDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -119,8 +115,7 @@ public class InterfaceDictionaryCodec<T> : DictionaryCodecBase<T, IDictionary<st
 	}
 }
 
-[ESExprOverrideCodec]
-public class ReadOnlyDictionaryCodec<T> : DictionaryCodecBase<T, IReadOnlyDictionary<string, T>> {
+internal class ReadOnlyDictionaryCodec<T> : DictionaryCodecBase<T, IReadOnlyDictionary<string, T>> {
 	public ReadOnlyDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -137,8 +132,7 @@ public class ReadOnlyDictionaryCodec<T> : DictionaryCodecBase<T, IReadOnlyDictio
 	}
 }
 
-[ESExprOverrideCodec]
-public class InterfaceImmutableDictionaryCodec<T> : DictionaryCodecBase<T, IImmutableDictionary<string, T>> {
+internal class InterfaceImmutableDictionaryCodec<T> : DictionaryCodecBase<T, IImmutableDictionary<string, T>> {
 	public InterfaceImmutableDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -192,8 +186,7 @@ public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict, T>
 	}
 }
 
-[ESExprOverrideCodec]
-public class DictionaryDictCodec<T> : DictionaryDictCodecBase<T, Dictionary<string, T>> {
+internal class DictionaryDictCodec<T> : DictionaryDictCodecBase<T, Dictionary<string, T>> {
 	public DictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -210,8 +203,7 @@ public class DictionaryDictCodec<T> : DictionaryDictCodecBase<T, Dictionary<stri
 	}
 }
 
-[ESExprOverrideCodec]
-public class ImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, ImmutableDictionary<string, T>> {
+internal class ImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, ImmutableDictionary<string, T>> {
 	public ImmutableDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -228,8 +220,7 @@ public class ImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, Immuta
 	}
 }
 
-[ESExprOverrideCodec]
-public class InterfaceDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IDictionary<string, T>> {
+internal class InterfaceDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IDictionary<string, T>> {
 	public InterfaceDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -246,8 +237,7 @@ public class InterfaceDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IDicti
 	}
 }
 
-[ESExprOverrideCodec]
-public class ReadOnlyDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IReadOnlyDictionary<string, T>> {
+internal class ReadOnlyDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IReadOnlyDictionary<string, T>> {
 	public ReadOnlyDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -264,8 +254,7 @@ public class ReadOnlyDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IReadOn
 	}
 }
 
-[ESExprOverrideCodec]
-public class InterfaceImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IImmutableDictionary<string, T>> {
+internal class InterfaceImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IImmutableDictionary<string, T>> {
 	public InterfaceImmutableDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 

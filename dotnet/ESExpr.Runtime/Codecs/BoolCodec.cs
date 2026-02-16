@@ -2,9 +2,7 @@ using System.Collections.Generic;
 
 namespace ESExpr.Runtime.Codecs;
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Bool ])]
-public sealed class BoolCodec : IESExprCodec<bool> {
+internal sealed class BoolCodec : IESExprCodec<bool> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Bool()]);
 	
 	public bool IsEncodedEqual(bool a, bool b) => a == b;

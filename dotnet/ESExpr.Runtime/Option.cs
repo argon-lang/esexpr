@@ -55,9 +55,15 @@ public struct Option<T> : IEquatable<Option<T>> {
 			return "None";
 		}
 	}
+}
 
-	public sealed class Codec : IESExprCodec<Option<T>> {
-		public Codec(IESExprCodec<T> elementCodec) {
+public static class Option {
+	[TypeClassInstance]
+	public static IESExprCodec<Option<T>> Codec<T>(IESExprCodec<T> elementCodec) =>
+		new OptionCodec<T>(elementCodec);
+	
+	private sealed class OptionCodec<T> : IESExprCodec<Option<T>> {
+		public OptionCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
 		}
 
@@ -66,15 +72,15 @@ public struct Option<T> : IEquatable<Option<T>> {
 		public ESExprTagSet Tags => elementCodec.Tags.Add(new ESExprTag.Null());
 
 		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
-			if(!a.hasValue) {
-				return !b.hasValue;
+			if(!a.TryGetValue(out var aValue)) {
+				return !b.IsSome;
 			}
 
-			if(!b.hasValue) {
+			if(!b.TryGetValue(out var bValue)) {
 				return false;
 			}
-
-			return elementCodec.IsEncodedEqual(a.value, b.value);
+			
+			return elementCodec.IsEncodedEqual(aValue, bValue);
 		}
 
 		public Expr Encode(Option<T> value) {
@@ -98,7 +104,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 					return new Option<T>(elementCodec.Decode(new Expr.Null(level - 1), path));
 				}
 				else {
-					return Empty;
+					return Option<T>.Empty;
 				}
 			}
 			else {
@@ -106,9 +112,16 @@ public struct Option<T> : IEquatable<Option<T>> {
 			}
 		}
 	}
-
+	
+	
+	
+	[TypeClassInstance]
 	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Null ], UnionWithTypeParameters = [ nameof(T) ])]
-	public sealed class OptionalValueCodec : IOptionalValueCodec<Option<T>, T> {
+	public static IOptionalValueCodec<Option<T>, T> OptionOptionalValueCodec<T>(IESExprCodec<T> itemCodec) =>
+		new OptionalValueCodec<T>(itemCodec);
+	
+	
+	private sealed class OptionalValueCodec<T> : IOptionalValueCodec<Option<T>, T> {
 		public OptionalValueCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
 		}
@@ -118,15 +131,15 @@ public struct Option<T> : IEquatable<Option<T>> {
 		public ESExprTagSet ElementTags => elementCodec.Tags;
 
 		public bool IsEncodedEqual(Option<T> a, Option<T> b) {
-			if(!a.hasValue) {
-				return !b.hasValue;
+			if(!a.TryGetValue(out var aValue)) {
+				return !b.IsSome;
 			}
 
-			if(!b.hasValue) {
+			if(!b.TryGetValue(out var bValue)) {
 				return false;
 			}
-
-			return elementCodec.IsEncodedEqual(a.value, b.value);
+			
+			return elementCodec.IsEncodedEqual(aValue, bValue);
 		}
 
 		public Expr? EncodeOptional(Option<T> value) {
@@ -140,7 +153,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 		public Option<T> DecodeOptional(Expr? value, DecodeFailurePath path) {
 			if(value == null) {
-				return Empty;
+				return Option<T>.Empty;
 			}
 			else {
 				return new Option<T>(elementCodec.Decode(value, path));

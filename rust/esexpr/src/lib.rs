@@ -12,8 +12,6 @@ mod tags;
 
 mod dict;
 
-
-
 #[cfg(feature = "std")]
 extern crate std;
 

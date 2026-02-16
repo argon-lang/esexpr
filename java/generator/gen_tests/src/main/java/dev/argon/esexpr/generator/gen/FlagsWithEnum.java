@@ -4,6 +4,7 @@ import dev.argon.esexpr.ESExprCodec;
 import dev.argon.esexpr.ESExprCodecGen;
 import dev.argon.esexpr.FlagMask;
 import dev.argon.esexpr.Flags;
+import dev.argon.esexpr.TypeClassInstance;
 
 @ESExprCodecGen
 @Flags
@@ -13,6 +14,7 @@ public record FlagsWithEnum(
 
 	MyFlagsEnum b
 ) {
+	@TypeClassInstance
 	public static ESExprCodec<FlagsWithEnum> codec() {
 		return FlagsWithEnum_CodecImpl.INSTANCE;
 	}

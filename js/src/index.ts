@@ -1,11 +1,8 @@
-export {VMap} from "./vmap.js";
-export {VSet} from "./vset.js";
-export {HashEq} from "./hash.js";
+export {HashMap} from "./hashmap.js";
+export {HashSet} from "./hashset.js";
 import { valuesEqual } from "./util.js";
-import { VMap } from "./vmap.js";
-import { VSet } from "./vset.js";
-
-import type {HashEq} from "./hash.js";
+import { HashMap } from "./hashmap.js";
+import { HashSet } from "./hashset.js";
 
 export type ESExpr =
     | ESExpr.Constructor
@@ -1257,14 +1254,12 @@ export function optionCodec<T>(itemCodec: ESExprCodec<T>): ESExprCodec<Option<T>
     return new OptionCodec(itemCodec);
 }
 
-class VMapCodec<K, V> implements ESExprCodec<VMap<K, V>> {
-    constructor(keyHash: HashEq<K>, keyCodec: ESExprCodec<K>, valueCodec: ESExprCodec<V>) {
-        this.#keyHash = keyHash;
+class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
+    constructor(keyCodec: ESExprCodec<K>, valueCodec: ESExprCodec<V>) {
         this.#keyCodec = keyCodec;
         this.#valueCodec = valueCodec;
     }
 
-    readonly #keyHash: HashEq<K>;
     readonly #keyCodec: ESExprCodec<K>;
     readonly #valueCodec: ESExprCodec<V>;
 
@@ -1272,7 +1267,7 @@ class VMapCodec<K, V> implements ESExprCodec<VMap<K, V>> {
         return new Set(["map"]);
     }
 
-    isEncodedEqual(a: VMap<K, V>, b: VMap<K, V>): boolean {
+    isEncodedEqual(a: HashMap<K, V>, b: HashMap<K, V>): boolean {
         if(a.size !== b.size) {
             return false;
         }
@@ -1291,7 +1286,7 @@ class VMapCodec<K, V> implements ESExprCodec<VMap<K, V>> {
         return true;
     }
 
-    encode(value: VMap<K, V>): ESExpr {
+    encode(value: HashMap<K, V>): ESExpr {
         const args: ESExpr[] = [];
         for(const [k, v] of value) {
             args.push(this.#keyCodec.encode(k));
@@ -1306,7 +1301,7 @@ class VMapCodec<K, V> implements ESExprCodec<VMap<K, V>> {
         };
     }
 
-    decode(expr: ESExpr): DecodeResult<VMap<K, V>> {
+    decode(expr: ESExpr): DecodeResult<HashMap<K, V>> {
         if(!ESExpr.isConstructor(expr) || expr.name !== "map") {
             return {
                 success: false,
@@ -1348,29 +1343,27 @@ class VMapCodec<K, V> implements ESExprCodec<VMap<K, V>> {
 
         return {
             success: true,
-            value: VMap.create(this.#keyHash, items),
+            value: new HashMap(items),
         };
     }
 }
 
-export function vmapCodec<K, V>(keyHash: HashEq<K>, keyCodec: ESExprCodec<K>, valueCodec: ESExprCodec<V>): ESExprCodec<VMap<K, V>> {
-    return new VMapCodec(keyHash, keyCodec, valueCodec);
+export function hashmapCodec<K, V>(keyCodec: ESExprCodec<K>, valueCodec: ESExprCodec<V>): ESExprCodec<HashMap<K, V>> {
+    return new VMapCodec(keyCodec, valueCodec);
 }
 
-class VSetCodec<A> implements ESExprCodec<VSet<A>> {
-    constructor(itemHash: HashEq<A>, itemCodec: ESExprCodec<A>) {
-        this.#itemHash = itemHash;
+class VSetCodec<A> implements ESExprCodec<HashSet<A>> {
+    constructor(itemCodec: ESExprCodec<A>) {
         this.#itemCodec = itemCodec;
     }
 
-    readonly #itemHash: HashEq<A>;
     readonly #itemCodec: ESExprCodec<A>;
 
     get tags(): ESExprTagSet {
         return new Set(["set"]);
     }
 
-    isEncodedEqual(a: VSet<A>, b: VSet<A>): boolean {
+    isEncodedEqual(a: HashSet<A>, b: HashSet<A>): boolean {
         if(a.size !== b.size) {
             return false;
         }
@@ -1384,7 +1377,7 @@ class VSetCodec<A> implements ESExprCodec<VSet<A>> {
         return true;
     }
 
-    encode(value: VSet<A>): ESExpr {
+    encode(value: HashSet<A>): ESExpr {
         const args: ESExpr[] = [];
         for(const item of value) {
             args.push(this.#itemCodec.encode(item));
@@ -1398,7 +1391,7 @@ class VSetCodec<A> implements ESExprCodec<VSet<A>> {
         };
     }
 
-    decode(expr: ESExpr): DecodeResult<VSet<A>> {
+    decode(expr: ESExpr): DecodeResult<HashSet<A>> {
         if(!ESExpr.isConstructor(expr) || expr.name !== "set") {
             return {
                 success: false,
@@ -1431,13 +1424,13 @@ class VSetCodec<A> implements ESExprCodec<VSet<A>> {
 
         return {
             success: true,
-            value: VSet.create(this.#itemHash, items),
+            value: new HashSet(items),
         };
     }
 }
 
-export function vsetCodec<A>(itemHash: HashEq<A>, itemCodec: ESExprCodec<A>): ESExprCodec<VSet<A>> {
-    return new VSetCodec(itemHash, itemCodec);
+export function hashsetCodec<A>(itemCodec: ESExprCodec<A>): ESExprCodec<HashSet<A>> {
+    return new VSetCodec(itemCodec);
 }
 
 

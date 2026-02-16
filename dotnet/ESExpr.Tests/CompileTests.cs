@@ -53,7 +53,14 @@ public class CompileTests : TestBase {
 	public void GenerateForClass() {
 		AssertFails(
 			"ESX0003",
-			Imports + "[ESExprCodec] public class HelloWorld {}"
+			Imports +
+			"""
+			[ESExprCodec]
+			public class HelloWorld {
+				[TypeClassInstance]
+				public static partial IESExprCodec<HelloWorld> Codec { get; } 
+			}			
+			"""
 		);
 	}
 
@@ -61,7 +68,15 @@ public class CompileTests : TestBase {
 	public void GenerateForInterface() {
 		AssertFails(
 			"ESX0003",
-			Imports + "[ESExprCodec] public interface HelloWorld {}"
+			Imports +
+			"""
+			[ESExprCodec]
+			public interface HelloWorld {
+				[TypeClassInstance]
+				public static partial IESExprCodec<HelloWorld> Codec { get; }
+			}
+			
+			"""
 		);
 	}
 
@@ -73,9 +88,12 @@ public class CompileTests : TestBase {
 			@"[ESExprCodec]
 			public sealed partial record HelloWorld {
 				[Dict]
-				public required VDict<string> A { get; init; }
+				public required ImmutableDictionary<string, string> A { get; init; }
 				[Keyword]
 				public required string B { get; init; }
+
+				[TypeClassInstance]
+				public static partial IESExprCodec<HelloWorld> Codec { get; }
 			}
 			"
 		);
@@ -89,9 +107,12 @@ public class CompileTests : TestBase {
 			@"[ESExprCodec]
 			public sealed partial record HelloWorld {
 				[Dict]
-				public required VDict<string> A { get; init; }
+				public required ImmutableDictionary<string, string> A { get; init; }
 				[Dict]
-				public required VDict<string> B { get; init; }
+				public required ImmutableDictionary<string, string> B { get; init; }
+
+				[TypeClassInstance]
+				public static partial IESExprCodec<HelloWorld> Codec { get; }
 			}
 			"
 		);
@@ -107,6 +128,9 @@ public class CompileTests : TestBase {
 				[Vararg]
 				public required ImmutableList<string> A { get; init; }
 				public required string B { get; init; }
+
+				[TypeClassInstance]
+				public static partial IESExprCodec<HelloWorld> Codec { get; }
 			}
 			"
 		);
@@ -117,14 +141,18 @@ public class CompileTests : TestBase {
 		AssertFails(
 			"ESX0008",
 			Imports +
-			@"[ESExprCodec]
+			"""
+			[ESExprCodec]
 			public sealed partial record HelloWorld {
 				[Vararg]
 				public required ImmutableList<string> A { get; init; }
 				[Vararg]
 				public required ImmutableList<string> B { get; init; }
+				
+				[TypeClassInstance]
+				public static partial IESExprCodec<HelloWorld> Codec { get; }
 			}
-			"
+			"""
 		);
 	}
 

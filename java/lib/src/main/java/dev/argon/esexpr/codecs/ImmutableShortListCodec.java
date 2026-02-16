@@ -8,13 +8,13 @@ import java.util.Arrays;
 /**
  * A codec for Array16 values.
  */
-public class ImmutableShortListCodec extends ESExprCodec<ImmutableShortList> {
+public class ImmutableShortListCodec implements ESExprCodec<ImmutableShortList> {
 	private ImmutableShortListCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(ImmutableShortList.class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY16 })
 	public static final ESExprCodec<ImmutableShortList> INSTANCE = new ImmutableShortListCodec();
 

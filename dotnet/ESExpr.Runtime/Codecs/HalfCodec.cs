@@ -3,9 +3,7 @@ using System.Collections.Generic;
 
 namespace ESExpr.Runtime.Codecs;
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float16 ])]
-public sealed class HalfCodec : IESExprCodec<Half> {
+internal sealed class HalfCodec : IESExprCodec<Half> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Float16()]);
 
 	public bool IsEncodedEqual(Half a, Half b) =>

@@ -8,7 +8,7 @@ public class PositionalDefaultValuesTests : TestBase {
 	[Test]
 	public void DefaultValues() {
 		AssertCodecMatch(
-			new PositionalDefaultValues.Codec(),
+			PositionalDefaultValues.Codec,
 			new Expr.Constructor(
 				"positional-default-values",
 				[],
@@ -18,7 +18,7 @@ public class PositionalDefaultValuesTests : TestBase {
 		);
 		
 		AssertCodecMatch(
-			new PositionalDefaultValues.Codec(),
+			PositionalDefaultValues.Codec,
 			new Expr.Constructor(
 				"positional-default-values",
 				[ new Expr.Int(4), ],

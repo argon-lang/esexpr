@@ -2,27 +2,25 @@ package esexpr
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
-
 import dev.argon.util.async.ErrorWrapper
 import dev.argon.util.async.AsyncIterableTools
 import dev.argon.util.async.AsyncIterableTools.AsyncIterable
 import dev.argon.util.async.TypedArrayUtil
+
 import scala.scalajs.js.typedarray.Uint8Array
 import scala.scalajs.js.JavaScriptException
-import scala.scalajs.js.JSConverters.*
-
 import java.io.IOException
-
-import zio.{ZIO, Cause, Runtime}
+import zio.{Runtime, ZIO}
 import zio.stream.ZStream
-import scala.reflect.TypeTest
+
+import scala.annotation.unused
 
 
 object ESExprBinaryDecoder {
   
   @JSImport("@argon-lang/esexpr/binary_format")
   @js.native
-  private class ESExprFormatError(message: String = js.native) extends js.Error
+  private class ESExprFormatError(@unused message: String = js.native) extends js.Error
 
 
   @JSImport("@argon-lang/esexpr/binary_format")

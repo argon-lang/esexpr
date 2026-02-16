@@ -8,13 +8,13 @@ import java.util.Arrays;
 /**
  * A codec for Array64 values.
  */
-public class LongArrayCodec extends ESExprCodec<long[]> {
+public class LongArrayCodec implements ESExprCodec<long[]> {
 	private LongArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(long[].class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY64 })
 	public static final ESExprCodec<long[]> INSTANCE = new LongArrayCodec();
 

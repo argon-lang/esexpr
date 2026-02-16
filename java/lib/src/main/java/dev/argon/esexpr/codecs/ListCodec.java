@@ -12,8 +12,6 @@ import java.util.Set;
  * A codec for list values.
  * @param <T> The type of the list elements.
  */
-@ESExprOverrideCodec(List.class)
-@ESExprCodecTags(constructors = { "list" })
 public class ListCodec<T> extends ListCodecBase<T, List<T>> {
 
 	/**

@@ -4,9 +4,7 @@ using System.Linq;
 
 namespace ESExpr.Runtime.Codecs;
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array8 ])]
-public class ImmutableArrayByteCodec : IESExprCodec<ImmutableArray<byte>> {
+internal class ImmutableArrayByteCodec : IESExprCodec<ImmutableArray<byte>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([ new ESExprTag.Array8() ]);
 
 	public bool IsEncodedEqual(ImmutableArray<byte> a, ImmutableArray<byte> b) =>
@@ -26,9 +24,7 @@ public class ImmutableArrayByteCodec : IESExprCodec<ImmutableArray<byte>> {
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array16 ])]
-public class ImmutableArrayUInt16Codec : IESExprCodec<ImmutableArray<ushort>> {
+internal class ImmutableArrayUInt16Codec : IESExprCodec<ImmutableArray<ushort>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([ new ESExprTag.Array16() ]);
 
 	public bool IsEncodedEqual(ImmutableArray<ushort> a, ImmutableArray<ushort> b) =>
@@ -48,9 +44,7 @@ public class ImmutableArrayUInt16Codec : IESExprCodec<ImmutableArray<ushort>> {
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array32 ])]
-public class ImmutableArrayUInt32Codec : IESExprCodec<ImmutableArray<uint>> {
+internal class ImmutableArrayUInt32Codec : IESExprCodec<ImmutableArray<uint>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([ new ESExprTag.Array32() ]);
 
 	public bool IsEncodedEqual(ImmutableArray<uint> a, ImmutableArray<uint> b) =>
@@ -70,9 +64,7 @@ public class ImmutableArrayUInt32Codec : IESExprCodec<ImmutableArray<uint>> {
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array64 ])]
-public class ImmutableArrayUInt64Codec : IESExprCodec<ImmutableArray<ulong>> {
+internal class ImmutableArrayUInt64Codec : IESExprCodec<ImmutableArray<ulong>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([ new ESExprTag.Array64() ]);
 
 	public bool IsEncodedEqual(ImmutableArray<ulong> a, ImmutableArray<ulong> b) =>
@@ -92,9 +84,7 @@ public class ImmutableArrayUInt64Codec : IESExprCodec<ImmutableArray<ulong>> {
 	}
 }
 
-[ESExprOverrideCodec]
-[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array128 ])]
-public class ImmutableArrayUInt128Codec : IESExprCodec<ImmutableArray<UInt128>> {
+internal class ImmutableArrayUInt128Codec : IESExprCodec<ImmutableArray<UInt128>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([ new ESExprTag.Array128() ]);
 
 	public bool IsEncodedEqual(ImmutableArray<UInt128> a, ImmutableArray<UInt128> b) =>

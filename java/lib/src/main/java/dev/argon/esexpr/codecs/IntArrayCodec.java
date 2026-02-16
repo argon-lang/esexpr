@@ -9,13 +9,13 @@ import java.util.Arrays;
 /**
  * A codec for Array32 values.
  */
-public class IntArrayCodec extends ESExprCodec<int[]> {
+public class IntArrayCodec implements ESExprCodec<int[]> {
 	private IntArrayCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(int[].class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY32 })
 	public static final ESExprCodec<int[]> INSTANCE = new IntArrayCodec();
 

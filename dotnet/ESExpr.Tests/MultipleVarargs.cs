@@ -9,4 +9,7 @@ public sealed partial record MultipleVarargs {
 	public required ImmutableList<string> A { get; init; }
 	[Vararg]
 	public required ImmutableList<int> B { get; init; }
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<MultipleVarargs> Codec { get; }
 }

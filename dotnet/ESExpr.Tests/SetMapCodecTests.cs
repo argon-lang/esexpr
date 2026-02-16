@@ -9,7 +9,7 @@ namespace ESExpr.Tests;
 public class SetMapCodecTests : TestBase {
 	[Test]
 	public void HashSetCodecTest() {
-		var codec = new SetCodec<int>(new IntCodec());
+		var codec = IESExprCodec.SetCodec(IESExprCodec.IntCodec);
 		var set = new HashSet<int> { 1, 2, 3 };
 		var expr = new Expr.Constructor("set", [new Expr.Int(1), new Expr.Int(2), new Expr.Int(3)], ImmutableDictionary<string, Expr>.Empty);
 		
@@ -28,7 +28,7 @@ public class SetMapCodecTests : TestBase {
 
 	[Test]
 	public void DictionaryCodecTest() {
-		var codec = new MapCodec<int, string>(new IntCodec(), new StringCodec());
+		var codec = IESExprCodec.MapCodec(IESExprCodec.IntCodec, IESExprCodec.StrCodec);
 		var map = new Dictionary<int, string> { { 1, "one" }, { 2, "two" } };
 		
 		var encoded = codec.Encode(map);
@@ -44,7 +44,7 @@ public class SetMapCodecTests : TestBase {
 
 	[Test]
 	public void ImmutableHashSetCodecTest() {
-		var codec = new ImmutableHashSetCodec<int>(new IntCodec());
+		var codec = IESExprCodec.ImmutableHashSetCodec(IESExprCodec.IntCodec);
 		var set = ImmutableHashSet.Create(1, 2);
 		var encoded = codec.Encode(set);
 		var decoded = codec.Decode(encoded, new DecodeFailurePath.Current());
@@ -53,7 +53,7 @@ public class SetMapCodecTests : TestBase {
 
 	[Test]
 	public void ImmutableMapCodecTest() {
-		var codec = new ImmutableMapCodec<int, string>(new IntCodec(), new StringCodec());
+		var codec = IESExprCodec.ImmutableMapCodec(IESExprCodec.IntCodec, IESExprCodec.StrCodec);
 		var map = ImmutableDictionary.CreateRange(new[] { 
 			new KeyValuePair<int, string>(1, "one"),
 			new KeyValuePair<int, string>(2, "two")

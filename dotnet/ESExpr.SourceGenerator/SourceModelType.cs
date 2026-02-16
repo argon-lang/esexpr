@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ESExpr.SourceGenerator;
 
-public abstract record SourceModelType {
+internal abstract record SourceModelType {
 	private SourceModelType() { }
 
 

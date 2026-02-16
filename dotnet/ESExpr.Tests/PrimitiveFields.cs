@@ -15,4 +15,8 @@ public sealed partial record PrimitiveFields {
 	public required ulong E2 { get; init; }
 	public required float F { get; init; }
 	public required double G { get; init; }
+	
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<PrimitiveFields> Codec { get; }
 }

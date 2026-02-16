@@ -8,13 +8,13 @@ import java.util.Set;
 /**
  * A codec for bigint values.
  */
-public class BigIntegerCodec extends ESExprCodec<BigInteger> {
+public class BigIntegerCodec implements ESExprCodec<BigInteger> {
 	private BigIntegerCodec() {}
 
 	/**
 	 * A codec for bigint values.
 	 */
-	@ESExprOverrideCodec(value = BigInteger.class, excludedAnnotations = Unsigned.class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static final ESExprCodec<BigInteger> INSTANCE = new BigIntegerCodec();
 

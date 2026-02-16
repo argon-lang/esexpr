@@ -50,6 +50,21 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Xlint:unchecked,deprecation,fallthrough,path,rawtypes")
 }
 
+tasks.javadoc {
+    val sourceSetDirectories = sourceSets
+        .main
+        .get()
+        .java
+        .sourceDirectories
+        .joinToString(":")
+
+    val coreOptions = options as CoreJavadocOptions
+    coreOptions.addStringOption("-source-path", sourceSetDirectories)
+
+
+    exclude("dev/argon/esexpr/codecs/**")
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {

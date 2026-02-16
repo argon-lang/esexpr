@@ -9,7 +9,14 @@ import org.eclipse.collections.api.list.primitive.ImmutableByteList;
 public record KnownReferenceFields(
 	String a,
 	BigInteger b,
-	@Unsigned BigInteger b2,
+	UnsignedBigInteger b2,
 	ImmutableByteList c
-) {}
+) {
+
+	@TypeClassInstance
+	public static ESExprCodec<KnownReferenceFields> codec() {
+		return KnownReferenceFields_CodecImpl.INSTANCE;
+	}
+
+}
 

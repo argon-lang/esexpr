@@ -144,10 +144,7 @@ object ESExprTagSet {
     ${ addMacro('a, 'b) }
 
   private def addMacro(a: Expr[ESExprTagSet], b: Expr[ESExprTag])(using q: Quotes): Expr[ESExprTagSet] =
-    import q.reflect.*
-
     Expr(a.valueOrAbort.add(b.valueOrAbort))
-  end addMacro
 
   inline def show(inline a: ESExprTagSet): String =
     ${ showMacro('a) }

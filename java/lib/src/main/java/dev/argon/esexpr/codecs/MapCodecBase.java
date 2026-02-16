@@ -15,7 +15,7 @@ import java.util.function.BiConsumer;
  * @param <V> The type of map values.
  * @param <M> The type of map being encoded and decoded.
  */
-public abstract class MapCodecBase<K, V, M extends Map<K, V>> extends ESExprCodec<M> {
+public abstract class MapCodecBase<K, V, M extends Map<K, V>> implements ESExprCodec<M> {
 
 	/**
 	 * Creates a codec for encoding and decoding Map-like structures.

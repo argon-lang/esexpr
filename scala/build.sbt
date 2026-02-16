@@ -60,14 +60,17 @@ lazy val compilerOptions = Seq(
     "-language:existentials",
     "-language:implicitConversions",
     "-language:strictEquality",
+    "-language:experimental.strictEqualityPatternMatching",
     "-deprecation",
     "-feature",
     "-Ycheck-all-patmat",
     "-Yretain-trees",
     "-Yexplicit-nulls",
+    "-Wsafe-init",
     "-explaintypes",
-    "-Xmax-inlines", "128",
+    "-Wunused:all",
     "-Wconf:id=E029:e,id=E165:e,id=E190:e,cat=unchecked:e,cat=deprecation:e",
+    "-Xmax-inlines", "128",
   ),
 )
 

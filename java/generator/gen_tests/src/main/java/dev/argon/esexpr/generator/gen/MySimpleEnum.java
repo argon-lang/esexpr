@@ -12,6 +12,7 @@ public enum MySimpleEnum {
 	CUSTOM_NAME,
 	;
 
+	@TypeClassInstance
 	public static ESExprCodec<MySimpleEnum> codec() {
 		return MySimpleEnum_CodecImpl.INSTANCE;
 	}

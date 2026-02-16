@@ -9,7 +9,7 @@ import dev.argon.esexpr.*;
  * Base type for sized integer codecs.
  * @param <T> The integer type.
  */
-public abstract class IntCodecBase<T> extends ESExprCodec<T> {
+public abstract class IntCodecBase<T> implements ESExprCodec<T> {
 	IntCodecBase(BigInteger min, BigInteger max) {
 		this.min = min;
 		this.max = max;

@@ -5,7 +5,7 @@ import zio.stream.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
-import scala.scalajs.js.typedarray.{Uint8Array, Int8Array, int8Array2ByteArray}
+import scala.scalajs.js.typedarray.Uint8Array
 import dev.argon.util.async.TypedArrayUtil
 
 import EsxbTestLoader.*

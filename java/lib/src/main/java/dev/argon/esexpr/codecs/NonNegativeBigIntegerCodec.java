@@ -7,15 +7,8 @@ import java.math.BigInteger;
 /**
  * A codec for non-negative bigint values.
  */
-public class NonNegativeBigIntegerCodec extends ESExprCodec<BigInteger> {
-	private NonNegativeBigIntegerCodec() {}
-
-	/**
-	 * A codec for non-negative bigint values.
-	 */
-	@ESExprOverrideCodec(value = BigInteger.class, requiredAnnotations = Unsigned.class)
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
-	public static final ESExprCodec<BigInteger> INSTANCE = new NonNegativeBigIntegerCodec();
+public class NonNegativeBigIntegerCodec implements ESExprCodec<UnsignedBigInteger> {
+	public NonNegativeBigIntegerCodec() {}
 
 
 	@Override
@@ -24,23 +17,23 @@ public class NonNegativeBigIntegerCodec extends ESExprCodec<BigInteger> {
 	}
 
 	@Override
-	public boolean isEncodedEqual(BigInteger x, BigInteger y) {
+	public boolean isEncodedEqual(UnsignedBigInteger x, UnsignedBigInteger y) {
 		return x.equals(y);
 	}
 
 	@Override
-	public final ESExpr encode(BigInteger value) {
-		return new ESExpr.Int(value);
+	public final ESExpr encode(UnsignedBigInteger value) {
+		return new ESExpr.Int(value.toBigInteger());
 	}
 
 	@Override
-	public final BigInteger decode(ESExpr expr, FailurePath path) throws DecodeException {
+	public final UnsignedBigInteger decode(ESExpr expr, FailurePath path) throws DecodeException {
 		if(expr instanceof ESExpr.Int(var i)) {
 			if(i.compareTo(BigInteger.ZERO) < 0) {
 				throw new DecodeException("Integer value out of range", path);
 			}
 
-			return i;
+			return UnsignedBigInteger.valueOf(i);
 		}
 		else {
 			throw new DecodeException("Expected an integer value", path);

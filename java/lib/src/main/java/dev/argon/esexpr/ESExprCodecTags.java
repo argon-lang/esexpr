@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * are serialized or deserialized in relation to their expressions.
  */
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.METHOD, ElementType.TYPE, ElementType.FIELD})
+@Target({ElementType.METHOD, ElementType.FIELD})
 public @interface ESExprCodecTags {
 	/**
 	 * {@return Specifies an array of scalar tags that define primitive data types.}

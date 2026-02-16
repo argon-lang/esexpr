@@ -84,6 +84,7 @@ public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 	 * @return The DictCodec.
 	 * @param <T> The element type.
 	 */
+	@TypeClassInstance
 	public static <T> DictCodec<KeywordMapping<T>, T> dictCodec(ESExprCodec<T> tCodec) {
 		return new DictCodec<>() {
 			@Override

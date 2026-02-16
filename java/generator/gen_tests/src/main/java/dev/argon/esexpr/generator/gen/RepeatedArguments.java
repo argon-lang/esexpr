@@ -3,7 +3,6 @@ package dev.argon.esexpr.generator.gen;
 import java.util.List;
 
 import dev.argon.esexpr.*;
-import dev.argon.esexpr.codecs.ListVarargCodec;
 
 @ESExprCodecGen
 public record RepeatedArguments(
@@ -13,6 +12,7 @@ public record RepeatedArguments(
 	@Dict
 	KeywordMapping<String> kwargs
 ) {
+	@TypeClassInstance
 	public static ESExprCodec<RepeatedArguments> codec() {
 		return RepeatedArguments_CodecImpl.INSTANCE;
 	}

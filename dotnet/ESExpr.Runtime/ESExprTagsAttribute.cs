@@ -2,6 +2,7 @@ using System;
 
 namespace ESExpr.Runtime;
 
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property)]
 public class ESExprTagsAttribute : Attribute {
 	
 	public ESExprTag.ScalarType[] Scalar { get; set; } = [];

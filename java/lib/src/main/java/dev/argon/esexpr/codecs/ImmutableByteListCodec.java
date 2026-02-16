@@ -6,13 +6,13 @@ import org.eclipse.collections.api.list.primitive.ImmutableByteList;
 /**
  * A codec for Array8 values.
  */
-public class ImmutableByteListCodec extends ESExprCodec<ImmutableByteList> {
+public class ImmutableByteListCodec implements ESExprCodec<ImmutableByteList> {
 	private ImmutableByteListCodec() {}
 
 	/**
 	 * A codec for binary values.
 	 */
-	@ESExprOverrideCodec(ImmutableByteList.class)
+	
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY8 })
 	public static final ESExprCodec<ImmutableByteList> INSTANCE = new ImmutableByteListCodec();
 

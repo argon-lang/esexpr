@@ -13,4 +13,7 @@ public abstract partial record MyEnum {
 	public sealed record MyCaseB : MyEnum {
 		public required float B { get; init; }
 	}
+	
+	[TypeClassInstance]
+	public static partial IESExprCodec<MyEnum> Codec { get; }
 }

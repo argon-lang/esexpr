@@ -16,6 +16,7 @@ public record PrimitiveFields(
 	float f,
 	double g
 ) {
+	@TypeClassInstance
 	public static ESExprCodec<PrimitiveFields> codec() {
 		return PrimitiveFields_CodecImpl.INSTANCE;
 	}

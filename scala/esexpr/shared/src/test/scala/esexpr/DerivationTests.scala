@@ -1,9 +1,7 @@
 package esexpr
 
 import zio.*
-import zio.stream.*
-import zio.test.{TestExecutor as _, *}
-import zio.test.Assertion.*
+import zio.test.*
 
 object DerivationTests extends ZIOSpecDefault {
 
