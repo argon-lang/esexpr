@@ -59,6 +59,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 public static class Option {
 	[TypeClassInstance]
+	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Null ], UnionWithTypeParameters = [ nameof(T) ])]
 	public static IESExprCodec<Option<T>> Codec<T>(IESExprCodec<T> elementCodec) =>
 		new OptionCodec<T>(elementCodec);
 	
@@ -116,7 +117,6 @@ public static class Option {
 	
 	
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Null ], UnionWithTypeParameters = [ nameof(T) ])]
 	public static IOptionalValueCodec<Option<T>, T> OptionOptionalValueCodec<T>(IESExprCodec<T> itemCodec) =>
 		new OptionalValueCodec<T>(itemCodec);
 	

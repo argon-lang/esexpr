@@ -83,7 +83,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
     jvmSettings,
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.nobleidl.core.scala"),
     libraryDependencies ++= Seq(
-      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.4.0-SNAPSHOT",
+      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.5.0-SNAPSHOT",
       "commons-io" % "commons-io" % "2.20.0" % Test,
     ),
   ))
@@ -118,7 +118,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
 
     name := "ESExpr Scala Runtime",
     organization := "dev.argon.esexpr",
-    version := "0.4.0-SNAPSHOT",
+    version := "0.5.0-SNAPSHOT",
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.esexpr.scala"),
 
     description := "ESExpr Scala runtime library",

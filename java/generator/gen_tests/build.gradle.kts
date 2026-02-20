@@ -35,6 +35,7 @@ tasks.withType<JavaCompile>().configureEach {
         error("NullAway")
     }
 
+    options.compilerArgs.add("-parameters")
     options.compilerArgs.add("-Xlint:unchecked,deprecation,fallthrough,path,rawtypes")
 }
 

@@ -19,7 +19,7 @@ public class UnsignedByteCodec extends IntCodecBase<UnsignedByte> {
 
 	@Override
 	protected UnsignedByte fromBigInt(BigInteger value) {
-		return UnsignedByte.valueOf(value.byteValue());
+		return UnsignedByte.fromByteBits(value.byteValue());
 	}
 
 	@Override

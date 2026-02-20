@@ -8,6 +8,8 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 import dev.argon.esexpr.codecs.*;
 import org.eclipse.collections.api.list.primitive.ImmutableByteList;
 import org.eclipse.collections.api.list.primitive.ImmutableIntList;
@@ -286,6 +288,26 @@ public interface ESExprCodec<T> {
 	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static ESExprCodec<Byte> signedByteCodec() {
 		return SignedByteCodec.INSTANCE;
+	}
+
+	/**
+	 * A codec for unsigned Integer values.
+	 * @return The codec.
+	 */
+	@TypeClassInstance
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+	public static ESExprCodec<UnsignedInteger> unsignedIntegerCodec() {
+		return UnsignedIntegerCodec.INSTANCE;
+	}
+
+	/**
+	 * A codec for unsigned Long values.
+	 * @return The codec.
+	 */
+	@TypeClassInstance
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+	public static ESExprCodec<UnsignedLong> unsignedLongCodec() {
+		return UnsignedLongCodec.INSTANCE;
 	}
 
 	/**

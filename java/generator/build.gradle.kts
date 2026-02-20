@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.argon.esexpr"
-version = "0.4.0-SNAPSHOT"
+version = "0.5.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -41,6 +41,7 @@ tasks.withType<JavaCompile>().configureEach {
         error("NullAway")
     }
 
+    options.compilerArgs.add("-parameters")
     options.compilerArgs.add("-Xlint:unchecked,deprecation,fallthrough,path,rawtypes")
 }
 
@@ -50,7 +51,7 @@ tasks.javadoc {
         .get()
         .java
         .sourceDirectories
-        .joinToString(":")
+        .joinToString(File.separator)
 
     val coreOptions = options as CoreJavadocOptions
     coreOptions.addStringOption("-source-path", sourceSetDirectories)

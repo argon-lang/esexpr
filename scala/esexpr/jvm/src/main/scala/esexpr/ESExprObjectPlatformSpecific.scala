@@ -2,6 +2,7 @@ package esexpr
 
 import dev.argon.esexpr.ESExpr as JESExpr
 import org.eclipse.collections.api.factory.primitive.{ByteLists, IntLists, LongLists, ShortLists}
+import com.google.common.collect.{ImmutableList as JImmutableList, ImmutableMap as JImmutableMap}
 
 import scala.jdk.CollectionConverters.*
 import zio.Chunk
@@ -55,8 +56,8 @@ trait ESExprObjectPlatformSpecific {
       case ESExpr.Constructor(constructor, args, kwargs) =>
         JESExpr.Constructor(
           constructor,
-          args.map(toJava).asJava,
-          kwargs.view.mapValues(toJava).toMap.asJava
+          JImmutableList.copyOf(args.map(toJava).asJava),
+          JImmutableMap.copyOf(kwargs.view.mapValues(toJava).toMap.asJava)
         )
 
       case ESExpr.Bool(b) => JESExpr.Bool(b)

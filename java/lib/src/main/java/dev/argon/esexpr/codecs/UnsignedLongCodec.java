@@ -1,5 +1,6 @@
 package dev.argon.esexpr.codecs;
 
+import com.google.common.primitives.UnsignedLong;
 import dev.argon.esexpr.*;
 
 import java.math.BigInteger;
@@ -8,9 +9,11 @@ import java.math.BigInteger;
  * A codec for unsigned long values.
  */
 public class UnsignedLongCodec extends IntCodecBase<UnsignedLong> {
-	public UnsignedLongCodec() {
-		super(BigInteger.ZERO, BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE));
+	private UnsignedLongCodec() {
+		super(BigInteger.ZERO, UnsignedLong.MAX_VALUE.bigIntegerValue());
 	}
+
+	public static final UnsignedLongCodec INSTANCE = new UnsignedLongCodec();
 
 	@Override
 	public boolean isEncodedEqual(UnsignedLong x, UnsignedLong y) {
@@ -19,7 +22,7 @@ public class UnsignedLongCodec extends IntCodecBase<UnsignedLong> {
 
 	@Override
 	protected UnsignedLong fromBigInt(BigInteger value) {
-		return UnsignedLong.valueOf(value.longValue());
+		return UnsignedLong.fromLongBits(value.longValue());
 	}
 
 	@Override

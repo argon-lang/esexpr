@@ -21,6 +21,7 @@ public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 	 * @return The codec.
 	 * @param <T> The element type.
 	 */
+	@TypeClassInstance
 	@ESExprCodecTags(constructors = { "dict" })
 	public static <T> ESExprCodec<KeywordMapping<T>> codec(ESExprCodec<T> tCodec) {
 		return new ESExprCodec<>() {

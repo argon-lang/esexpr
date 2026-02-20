@@ -204,8 +204,11 @@ public abstract record Expr {
 		public override ESExprTag Tag => new ESExprTag.Null();
 	}
 
+	[TypeClassInstance]
+	[ESExprTags(All = true)]
+	public static IESExprCodec<Expr> Codec { get; } = new ExprCodec();
 
-	public sealed class Codec : IESExprCodec<Expr> {
+	private sealed class ExprCodec : IESExprCodec<Expr> {
 		public ESExprTagSet Tags => ESExprTagSet.All;
 		
 		public bool IsEncodedEqual(Expr a, Expr b) => a == b;

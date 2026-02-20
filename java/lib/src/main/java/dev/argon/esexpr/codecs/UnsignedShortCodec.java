@@ -20,7 +20,7 @@ public class UnsignedShortCodec extends IntCodecBase<UnsignedShort> {
 
 	@Override
 	protected UnsignedShort fromBigInt(BigInteger value) {
-		return UnsignedShort.valueOf(value.shortValue());
+		return UnsignedShort.fromShortBits(value.shortValue());
 	}
 
 	@Override

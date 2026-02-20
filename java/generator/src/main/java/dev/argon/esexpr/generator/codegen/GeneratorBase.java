@@ -815,10 +815,10 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		boolean isUnsigned = t.getAnnotationMirrors().stream().anyMatch(ann -> ann.getAnnotationType().toString().equals("dev.argon.esexpr.Unsigned"));
 		if(isUnsigned) {
 			switch(t.getKind()) {
-				case BYTE -> print("dev.argon.esexpr.UnsignedByte.valueOf(");
-				case SHORT -> print("dev.argon.esexpr.UnsignedShort.valueOf(");
-				case INT -> print("dev.argon.esexpr.UnsignedInteger.valueOf(");
-				case LONG -> print("dev.argon.esexpr.UnsignedLong.valueOf(");
+				case BYTE -> print("dev.argon.esexpr.UnsignedByte.fromByteBits(");
+				case SHORT -> print("dev.argon.esexpr.UnsignedShort.fromShortBits(");
+				case INT -> print("com.google.common.primitives.UnsignedInteger.fromIntBits(");
+				case LONG -> print("com.google.common.primitives.UnsignedLong.fromLongBits(");
 				default -> {}
 			}
 		}

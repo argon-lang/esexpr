@@ -40,6 +40,7 @@ object UnsignedTypes {
       def toUInt: UInt = JByte.toUnsignedInt(a)
       def toLong: Long = JByte.toUnsignedLong(a)
       def toULong: ULong = JByte.toUnsignedLong(a)
+      def toUBigInt: UBigInt = JByte.toUnsignedLong(a)
       def toBigInt: BigInt = JByte.toUnsignedLong(a)
     end extension
   }
@@ -87,6 +88,7 @@ object UnsignedTypes {
       def toUInt: UInt = JShort.toUnsignedInt(a)
       def toLong: Long = JShort.toUnsignedLong(a)
       def toULong: ULong = JShort.toUnsignedLong(a)
+      def toUBigInt: UBigInt = JShort.toUnsignedLong(a)
       def toBigInt: BigInt = JShort.toUnsignedLong(a)
     end extension
   }
@@ -135,6 +137,7 @@ object UnsignedTypes {
       def toInt: Int = a
       def toLong: Long = JInt.toUnsignedLong(a)
       def toULong: ULong = JInt.toUnsignedLong(a)
+      def toUBigInt: UBigInt = JInt.toUnsignedLong(a)
       def toBigInt: BigInt = JInt.toUnsignedLong(a)
     end extension
   }
@@ -182,6 +185,7 @@ object UnsignedTypes {
       def toInt: Int = (a : Long).toInt
       def toUInt: UInt = (a : Long).toInt
       def toLong: Long = a
+      def toUBigInt: UBigInt = toBigInt
       def toBigInt: BigInt = (((1: BigInt) << JLong.SIZE) - 1) & a
     end extension
   }
@@ -194,11 +198,47 @@ object UnsignedTypes {
   end extension
 
 
+  opaque type UBigInt = BigInt
+  object UBigInt {
+    given CanEqual[UBigInt, UBigInt] = summon[CanEqual[BigInt, BigInt]]
+
+    extension (a: UBigInt)
+      def +(b: UBigInt): UBigInt = (a: BigInt) + b
+      def *(b: UBigInt): UBigInt = (a: BigInt) * b
+      def /(b: UBigInt): UBigInt = (a: BigInt) / b
+
+      def compare(b: UBigInt): Int =
+        a.compare(b)
+
+      def <(b: UBigInt): Boolean =
+        a < b
+
+      def <=(b: UBigInt): Boolean =
+        a <= b
+
+      def >(b: UBigInt): Boolean =
+        a > b
+
+      def >=(b: UBigInt): Boolean =
+        a >= b
+
+      def toByte: Byte = (a : BigInt).toByte
+      def toUByte: UByte = (a : BigInt).toByte
+      def toShort: Short = (a : BigInt).toShort
+      def toUShort: UShort = (a : BigInt).toShort
+      def toInt: Int = (a : BigInt).toInt
+      def toUInt: UInt = (a : BigInt).toInt
+      def toLong: Long = (a : BigInt).toLong
+      def toBigInt: BigInt = a
+    end extension
+  }
+
   extension (a: BigInt)
     def toUByte: UByte = a.toByte
     def toUShort: UShort = a.toShort
     def toUInt: UInt = a.toInt
     def toULong: ULong = a.toLong
+    def toUBigInt: UBigInt = a.abs
   end extension
 
 

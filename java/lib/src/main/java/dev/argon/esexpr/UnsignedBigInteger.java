@@ -40,6 +40,26 @@ public class UnsignedBigInteger {
 		return new UnsignedBigInteger(value);
 	}
 
+	/**
+	 * Returns an {@link UnsignedBigInteger} whose value is equal to the specified long.
+	 * @param value The value to wrap.
+	 * @return An {@link UnsignedBigInteger} instance.
+	 * @throws IllegalArgumentException if the value is negative.
+	 */
+	public static UnsignedBigInteger valueOf(long value) {
+		return valueOf(BigInteger.valueOf(value));
+	}
+
+	/**
+	 * Parses a string as an {@link UnsignedBigInteger}.
+	 * @param value The value to parse.
+	 * @return An {@link UnsignedBigInteger} instance.
+	 * @throws NumberFormatException if the value is not
+	 */
+	public static UnsignedBigInteger valueOf(String value) {
+		return valueOf(new BigInteger(value));
+	}
+
 	@Override
 	public int hashCode() {
 		return value.hashCode();
@@ -59,5 +79,6 @@ public class UnsignedBigInteger {
 	 * The codec for {@link UnsignedBigInteger}.
 	 */
 	@TypeClassInstance
+	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
 	public static ESExprCodec<UnsignedBigInteger> CODEC = new NonNegativeBigIntegerCodec();
 }

@@ -41,7 +41,7 @@ public class UnsignedByte {
 	 * @param value The value to wrap.
 	 * @return An {@link UnsignedByte} instance.
 	 */
-	public static UnsignedByte valueOf(byte value) {
+	public static UnsignedByte fromByteBits(byte value) {
 		return CACHE[Byte.toUnsignedInt(value)];
 	}
 

@@ -142,6 +142,10 @@ object ESExprTagSetProvider {
     override inline def tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Int, ESExprTagSet.Empty)
   end given
 
+  inline given ESExprTagSetProvider[UBigInt]:
+    override inline def tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Int, ESExprTagSet.Empty)
+  end given
+
   inline given ESExprTagSetProvider[Byte]:
     override inline def tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Int, ESExprTagSet.Empty)
   end given

@@ -33,8 +33,8 @@ public class UnsignedShort {
 	 * @param value The value to wrap.
 	 * @return An {@link UnsignedShort} instance.
 	 */
-	public static UnsignedShort valueOf(short value) {
-		if(value >= 0 && value < 256) {
+	public static UnsignedShort fromShortBits(short value) {
+		if(value >= 0 && value < CACHE.length) {
 			return CACHE[value];
 		}
 		else {
@@ -44,17 +44,9 @@ public class UnsignedShort {
 
 	private static final UnsignedShort[] CACHE = new UnsignedShort[256];
 	static {
-		for(int i = 0; i < 256; i++) {
+		for(int i = 0; i < CACHE.length; i++) {
 			CACHE[i] = new UnsignedShort((short)i);
 		}
-	}
-	/**
-	 * Returns an {@link UnsignedShort} whose value is equal to the specified int.
-	 * @param value The value to wrap.
-	 * @return An {@link UnsignedShort} instance.
-	 */
-	public static UnsignedShort valueOf(int value) {
-		return CACHE[value & 0xFF];
 	}
 
 	@Override

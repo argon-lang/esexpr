@@ -76,6 +76,21 @@ object ESExprCodec {
       }
   end given
 
+  given ESExprCodec[UBigInt]:
+    override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Int, ESExprTagSet.Empty)
+
+    override def isEncodedEqual(x: UBigInt, y: UBigInt): Boolean = x == y
+
+    override def encode(value: UBigInt): ESExpr =
+      ESExpr.Int(value.toBigInt)
+
+    override def decode(expr: ESExpr): Either[DecodeError, UBigInt] =
+      expr match {
+        case ESExpr.Int(n) if n >= 0 => Right(n.toUBigInt)
+        case _ => Left(DecodeError("Expected a non-negative int", ErrorPath.Current))
+      }
+  end given
+
   given ESExprCodec[Byte]:
     override lazy val tags: ESExprTagSet = ESExprTagSet.Cons(ESExprTag.Int, ESExprTagSet.Empty)
 

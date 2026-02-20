@@ -1,6 +1,8 @@
 package dev.argon.esexpr.generator.lookup;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 import dev.argon.esexpr.*;
 import dev.argon.esexpr.generator.codegen.EnumCodecGenerator;
 import dev.argon.esexpr.generator.codegen.AbortException;
