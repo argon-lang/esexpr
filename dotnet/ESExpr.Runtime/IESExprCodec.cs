@@ -102,6 +102,10 @@ public static class IESExprCodec {
 	public static IESExprCodec<IImmutableList<T>> InterfaceImmutableListCodec<T>(IESExprCodec<T> itemCodec) => new InterfaceImmutableListCodec<T>(itemCodec);
 
 	[TypeClassInstance]
+	[ESExprTags(Constructors = ["list"])]
+	public static IESExprCodec<VList<T>> VListCodec<T>(IESExprCodec<T> itemCodec) => new VListCodec<T>(itemCodec);
+
+	[TypeClassInstance]
 	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array8 ])]
 	public static IESExprCodec<ImmutableArray<byte>> ImmutableArrayByteCodec { get; } = new ImmutableArrayByteCodec();
 
@@ -138,7 +142,7 @@ public static class IESExprCodec {
 	public static IESExprCodec<IImmutableSet<T>> InterfaceImmutableSetCodec<T>(IESExprCodec<T> itemCodec) => new InterfaceImmutableSetCodec<T>(itemCodec);
 
 	[TypeClassInstance]
-	[ESExprTags(UnionWithTypeParameters = ["map"])]
+	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<Dictionary<K, V>> MapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new MapCodec<K, V>(keyCodec, valueCodec);
 
 	[TypeClassInstance]
@@ -152,11 +156,7 @@ public static class IESExprCodec {
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<IImmutableDictionary<K, V>> InterfaceImmutableMapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new InterfaceImmutableMapCodec<K, V>(keyCodec, valueCodec);
-
-	[TypeClassInstance]
-	[ESExprTags(UnionWithTypeParameters = ["dict"])]
-	public static IESExprCodec<Dictionary<string, T>> DictionaryCodec<T>(IESExprCodec<T> itemCodec) => new DictionaryCodec<T>(itemCodec);
-
+	
 	[TypeClassInstance]
 	public static IESExprCodec<ImmutableDictionary<string, T>> ImmutableDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new ImmutableDictionaryCodec<T>(itemCodec);
 

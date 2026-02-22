@@ -31,4 +31,8 @@ public static class IVarargCodec {
 	public static IVarargCodec<IReadOnlyList<T>, T> ReadOnlyListCodec<T>(IESExprCodec<T> itemCodec) =>
 		new ReadOnlyListVarargCodec<T>(itemCodec);
 
+	[TypeClassInstance]
+	public static IVarargCodec<VList<T>, T> VListCodec<T>(IESExprCodec<T> itemCodec) =>
+		new VListVarargCodec<T>(itemCodec);
+
 }

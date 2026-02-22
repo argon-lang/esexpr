@@ -90,6 +90,11 @@ internal class InterfaceImmutableListCodec<T> : ListCodecBase<T, IImmutableList<
 	protected override int GetCount(IImmutableList<T> list) => list.Count;
 }
 
+internal class VListCodec<T>(IESExprCodec<T> itemCodec) : ListCodecBase<T, VList<T>>(itemCodec) {
+	protected override VList<T> CreateList(IEnumerable<T> items) => new(items.ToImmutableList());
+	protected override int GetCount(VList<T> list) => list.Count;
+}
+
 internal abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList, T>
 	where TList : IEnumerable<T> {
 	
@@ -168,6 +173,11 @@ internal class ReadOnlyListVarargCodec<T> : ListVarargCodecBase<T, IReadOnlyList
 
 	protected override IReadOnlyList<T> CreateList(IEnumerable<T> items) => items.ToImmutableList();
 	protected override int GetCount(IReadOnlyList<T> list) => list.Count;
+}
+
+internal class VListVarargCodec<T>(IESExprCodec<T> itemCodec) : ListVarargCodecBase<T, VList<T>>(itemCodec) {
+	protected override VList<T> CreateList(IEnumerable<T> items) => new(items.ToImmutableList());
+	protected override int GetCount(VList<T> list) => list.Count;
 }
 
 
