@@ -20,7 +20,7 @@ use crate::{
 	ESExprTagSet,
 };
 
-map_encoded_eq_impl!(HashMap<K, V, S>, 'a, K: ESExprCodec<'a> + Eq + Hash, V: ESExprEncodedEq, S: BuildHasher);
+map_encoded_eq_impl!(HashMap<K, V, S>, K: ESExprEncodedEq + Eq + Hash, V: ESExprEncodedEq, S: BuildHasher);
 map_codec_impl!(HashMap<K, V, S>, 'a, K: ESExprCodec<'a> + Eq + Hash, V: ESExprCodec<'a>, S: BuildHasher + Default + 'static);
 map_dict_codec_impl!(HashMap<String, V, S>, k, CowStr::Borrowed(k), k.into_string(), 'a, V: ESExprCodec<'a>, S: BuildHasher + Default + 'static);
 map_dict_codec_impl!(HashMap<Cow<'a, str>, V, S>, k, CowStr::Borrowed(k.as_ref()), Cow::from(k), 'a, V: ESExprCodec<'a>, S: BuildHasher + Default + 'static);

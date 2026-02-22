@@ -11,7 +11,7 @@ use crate::cowstr::CowStr;
 use crate::*;
 
 
-map_encoded_eq_impl!(HashMap<K, V>, 'a, K: ESExprCodec<'a> + Eq + Hash, V: ESExprEncodedEq);
+map_encoded_eq_impl!(HashMap<K, V>, K: ESExprEncodedEq + Eq + Hash, V: ESExprEncodedEq);
 map_codec_impl!(HashMap<K, V>, 'a, K: ESExprCodec<'a> + Eq + Hash, V: ESExprCodec<'a>);
 map_dict_codec_impl!(HashMap<String, V>, k, CowStr::Borrowed(k), k.into_string(), 'a, V: ESExprCodec<'a>);
 map_dict_codec_impl!(HashMap<Cow<'a, str>, V>, k, CowStr::Borrowed(k.as_ref()), Cow::from(k), 'a, V: ESExprCodec<'a>);

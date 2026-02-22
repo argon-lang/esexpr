@@ -567,6 +567,17 @@ impl<'a> From<KeywordArgs<'a>> for HashMap<CowStr<'a>, ESExpr<'a>> {
 	}
 }
 
+impl<'a> From<KeywordArgs<'a>> for BTreeMap<CowStr<'a>, ESExpr<'a>> {
+	fn from(kwargs: KeywordArgs<'a>) -> Self {
+		match kwargs.kwargs {
+			KeywordArgsInner::Owned(kwargs) => kwargs.into_iter().collect(),
+			KeywordArgsInner::Borrowed(kwargs) => {
+				kwargs.iter().map(|(k, v)| (k.as_owned_cowstr(), v.clone())).collect()
+			},
+		}
+	}
+}
+
 impl<'a> IntoIterator for KeywordArgs<'a> {
 	type Item = (CowStr<'a>, ESExpr<'a>);
 	type IntoIter = KeywordArgsIntoIter<'a>;

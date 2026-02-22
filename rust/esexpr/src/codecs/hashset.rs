@@ -15,7 +15,7 @@ use crate::{
 	ESExprTagSet,
 };
 
-set_encoded_eq_impl!(HashSet<V, S>, 'a, V: ESExprCodec<'a> + Eq + Hash, S: BuildHasher);
+set_encoded_eq_impl!(HashSet<V, S>, V: ESExprEncodedEq + Eq + Hash, S: BuildHasher);
 set_codec_impl!(HashSet<V, S>, 'a, V: ESExprCodec<'a> + Eq + Hash, S: BuildHasher + Default + 'static);
 
 #[cfg(test)]

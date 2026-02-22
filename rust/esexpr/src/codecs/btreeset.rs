@@ -5,7 +5,7 @@ use core::ops::Deref;
 use crate::cowstr::CowStr;
 use crate::*;
 
-set_encoded_eq_impl!(BTreeSet<V>, 'a, V: ESExprCodec<'a> + Ord);
+set_encoded_eq_impl!(BTreeSet<V>, V: ESExprEncodedEq + Ord);
 set_codec_impl!(BTreeSet<V>, 'a, V: ESExprCodec<'a> + Ord);
 
 #[cfg(test)]

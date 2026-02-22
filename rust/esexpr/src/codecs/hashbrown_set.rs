@@ -6,7 +6,7 @@ use hashbrown::HashSet;
 use crate::cowstr::CowStr;
 use crate::*;
 
-set_encoded_eq_impl!(HashSet<V>, 'a, V: ESExprCodec<'a> + Eq + Hash);
+set_encoded_eq_impl!(HashSet<V>, V: ESExprEncodedEq + Eq + Hash);
 set_codec_impl!(HashSet<V>, 'a, V: ESExprCodec<'a> + Eq + Hash);
 
 #[cfg(test)]

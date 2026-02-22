@@ -9,7 +9,7 @@ use itertools::Itertools;
 use crate::cowstr::CowStr;
 use crate::*;
 
-map_encoded_eq_impl!(BTreeMap<K, V>, 'a, K: ESExprCodec<'a> + Ord, V: ESExprCodec<'a>);
+map_encoded_eq_impl!(BTreeMap<K, V>, K: ESExprEncodedEq + Ord, V: ESExprEncodedEq);
 map_codec_impl!(BTreeMap<K, V>, 'a, K: ESExprCodec<'a> + Ord, V: ESExprCodec<'a>);
 map_dict_codec_impl!(BTreeMap<String, V>, k, CowStr::Borrowed(k), k.into_string(), 'a, V: ESExprCodec<'a>);
 map_dict_codec_impl!(BTreeMap<Cow<'a, str>, V>, k, CowStr::Borrowed(k.as_ref()), Cow::from(k), 'a, V: ESExprCodec<'a>);
