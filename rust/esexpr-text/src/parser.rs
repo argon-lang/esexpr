@@ -9,7 +9,7 @@ use esexpr::cowstr::CowStr;
 use half::f16;
 use nom::branch::alt;
 use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_until, take_while, take_while_m_n, take_while1};
-use nom::character::complete::{alphanumeric1, char, digit1, hex_digit1, multispace1, none_of, one_of};
+use nom::character::complete::{alphanumeric1, bin_digit1, char, digit1, hex_digit1, multispace1, none_of, oct_digit1, one_of};
 use nom::combinator::{cut, eof, map, map_res, not, opt, peek, recognize, value};
 use nom::multi::{many0, many0_count};
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
@@ -319,35 +319,51 @@ fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
 	.parse(input)
 }
 
-fn integer(input: &str) -> IResult<&str, BigInt> {
+/// Parses an input string and extracts an integer of arbitrary size (`BigInt`).
+pub fn integer(input: &str) -> IResult<&str, BigInt> {
 	preceded(
 		skip_ws,
-		alt((
-			map(
-				recognize((opt(one_of("+-")), tag_no_case("0x"), hex_digit1)),
-				|s: &str| parse_int_base(s, 16),
-			),
-			map(recognize((opt(one_of("+-")), digit1)), |s: &str| {
-				#[expect(
-					clippy::unwrap_used,
-					reason = "Shouldn't fail because the parser should ensure the format is valid."
-				)]
-				s.parse::<BigInt>().unwrap()
-			}),
-		)),
+		map((
+			opt(one_of("+-")),
+			unsigned_integer
+		), |(sign, n)| {
+			let sign = if sign.is_some_and(|s| s == '-') { Sign::Minus } else { Sign::Plus };
+			BigInt::from_biguint(sign, n)
+		}),
 	)
 	.parse(input)
 }
 
-fn parse_int_base(s: &str, radix: u32) -> BigInt {
-	let sign = if s.starts_with('-') { Sign::Minus } else { Sign::Plus };
+/// Parses an input string and extracts an unsigned integer of arbitrary size (`BigUint`).
+pub fn unsigned_integer(input: &str) -> IResult<&str, BigUint> {
+	preceded(
+		skip_ws,
+		alt((
+			map(
+				preceded(tag_no_case("0x"), hex_digit1),
+				|s: &str| parse_int_base(s, 16),
+			),
+			map(
+				preceded(tag_no_case("0b"), bin_digit1),
+				|s: &str| parse_int_base(s, 2),
+			),
+			map(
+				preceded(tag("0o"), oct_digit1),
+				|s: &str| parse_int_base(s, 8),
+			),
+			map(recognize(digit1), |s: &str| {
+				#[expect(
+					clippy::unwrap_used,
+					reason = "Shouldn't fail because the parser should ensure the format is valid."
+				)]
+				s.parse::<BigUint>().unwrap()
+			}),
+		)),
+	)
+		.parse(input)
+}
 
-	let s = s
-		.trim_start_matches('+')
-		.trim_start_matches('-')
-		.trim_start_matches("0x")
-		.trim_start_matches("0X");
-
+fn parse_int_base(s: &str, radix: u32) -> BigUint {
 	let b: Vec<u8> = s
 		.chars()
 		.map(|c| {
@@ -369,7 +385,7 @@ fn parse_int_base(s: &str, radix: u32) -> BigInt {
 		clippy::unwrap_used,
 		reason = "Shouldn't fail because the parser should ensure the format is valid."
 	)]
-	BigInt::from_radix_be(sign, &b, radix).unwrap()
+	BigUint::from_radix_be(&b, radix).unwrap()
 }
 
 fn string(input: &str) -> IResult<&str, String> {
