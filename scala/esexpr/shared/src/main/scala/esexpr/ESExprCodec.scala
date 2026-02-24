@@ -1223,7 +1223,7 @@ object ESExprCodec {
           if i < 0 then report.errorAndAbort("Flag mask must be non-negative")
           Expr(i)
 
-        case kwExpr => report.errorAndAbort("Invalid keyword annotation: " + kwExpr.show)
+        case kwExpr => report.errorAndAbort("Invalid flags mask annotation: " + kwExpr.show)
       }
 
     end extractFlagsMaskMacro

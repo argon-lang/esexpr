@@ -25,6 +25,9 @@ private[esexpr] object MacroUtils {
       x match {
         case '{ BigInt.int2bigInt(${ Expr(i) }) } => Some(BigInt(i))
         case '{ BigInt(${ Expr(i) }: Int) } => Some(BigInt(i))
+        case '{ BigInt.int2bigInt(${ Expr(i) }: Int) } => Some(BigInt(i))
+        case '{ BigInt(${ Expr(i) }: Long) } => Some(BigInt(i))
+        case '{ BigInt.long2bigInt(${ Expr(i) }: Long) } => Some(BigInt(i))
         case '{ BigInt(${ Expr(s) }: String) } => Some(BigInt(s))
         case '{ BigInt(${ Expr(arr) }: Array[Byte]) } => Some(BigInt(arr))
 
