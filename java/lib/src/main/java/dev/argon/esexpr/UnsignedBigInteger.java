@@ -60,6 +60,28 @@ public class UnsignedBigInteger {
 		return valueOf(new BigInteger(value));
 	}
 
+	/**
+	 * A constant representing the value zero as an {@link UnsignedBigInteger}.
+	 */
+	public static final UnsignedBigInteger ZERO = valueOf(BigInteger.ZERO);
+
+	/**
+	 * A constant representing the value one as an {@link UnsignedBigInteger}.
+	 */
+	public static final UnsignedBigInteger ONE = valueOf(BigInteger.ONE);
+
+
+	/**
+	 * Adds the value of the specified {@link UnsignedBigInteger} to this instance and returns the result as a new {@link UnsignedBigInteger}.
+	 *
+	 * @param other The {@link UnsignedBigInteger} to be added to this instance.
+	 * @return A new {@link UnsignedBigInteger} representing the sum of this instance and the specified {@link UnsignedBigInteger}.
+	 */
+	public UnsignedBigInteger add(UnsignedBigInteger other) {
+		return valueOf(value.add(other.value));
+	}
+
+
 	@Override
 	public int hashCode() {
 		return value.hashCode();

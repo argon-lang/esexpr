@@ -296,6 +296,13 @@ pub struct ConstructorArgs<'a> {
 }
 
 impl<'a> ConstructorArgs<'a> {
+	/// Creates empty constructor arguments.
+	pub fn new() -> Self {
+		ConstructorArgs {
+			args: ConstructorArgsInner::Owned(Vec::new()),
+		}
+	}
+
 	/// Iterates over constructor arguments.
 	pub fn iter(&'a self) -> ConstructorArgsIntoIter<'a> {
 		self.as_borrowed().into_iter()

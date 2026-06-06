@@ -221,6 +221,9 @@ object UnsignedTypes {
 
       def >=(b: UBigInt): Boolean =
         a >= b
+        
+      def max(b: UBigInt): UBigInt =
+        (a : BigInt).max(b)
 
       def toByte: Byte = (a : BigInt).toByte
       def toUByte: UByte = (a : BigInt).toByte
