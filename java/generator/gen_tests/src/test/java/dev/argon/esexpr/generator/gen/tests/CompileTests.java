@@ -64,7 +64,7 @@ public class CompileTests {
 	private static class InMemoryJavaFileObject extends SimpleJavaFileObject {
 		private final String sourceCode;
 
-		protected InMemoryJavaFileObject(String className, String sourceCode) {
+		private InMemoryJavaFileObject(String className, String sourceCode) {
 			super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
 			this.sourceCode = sourceCode;
 		}

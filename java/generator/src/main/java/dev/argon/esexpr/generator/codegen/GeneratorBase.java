@@ -770,7 +770,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		}
 		print(" new ");
 		print(elem.getQualifiedName());
-		if(te != elem) {
+		if(!te.equals(elem)) {
 			print(".");
 			print(te.getSimpleName());
 		}

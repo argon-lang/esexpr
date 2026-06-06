@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -69,6 +70,7 @@ public class ESExprBinaryWriter {
 	private void writeExprRaw(ESExpr expr) throws IOException {
 		switch(expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {
+				Objects.requireNonNull(constructor);
 				switch(constructor) {
 					case BinToken.StringTableName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE);
 					case BinToken.ListName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_LIST);

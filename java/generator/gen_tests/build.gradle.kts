@@ -33,6 +33,7 @@ tasks.withType<JavaCompile>().configureEach {
         option("NullAway:OnlyNullMarked", "true")
         option("NullAway:JSpecifyMode", "true")
         error("NullAway")
+        disable("RefactorSwitch")
     }
 
     options.compilerArgs.add("-parameters")
