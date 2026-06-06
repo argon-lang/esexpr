@@ -4,12 +4,12 @@ import _root_.io.circe.Json
 
 import scala.sys.process.Process
 
-val zioVersion = "2.1.24"
+val zioVersion = "2.1.26"
 
 name := "esexpr"
 
 
-ThisBuild / scalaVersion := "3.8.1"
+ThisBuild / scalaVersion := "3.8.4"
 
 publish / skip := true
 
@@ -83,8 +83,8 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
     jvmSettings,
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.nobleidl.core.scala"),
     libraryDependencies ++= Seq(
-      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.5.0-SNAPSHOT",
-      "commons-io" % "commons-io" % "2.20.0" % Test,
+      "dev.argon.esexpr" % "esexpr-java-runtime" % "0.5.0",
+      "commons-io" % "commons-io" % "2.22.0" % Test,
     ),
   ))
   .jsConfigure(_.settings(
@@ -118,7 +118,7 @@ lazy val esexpr = crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Full
 
     name := "ESExpr Scala Runtime",
     organization := "dev.argon.esexpr",
-    version := "0.5.0-SNAPSHOT",
+    version := "0.5.0",
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Automatic-Module-Name" -> "dev.argon.esexpr.scala"),
 
     description := "ESExpr Scala runtime library",
