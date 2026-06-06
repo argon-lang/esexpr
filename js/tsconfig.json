@@ -2,6 +2,7 @@
     "compilerOptions": {
         "outDir": "lib",
         "rootDir": "src",
+        "types": [ "node" ],
 
         "allowUnreachableCode": false,
         "allowUnusedLabels": false,
