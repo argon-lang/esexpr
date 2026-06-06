@@ -174,10 +174,8 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 				};
 
 				name1 == name2 &&
-					args1 == args2 && kwargs1
-					.iter()
-					.zip(kwargs2.iter())
-					.all(|((k1, v1), (k2, v2))| k1 == k2 && v1 == v2)
+					args1 == args2 &&
+					kwargs1 == kwargs2
 			},
 			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
 			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
