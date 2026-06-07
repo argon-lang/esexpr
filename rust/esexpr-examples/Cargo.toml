@@ -2,7 +2,7 @@
 name = "esexpr-examples"
 version = "0.1.20"
 edition = "2024"
-rust-version = "1.90.0"
+rust-version = "1.96.0"
 
 [[test]]
 name = "compile_errors"

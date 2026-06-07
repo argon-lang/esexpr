@@ -370,7 +370,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "esexpr"
-version = "0.2.5"
+version = "0.3.0"
 dependencies = [
  "esexpr-derive",
  "half",
@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-binary"
-version = "0.2.5"
+version = "0.3.0"
 dependencies = [
  "bytemuck",
  "derive_more",
@@ -401,7 +401,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-derive"
-version = "0.2.5"
+version = "0.3.0"
 dependencies = [
  "darling",
  "num-bigint",
@@ -423,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-json"
-version = "0.2.5"
+version = "0.3.0"
 dependencies = [
  "base64",
  "esexpr",
@@ -435,7 +435,7 @@ dependencies = [
 
 [[package]]
 name = "esexpr-text"
-version = "0.2.5"
+version = "0.3.0"
 dependencies = [
  "esexpr",
  "esexpr-json",
