@@ -1,9 +1,7 @@
 #![expect(missing_docs, reason = "Tests")]
 
-use std::convert::Infallible;
 use std::fs;
 use std::path::{Path, PathBuf};
-
 use esexpr::ESExpr;
 use esexpr_binary::ExprParserSync;
 
@@ -36,7 +34,8 @@ fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 
 	let esx = {
 		let mut file = fs::File::open(path).unwrap();
-		esexpr_binary::parse_sync(&mut file)
+		let mut wrapped_file = embedded_io_adapters::std::FromStd::new(&mut file);
+		esexpr_binary::parse_sync(&mut wrapped_file)
 			.iter_static()
 			.collect::<Result<Vec<_>, _>>()
 			.unwrap()
@@ -47,11 +46,11 @@ fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 	let mut reencoded = Vec::with_capacity(esx.len());
 	for e in &esx {
 		let mut data: Vec<u8> = Vec::new();
-		let mut eg = esexpr_binary::ExprGenerator::<_, Infallible>::new(&mut data);
+		let mut eg = esexpr_binary::ExprGenerator::new(&mut data);
 		eg.generate(e).unwrap();
 
 		reencoded.extend(
-			esexpr_binary::parse_sync::<Infallible>(&mut data.as_slice())
+			esexpr_binary::parse_sync(&mut data.as_slice())
 				.iter_static()
 				.collect::<Result<Vec<_>, _>>()
 				.unwrap(),
@@ -60,15 +59,20 @@ fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 }
 
 async fn encoding_test_async(expected: &[ESExpr<'static>], path: &Path) {
-	use esexpr_binary::ExprGeneratorSync;
+	use esexpr_binary::{ExprGeneratorAsync, ExprParserAsync};
+	use futures::TryStreamExt;
+	use futures::StreamExt;
 
 	let test_name = path.file_stem().unwrap().to_str().unwrap();
 
 	let esx = {
-		let mut file = fs::File::open(path).unwrap();
-		esexpr_binary::parse_sync(&mut file)
+		let mut file = tokio::fs::File::open(path).await.unwrap();
+		let mut wrapped_file = embedded_io_adapters::tokio_1::FromTokio::new(&mut file);
+
+		esexpr_binary::parse_async(&mut wrapped_file)
 			.iter_static()
-			.collect::<Result<Vec<_>, _>>()
+			.try_collect::<Vec<_>>()
+			.await
 			.unwrap()
 	};
 
@@ -77,11 +81,11 @@ async fn encoding_test_async(expected: &[ESExpr<'static>], path: &Path) {
 	let mut reencoded = Vec::with_capacity(esx.len());
 	for e in &esx {
 		let mut data: Vec<u8> = Vec::new();
-		let mut eg = esexpr_binary::ExprGenerator::<_, Infallible>::new(&mut data);
-		eg.generate(e).unwrap();
+		let mut eg = esexpr_binary::ExprGenerator::new(&mut data);
+		eg.generate(e).await.unwrap();
 
 		reencoded.extend(
-			esexpr_binary::parse_sync::<Infallible>(&mut data.as_slice())
+			esexpr_binary::parse_sync(&mut data.as_slice())
 				.iter_static()
 				.collect::<Result<Vec<_>, _>>()
 				.unwrap(),

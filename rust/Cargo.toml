@@ -17,6 +17,10 @@ bytemuck = { version = "1.25.0", features = ["extern_crate_alloc"] }
 ctrlc = { version = "3.5.2" }
 darling = "0.23.0"
 derive_more = { version = "2.1.1", default-features = false, features = [ "full" ] }
+duplicate = { version = "2.0.1" }
+embedded-io = { version = "0.7.1", features = ["alloc"] }
+embedded-io-async = { version = "0.7.0", features = ["alloc"] }
+embedded-io-adapters = { version = "0.7.0" }
 esexpr = { version = "0.2.5", path = "esexpr", default-features = false }
 esexpr-binary = { version = "0.2.5", path = "esexpr-binary", default-features = false }
 esexpr-derive = { version = "0.2.5", path = "esexpr-derive", default-features = false }

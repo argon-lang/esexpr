@@ -7,6 +7,16 @@ macro_rules! do_await {
 	};
 }
 
+macro_rules! pinbox_future {
+	(async, $e:expr) => {
+		alloc::boxed::Box::pin($e)
+	};
+	(sync, $e:expr) => {
+		$e
+	};
+
+}
+
 macro_rules! maybe_async {
 	(async, $(#[$meta:meta])* $vis: vis fn $($func: tt)+) => {
 		$(#[$meta])* $vis async fn $($func)+
@@ -31,4 +41,4 @@ macro_rules! if_async {
 	};
 }
 
-pub(crate) use {do_await, if_async, maybe_async};
+pub(crate) use {do_await, if_async, maybe_async, pinbox_future};

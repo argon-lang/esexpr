@@ -10,8 +10,6 @@ mod append_only_string_list;
 
 mod async_macros;
 mod format;
-/// IO Traits for `ESExpr`.
-pub mod io;
 mod reader;
 mod writer;
 
@@ -22,7 +20,6 @@ pub use writer::{GeneratorError, ExprGenerator, ExprGeneratorAsync, ExprGenerato
 mod test {
 	use alloc::borrow::Cow;
 	use alloc::vec::Vec;
-	use core::convert::Infallible;
 	use core::str::FromStr;
 
 	use esexpr::{ESExpr, ESExprCodec};
@@ -37,12 +34,12 @@ mod test {
 
 			let mut buff: Vec<u8> = Vec::new();
 
-			let mut eg = ExprGenerator::<_, Infallible>::new(&mut buff);
+			let mut eg = ExprGenerator::new(&mut buff);
 			eg.generate(&ESExpr::Int(Cow::Owned(BigInt::from(n.clone())))).unwrap();
 
 			assert_eq!(enc, &buff);
 
-			let m = BigUint::decode_esexpr(parse_sync::<Infallible>(&mut enc).read_next_expr().unwrap()).unwrap();
+			let m = BigUint::decode_esexpr(parse_sync(&mut enc).read_next_expr().unwrap()).unwrap();
 			assert_eq!(n, m);
 		}
 

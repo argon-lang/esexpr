@@ -102,15 +102,17 @@ macro_rules! reader_mod {
 		use half::f16;
 		use num_bigint::{BigInt, Sign};
 
-		use crate::async_macros::{do_await, if_async, maybe_async};
+		use crate::async_macros::{do_await, if_async, maybe_async, pinbox_future};
 		use crate::format::*;
 
 		maybe_async!(
 			$syncness,
-			pub(super) fn read_token_impl<E>(reader: &mut impl Read<E>) -> Result<Option<ExprToken>, ParseError<E>> {
+			pub(super) fn read_token_impl<R: Read>(reader: &mut R) -> Result<Option<ExprToken>, ParseError<R::Error>> {
 				let mut b: [u8; 1] = [0];
 
-				if do_await!($syncness, reader.read(&mut b)).map_err(ParseError::IOError)? == 0 {
+				let bytes_read = do_await!($syncness, reader.read(&mut b)).map_err(ParseError::IOError)?;
+
+				if bytes_read == 0 {
 					return Ok(None);
 				}
 
@@ -253,7 +255,7 @@ macro_rules! reader_mod {
 
 		maybe_async!(
 			$syncness,
-			fn read_int<E>(reader: &mut impl Read<E>, initial: u8) -> Result<BigUint, ParseError<E>> {
+			fn read_int<R: Read>(reader: &mut R, initial: u8) -> Result<BigUint, ParseError<R::Error>> {
 				let current = initial & 0x0F;
 				let bit_offset = 4;
 				let has_next = (initial & 0x10) == 0x10;
@@ -264,7 +266,7 @@ macro_rules! reader_mod {
 
 		maybe_async!(
 			$syncness,
-			fn read_int_full<E>(reader: &mut impl Read<E>) -> Result<BigUint, ParseError<E>> {
+			fn read_int_full<R: Read>(reader: &mut R) -> Result<BigUint, ParseError<R::Error>> {
 				let current = 0;
 				let bit_offset = 0;
 				let has_next = true;
@@ -275,12 +277,12 @@ macro_rules! reader_mod {
 
 		maybe_async!(
 			$syncness,
-			fn read_int_rest<E>(
-				reader: &mut impl Read<E>,
+			fn read_int_rest<R: Read>(
+				reader: &mut R,
 				mut current: u8,
 				mut bit_offset: i32,
 				mut has_next: bool,
-			) -> Result<BigUint, ParseError<E>> {
+			) -> Result<BigUint, ParseError<R::Error>> {
 				let mut buffer = Vec::new();
 
 				while has_next {
@@ -316,7 +318,7 @@ macro_rules! reader_mod {
 
 		maybe_async!(
 			$syncness,
-			fn read_bytes<E, const N: usize>(reader: &mut impl Read<E>) -> Result<[u8; N], ParseError<E>> {
+			fn read_bytes<R: Read, const N: usize>(reader: &mut R) -> Result<[u8; N], ParseError<R::Error>> {
 				let mut b: [u8; N] = [0; N];
 				do_await!($syncness, read_exact(reader, &mut b))?;
 				Ok(b)
@@ -325,7 +327,7 @@ macro_rules! reader_mod {
 
 		maybe_async!(
 			$syncness,
-			fn read_exact<E>(reader: &mut impl Read<E>, mut buf: &mut [u8]) -> Result<(), ParseError<E>> {
+			fn read_exact<R: Read>(reader: &mut R, mut buf: &mut [u8]) -> Result<(), ParseError<R::Error>> {
 				while !buf.is_empty() {
 					let n = do_await!($syncness, reader.read(buf)).map_err(ParseError::IOError)?;
 					if n == 0 {
@@ -341,8 +343,9 @@ macro_rules! reader_mod {
 
 		maybe_async!(
 			$syncness,
-			fn read_byte<E>(reader: &mut impl Read<E>) -> Result<u8, ParseError<E>> {
-				Ok(do_await!($syncness, read_bytes::<E, 1>(reader))?[0])
+			fn read_byte<R: Read>(reader: &mut R) -> Result<u8, ParseError<R::Error>> {
+				let bytes = do_await!($syncness, pinbox_future!($syncness, read_bytes::<R, 1>(reader)))?;
+				Ok(bytes[0])
 			}
 		);
 
@@ -376,13 +379,11 @@ macro_rules! reader_mod {
 			) {
 				if_async!(
 					$syncness,
-					stream::poll_fn(|ctx| core::pin::pin!(async {
-						self.try_read_next_expr()
-							.await
-							.map(|res| res.map(ESExpr::into_owned))
-							.transpose()
-					})
-					.poll(ctx)),
+					stream::try_unfold(self, async |s| {
+						let item_opt = s.try_read_next_expr().await?;
+						let item_opt = item_opt.map(ESExpr::into_owned);
+						Ok(item_opt.map(|expr| (expr, s)))
+					}),
 					core::iter::from_fn(move || {
 						self.try_read_next_expr()
 							.map(|res| res.map(ESExpr::into_owned))
@@ -486,7 +487,7 @@ macro_rules! reader_mod {
 					ExprToken::BooleanValue(b) => ESExpr::Bool(b),
 					ExprToken::NullValue(level) => ESExpr::Null(Cow::Owned(level)),
 					ExprToken::AppendStringTable => {
-						let new_string_table = do_await!($syncness, read_next_expr_impl(iter, string_pool))?;
+						let new_string_table = do_await!($syncness, pinbox_future!($syncness, read_next_expr_impl(iter, string_pool)))?;
 						let new_string_table = AppendedStringPool::decode_esexpr(new_string_table)
 							.map_err(ParseError::InvalidStringPool)?;
 
@@ -517,11 +518,11 @@ macro_rules! reader_mod {
 				let mut kwargs = BTreeMap::new();
 
 				loop {
-					match do_await!($syncness, read_expr_plus(iter, string_pool))? {
+					match do_await!($syncness, pinbox_future!($syncness, read_expr_plus(iter, string_pool)))? {
 						ExprPlus::Expr(expr) => args.push(expr),
 						ExprPlus::Keyword(index) => {
 							let kw = get_string(string_pool, index)?;
-							let value = do_await!($syncness, read_next_expr_impl(iter, string_pool))?;
+							let value = do_await!($syncness, pinbox_future!($syncness, read_next_expr_impl(iter, string_pool)))?;
 							kwargs.insert(CowStr::Borrowed(kw), value);
 						},
 						ExprPlus::ConstructorEnd => break,
@@ -535,10 +536,10 @@ macro_rules! reader_mod {
 		);
 
 		/// Parse binary input as `ESExpr` using an existing string pool
-		pub fn parse_existing_string_pool<'a, R: Read<E>, E: 'static>(
+		pub fn parse_existing_string_pool<'a, R: Read>(
 			data: &'a mut R,
 			string_pool: Vec<String>,
-		) -> impl ExprParser<E> {
+		) -> impl ExprParser<R::Error> {
 			ExprParserImpl {
 				iter: if_async!($syncness, Box::pin(token_reader(data)), token_reader(data)),
 				string_pool: AppendOnlyStringList::from(string_pool),
@@ -546,7 +547,7 @@ macro_rules! reader_mod {
 		}
 
 		/// Parse binary input as `ESExpr`
-		pub fn parse<E: 'static>(data: &mut impl Read<E>) -> impl ExprParser<E> {
+		pub fn parse<R: Read>(data: &mut R) -> impl ExprParser<R::Error> {
 			parse_existing_string_pool(data, Vec::new())
 		}
 	};
@@ -556,9 +557,9 @@ mod reader_sync {
 	use core::iter::{self, Iterator as IterLike, Iterator};
 
 	use super::*;
-	use crate::io::Read;
+	use embedded_io::Read;
 
-	fn token_reader<E, R: Read<E>>(read: &mut R) -> impl Iterator<Item = Result<ExprToken, ParseError<E>>> {
+	fn token_reader<R: Read>(read: &mut R) -> impl Iterator<Item = Result<ExprToken, ParseError<R::Error>>> {
 		iter::from_fn(|| read_token_impl(read).transpose())
 	}
 
@@ -572,10 +573,13 @@ mod reader_async {
 	use futures::{Stream as IterLike, Stream, StreamExt, stream};
 
 	use super::*;
-	use crate::io::AsyncRead as Read;
+	use embedded_io_async::Read;
 
-	fn token_reader<E>(read: &mut impl Read<E>) -> impl Stream<Item = Result<ExprToken, ParseError<E>>> {
-		stream::poll_fn(|ctx| core::pin::pin!(async { read_token_impl(read).await.transpose() }).poll(ctx))
+	fn token_reader<R: Read>(read: &mut R) -> impl Stream<Item = Result<ExprToken, ParseError<R::Error>>> {
+		stream::try_unfold(read, async |read| {
+			let token_opt = read_token_impl(read).await?;
+			Ok(token_opt.map(|token| (token, read)))
+		})
 	}
 
 	reader_mod!(async);

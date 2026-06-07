@@ -2,7 +2,6 @@ use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::convert::Infallible;
-use core::marker::PhantomData;
 
 use derive_more::From;
 
@@ -13,9 +12,9 @@ pub enum GeneratorError<E> {
 	IOError(E),
 }
 
-impl<E: 'static> GeneratorError<E> {
+impl<E> GeneratorError<E> {
 	/// Convert from an `Infallible` error
-	pub fn from_infalliable(error: GeneratorError<Infallible>) -> Self {
+	pub fn from_infallible(error: GeneratorError<Infallible>) -> Self {
 		match error {
 			GeneratorError::IOError(e) => match e {},
 		}
@@ -23,19 +22,17 @@ impl<E: 'static> GeneratorError<E> {
 }
 
 /// Generator for `ESExpr`'s binary format
-pub struct ExprGenerator<'a, W, E> {
+pub struct ExprGenerator<'a, W> {
 	out: &'a mut W,
 	string_pool: Vec<String>,
-	error: PhantomData<E>,
 }
 
-impl<'a, W, E> ExprGenerator<'a, W, E> {
+impl<'a, W> ExprGenerator<'a, W> {
 	/// Create an `ExprGenerator`
 	pub fn new(out: &'a mut W) -> Self {
 		ExprGenerator {
 			out,
 			string_pool: Vec::new(),
-			error: PhantomData,
 		}
 	}
 
@@ -44,99 +41,119 @@ impl<'a, W, E> ExprGenerator<'a, W, E> {
 		ExprGenerator {
 			out,
 			string_pool,
-			error: PhantomData,
 		}
+	}
+}
+
+struct DummyWriter;
+
+impl embedded_io::ErrorType for DummyWriter {
+	type Error = Infallible;
+}
+
+impl embedded_io::Write for DummyWriter {
+	fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+		Ok(buf.len())
+	}
+
+
+	fn flush(&mut self) -> Result<(), Self::Error> {
+		Ok(())
 	}
 }
 
 macro_rules! writer_mod {
 	($syncness: ident) => {
 		use alloc::borrow::Borrow;
-		use core::convert::Infallible;
 
 		use esexpr::{ESExpr, ESExprConstructor};
 		use half::f16;
 		use num_bigint::{BigUint, Sign};
 
 		use super::*;
-		use crate::async_macros::{do_await, maybe_async};
+		use crate::async_macros::{do_await, maybe_async, pinbox_future};
 		use crate::format::*;
+		use embedded_io::ErrorType;
 
 		/// Defines `ESExpr` generation for binary file format
 		#[allow(async_fn_in_trait, reason = "No additional traits to add")]
-		pub trait ExprGeneratorWrite<E> {
+		pub trait ExprGeneratorWrite {
+			/// The type of the underlying output writer
+			type Write: Write;
+
 			maybe_async!(
 				$syncness,
 				/// Generate output for an expression
 				///
 				/// # Errors
 				/// Returns `Err` if an error occurs during generation.
-				fn generate(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<E>>;
+				fn generate(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 		}
 
-		pub(super) trait ExprGeneratorWriteExt<W, E>: ExprGeneratorWrite<E> {
+		pub(super) trait ExprGeneratorWriteExt: ExprGeneratorWrite {
 			maybe_async!(
 				$syncness,
-				fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError<E>>;
+				fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<E>>;
+				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError<E>>;
+				fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError<E>>;
+				fn write_int_tag_out(out: &mut Self::Write, tag: u8, i: &BigUint) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_int_full(out: &mut W, i: &BigUint) -> Result<(), GeneratorError<E>>;
+				fn write_int_full(out: &mut Self::Write, i: &BigUint) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
 				fn write_int_rest(
-					out: &mut W,
+					out: &mut Self::Write,
 					buff: &[u8],
 					current: u8,
 					bit_index: i32,
-				) -> Result<(), GeneratorError<E>>;
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError<E>>;
+				fn write_string_expr(out: &mut Self::Write, s: &str) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write(&mut self, b: u8) -> Result<(), GeneratorError<E>>;
+				fn write(&mut self, b: u8) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError<E>>;
+				fn write_out(out: &mut Self::Write, b: u8) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 		}
 
-		impl<'a, E: 'static, W: Write<E>> ExprGeneratorWrite<E> for ExprGenerator<'a, W, E> {
+		impl<'a, W: Write> ExprGeneratorWrite for ExprGenerator<'a, W> {
+			type Write = W;
+
 			maybe_async!(
 				$syncness,
-				fn generate(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<E>> {
+				fn generate(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<W::Error>> {
 					let old_string_pool_end = self.string_pool.len();
 
-					let mut generator: ExprGenerator<_, Infallible> = ExprGenerator {
-						out: &mut crate::io::sink(),
+					let mut generator = ExprGenerator {
+						out: &mut super::DummyWriter,
 						string_pool: Vec::new(),
-						error: PhantomData,
 					};
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
-					// Dummy generator to catch new strings
-					<ExprGenerator<_, Infallible> as super::writer_sync::ExprGeneratorWriteExt<_, Infallible>>::generate_expr(
-																						&mut generator,
-																						expr,
-																					).map_err(GeneratorError::from_infalliable)?;
+
+					super::writer_sync::ExprGeneratorWriteExt::generate_expr(
+						&mut generator,
+						expr,
+					).map_err(GeneratorError::from_infallible)?;
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
@@ -165,10 +182,10 @@ macro_rules! writer_mod {
 			);
 		}
 
-		impl<'a, E: 'static, W: Write<E>> ExprGeneratorWriteExt<W, E> for ExprGenerator<'a, W, E> {
+		impl<'a, W: Write> ExprGeneratorWriteExt for ExprGenerator<'a, W> {
 			maybe_async!(
 				$syncness,
-				fn generate_expr(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<E>> {
+				fn generate_expr(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<W::Error>> {
 					match expr {
 						ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) => {
 							match &**name {
@@ -186,7 +203,7 @@ macro_rules! writer_mod {
 							}
 
 							for arg in args.iter() {
-								do_await!($syncness, self.generate_expr(&arg))?;
+								do_await!($syncness, pinbox_future!($syncness, self.generate_expr(&arg)))?;
 							}
 
 							for (kw, value) in kwargs.iter() {
@@ -195,7 +212,7 @@ macro_rules! writer_mod {
 									$syncness,
 									self.write_int_tag(TAG_VARINT_KEYWORD, &BigUint::from(index))
 								)?;
-								do_await!($syncness, self.generate_expr(&value))?;
+								do_await!($syncness, pinbox_future!($syncness, self.generate_expr(&value)))?;
 							}
 
 							do_await!($syncness, self.write(TAG_CONSTRUCTOR_END))?;
@@ -361,7 +378,7 @@ macro_rules! writer_mod {
 
 			maybe_async!(
 				$syncness,
-				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<E>> {
+				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<W::Error>> {
 					let s = s.borrow();
 					if let Some(index) = self.string_pool.iter().position(|s2| s2 == s) {
 						return Ok(index);
@@ -379,14 +396,14 @@ macro_rules! writer_mod {
 
 			maybe_async!(
 				$syncness,
-				fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError<E>> {
+				fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError<W::Error>> {
 					do_await!($syncness, Self::write_int_tag_out(self.out, tag, i))
 				}
 			);
 
 			maybe_async!(
 				$syncness,
-				fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError<E>> {
+				fn write_int_tag_out(out: &mut W, tag: u8, i: &BigUint) -> Result<(), GeneratorError<W::Error>> {
 					let buff = i.to_bytes_le();
 
 					let b0 = buff.first().copied().unwrap_or_default();
@@ -411,7 +428,7 @@ macro_rules! writer_mod {
 
 			maybe_async!(
 				$syncness,
-				fn write_int_full(out: &mut W, i: &BigUint) -> Result<(), GeneratorError<E>> {
+				fn write_int_full(out: &mut W, i: &BigUint) -> Result<(), GeneratorError<W::Error>> {
 					if *i == BigUint::ZERO {
 						do_await!($syncness, Self::write_out(out, 0))?;
 						return Ok(());
@@ -432,7 +449,7 @@ macro_rules! writer_mod {
 					buff: &[u8],
 					mut current: u8,
 					mut bit_index: i32,
-				) -> Result<(), GeneratorError<E>> {
+				) -> Result<(), GeneratorError<W::Error>> {
 					for (i, b) in buff.iter().copied().enumerate() {
 						let mut bit_index2 = 0;
 						while bit_index2 < 8 {
@@ -463,7 +480,7 @@ macro_rules! writer_mod {
 
 			maybe_async!(
 				$syncness,
-				fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError<E>> {
+				fn write_string_expr(out: &mut W, s: &str) -> Result<(), GeneratorError<W::Error>> {
 					do_await!(
 						$syncness,
 						Self::write_int_tag_out(out, TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))
@@ -475,15 +492,16 @@ macro_rules! writer_mod {
 
 			maybe_async!(
 				$syncness,
-				fn write(&mut self, b: u8) -> Result<(), GeneratorError<E>> {
+				fn write(&mut self, b: u8) -> Result<(), GeneratorError<W::Error>> {
 					do_await!($syncness, Self::write_out(self.out, b))
 				}
 			);
 
 			maybe_async!(
 				$syncness,
-				fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError<E>> {
-					Ok(do_await!($syncness, out.write(core::slice::from_ref(&b)))?)
+				fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError<W::Error>> {
+					do_await!($syncness, out.write(core::slice::from_ref(&b)))?;
+					Ok(())
 				}
 			);
 		}
@@ -491,12 +509,12 @@ macro_rules! writer_mod {
 }
 
 mod writer_sync {
-	use crate::io::Write;
+	use embedded_io::Write;
 	writer_mod!(sync);
 }
 
 mod writer_async {
-	use crate::io::AsyncWrite as Write;
+	use embedded_io_async::Write;
 	writer_mod!(async);
 }
 
