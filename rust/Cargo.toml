@@ -21,11 +21,11 @@ duplicate = { version = "2.0.1" }
 embedded-io = { version = "0.7.1", features = ["alloc"] }
 embedded-io-async = { version = "0.7.0", features = ["alloc"] }
 embedded-io-adapters = { version = "0.7.0" }
-esexpr = { version = "0.3.0", path = "esexpr", default-features = false }
-esexpr-binary = { version = "0.3.0", path = "esexpr-binary", default-features = false }
-esexpr-derive = { version = "0.3.0", path = "esexpr-derive", default-features = false }
-esexpr-json = { version = "0.3.0", path = "esexpr-json", default-features = false }
-esexpr-text = { version = "0.3.0", path = "esexpr-text", default-features = false }
+esexpr = { version = "0.3.1", path = "esexpr", default-features = false }
+esexpr-binary = { version = "0.3.1", path = "esexpr-binary", default-features = false }
+esexpr-derive = { version = "0.3.1", path = "esexpr-derive", default-features = false }
+esexpr-json = { version = "0.3.1", path = "esexpr-json", default-features = false }
+esexpr-text = { version = "0.3.1", path = "esexpr-text", default-features = false }
 futures = { version = "0.3.32", default-features = false }
 half = { version = "2.7.1", default-features = false, features = ["alloc"] }
 hashbrown = { version = "0.17.1" }
