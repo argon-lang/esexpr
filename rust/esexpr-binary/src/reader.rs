@@ -566,6 +566,7 @@ mod reader_sync {
 	reader_mod!(sync);
 }
 
+#[cfg(feature = "async")]
 #[allow(async_fn_in_trait, reason = "No additional traits to add")]
 mod reader_async {
 	use alloc::boxed::Box;
@@ -585,6 +586,7 @@ mod reader_async {
 	reader_mod!(async);
 }
 
+#[cfg(feature = "async")]
 pub use reader_async::{
 	ExprParser as ExprParserAsync,
 	parse as parse_async,

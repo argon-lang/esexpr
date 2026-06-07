@@ -513,10 +513,12 @@ mod writer_sync {
 	writer_mod!(sync);
 }
 
+#[cfg(feature = "async")]
 mod writer_async {
 	use embedded_io_async::Write;
 	writer_mod!(async);
 }
 
+#[cfg(feature = "async")]
 pub use writer_async::ExprGeneratorWrite as ExprGeneratorAsync;
 pub use writer_sync::ExprGeneratorWrite as ExprGeneratorSync;
