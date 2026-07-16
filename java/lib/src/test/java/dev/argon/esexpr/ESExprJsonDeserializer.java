@@ -8,27 +8,26 @@ import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.ShortLists;
 import org.eclipse.collections.impl.factory.Lists;
 
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.*;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.*;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
-public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
+public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 
 	@Override
-	public ESExpr deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JacksonException {
-		ObjectMapper mapper = (ObjectMapper) jsonParser.getCodec();
-		JsonNode node = mapper.readTree(jsonParser);
+	public ESExpr deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws JacksonException {
+		return parseJsonNode(deserializationContext.readTree(jsonParser), deserializationContext);
+	}
 
+	private static ESExpr parseJsonNode(JsonNode node, DeserializationContext deserializationContext) throws JacksonException {
 		if(node.isBoolean()) {
 			return new ESExpr.Bool(node.asBoolean());
 		}
-		else if(node.isTextual()) {
-			return new ESExpr.Str(node.asText());
+		else if(node.isString()) {
+			return new ESExpr.Str(node.asString());
 		}
 		else if(node.isNull()) {
 			return new ESExpr.Null(BigInteger.ZERO);
@@ -36,8 +35,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 		else if(node.isArray()) {
 			var l = ImmutableList.<ESExpr>builder();
 			for(var elem : node) {
-				var value = mapper.convertValue(elem, ESExpr.class);
-				l.add(value == null ? new ESExpr.Null(BigInteger.ZERO) : value);
+				l.add(parseJsonNode(elem, deserializationContext));
 			}
 
 			return new ESExpr.Constructor(
@@ -48,39 +46,36 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 		}
 		else if(node.isObject()) {
 			if(node.has("constructor_name")) {
-				var name = node.get("constructor_name").asText();
+				var name = node.get("constructor_name").asString();
 
 				var args = ImmutableList.<ESExpr>builder();
 				if(node.has("args")) {
 					for(var elem : node.get("args")) {
-						args.add(mapper.convertValue(elem, ESExpr.class));
+						args.add(parseJsonNode(elem, deserializationContext));
 					}
 				}
 
 				Map<String, ESExpr> kwargs = new HashMap<>();
 				if(node.has("kwargs")) {
-					kwargs = mapper.convertValue(node.get("kwargs"), new TypeReference<>() {});
-				}
-				for(var entry : kwargs.entrySet()) {
-					if(entry.getValue() == null) {
-						entry.setValue(new ESExpr.Null(BigInteger.ZERO));
+					for(var entry : node.get("kwargs").properties()) {
+						kwargs.put(entry.getKey(), parseJsonNode(entry.getValue(), deserializationContext));
 					}
 				}
 
 				return new ESExpr.Constructor(name, args.build(), ImmutableMap.copyOf(kwargs));
 			}
 			else if(node.has("int")) {
-				return new ESExpr.Int(new BigInteger(node.get("int").asText()));
+				return new ESExpr.Int(new BigInteger(node.get("int").asString()));
 			}
 			else if(node.has("float16")) {
 				var fv = node.get("float16");
 				short value;
-				if(fv.isTextual()) {
-					value = switch (fv.asText()) {
+				if(fv.isString()) {
+					value = switch (fv.asString()) {
 						case "+inf" -> Float.floatToFloat16(Float.POSITIVE_INFINITY);
 						case "-inf" -> Float.floatToFloat16(Float.NEGATIVE_INFINITY);
 						case "nan" -> Float.floatToFloat16(Float.NaN);
-						default -> throw new RuntimeException("Unexpected float text");
+						default -> deserializationContext.reportInputMismatch(ESExpr.class, "Unexpected float text");
 					};
 				}
 				else {
@@ -92,12 +87,12 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 			else if(node.has("float32")) {
 				var fv = node.get("float32");
 				float value;
-				if(fv.isTextual()) {
-					value = switch (fv.asText()) {
+				if(fv.isString()) {
+					value = switch (fv.asString()) {
 						case "+inf" -> Float.POSITIVE_INFINITY;
 						case "-inf" -> Float.NEGATIVE_INFINITY;
 						case "nan" -> Float.NaN;
-						default -> throw new RuntimeException("Unexpected float text");
+						default -> deserializationContext.reportInputMismatch(ESExpr.class, "Unexpected float text");
 					};
 				}
 				else {
@@ -109,12 +104,12 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 			else if(node.has("float64")) {
 				var fv = node.get("float64");
 				double value;
-				if(fv.isTextual()) {
-					value = switch (fv.asText()) {
+				if(fv.isString()) {
+					value = switch (fv.asString()) {
 						case "+inf" -> Double.POSITIVE_INFINITY;
 						case "-inf" -> Double.NEGATIVE_INFINITY;
 						case "nan" -> Double.NaN;
-						default -> throw new RuntimeException("Unexpected float text");
+						default -> deserializationContext.reportInputMismatch(ESExpr.class, "Unexpected float text");
 					};
 				}
 				else {
@@ -124,7 +119,7 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 				return new ESExpr.Float64(value);
 			}
 			else if(node.has("base64")) {
-				byte[] bytes = Base64.getDecoder().decode(node.get("base64").asText());
+				byte[] bytes = Base64.getDecoder().decode(node.get("base64").asString());
 				return new ESExpr.Array8(ByteLists.immutable.of(bytes));
 			}
 			else if(node.has("array8")) {
@@ -170,16 +165,16 @@ public class ESExprJsonDeserializer extends JsonDeserializer<ESExpr> {
 				return new ESExpr.Array128(LongLists.immutable.of(longs));
 			}
 			else if(node.has("null")) {
-				return new ESExpr.Null(new BigInteger(node.get("null").asText()));
+				return new ESExpr.Null(new BigInteger(node.get("null").asString()));
 			}
 		}
 
-		throw JsonMappingException.from(jsonParser, "Unexpected JSON for ESExpr value");
+		return deserializationContext.reportInputMismatch(ESExpr.class, "Unexpected JSON for ESExpr value");
 	}
 	
 	private static BigInteger getInt(JsonNode node) {
-		if(node.isTextual()) {
-			return new BigInteger(node.asText());
+		if(node.isString()) {
+			return new BigInteger(node.asString());
 		}
 		else {
 			return BigInteger.valueOf(node.asLong());	

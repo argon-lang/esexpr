@@ -3,12 +3,12 @@
  */
 package dev.argon.esexpr;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.errorprone.annotations.MustBeClosed;
 import org.apache.commons.io.FilenameUtils;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.module.SimpleModule;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -47,13 +47,13 @@ class BinaryEncodingTest {
 
 		var module = new SimpleModule();
 		module.addDeserializer(ESExpr.class, new ESExprJsonDeserializer());
-		mapper.registerModule(module);
+		mapper = mapper.rebuild().addModule(module).build();
 
 		List<ESExpr> res;
 		try {
 			res = mapper.readValue(value, new TypeReference<List<ESExpr>>() {});
 		}
-		catch(JsonMappingException _) {
+		catch(DatabindException _) {
 			res = List.of(mapper.readValue(value, ESExpr.class));
 		}
 

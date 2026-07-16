@@ -1,20 +1,20 @@
 [versions]
-jackson = "2.22.0"
+jackson = "3.2.1"
 
 [libraries]
 jspecify = { module = "org.jspecify:jspecify", version = "1.0.0" }
-junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version = "6.1.0" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version = "6.1.1" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
 commons-io = { group = "commons-io", name = "commons-io", version = "2.22.0" }
 commons-collections = { group = "org.apache.commons", name = "commons-collections4", version = "4.5.0" }
 commons-text = { group = "org.apache.commons", name = "commons-text", version = "1.15.0" }
-jackson-core = { group = "com.fasterxml.jackson.core", name = "jackson-core", version.ref = "jackson" }
+jackson-core = { group = "tools.jackson.core", name = "jackson-core", version.ref = "jackson" }
 jackson-annotations = { group = "com.fasterxml.jackson.core", name = "jackson-annotations", version = "2.22" }
-jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+jackson-databind = { group = "tools.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 guava = { group = "com.google.guava", name = "guava", version = "33.6.0-jre" }
 eclipse-collections = { group = "org.eclipse.collections", name = "eclipse-collections", version = "13.0.0" }
-errorprone = { module = "com.google.errorprone:error_prone_core", version = "2.49.0" }
-nullaway = { module = "com.uber.nullaway:nullaway", version = "0.13.6" }
+errorprone = { module = "com.google.errorprone:error_prone_core", version = "2.50.0" }
+nullaway = { module = "com.uber.nullaway:nullaway", version = "0.13.7" }
 
 [plugins]
-errorprone = { id = "net.ltgt.errorprone", version = "4.1.0" }
+errorprone = { id = "net.ltgt.errorprone", version = "5.1.0" }
