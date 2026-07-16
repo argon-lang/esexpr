@@ -37,7 +37,7 @@ public class Lookup {
 	private final TypeClassLocalScope localScope;
 	private final Element associatedElement;
 
-	public TypeClassResult getCodec(TypeMirror t, CodecType codecType) throws AbortException {
+	public @Nullable TypeClassResult getCodec(TypeMirror t, CodecType codecType) throws AbortException {
 		var resolver = new TypeClassResolver(env.getTypeUtils(), localScope);
 		return cache.resolveTypeClass(resolver, getCodecType(t, codecType));
 	}

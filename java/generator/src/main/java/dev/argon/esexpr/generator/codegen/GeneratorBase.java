@@ -77,6 +77,8 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		switch(typeClassResult) {
 			case TypeClassResult.Field(var field) -> {
 				var owningType = (TypeElement)field.getEnclosingElement();
+				Objects.requireNonNull(owningType);
+
 				print(owningType.getQualifiedName());
 				print(".");
 				print(field.getSimpleName());
@@ -87,6 +89,8 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 			}
 			case TypeClassResult.Method(var method, var arguments) -> {
 				var owningType = (TypeElement)method.getEnclosingElement();
+				Objects.requireNonNull(owningType);
+
 				print(owningType.getQualifiedName());
 				print(".");
 				print(method.getSimpleName());
