@@ -226,6 +226,7 @@ public sealed interface ESExpr {
 	 * Codec for arbitrary ESExpr values.
 	 */
 	@TypeClassInstance
+	@ESExprCodecTags(all = true)
 	static final ESExprCodec<ESExpr> CODEC = new ESExprCodec<>() {
 		@Override
 		public ESExprTagSet tags() {
