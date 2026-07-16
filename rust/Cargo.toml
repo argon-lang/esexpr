@@ -11,6 +11,14 @@ members = [
     "esexpr-utils",
 ]
 
+[workspace.package]
+edition = "2024"
+rust-version = "1.96.0"
+license = "Apache-2.0"
+homepage = "https://github.com/argon-lang/esexpr"
+repository = "https://github.com/argon-lang/esexpr"
+categories = [ "encoding" ]
+
 [workspace.dependencies]
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 bytemuck = { version = "1.25.0", features = ["extern_crate_alloc"] }
@@ -72,4 +80,3 @@ mismatching_type_param_order = "allow"
 ignored_unit_patterns = "allow"
 tabs_in_doc_comments = "allow"
 wildcard_imports = "allow"
-

@@ -1,8 +1,8 @@
 [package]
 name = "esexpr-examples"
 version = "0.1.20"
-edition = "2024"
-rust-version = "1.96.0"
+edition.workspace = true
+rust-version.workspace = true
 
 [[test]]
 name = "compile_errors"

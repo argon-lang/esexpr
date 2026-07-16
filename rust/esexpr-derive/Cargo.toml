@@ -1,14 +1,14 @@
 [package]
 name = "esexpr-derive"
 version = "0.3.1"
-edition = "2024"
-rust-version = "1.96.0"
-license = "Apache-2.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "ESExpr serialization format and related utilities."
 documentation = "https://docs.rs/esexpr-derive"
-homepage = "https://github.com/argon-lang/esexpr"
-repository = "https://github.com/argon-lang/esexpr"
-categories = [ "encoding" ]
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
 readme = "README.md"
 
 [lib]
@@ -28,4 +28,3 @@ num-traits = { workspace = true }
 
 [lints]
 workspace = true
-
