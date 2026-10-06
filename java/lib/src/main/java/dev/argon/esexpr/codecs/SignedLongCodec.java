@@ -15,9 +15,8 @@ public class SignedLongCodec extends IntCodecBase<Long> {
 	/**
 	 * A codec for signed long values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.INT})
 	public static final ESExprCodec<Long> INSTANCE = new SignedLongCodec();
 
 	@Override

@@ -14,8 +14,8 @@ public class BigIntegerCodec implements ESExprCodec<BigInteger> {
 	/**
 	 * A codec for bigint values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.INT})
 	public static final ESExprCodec<BigInteger> INSTANCE = new BigIntegerCodec();
 
 	@Override

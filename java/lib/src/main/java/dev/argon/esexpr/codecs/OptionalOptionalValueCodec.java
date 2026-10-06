@@ -7,14 +7,16 @@ import java.util.Optional;
 /**
  * An OptionalValueCodec for Optional values.
  *
- * @param <T> The element type.
+ * @param <T>
+ *            The element type.
  */
 
 public class OptionalOptionalValueCodec<T> implements OptionalValueCodec<Optional<T>, T> {
 	/**
 	 * Creates an OptionalValueCodec for Optional values.
 	 *
-	 * @param elementCodec A value codec for the element type.
+	 * @param elementCodec
+	 *            A value codec for the element type.
 	 */
 	public OptionalOptionalValueCodec(ESExprCodec<T> elementCodec) {
 		this.elementCodec = elementCodec;

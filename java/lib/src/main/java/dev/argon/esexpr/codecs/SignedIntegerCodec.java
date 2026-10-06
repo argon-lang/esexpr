@@ -12,13 +12,11 @@ public class SignedIntegerCodec extends IntCodecBase<Integer> {
 		super(BigInteger.valueOf(Integer.MIN_VALUE), BigInteger.valueOf(Integer.MAX_VALUE));
 	}
 
-
 	/**
 	 * A codec for signed int values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.INT})
 	public static final ESExprCodec<Integer> INSTANCE = new SignedIntegerCodec();
 
 	@Override

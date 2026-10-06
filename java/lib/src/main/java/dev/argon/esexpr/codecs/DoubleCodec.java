@@ -13,9 +13,8 @@ public class DoubleCodec implements ESExprCodec<Double> {
 	/**
 	 * A codec for double values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.FLOAT64 })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.FLOAT64})
 	public static final ESExprCodec<Double> INSTANCE = new DoubleCodec();
 
 	@Override

@@ -9,19 +9,25 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 /**
- * An abstract base class for implementing codecs that encode and decode Map-like structures.
+ * An abstract base class for implementing codecs that encode and decode
+ * Map-like structures.
  *
- * @param <K> The type of map keys.
- * @param <V> The type of map values.
- * @param <M> The type of map being encoded and decoded.
+ * @param <K>
+ *            The type of map keys.
+ * @param <V>
+ *            The type of map values.
+ * @param <M>
+ *            The type of map being encoded and decoded.
  */
 public abstract class MapCodecBase<K, V, M extends Map<K, V>> implements ESExprCodec<M> {
 
 	/**
 	 * Creates a codec for encoding and decoding Map-like structures.
 	 *
-	 * @param kCodec The codec used for encoding and decoding the keys of the map.
-	 * @param vCodec The codec used for encoding and decoding the values of the map.
+	 * @param kCodec
+	 *            The codec used for encoding and decoding the keys of the map.
+	 * @param vCodec
+	 *            The codec used for encoding and decoding the values of the map.
 	 */
 	public MapCodecBase(ESExprCodec<K> kCodec, ESExprCodec<V> vCodec) {
 		this.kCodec = kCodec;
@@ -52,16 +58,20 @@ public abstract class MapCodecBase<K, V, M extends Map<K, V>> implements ESExprC
 	public abstract M decode(ESExpr expr, FailurePath path) throws DecodeException;
 
 	/**
-	 * Decodes the given ESExpr representing a map into individual key-value pairs and passes them to the provided consumer.
-	 * The method expects the expression to represent a "map" constructor with no keyword arguments.
-	 * If the expression does not meet this requirement, a {@link DecodeException} is thrown.
+	 * Decodes the given ESExpr representing a map into individual key-value pairs
+	 * and passes them to the provided consumer. The method expects the expression
+	 * to represent a "map" constructor with no keyword arguments. If the expression
+	 * does not meet this requirement, a {@link DecodeException} is thrown.
 	 *
-	 * @param expr The ESExpr to be decoded.
-	 * @param path The current failure path for error reporting.
-	 * @param add A consumer that accepts each decoded key-value pair.
-	 * @throws DecodeException If the expression is not a valid "map" constructor,
-	 *                         it contains keyword arguments, or
-	 *                         decoding fails for any of the map entries.
+	 * @param expr
+	 *            The ESExpr to be decoded.
+	 * @param path
+	 *            The current failure path for error reporting.
+	 * @param add
+	 *            A consumer that accepts each decoded key-value pair.
+	 * @throws DecodeException
+	 *             If the expression is not a valid "map" constructor, it contains
+	 *             keyword arguments, or decoding fails for any of the map entries.
 	 */
 	protected final void decodeInto(ESExpr expr, FailurePath path, BiConsumer<K, V> add) throws DecodeException {
 		if(!(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("map"))) {

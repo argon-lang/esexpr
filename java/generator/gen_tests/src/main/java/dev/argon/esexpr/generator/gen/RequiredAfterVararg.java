@@ -9,8 +9,7 @@ import java.util.List;
 
 @ESExprCodecGen
 public record RequiredAfterVararg(
-	@Vararg
-	List<Float> a,
+	@Vararg List<Float> a,
 
 	int b
 ) {

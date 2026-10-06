@@ -9,12 +9,10 @@ public enum MySimpleEnum {
 	OTHER_NAME_HERE,
 
 	@Constructor("my-custom-name")
-	CUSTOM_NAME,
-	;
+	CUSTOM_NAME,;
 
 	@TypeClassInstance
 	public static ESExprCodec<MySimpleEnum> codec() {
 		return MySimpleEnum_CodecImpl.INSTANCE;
 	}
 }
-

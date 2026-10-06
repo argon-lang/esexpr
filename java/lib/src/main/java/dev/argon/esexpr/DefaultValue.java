@@ -13,6 +13,7 @@ import java.lang.annotation.Target;
 public @interface DefaultValue {
 	/**
 	 * Gets the name of a method that returns the default value of this value.
+	 * 
 	 * @return The name of the method.
 	 */
 	String value();

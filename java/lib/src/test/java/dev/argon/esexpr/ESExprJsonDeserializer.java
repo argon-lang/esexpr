@@ -18,11 +18,13 @@ import java.util.*;
 public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 
 	@Override
-	public ESExpr deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws JacksonException {
+	public ESExpr deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+		throws JacksonException {
 		return parseJsonNode(deserializationContext.readTree(jsonParser), deserializationContext);
 	}
 
-	private static ESExpr parseJsonNode(JsonNode node, DeserializationContext deserializationContext) throws JacksonException {
+	private static ESExpr parseJsonNode(JsonNode node, DeserializationContext deserializationContext)
+		throws JacksonException {
 		if(node.isBoolean()) {
 			return new ESExpr.Bool(node.asBoolean());
 		}
@@ -38,11 +40,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 				l.add(parseJsonNode(elem, deserializationContext));
 			}
 
-			return new ESExpr.Constructor(
-				"list",
-				l.build(),
-				ImmutableMap.of()
-			);
+			return new ESExpr.Constructor("list", l.build(), ImmutableMap.of());
 		}
 		else if(node.isObject()) {
 			if(node.has("constructor_name")) {
@@ -125,7 +123,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 			else if(node.has("array8")) {
 				var array = node.get("array8");
 				byte[] bytes = new byte[array.size()];
-				for (int i = 0; i < array.size(); i++) {
+				for(int i = 0; i < array.size(); i++) {
 					bytes[i] = getInt(array.get(i)).byteValue();
 				}
 				return new ESExpr.Array8(ByteLists.immutable.of(bytes));
@@ -133,7 +131,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 			else if(node.has("array16")) {
 				var array = node.get("array16");
 				short[] shorts = new short[array.size()];
-				for (int i = 0; i < array.size(); i++) {
+				for(int i = 0; i < array.size(); i++) {
 					shorts[i] = getInt(array.get(i)).shortValue();
 				}
 				return new ESExpr.Array16(ShortLists.immutable.of(shorts));
@@ -141,7 +139,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 			else if(node.has("array32")) {
 				var array = node.get("array32");
 				int[] ints = new int[array.size()];
-				for (int i = 0; i < array.size(); i++) {
+				for(int i = 0; i < array.size(); i++) {
 					ints[i] = getInt(array.get(i)).intValue();
 				}
 				return new ESExpr.Array32(IntLists.immutable.of(ints));
@@ -149,7 +147,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 			else if(node.has("array64")) {
 				var array = node.get("array64");
 				long[] longs = new long[array.size()];
-				for (int i = 0; i < array.size(); i++) {
+				for(int i = 0; i < array.size(); i++) {
 					longs[i] = getInt(array.get(i)).longValue();
 				}
 				return new ESExpr.Array64(LongLists.immutable.of(longs));
@@ -157,7 +155,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 			else if(node.has("array128")) {
 				var array = node.get("array128");
 				long[] longs = new long[array.size() * 2];
-				for (int i = 0; i < array.size(); i++) {
+				for(int i = 0; i < array.size(); i++) {
 					BigInteger value = getInt(array.get(i));
 					longs[i * 2] = value.longValue();
 					longs[i * 2 + 1] = value.shiftLeft(64).longValue();
@@ -171,13 +169,13 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 
 		return deserializationContext.reportInputMismatch(ESExpr.class, "Unexpected JSON for ESExpr value");
 	}
-	
+
 	private static BigInteger getInt(JsonNode node) {
 		if(node.isString()) {
 			return new BigInteger(node.asString());
 		}
 		else {
-			return BigInteger.valueOf(node.asLong());	
+			return BigInteger.valueOf(node.asLong());
 		}
 	}
 

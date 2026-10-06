@@ -10,14 +10,16 @@ import java.util.List;
 /**
  * A VarArgCodec for List values.
  *
- * @param <T> The element type.
+ * @param <T>
+ *            The element type.
  */
 
 public class ListVarargCodec<T> implements VarargCodec<List<T>, T> {
 	/**
 	 * Creates a VarArgCodec for List values.
 	 *
-	 * @param elementCodec A value codec for the element type.
+	 * @param elementCodec
+	 *            A value codec for the element type.
 	 */
 	public ListVarargCodec(ESExprCodec<T> elementCodec) {
 		this.elementCodec = elementCodec;

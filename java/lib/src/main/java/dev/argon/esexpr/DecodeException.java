@@ -8,8 +8,11 @@ import dev.argon.esexpr.ESExprCodec.FailurePath;
 public class DecodeException extends Exception {
 	/**
 	 * Create a decode exception.
-	 * @param message The message.
-	 * @param path The path where the error occurred.
+	 * 
+	 * @param message
+	 *            The message.
+	 * @param path
+	 *            The path where the error occurred.
 	 */
 	public DecodeException(String message, FailurePath path) {
 		super(message);

@@ -15,10 +15,9 @@ public class IntArrayCodec implements ESExprCodec<int[]> {
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY32 })
-	public static final ESExprCodec<int[]> INSTANCE = new IntArrayCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY32})
+	public static final ESExprCodec<int[]> INSTANCE = new IntArrayCodec();
 
 	@Override
 	public ESExprTagSet tags() {

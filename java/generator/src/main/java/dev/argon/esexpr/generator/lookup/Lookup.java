@@ -25,7 +25,9 @@ import java.util.*;
 import static dev.argon.esexpr.generator.utils.NameUtils.getConstructorName;
 
 public class Lookup {
-	public Lookup(ProcessingEnvironment env, MetadataCache cache, TypeClassLocalScope localScope, Element associatedElement) {
+	public Lookup(
+		ProcessingEnvironment env, MetadataCache cache, TypeClassLocalScope localScope, Element associatedElement
+	) {
 		this.env = env;
 		this.cache = cache;
 		this.localScope = localScope;
@@ -42,10 +44,7 @@ public class Lookup {
 		return cache.resolveTypeClass(resolver, getCodecType(t, codecType));
 	}
 
-	public TypeMirror findCodecElementType(
-		TypeMirror t,
-		CodecType codecType
-	) throws AbortException {
+	public TypeMirror findCodecElementType(TypeMirror t, CodecType codecType) throws AbortException {
 		if(codecType == CodecType.VALUE) {
 			throw new IllegalArgumentException("Cannot find codec element type for VALUE codec");
 		}
@@ -78,20 +77,18 @@ public class Lookup {
 			return env.getTypeUtils().getDeclaredType(codecElement, box(t));
 		}
 		else {
-			return env.getTypeUtils().getDeclaredType(
-				codecElement,
-				box(t),
-				env.getTypeUtils().getWildcardType(null, null)
-			);
+			return env.getTypeUtils()
+				.getDeclaredType(codecElement, box(t), env.getTypeUtils().getWildcardType(null, null));
 		}
 	}
 
 	private TypeMirror box(TypeMirror t) throws AbortException {
-		boolean isUnsigned = t.getAnnotationMirrors().stream().anyMatch(a -> a.getAnnotationType().toString().equals(Unsigned.class.getCanonicalName()));
+		boolean isUnsigned = t.getAnnotationMirrors().stream()
+			.anyMatch(a -> a.getAnnotationType().toString().equals(Unsigned.class.getCanonicalName()));
 
 		if(t.getKind().isPrimitive()) {
 			if(isUnsigned) {
-				var unboxedClass = switch(t.getKind()) {
+				var unboxedClass = switch (t.getKind()) {
 					case BYTE -> UnsignedByte.class;
 					case SHORT -> UnsignedShort.class;
 					case INT -> UnsignedInteger.class;
@@ -101,7 +98,9 @@ public class Lookup {
 
 				var te = env.getElementUtils().getTypeElement(unboxedClass.getCanonicalName());
 				if(te == null) {
-					throw new AbortException("Could not find unsigned type element: " + unboxedClass, associatedElement);
+					throw new AbortException(
+						"Could not find unsigned type element: " + unboxedClass, associatedElement
+					);
 				}
 
 				return env.getTypeUtils().getDeclaredType(te);
@@ -119,14 +118,14 @@ public class Lookup {
 		}
 	}
 
-
 	private ESExprTagSet lookupTagsImpl(TypeMirror t, Set<String> seenTypes) throws AbortException {
 		ESExprTagSet tags = null;
 
 		if(t.getKind() == TypeKind.TYPEVAR) {
 			tags = new ESExprTagSet.All();
 		}
-		else if(t instanceof DeclaredType dt && dt.asElement() instanceof TypeElement te && te.getAnnotation(ESExprCodecGen.class) != null) {
+		else if(t instanceof DeclaredType dt && dt.asElement() instanceof TypeElement te
+			&& te.getAnnotation(ESExprCodecGen.class) != null) {
 			tags = tagsDerived(t, te, seenTypes);
 		}
 		else {
@@ -140,7 +139,8 @@ public class Lookup {
 		throw new AbortException("Could not determine tags of type " + t, associatedElement);
 	}
 
-	private @Nullable ESExprTagSet tagsDerived(TypeMirror t, TypeElement te, Set<String> seenTypes) throws AbortException {
+	private @Nullable ESExprTagSet tagsDerived(TypeMirror t, TypeElement te, Set<String> seenTypes)
+		throws AbortException {
 		var fullName = te.getQualifiedName().toString();
 		if(seenTypes.contains(fullName)) {
 			throw new AbortException("Circular tags detected for type " + t, associatedElement);
@@ -148,7 +148,7 @@ public class Lookup {
 
 		seenTypes.add(fullName);
 
-		return switch(te.getKind()) {
+		return switch (te.getKind()) {
 			case RECORD -> {
 				if(te.getAnnotation(Flags.class) != null) {
 					yield ESExprTagSet.of(ESExprTag.INT);
@@ -163,18 +163,15 @@ public class Lookup {
 
 					for(var c : EnumCodecGenerator.getEnumCases(te, env)) {
 						if(c.getAnnotation(InlineValue.class) != null) {
-							var field = c.getEnclosedElements()
-								.stream()
-								.map(e -> e instanceof RecordComponentElement rce ? rce : null)
-								.findFirst()
+							var field = c.getEnclosedElements().stream()
+								.map(e -> e instanceof RecordComponentElement rce ? rce : null).findFirst()
 								.orElseThrow();
 
-							switch(lookupTagsImpl(field.asType(), seenTypes)) {
+							switch (lookupTagsImpl(field.asType(), seenTypes)) {
 								case ESExprTagSet.All all -> {
 									yield all;
 								}
-								case ESExprTagSet.Tags(var fieldTags) ->
-									tags.addAll(fieldTags);
+								case ESExprTagSet.Tags(var fieldTags) -> tags.addAll(fieldTags);
 							}
 						}
 						else {
@@ -193,7 +190,6 @@ public class Lookup {
 		};
 	}
 
-
 	private ESExprTagSet tagsFromTypeClassInstance(TypeMirror t, Set<String> seenTypes) throws AbortException {
 		var resolver = new TypeClassResolver(env.getTypeUtils(), localScope);
 
@@ -204,7 +200,7 @@ public class Lookup {
 			throw new AbortException("Could not find codec for " + t, associatedElement);
 		}
 
-		var codecElement = switch(codecResult) {
+		var codecElement = switch (codecResult) {
 			case TypeClassResult.Field field -> field.field();
 			case TypeClassResult.Local _ -> null;
 			case TypeClassResult.Method method -> method.method();
@@ -217,17 +213,20 @@ public class Lookup {
 		return tagsFromAnnotation(t, codecElement, seenTypes);
 	}
 
-
-	private ESExprTagSet tagsFromAnnotation(TypeMirror t, Element codecElement, Set<String> seenTypes) throws AbortException {
+	private ESExprTagSet tagsFromAnnotation(TypeMirror t, Element codecElement, Set<String> seenTypes)
+		throws AbortException {
 		var tags = codecElement.getAnnotation(ESExprCodecTags.class);
 		if(tags == null) {
-			throw new AbortException("TypeClassInstances of ESExprCodec must be annotated with ESExprCodecTags, but " + codecElement.getEnclosingElement() + "." + codecElement + " is not", associatedElement);
+			throw new AbortException(
+				"TypeClassInstances of ESExprCodec must be annotated with ESExprCodecTags, but "
+					+ codecElement.getEnclosingElement() + "." + codecElement + " is not",
+				associatedElement
+			);
 		}
-
 
 		Map<String, TypeMirror> typeParamMap = new HashMap<>();
 		if(t instanceof DeclaredType dt) {
-			var typeElement = (TypeElement) dt.asElement();
+			var typeElement = (TypeElement)dt.asElement();
 			var typeArgs = dt.getTypeArguments();
 			for(int i = 0; i < typeElement.getTypeParameters().size(); i++) {
 				typeParamMap.put(typeElement.getTypeParameters().get(i).getSimpleName().toString(), typeArgs.get(i));
@@ -246,9 +245,11 @@ public class Lookup {
 				throw new AbortException("Could not determine tags for type parameter " + tp);
 			}
 
-			switch(lookupTagsImpl(tpt, seenTypes)) {
+			switch (lookupTagsImpl(tpt, seenTypes)) {
 				case ESExprTagSet.Tags tpTags -> ts.addAll(tpTags.tags());
-				case ESExprTagSet.All all -> { return all; }
+				case ESExprTagSet.All all -> {
+					return all;
+				}
 			}
 		}
 

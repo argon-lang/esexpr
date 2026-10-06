@@ -12,7 +12,6 @@ public class UnsignedShortCodec extends IntCodecBase<UnsignedShort> {
 		super(BigInteger.ZERO, BigInteger.valueOf(0xFFFF));
 	}
 
-
 	@Override
 	public boolean isEncodedEqual(UnsignedShort x, UnsignedShort y) {
 		return x.equals(y);

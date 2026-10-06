@@ -28,4 +28,3 @@ public record PrimitiveFieldsPositionalDefault(
 		return PrimitiveFieldsPositionalDefault_CodecImpl.INSTANCE;
 	}
 }
-

@@ -17,7 +17,9 @@ import java.util.HashSet;
 import java.util.Map;
 
 public final class FlagsCodecGenerator extends GeneratorBase {
-	public FlagsCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+	public FlagsCodecGenerator(
+		PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem
+	) {
 		super(writer, env, metadataCache, elem);
 	}
 
@@ -45,7 +47,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 
 			BigInteger mask = null;
 
-			switch(t.getKind()) {
+			switch (t.getKind()) {
 				case BOOLEAN -> {
 					mask = getFlagMask(f);
 					var bitIndex = getFlagBitIndex(mask);
@@ -88,13 +90,13 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 					}
 				}
 
-				default -> {}
+				default -> {
+				}
 			}
 
 			if(mask == null) {
 				throw new AbortException("Invalid field type for flags: " + t, f);
 			}
-
 
 			if(!usedBits.and(mask).equals(BigInteger.ZERO)) {
 				throw new AbortException("Duplicate flag mask: " + mask, f);
@@ -117,7 +119,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 		for(var f : getFields(elem)) {
 			var t = f.asType();
 
-			switch(t.getKind()) {
+			switch (t.getKind()) {
 				case BOOLEAN -> {
 					var mask = getFlagMask(f);
 					var bitIndex = getFlagBitIndex(mask);
@@ -162,12 +164,12 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 					}
 				}
 
-				default -> {}
+				default -> {
+				}
 			}
 
 			throw new AbortException("Invalid field type for flags: " + t, f);
 		}
-
 
 		print("return new ");
 		print(elem.getQualifiedName());
@@ -189,7 +191,6 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 
 	}
 
-
 	private BigInteger getFlagMask(Element e) throws AbortException {
 		var ann = e.getAnnotation(FlagMask.class);
 		if(ann == null) {
@@ -206,7 +207,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 				else if(bitStr.startsWith("0b") || bitStr.startsWith("0B")) {
 					result = new BigInteger(bitStr.substring(2), 2);
 				}
-				else if (bitStr.startsWith("0")) {
+				else if(bitStr.startsWith("0")) {
 					result = new BigInteger(bitStr, 8);
 				}
 				else {

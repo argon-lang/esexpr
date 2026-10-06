@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.eclipse.collections.api.list.primitive.ImmutableByteList;
@@ -21,17 +20,26 @@ public sealed interface ESExpr {
 
 	/**
 	 * Gets the tag of this expression.
+	 * 
 	 * @return The tag.
 	 */
 	ESExprTag tag();
 
 	/**
 	 * A constructor value.
-	 * @param constructor The constructor name.
-	 * @param args Positional arguments.
-	 * @param kwargs Keyword arguments.
+	 * 
+	 * @param constructor
+	 *            The constructor name.
+	 * @param args
+	 *            Positional arguments.
+	 * @param kwargs
+	 *            Keyword arguments.
 	 */
-    public static record Constructor(String constructor, ImmutableList<ESExpr> args, ImmutableMap<String, ESExpr> kwargs) implements ESExpr {
+	public static record Constructor(
+		String constructor,
+		ImmutableList<ESExpr> args,
+		ImmutableMap<String, ESExpr> kwargs
+	) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return new ESExprTag.Constructor(constructor);
@@ -40,9 +48,11 @@ public sealed interface ESExpr {
 
 	/**
 	 * A boolean value.
-	 * @param b The boolean value.
+	 * 
+	 * @param b
+	 *            The boolean value.
 	 */
-    public static record Bool(boolean b) implements ESExpr {
+	public static record Bool(boolean b) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return ESExprTag.BOOL;
@@ -51,9 +61,11 @@ public sealed interface ESExpr {
 
 	/**
 	 * An integer value.
-	 * @param n The integer value.
+	 * 
+	 * @param n
+	 *            The integer value.
 	 */
-    public static record Int(BigInteger n) implements ESExpr {
+	public static record Int(BigInteger n) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return ESExprTag.INT;
@@ -62,9 +74,11 @@ public sealed interface ESExpr {
 
 	/**
 	 * A string value.
-	 * @param s The string value.
+	 * 
+	 * @param s
+	 *            The string value.
 	 */
-    public static record Str(String s) implements ESExpr {
+	public static record Str(String s) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return ESExprTag.STR;
@@ -73,7 +87,9 @@ public sealed interface ESExpr {
 
 	/**
 	 * A 32-bit floating point value.
-	 * @param f The float value.
+	 * 
+	 * @param f
+	 *            The float value.
 	 */
 	public static record Float16(short f) implements ESExpr {
 		@Override
@@ -83,8 +99,7 @@ public sealed interface ESExpr {
 
 		@Override
 		public boolean equals(Object obj) {
-			return obj instanceof Float16(var other) &&
-				f == other;
+			return obj instanceof Float16(var other) && f == other;
 		}
 
 		@Override
@@ -100,9 +115,11 @@ public sealed interface ESExpr {
 
 	/**
 	 * A 32-bit floating point value.
-	 * @param f The float value.
+	 * 
+	 * @param f
+	 *            The float value.
 	 */
-    public static record Float32(float f) implements ESExpr {
+	public static record Float32(float f) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return ESExprTag.FLOAT32;
@@ -110,8 +127,7 @@ public sealed interface ESExpr {
 
 		@Override
 		public boolean equals(Object obj) {
-			return obj instanceof Float32(var other) &&
-				Float.floatToRawIntBits(f) == Float.floatToRawIntBits(other);
+			return obj instanceof Float32(var other) && Float.floatToRawIntBits(f) == Float.floatToRawIntBits(other);
 		}
 
 		@Override
@@ -122,9 +138,11 @@ public sealed interface ESExpr {
 
 	/**
 	 * A 64-bit floating point value.
-	 * @param d The double value.
+	 * 
+	 * @param d
+	 *            The double value.
 	 */
-    public static record Float64(double d) implements ESExpr {
+	public static record Float64(double d) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return ESExprTag.FLOAT64;
@@ -132,8 +150,8 @@ public sealed interface ESExpr {
 
 		@Override
 		public boolean equals(Object obj) {
-			return obj instanceof Float64(var other) &&
-				Double.doubleToRawLongBits(d) == Double.doubleToRawLongBits(other);
+			return obj instanceof Float64(var other)
+				&& Double.doubleToRawLongBits(d) == Double.doubleToRawLongBits(other);
 		}
 
 		@Override
@@ -144,7 +162,9 @@ public sealed interface ESExpr {
 
 	/**
 	 * An array of 8-bit values.
-	 * @param b The values.
+	 * 
+	 * @param b
+	 *            The values.
 	 */
 	public static record Array8(ImmutableByteList b) implements ESExpr {
 		@Override
@@ -156,7 +176,8 @@ public sealed interface ESExpr {
 	/**
 	 * An array of 16-bit values.
 	 *
-	 * @param b The values.
+	 * @param b
+	 *            The values.
 	 */
 	public static record Array16(ImmutableShortList b) implements ESExpr {
 		@Override
@@ -168,7 +189,8 @@ public sealed interface ESExpr {
 	/**
 	 * An array of 32-bit values.
 	 *
-	 * @param b The values.
+	 * @param b
+	 *            The values.
 	 */
 	public static record Array32(ImmutableIntList b) implements ESExpr {
 		@Override
@@ -180,7 +202,8 @@ public sealed interface ESExpr {
 	/**
 	 * An array of 64-bit values.
 	 *
-	 * @param b The values.
+	 * @param b
+	 *            The values.
 	 */
 	public static record Array64(ImmutableLongList b) implements ESExpr {
 		@Override
@@ -192,7 +215,8 @@ public sealed interface ESExpr {
 	/**
 	 * An array of 128-bit values.
 	 *
-	 * @param b The complex number values as pairs of longs.
+	 * @param b
+	 *            The complex number values as pairs of longs.
 	 */
 	public static record Array128(ImmutableLongList b) implements ESExpr {
 		@Override
@@ -203,19 +227,21 @@ public sealed interface ESExpr {
 
 	/**
 	 * A null value.
-	 * @param level The level where the null lives. Used to disambiguate nesting of Optional types.
+	 * 
+	 * @param level
+	 *            The level where the null lives. Used to disambiguate nesting of
+	 *            Optional types.
 	 */
-    public static record Null(BigInteger level) implements ESExpr {
+	public static record Null(BigInteger level) implements ESExpr {
 		@Override
 		public ESExprTag tag() {
 			return ESExprTag.NULL;
 		}
 	}
 
-
-
 	/**
 	 * Codec for arbitrary ESExpr values.
+	 * 
 	 * @return The codec.
 	 */
 	public static ESExprCodec<ESExpr> codec() {

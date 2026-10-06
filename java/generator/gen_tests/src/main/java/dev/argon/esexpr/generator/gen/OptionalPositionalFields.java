@@ -18,8 +18,7 @@ public record OptionalPositionalFields(
 	Optional<Float> f,
 	Optional<Double> g,
 
-	@OptionalValue
-	Optional<String> h
+	@OptionalValue Optional<String> h
 ) {
 
 	@TypeClassInstance
@@ -28,4 +27,3 @@ public record OptionalPositionalFields(
 	}
 
 }
-

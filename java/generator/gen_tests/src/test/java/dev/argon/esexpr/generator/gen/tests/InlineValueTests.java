@@ -19,18 +19,10 @@ public class InlineValueTests extends TestBase {
 	@Test
 	public void testInlineValue() throws Throwable {
 		assertEquals(ESExprTagSet.of(ESExprTag.INT, new ESExprTag.Constructor("b")), InlineValueEnum.codec().tags());
+		assertCodecMatch(InlineValueEnum.codec(), new ESExpr.Int(BigInteger.ZERO), new InlineValueEnum.A(0));
 		assertCodecMatch(
 			InlineValueEnum.codec(),
-			new ESExpr.Int(BigInteger.ZERO),
-			new InlineValueEnum.A(0)
-		);
-		assertCodecMatch(
-			InlineValueEnum.codec(),
-			new ESExpr.Constructor(
-				"b",
-				ImmutableList.of(new ESExpr.Float32(0.0f)),
-				ImmutableMap.of()
-			),
+			new ESExpr.Constructor("b", ImmutableList.of(new ESExpr.Float32(0.0f)), ImmutableMap.of()),
 			new InlineValueEnum.B(0.0f)
 		);
 	}
@@ -39,11 +31,7 @@ public class InlineValueTests extends TestBase {
 	public void testGenericInlineValue() throws Throwable {
 		assertCodecMatch(
 			GenericInlineValue.codec(ESExprCodec.floatCodec()),
-			new ESExpr.Constructor(
-				"wrapped-a",
-				ImmutableList.of(new ESExpr.Float32(4.5f)),
-				ImmutableMap.of()
-			),
+			new ESExpr.Constructor("wrapped-a", ImmutableList.of(new ESExpr.Float32(4.5f)), ImmutableMap.of()),
 			new GenericInlineValue.WrappedA<>(4.5f)
 		);
 		assertCodecMatch(

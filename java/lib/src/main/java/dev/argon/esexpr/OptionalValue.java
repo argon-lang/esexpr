@@ -10,5 +10,4 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.RECORD_COMPONENT)
-public @interface OptionalValue {
-}
+public @interface OptionalValue {}

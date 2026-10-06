@@ -13,6 +13,7 @@ import java.lang.annotation.Target;
 public @interface Constructor {
 	/**
 	 * Gets the constructor name.
+	 * 
 	 * @return The constructor name.
 	 */
 	String value();

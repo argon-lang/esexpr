@@ -6,10 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicates the annotated field or method is a
- * candidate for type class instance resolution.
+ * Indicates the annotated field or method is a candidate for type class
+ * instance resolution.
  */
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.METHOD, ElementType.FIELD})
-public @interface TypeClassInstance {
-}
+public @interface TypeClassInstance {}

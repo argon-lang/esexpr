@@ -14,10 +14,9 @@ public class ShortArrayCodec implements ESExprCodec<short[]> {
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY16 })
-	public static final ESExprCodec<short[]> INSTANCE = new ShortArrayCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY16})
+	public static final ESExprCodec<short[]> INSTANCE = new ShortArrayCodec();
 
 	@Override
 	public ESExprTagSet tags() {

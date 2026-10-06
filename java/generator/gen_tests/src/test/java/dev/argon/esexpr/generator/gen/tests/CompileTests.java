@@ -16,18 +16,19 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CompileTests {
 
 	private static final String MODULE_INFO = """
-		module dev.argon.esexpr.gen_error_tests {
-			requires dev.argon.esexpr;
-			exports dev.argon.esexpr.gen_error_tests;
-		}
-	""";
+			module dev.argon.esexpr.gen_error_tests {
+				requires dev.argon.esexpr;
+				exports dev.argon.esexpr.gen_error_tests;
+			}
+		""";
 
 	private void assertFails(String errorMessage, String className, String sourceCode) throws IOException {
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 
-		try(StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
+		try(StandardJavaFileManager fileManager = compiler
+			.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
 
 			JavaFileObject moduleInfo = new InMemoryJavaFileObject("module-info", MODULE_INFO);
 
@@ -54,12 +55,13 @@ public class CompileTests {
 
 			assertFalse(task.call());
 
-			assertEquals(List.of(errorMessage), diagnostics.getDiagnostics().stream().map(diag -> diag.getMessage(Locale.ROOT)).toList());
+			assertEquals(
+				List.of(errorMessage),
+				diagnostics.getDiagnostics().stream().map(diag -> diag.getMessage(Locale.ROOT)).toList()
+			);
 		}
 
-
 	}
-
 
 	private static class InMemoryJavaFileObject extends SimpleJavaFileObject {
 		private final String sourceCode;
@@ -76,10 +78,10 @@ public class CompileTests {
 	}
 
 	private static final String IMPORTS = """
-  		package dev.argon.esexpr.gen_error_tests;
-		import dev.argon.esexpr.*;
-		import java.util.*;
-	""";
+		 		package dev.argon.esexpr.gen_error_tests;
+			import dev.argon.esexpr.*;
+			import java.util.*;
+		""";
 
 	@Test
 	public void generateForClass() throws Throwable {
@@ -101,80 +103,64 @@ public class CompileTests {
 
 	@Test
 	public void constructorOnEnum() throws Throwable {
-		assertFails(
-			"Constructor name may only be specified for records",
-			"ConstructorNameEnum",
-			IMPORTS + """
-				@ESExprCodecGen
-				@Constructor("my-ctor")
-				public sealed interface ConstructorNameEnum {
-					record A() implements ConstructorNameEnum {}
-					
-					@TypeClassInstance
-					static ESExprCodec<ConstructorNameEnum> codec() { return ConstructorNameEnum_CodecImpl.INSTANCE; }
-				}
-				"""
-		);
+		assertFails("Constructor name may only be specified for records", "ConstructorNameEnum", IMPORTS + """
+			@ESExprCodecGen
+			@Constructor("my-ctor")
+			public sealed interface ConstructorNameEnum {
+				record A() implements ConstructorNameEnum {}
+
+				@TypeClassInstance
+				static ESExprCodec<ConstructorNameEnum> codec() { return ConstructorNameEnum_CodecImpl.INSTANCE; }
+			}
+			""");
 	}
 
 	@Test
 	public void kwargWithDict() throws Throwable {
-		assertFails(
-			"Keyword arguments cannot be used with dict arguments",
-			"MyRecord",
-			IMPORTS + """
-				@ESExprCodecGen
-				public record MyRecord(
-					@Dict
-					KeywordMapping<String> a,
-					
-					@Keyword
-					String b
-				) {
-					
-					@TypeClassInstance
-					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
-				}
-				"""
-		);
-		assertFails(
-			"Keyword arguments cannot be used with dict arguments",
-			"MyRecord",
-			IMPORTS + """
-				@ESExprCodecGen
-				public record MyRecord(
-					@Keyword
-					String b,
-					
-					@Dict
-					KeywordMapping<String> a
-				) {
-					@TypeClassInstance
-					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
-				}
-				"""
-		);
+		assertFails("Keyword arguments cannot be used with dict arguments", "MyRecord", IMPORTS + """
+			@ESExprCodecGen
+			public record MyRecord(
+				@Dict
+				KeywordMapping<String> a,
+
+				@Keyword
+				String b
+			) {
+
+				@TypeClassInstance
+				static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+			}
+			""");
+		assertFails("Keyword arguments cannot be used with dict arguments", "MyRecord", IMPORTS + """
+			@ESExprCodecGen
+			public record MyRecord(
+				@Keyword
+				String b,
+
+				@Dict
+				KeywordMapping<String> a
+			) {
+				@TypeClassInstance
+				static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+			}
+			""");
 	}
 
 	@Test
 	public void multipleDict() throws Throwable {
-		assertFails(
-			"Only a single dict argument is allowed",
-			"MyRecord",
-			IMPORTS + """
-				@ESExprCodecGen
-				public record MyRecord(
-					@Dict
-					KeywordMapping<String> a,
-					
-					@Dict
-					KeywordMapping<String> b
-				) {
-					@TypeClassInstance
-					static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
-				}
-				"""
-		);
+		assertFails("Only a single dict argument is allowed", "MyRecord", IMPORTS + """
+			@ESExprCodecGen
+			public record MyRecord(
+				@Dict
+				KeywordMapping<String> a,
+
+				@Dict
+				KeywordMapping<String> b
+			) {
+				@TypeClassInstance
+				static ESExprCodec<MyRecord> codec() { return MyRecord_CodecImpl.INSTANCE; }
+			}
+			""");
 	}
 
 	@Test
@@ -187,7 +173,7 @@ public class CompileTests {
 				public record MyRecord(
 					@Vararg
 					List<String> a,
-					
+
 					@Vararg
 					List<String> b
 				) {
@@ -208,7 +194,7 @@ public class CompileTests {
 				public record MyRecord(
 					@Vararg
 					List<String> a,
-					
+
 					String b
 				) {
 					@TypeClassInstance
@@ -228,7 +214,7 @@ public class CompileTests {
 				public record MyRecord(
 					@Vararg
 					List<String> a,
-					
+
 					@OptionalValue
 					Optional<String> b
 				) {
@@ -249,7 +235,7 @@ public class CompileTests {
 				public record MyRecord(
 					@OptionalValue
 					Optional<String> a,
-					
+
 					@OptionalValue
 					Optional<String> b
 				) {
@@ -288,7 +274,7 @@ public class CompileTests {
 				public record MyRecord(
 					@OptionalValue
 					Optional<String> a,
-					
+
 					String b
 				) {
 					@TypeClassInstance
@@ -308,7 +294,7 @@ public class CompileTests {
 				public record MyRecord(
 					@DefaultValue("\\"A\\"")
 					Optional<String> a,
-					
+
 					String b
 				) {
 					@TypeClassInstance
@@ -317,6 +303,5 @@ public class CompileTests {
 				"""
 		);
 	}
-
 
 }

@@ -9,11 +9,9 @@ import java.util.List;
 
 @ESExprCodecGen
 public record MultipleVararg(
-	@Vararg
-	List<Float> a,
+	@Vararg List<Float> a,
 
-	@Vararg
-	List<Integer> b
+	@Vararg List<Integer> b
 ) {
 	@TypeClassInstance
 	public static ESExprCodec<MultipleVararg> codec() {

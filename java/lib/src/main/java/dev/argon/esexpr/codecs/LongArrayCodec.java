@@ -14,10 +14,9 @@ public class LongArrayCodec implements ESExprCodec<long[]> {
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY64 })
-	public static final ESExprCodec<long[]> INSTANCE = new LongArrayCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY64})
+	public static final ESExprCodec<long[]> INSTANCE = new LongArrayCodec();
 
 	@Override
 	public ESExprTagSet tags() {

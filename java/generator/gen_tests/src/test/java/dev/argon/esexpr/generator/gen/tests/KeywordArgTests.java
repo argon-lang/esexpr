@@ -16,22 +16,26 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 public class KeywordArgTests extends TestBase {
 	@Test
 	public void optionalFieldsPresent() throws Throwable {
 		assertCodecMatch(
 			KeywordArguments.codec(),
 			new ESExpr.Constructor(
-				"keyword-arguments",
-				ImmutableList.of(),
+				"keyword-arguments", ImmutableList.of(),
 				ImmutableMap.of(
-					"a", new ESExpr.Bool(false),
-					"b2", new ESExpr.Bool(false),
-					"c2", new ESExpr.Bool(false),
-					"d", new ESExpr.Bool(false),
-					"e", new ESExpr.Bool(false),
-					"f", new ESExpr.Bool(false)
+					"a",
+					new ESExpr.Bool(false),
+					"b2",
+					new ESExpr.Bool(false),
+					"c2",
+					new ESExpr.Bool(false),
+					"d",
+					new ESExpr.Bool(false),
+					"e",
+					new ESExpr.Bool(false),
+					"f",
+					new ESExpr.Bool(false)
 				)
 			),
 			new KeywordArguments(false, false, Optional.of(false), Optional.of(false), false, Optional.of(false))
@@ -43,12 +47,14 @@ public class KeywordArgTests extends TestBase {
 		assertCodecMatch(
 			KeywordArguments.codec(),
 			new ESExpr.Constructor(
-				"keyword-arguments",
-				ImmutableList.of(),
+				"keyword-arguments", ImmutableList.of(),
 				ImmutableMap.of(
-					"a", new ESExpr.Bool(false),
-					"b2", new ESExpr.Bool(false),
-					"f", new ESExpr.Null(BigInteger.ZERO)
+					"a",
+					new ESExpr.Bool(false),
+					"b2",
+					new ESExpr.Bool(false),
+					"f",
+					new ESExpr.Null(BigInteger.ZERO)
 				)
 			),
 			new KeywordArguments(false, false, Optional.empty(), Optional.empty(), true, Optional.empty())
@@ -61,13 +67,9 @@ public class KeywordArgTests extends TestBase {
 			DecodeException.class,
 			() -> KeywordArguments.codec().decode(
 				new ESExpr.Constructor(
-					"keyword-arguments",
-					ImmutableList.of(),
-					ImmutableMap.of(
-						"a", new ESExpr.Bool(false),
-						"b2", new ESExpr.Bool(false)
-					)
-				)	
+					"keyword-arguments", ImmutableList.of(),
+					ImmutableMap.of("a", new ESExpr.Bool(false), "b2", new ESExpr.Bool(false))
+				)
 			)
 		);
 	}

@@ -14,10 +14,9 @@ public class ImmutableLongListCodec implements ESExprCodec<ImmutableLongList> {
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY64 })
-	public static final ESExprCodec<ImmutableLongList> INSTANCE = new ImmutableLongListCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY64})
+	public static final ESExprCodec<ImmutableLongList> INSTANCE = new ImmutableLongListCodec();
 
 	@Override
 	public ESExprTagSet tags() {

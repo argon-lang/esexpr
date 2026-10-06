@@ -11,15 +11,18 @@ import dev.argon.esexpr.codecs.StringCodec;
 
 /**
  * A string table used while reading binary ESExprs.
- * @param values The strings in the string table.
+ * 
+ * @param values
+ *            The strings in the string table.
  */
 public record StringTable(ImmutableList<String> values) {
 
 	/**
 	 * StringTable codec.
+	 * 
 	 * @return The codec.
 	 */
-	@ESExprCodecTags(constructors = { "string-table" })
+	@ESExprCodecTags(constructors = {"string-table"})
 	public static ESExprCodec<StringTable> codec() {
 		return CODEC;
 	}
@@ -47,9 +50,12 @@ public record StringTable(ImmutableList<String> values) {
 
 		@Override
 		public StringTable decode(ESExpr expr, FailurePath path) throws DecodeException {
-			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals(BinToken.StringTableName)) {
+			if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)
+				&& name.equals(BinToken.StringTableName)) {
 				if(!kwargs.isEmpty()) {
-					throw new DecodeException("Unexpected keyword arguments for string table", path.withConstructor(BinToken.StringTableName));
+					throw new DecodeException(
+						"Unexpected keyword arguments for string table", path.withConstructor(BinToken.StringTableName)
+					);
 				}
 
 				var values = ImmutableList.<String>builder();

@@ -14,10 +14,9 @@ public class ImmutableShortListCodec implements ESExprCodec<ImmutableShortList> 
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY16 })
-	public static final ESExprCodec<ImmutableShortList> INSTANCE = new ImmutableShortListCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY16})
+	public static final ESExprCodec<ImmutableShortList> INSTANCE = new ImmutableShortListCodec();
 
 	@Override
 	public ESExprTagSet tags() {

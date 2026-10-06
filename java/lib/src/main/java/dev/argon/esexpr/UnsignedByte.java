@@ -14,6 +14,7 @@ public class UnsignedByte {
 
 	/**
 	 * Returns the value as a byte.
+	 * 
 	 * @return The value as a byte.
 	 */
 	public byte byteValue() {
@@ -22,6 +23,7 @@ public class UnsignedByte {
 
 	/**
 	 * Returns the value as a short.
+	 * 
 	 * @return The value as a short.
 	 */
 	public short shortValue() {
@@ -30,6 +32,7 @@ public class UnsignedByte {
 
 	/**
 	 * Returns the value as an int.
+	 * 
 	 * @return The value as an int.
 	 */
 	public int intValue() {
@@ -38,7 +41,9 @@ public class UnsignedByte {
 
 	/**
 	 * Returns an {@link UnsignedByte} whose value is equal to the specified byte.
-	 * @param value The value to wrap.
+	 * 
+	 * @param value
+	 *            The value to wrap.
 	 * @return An {@link UnsignedByte} instance.
 	 */
 	public static UnsignedByte fromByteBits(byte value) {

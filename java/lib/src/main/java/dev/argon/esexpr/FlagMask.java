@@ -16,7 +16,8 @@ public @interface FlagMask {
 	long value() default 0;
 
 	/**
-	 * {@return An alternate bitmask value for when the value does not fit in a long.}
+	 * {@return An alternate bitmask value for when the value does not fit in a
+	 * long.}
 	 */
 	String bits() default "";
 }

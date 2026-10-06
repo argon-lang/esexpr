@@ -24,6 +24,7 @@ public class UnsignedBigInteger {
 
 	/**
 	 * Converts the value to a {@link BigInteger}.
+	 * 
 	 * @return The value as a {@link BigInteger}.
 	 */
 	public BigInteger toBigInteger() {
@@ -31,20 +32,28 @@ public class UnsignedBigInteger {
 	}
 
 	/**
-	 * Returns an {@link UnsignedBigInteger} whose value is equal to the specified {@link BigInteger}.
-	 * @param value The value to wrap.
+	 * Returns an {@link UnsignedBigInteger} whose value is equal to the specified
+	 * {@link BigInteger}.
+	 * 
+	 * @param value
+	 *            The value to wrap.
 	 * @return An {@link UnsignedBigInteger} instance.
-	 * @throws IllegalArgumentException if the value is negative.
+	 * @throws IllegalArgumentException
+	 *             if the value is negative.
 	 */
 	public static UnsignedBigInteger valueOf(BigInteger value) {
 		return new UnsignedBigInteger(value);
 	}
 
 	/**
-	 * Returns an {@link UnsignedBigInteger} whose value is equal to the specified long.
-	 * @param value The value to wrap.
+	 * Returns an {@link UnsignedBigInteger} whose value is equal to the specified
+	 * long.
+	 * 
+	 * @param value
+	 *            The value to wrap.
 	 * @return An {@link UnsignedBigInteger} instance.
-	 * @throws IllegalArgumentException if the value is negative.
+	 * @throws IllegalArgumentException
+	 *             if the value is negative.
 	 */
 	public static UnsignedBigInteger valueOf(long value) {
 		return valueOf(BigInteger.valueOf(value));
@@ -52,9 +61,12 @@ public class UnsignedBigInteger {
 
 	/**
 	 * Parses a string as an {@link UnsignedBigInteger}.
-	 * @param value The value to parse.
+	 * 
+	 * @param value
+	 *            The value to parse.
 	 * @return An {@link UnsignedBigInteger} instance.
-	 * @throws NumberFormatException if the value is not
+	 * @throws NumberFormatException
+	 *             if the value is not
 	 */
 	public static UnsignedBigInteger valueOf(String value) {
 		return valueOf(new BigInteger(value));
@@ -70,17 +82,18 @@ public class UnsignedBigInteger {
 	 */
 	public static final UnsignedBigInteger ONE = valueOf(BigInteger.ONE);
 
-
 	/**
-	 * Adds the value of the specified {@link UnsignedBigInteger} to this instance and returns the result as a new {@link UnsignedBigInteger}.
+	 * Adds the value of the specified {@link UnsignedBigInteger} to this instance
+	 * and returns the result as a new {@link UnsignedBigInteger}.
 	 *
-	 * @param other The {@link UnsignedBigInteger} to be added to this instance.
-	 * @return A new {@link UnsignedBigInteger} representing the sum of this instance and the specified {@link UnsignedBigInteger}.
+	 * @param other
+	 *            The {@link UnsignedBigInteger} to be added to this instance.
+	 * @return A new {@link UnsignedBigInteger} representing the sum of this
+	 *         instance and the specified {@link UnsignedBigInteger}.
 	 */
 	public UnsignedBigInteger add(UnsignedBigInteger other) {
 		return valueOf(value.add(other.value));
 	}
-
 
 	@Override
 	public int hashCode() {
@@ -101,6 +114,6 @@ public class UnsignedBigInteger {
 	 * The codec for {@link UnsignedBigInteger}.
 	 */
 	@TypeClassInstance
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.INT})
 	public static ESExprCodec<UnsignedBigInteger> CODEC = new NonNegativeBigIntegerCodec();
 }

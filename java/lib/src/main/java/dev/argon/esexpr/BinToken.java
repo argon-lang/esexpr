@@ -35,8 +35,7 @@ import java.math.BigInteger;
 	11110000 Array128
  */
 sealed interface BinToken {
-	static record WithInteger(WithIntegerType type, BigInteger value) implements BinToken {
-	}
+	static record WithInteger(WithIntegerType type, BigInteger value) implements BinToken {}
 
 	static enum WithIntegerType {
 		CONSTRUCTOR,

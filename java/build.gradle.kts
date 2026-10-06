@@ -1,4 +1,5 @@
 import net.ltgt.gradle.errorprone.errorprone
+import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -9,14 +10,26 @@ import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     alias(libs.plugins.errorprone) apply false
+    alias(libs.plugins.spotless) apply false
 }
 
 subprojects {
+    apply(plugin = "com.diffplug.spotless")
     group = "dev.argon.esexpr"
     version = "0.5.1"
 
     repositories {
         mavenCentral()
+    }
+
+    extensions.configure<SpotlessExtension> {
+        java {
+            val formatterConfig = rootProject.layout.projectDirectory.file("eclipse-formatter.properties")
+            // Track settings changes so the configuration cache cannot retain stale formatter preferences.
+            providers.fileContents(formatterConfig).asText.get()
+            eclipse("4.41").configFile(formatterConfig.asFile)
+            target("src/**/*.java")
+        }
     }
 
     plugins.withType<JavaPlugin> {

@@ -13,4 +13,3 @@ public sealed interface InlineValueEnum {
 		return InlineValueEnum_CodecImpl.INSTANCE;
 	}
 }
-

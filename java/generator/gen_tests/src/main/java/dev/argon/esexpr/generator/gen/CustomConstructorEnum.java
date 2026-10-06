@@ -10,10 +10,8 @@ public sealed interface CustomConstructorEnum {
 
 	record NormalNameCase(float b) implements CustomConstructorEnum {}
 
-
 	@TypeClassInstance
 	public static ESExprCodec<CustomConstructorEnum> codec() {
 		return CustomConstructorEnum_CodecImpl.INSTANCE;
 	}
 }
-

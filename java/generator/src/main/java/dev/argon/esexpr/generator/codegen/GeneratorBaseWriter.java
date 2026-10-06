@@ -15,7 +15,6 @@ public class GeneratorBaseWriter {
 	private int indentLevel = 0;
 	private boolean needsIndent = true;
 
-
 	protected void indent() {
 		indentLevel += 1;
 	}

@@ -45,7 +45,9 @@ public sealed interface ESExprTagSet {
 
 	/**
 	 * A finite set of tags.
-	 * @param tags The tags.
+	 * 
+	 * @param tags
+	 *            The tags.
 	 */
 	record Tags(ImmutableSet<ESExprTag> tags) implements ESExprTagSet {
 		@Override
@@ -54,24 +56,15 @@ public sealed interface ESExprTagSet {
 				return this;
 			}
 
-			return new Tags(
-				ImmutableSet.<ESExprTag>builder()
-					.addAll(tags)
-					.add(tag)
-					.build()
-			);
+			return new Tags(ImmutableSet.<ESExprTag>builder().addAll(tags).add(tag).build());
 		}
 
 		@Override
 		public ESExprTagSet union(ESExprTagSet other) {
-			return switch(other) {
+			return switch (other) {
 				case All all -> all;
-				case Tags(var otherTags) -> new Tags(
-					ImmutableSet.<ESExprTag>builder()
-						.addAll(tags)
-						.addAll(otherTags)
-						.build()
-				);
+				case Tags(var otherTags) ->
+					new Tags(ImmutableSet.<ESExprTag>builder().addAll(tags).addAll(otherTags).build());
 			};
 		}
 
@@ -92,7 +85,7 @@ public sealed interface ESExprTagSet {
 
 		@Override
 		public boolean isDisjoint(ESExprTagSet other) {
-			return switch(other) {
+			return switch (other) {
 				case All() -> isEmpty();
 				case Tags(var otherTags) -> Collections.disjoint(tags, otherTags);
 			};
@@ -102,7 +95,8 @@ public sealed interface ESExprTagSet {
 	/**
 	 * Creates an instance of {@code ESExprTagSet} from the given tags.
 	 *
-	 * @param tags The array of {@code ESExprTag} elements to include in the set.
+	 * @param tags
+	 *            The array of {@code ESExprTag} elements to include in the set.
 	 * @return A {@code ESExprTagSet} containing the specified tags.
 	 */
 	public static ESExprTagSet of(ESExprTag... tags) {
@@ -111,14 +105,18 @@ public sealed interface ESExprTagSet {
 
 	/**
 	 * Creates a tag set with a new tag added.
-	 * @param tag The tag to add.
+	 * 
+	 * @param tag
+	 *            The tag to add.
 	 * @return The updated set.
 	 */
 	ESExprTagSet add(ESExprTag tag);
 
 	/**
 	 * Creates a tag set with all elements of this and another set.
-	 * @param other The other set.
+	 * 
+	 * @param other
+	 *            The other set.
 	 * @return The updated set.
 	 */
 	ESExprTagSet union(ESExprTagSet other);
@@ -135,14 +133,18 @@ public sealed interface ESExprTagSet {
 
 	/**
 	 * Checks if the set contains a tag.
-	 * @param tag The tag to check.
+	 * 
+	 * @param tag
+	 *            The tag to check.
 	 * @return true iff the set contains the tag.
 	 */
 	boolean contains(ESExprTag tag);
 
 	/**
 	 * Checks if sets are disjoint.
-	 * @param other The other set.
+	 * 
+	 * @param other
+	 *            The other set.
 	 * @return true iff there are no common elements between the sets.
 	 */
 	boolean isDisjoint(ESExprTagSet other);

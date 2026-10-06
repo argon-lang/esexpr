@@ -10,7 +10,6 @@ import java.math.BigInteger;
 public class NonNegativeBigIntegerCodec implements ESExprCodec<UnsignedBigInteger> {
 	public NonNegativeBigIntegerCodec() {}
 
-
 	@Override
 	public final ESExprTagSet tags() {
 		return ESExprTagSet.of(ESExprTag.INT);

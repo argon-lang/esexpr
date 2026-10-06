@@ -28,12 +28,14 @@ public final class TypeClassResolver {
 	}
 
 	public TypeMirror getTypeClassType(TypeClassResult tc) {
-		return switch(tc) {
+		return switch (tc) {
 			case TypeClassResult.Field(var field) -> field.asType();
 			case TypeClassResult.Local(var local) -> local.asType();
 			case TypeClassResult.Method method -> {
 				if(method.arguments().size() != method.method().getParameters().size()) {
-					throw new IllegalArgumentException("Method " + method.method() + " has incorrect number of arguments");
+					throw new IllegalArgumentException(
+						"Method " + method.method() + " has incorrect number of arguments"
+					);
 				}
 
 				Map<String, TypeMirror> typeParams = new HashMap<>();
@@ -46,7 +48,9 @@ public final class TypeClassResolver {
 					var actualType = param.asType();
 
 					if(!unify(expectedType, actualType, typeParams)) {
-						throw new IllegalArgumentException("Method " + method.method() + " has incorrect argument type at index " + i);
+						throw new IllegalArgumentException(
+							"Method " + method.method() + " has incorrect argument type at index " + i
+						);
 					}
 				}
 
@@ -59,8 +63,6 @@ public final class TypeClassResolver {
 			}
 		};
 	}
-
-
 
 	private @Nullable TypeClassResult resolve(TypeMirror typeClassType, int depthLimit) {
 		if(depthLimit <= 0) {
@@ -77,7 +79,7 @@ public final class TypeClassResolver {
 
 			boolean hasCheckedLocal = false;
 			for(var typeArg : declaredType.getTypeArguments()) {
-				switch(typeArg.getKind()) {
+				switch (typeArg.getKind()) {
 					case DECLARED -> {
 						var declaredTypeArg = (DeclaredType)typeArg;
 						result = resolveInClass(declaredTypeArg.asElement(), typeClassType, depthLimit);
@@ -96,7 +98,8 @@ public final class TypeClassResolver {
 						}
 					}
 
-					default -> {}
+					default -> {
+					}
 				}
 			}
 		}
@@ -105,11 +108,12 @@ public final class TypeClassResolver {
 	}
 
 	private @Nullable TypeClassResult resolveInClass(Element cls, TypeMirror typeClassType, int depthLimit) {
-		candidateLoop: for(var elem : cls.getEnclosedElements()) {
-			switch(elem.getKind()) {
+		candidateLoop : for(var elem : cls.getEnclosedElements()) {
+			switch (elem.getKind()) {
 				case METHOD -> {
 					var method = (ExecutableElement)elem;
-					if(!method.getModifiers().contains(Modifier.STATIC) || !method.getModifiers().contains(Modifier.PUBLIC)) {
+					if(!method.getModifiers().contains(Modifier.STATIC)
+						|| !method.getModifiers().contains(Modifier.PUBLIC)) {
 						continue;
 					}
 
@@ -140,7 +144,8 @@ public final class TypeClassResolver {
 
 				case FIELD -> {
 					var field = (VariableElement)elem;
-					if(!field.getModifiers().contains(Modifier.STATIC) || !field.getModifiers().contains(Modifier.PUBLIC)) {
+					if(!field.getModifiers().contains(Modifier.STATIC)
+						|| !field.getModifiers().contains(Modifier.PUBLIC)) {
 						continue;
 					}
 
@@ -153,7 +158,8 @@ public final class TypeClassResolver {
 					}
 				}
 
-				default -> {}
+				default -> {
+				}
 			}
 		}
 
@@ -169,9 +175,8 @@ public final class TypeClassResolver {
 		return null;
 	}
 
-
 	private @Nullable TypeMirror substituteTypes(TypeMirror t, Map<String, TypeMirror> typeParams) {
-		return switch(t.getKind()) {
+		return switch (t.getKind()) {
 			case ARRAY -> {
 				var array = (ArrayType)t;
 				var componentType = substituteTypes(array.getComponentType(), typeParams);
@@ -230,7 +235,7 @@ public final class TypeClassResolver {
 			return true;
 		}
 
-		return switch(actualType.getKind()) {
+		return switch (actualType.getKind()) {
 			// Simple types
 			case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE, VOID, NULL, NONE ->
 				expectedType.getKind() == actualType.getKind();
@@ -241,14 +246,11 @@ public final class TypeClassResolver {
 			// Unsupported types
 			case WILDCARD, UNION, INTERSECTION -> false;
 
-
-			case ARRAY ->
-				expectedType.getKind() == TypeKind.ARRAY &&
-					unify(
-						((ArrayType)expectedType).getComponentType(),
-						((ArrayType)actualType).getComponentType(),
-						typeParameters
-					);
+			case ARRAY -> expectedType.getKind() == TypeKind.ARRAY && unify(
+				((ArrayType)expectedType).getComponentType(),
+				((ArrayType)actualType).getComponentType(),
+				typeParameters
+			);
 			case DECLARED -> {
 				if(expectedType.getKind() != TypeKind.DECLARED) {
 					yield false;
@@ -260,12 +262,16 @@ public final class TypeClassResolver {
 				var expectedTypeElement = (TypeElement)expectedTypeDeclared.asElement();
 				var actualTypeElement = (TypeElement)actualTypeDeclared.asElement();
 
-
-				if(!unify(expectedTypeDeclared.getEnclosingType(), actualTypeDeclared.getEnclosingType(), typeParameters)) {
+				if(!unify(
+					expectedTypeDeclared.getEnclosingType(),
+					actualTypeDeclared.getEnclosingType(),
+					typeParameters
+				)) {
 					yield false;
 				}
 
-				if(!expectedTypeElement.getQualifiedName().toString().equals(actualTypeElement.getQualifiedName().toString())) {
+				if(!expectedTypeElement.getQualifiedName().toString()
+					.equals(actualTypeElement.getQualifiedName().toString())) {
 					yield false;
 				}
 
@@ -307,10 +313,9 @@ public final class TypeClassResolver {
 			return false;
 		}
 
-		return switch(a.getKind()) {
+		return switch (a.getKind()) {
 			// Simple types
-			case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE, VOID, NULL, NONE ->
-				true;
+			case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE, VOID, NULL, NONE -> true;
 
 			// Not types
 			case ERROR, PACKAGE, MODULE, EXECUTABLE, OTHER -> false;
@@ -318,12 +323,7 @@ public final class TypeClassResolver {
 			// Unsupported types
 			case WILDCARD, UNION, INTERSECTION -> false;
 
-
-			case ARRAY ->
-				expectedTypeMatches(
-					((ArrayType)a).getComponentType(),
-					((ArrayType)b).getComponentType()
-				);
+			case ARRAY -> expectedTypeMatches(((ArrayType)a).getComponentType(), ((ArrayType)b).getComponentType());
 
 			case DECLARED -> {
 				var aDeclared = (DeclaredType)a;
@@ -362,11 +362,10 @@ public final class TypeClassResolver {
 				var aTypeVar = (TypeVariable)a;
 				var bTypeVar = (TypeVariable)b;
 
-				yield aTypeVar.asElement().getSimpleName().toString().equals(bTypeVar.asElement().getSimpleName().toString());
+				yield aTypeVar.asElement().getSimpleName().toString()
+					.equals(bTypeVar.asElement().getSimpleName().toString());
 			}
 		};
 	}
-
-
 
 }

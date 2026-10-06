@@ -10,12 +10,16 @@ import java.util.Set;
 
 /**
  * A codec for optional values.
- * @param <T> The type of the optional value.
+ * 
+ * @param <T>
+ *            The type of the optional value.
  */
 public class OptionalCodec<T> implements ESExprCodec<Optional<T>> {
 	/**
 	 * Create a codec for optional values.
-	 * @param itemCodec The underlying codec for the values.
+	 * 
+	 * @param itemCodec
+	 *            The underlying codec for the values.
 	 */
 	public OptionalCodec(ESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
@@ -25,7 +29,7 @@ public class OptionalCodec<T> implements ESExprCodec<Optional<T>> {
 
 	@Override
 	public ESExprTagSet tags() {
-		return switch(itemCodec.tags()) {
+		return switch (itemCodec.tags()) {
 			case ESExprTagSet.Tags(var elementTags) -> {
 				var tags = ImmutableSet.<ESExprTag>builder();
 				tags.add(ESExprTag.NULL);

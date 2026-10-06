@@ -6,15 +6,12 @@ import dev.argon.esexpr.*;
 
 @ESExprCodecGen
 public record RepeatedArguments(
-	@Vararg
-	List<String> args,
+	@Vararg List<String> args,
 
-	@Dict
-	KeywordMapping<String> kwargs
+	@Dict KeywordMapping<String> kwargs
 ) {
 	@TypeClassInstance
 	public static ESExprCodec<RepeatedArguments> codec() {
 		return RepeatedArguments_CodecImpl.INSTANCE;
 	}
 }
-

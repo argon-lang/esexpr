@@ -21,4 +21,3 @@ public record PrimitiveFields(
 		return PrimitiveFields_CodecImpl.INSTANCE;
 	}
 }
-

@@ -19,36 +19,34 @@ import javax.lang.model.type.TypeMirror;
 import static dev.argon.esexpr.generator.utils.NameUtils.getConstructorName;
 
 public final class EnumCodecGenerator extends GeneratorBase {
-	public EnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+	public EnumCodecGenerator(
+		PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem
+	) {
 		super(writer, env, metadataCache, elem);
 	}
-
 
 	private List<TypeElement> getCases() throws AbortException {
 		return getEnumCases(elem, env);
 	}
 
 	public static List<TypeElement> getEnumCases(TypeElement elem, ProcessingEnvironment env) throws AbortException {
-		var cases = elem.getEnclosedElements()
-			.stream()
-			.map(e -> e instanceof TypeElement te ? te : null)
-			.filter(te -> {
-				if(te == null) {
+		var cases = elem.getEnclosedElements().stream().map(e -> e instanceof TypeElement te ? te : null).filter(te -> {
+			if(te == null) {
+				return false;
+			}
+
+			return te.getInterfaces().stream().anyMatch((TypeMirror ifaceMirror) -> {
+				var iface = (DeclaredType)ifaceMirror;
+				if(iface.getTypeArguments().size() != elem.getTypeParameters().size()) {
 					return false;
 				}
 
-				return te.getInterfaces().stream().anyMatch((TypeMirror ifaceMirror) -> {
-					var iface = (DeclaredType)ifaceMirror;
-					if(iface.getTypeArguments().size() != elem.getTypeParameters().size()) {
-						return false;
-					}
+				var elemType = env.getTypeUtils()
+					.getDeclaredType(elem, iface.getTypeArguments().toArray(TypeMirror[]::new));
 
-					var elemType = env.getTypeUtils().getDeclaredType(elem, iface.getTypeArguments().toArray(TypeMirror[]::new));
-
-					return env.getTypeUtils().isSameType(iface, elemType);
-				});
-			})
-			.toList();
+				return env.getTypeUtils().isSameType(iface, elemType);
+			});
+		}).toList();
 
 		if(cases.isEmpty()) {
 			throw new AbortException("No cases found for enum " + elem.getQualifiedName(), elem);
@@ -184,11 +182,11 @@ public final class EnumCodecGenerator extends GeneratorBase {
 				indent();
 				println("var args = new java.util.ArrayDeque<>(args0);");
 				println("var kwargs = new java.util.HashMap<>(kwargs0);");
-	
+
 				writeDecodeFields(c, true);
-	
+
 				dedent();
-				println("}");	
+				println("}");
 			}
 		}
 

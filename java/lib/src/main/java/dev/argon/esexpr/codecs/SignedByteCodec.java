@@ -15,9 +15,8 @@ public class SignedByteCodec extends IntCodecBase<Byte> {
 	/**
 	 * A codec for signed byte values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.INT})
 	public static final ESExprCodec<Byte> INSTANCE = new SignedByteCodec();
 
 	@Override

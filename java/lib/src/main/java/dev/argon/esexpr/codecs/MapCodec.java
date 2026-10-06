@@ -7,16 +7,21 @@ import java.util.Map;
 
 /**
  * A codec for mutable maps.
- * @param <K> The key type.
- * @param <V> The value type.
+ * 
+ * @param <K>
+ *            The key type.
+ * @param <V>
+ *            The value type.
  */
 public class MapCodec<K, V> extends MapCodecBase<K, V, Map<K, V>> {
 
 	/**
 	 * Creates a codec for encoding and decoding mutable maps.
 	 *
-	 * @param kCodec The codec used for encoding and decoding the keys of the map.
-	 * @param vCodec The codec used for encoding and decoding the values of the map.
+	 * @param kCodec
+	 *            The codec used for encoding and decoding the keys of the map.
+	 * @param vCodec
+	 *            The codec used for encoding and decoding the values of the map.
 	 */
 	public MapCodec(ESExprCodec<K> kCodec, ESExprCodec<V> vCodec) {
 		super(kCodec, vCodec);

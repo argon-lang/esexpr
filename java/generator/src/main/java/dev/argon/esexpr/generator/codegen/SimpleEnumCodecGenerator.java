@@ -16,16 +16,15 @@ import javax.lang.model.element.VariableElement;
 import static dev.argon.esexpr.generator.utils.NameUtils.getConstructorName;
 
 public final class SimpleEnumCodecGenerator extends GeneratorBase {
-	public SimpleEnumCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+	public SimpleEnumCodecGenerator(
+		PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem
+	) {
 		super(writer, env, metadataCache, elem);
 	}
 
 	private List<VariableElement> getCases() {
-		return elem.getEnclosedElements()
-			.stream()
-			.filter(e -> e.getKind() == ElementKind.ENUM_CONSTANT)
-			.map(e -> (VariableElement)e)
-			.toList();
+		return elem.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.ENUM_CONSTANT)
+			.map(e -> (VariableElement)e).toList();
 	}
 
 	@Override
@@ -93,7 +92,6 @@ public final class SimpleEnumCodecGenerator extends GeneratorBase {
 		println("}");
 		println("else {");
 		indent();
-
 
 		println("throw new dev.argon.esexpr.DecodeException(\"Simple enum must be a string\", path);");
 

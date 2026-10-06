@@ -1,8 +1,8 @@
 /**
- * Annotation processor that generates ESExprCodecs for types annotated with ESExprCodeGen.
+ * Annotation processor that generates ESExprCodecs for types annotated with
+ * ESExprCodeGen.
  */
-@SuppressWarnings("module")
-module dev.argon.esexpr.generator {
+@SuppressWarnings("module") module dev.argon.esexpr.generator {
 	requires transitive java.compiler;
 	requires org.apache.commons.text;
 	requires transitive dev.argon.esexpr;

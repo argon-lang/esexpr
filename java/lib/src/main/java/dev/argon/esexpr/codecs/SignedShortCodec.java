@@ -15,9 +15,8 @@ public class SignedShortCodec extends IntCodecBase<Short> {
 	/**
 	 * A codec for signed short values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.INT })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.INT})
 	public static final ESExprCodec<Short> INSTANCE = new SignedShortCodec();
 
 	@Override

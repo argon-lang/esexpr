@@ -12,11 +12,9 @@ import java.util.stream.Collectors;
 
 public class NameUtils {
 
-
 	private static final String NAME_SPLIT_PATTERN = "(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])_(?=[0-9])";
 	private static String nameToKebabCase(String name) {
-		return Arrays.stream(name.split(NAME_SPLIT_PATTERN))
-			.map(s -> s.toLowerCase(Locale.ROOT))
+		return Arrays.stream(name.split(NAME_SPLIT_PATTERN)).map(s -> s.toLowerCase(Locale.ROOT))
 			.collect(Collectors.joining("-"));
 	}
 
@@ -27,11 +25,8 @@ public class NameUtils {
 	}
 
 	private static String enumConstNameToKebabCase(String name) {
-		return Arrays.stream(name.split("_"))
-			.map(s -> s.toLowerCase(Locale.ROOT))
-			.collect(Collectors.joining("-"));
+		return Arrays.stream(name.split("_")).map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.joining("-"));
 	}
-
 
 	public static String getConstructorName(TypeElement elem) {
 		var ctor = elem.getAnnotation(Constructor.class);

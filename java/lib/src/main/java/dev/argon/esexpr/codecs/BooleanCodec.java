@@ -11,9 +11,8 @@ public class BooleanCodec implements ESExprCodec<Boolean> {
 	/**
 	 * A codec for boolean values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.BOOL })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.BOOL})
 	public static final ESExprCodec<Boolean> INSTANCE = new BooleanCodec();
 
 	@Override

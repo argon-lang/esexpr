@@ -14,10 +14,9 @@ public class ByteArrayCodec implements ESExprCodec<byte[]> {
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY8 })
-	public static final ESExprCodec<byte[]> INSTANCE = new ByteArrayCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY8})
+	public static final ESExprCodec<byte[]> INSTANCE = new ByteArrayCodec();
 
 	@Override
 	public ESExprTagSet tags() {

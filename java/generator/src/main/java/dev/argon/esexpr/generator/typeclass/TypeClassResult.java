@@ -1,6 +1,5 @@
 package dev.argon.esexpr.generator.typeclass;
 
-
 import com.google.common.collect.ImmutableList;
 
 import javax.lang.model.element.ExecutableElement;

@@ -22,8 +22,11 @@ import java.util.stream.Stream;
 public class ESExprBinaryReader {
 	/**
 	 * Create a reader for the ESExpr binary format.
-	 * @param symbolTable The symbol table used when parsing.
-	 * @param is The stream.
+	 * 
+	 * @param symbolTable
+	 *            The symbol table used when parsing.
+	 * @param is
+	 *            The stream.
 	 */
 	public ESExprBinaryReader(List<String> symbolTable, InputStream is) {
 		this.symbolTable = new ArrayList<>(symbolTable);
@@ -32,7 +35,9 @@ public class ESExprBinaryReader {
 
 	/**
 	 * Create a reader for the ESExpr binary format.
-	 * @param is The stream.
+	 * 
+	 * @param is
+	 *            The stream.
 	 */
 	public ESExprBinaryReader(InputStream is) {
 		this.symbolTable = new ArrayList<>();
@@ -45,16 +50,24 @@ public class ESExprBinaryReader {
 
 	/**
 	 * Attempts to read an ESExpr from the stream.
+	 * 
 	 * @return The ESExpr, or null if at the end of the stream.
-	 * @throws IOException when an error occurs in the underlying stream.
-	 * @throws SyntaxException when an expression cannot be read.
+	 * @throws IOException
+	 *             when an error occurs in the underlying stream.
+	 * @throws SyntaxException
+	 *             when an expression cannot be read.
 	 */
 	public @Nullable ESExpr tryRead() throws IOException, SyntaxException {
 		for(;;) {
-			switch(readExprPlus()) {
-				case ExprPlus.Expr(var expr) -> { return expr; }
-				case ExprPlus.EndOfFile() -> { return null; }
-				case ExprPlus.AppendedToStringTable() -> {}
+			switch (readExprPlus()) {
+				case ExprPlus.Expr(var expr) -> {
+					return expr;
+				}
+				case ExprPlus.EndOfFile() -> {
+					return null;
+				}
+				case ExprPlus.AppendedToStringTable() -> {
+				}
 				default -> throw new SyntaxException();
 			};
 		}
@@ -62,10 +75,14 @@ public class ESExprBinaryReader {
 
 	/**
 	 * Read an ESExpr from the stream.
+	 * 
 	 * @return The ESExpr
-	 * @throws EOFException if at the end of the stream.
-	 * @throws IOException when an error occurs in the underlying stream.
-	 * @throws SyntaxException when an expression cannot be read.
+	 * @throws EOFException
+	 *             if at the end of the stream.
+	 * @throws IOException
+	 *             when an error occurs in the underlying stream.
+	 * @throws SyntaxException
+	 *             when an expression cannot be read.
 	 */
 	public ESExpr read() throws IOException, SyntaxException {
 		var expr = tryRead();
@@ -77,22 +94,19 @@ public class ESExprBinaryReader {
 
 	/**
 	 * Reads all ESExpr values from the stream.
+	 * 
 	 * @return A stream of ESExpr values.
 	 */
 	public Stream<ESExpr> readAll() {
-		return Stream
-			.generate(() -> {
-				try {
-					return tryRead();
-				}
-				catch(IOException | SyntaxException ex) {
-					throw new RuntimeException(ex);
-				}
-			})
-			.takeWhile(Objects::nonNull);
+		return Stream.generate(() -> {
+			try {
+				return tryRead();
+			}
+			catch(IOException | SyntaxException ex) {
+				throw new RuntimeException(ex);
+			}
+		}).takeWhile(Objects::nonNull);
 	}
-
-
 
 	private int next() throws IOException {
 		if(nextByte >= 0) {
@@ -110,7 +124,7 @@ public class ESExprBinaryReader {
 			return null;
 		}
 
-		BinToken.WithIntegerType type = switch((b & 0xE0)) {
+		BinToken.WithIntegerType type = switch ((b & 0xE0)) {
 			case 0x00 -> BinToken.WithIntegerType.CONSTRUCTOR;
 			case 0x20 -> BinToken.WithIntegerType.INT;
 			case 0x40 -> BinToken.WithIntegerType.NEG_INT;
@@ -122,7 +136,7 @@ public class ESExprBinaryReader {
 		};
 
 		if(type == null) {
-			return switch(b) {
+			return switch (b) {
 				case 0xE0 -> BinToken.Fixed.CONSTRUCTOR_END;
 				case 0xE1 -> BinToken.Fixed.TRUE;
 				case 0xE2 -> BinToken.Fixed.FALSE;
@@ -156,7 +170,7 @@ public class ESExprBinaryReader {
 	}
 
 	private BigInteger readInt(BigInteger acc, int bits) throws IOException {
-		while(true) {
+		while (true) {
 			int b = next();
 			if(b < 0) {
 				throw new EOFException();
@@ -180,10 +194,10 @@ public class ESExprBinaryReader {
 	}
 
 	private ExprPlus readExprPlus() throws SyntaxException, IOException {
-		return switch(nextToken()) {
+		return switch (nextToken()) {
 			case null -> new ExprPlus.EndOfFile();
-			
-			case BinToken.WithInteger(var type, var value) -> switch(type) {
+
+			case BinToken.WithInteger(var type, var value) -> switch (type) {
 				case CONSTRUCTOR -> {
 					var sym = symbolTable.get(value.intValueExact());
 					yield new ExprPlus.Expr(readConstructor(sym));
@@ -223,7 +237,7 @@ public class ESExprBinaryReader {
 				}
 			};
 
-			case BinToken.Fixed fixed -> switch(fixed) {
+			case BinToken.Fixed fixed -> switch (fixed) {
 				case CONSTRUCTOR_END -> new ExprPlus.ConstructorEnd();
 				case TRUE -> new ExprPlus.Expr(new ESExpr.Bool(true));
 				case FALSE -> new ExprPlus.Expr(new ESExpr.Bool(false));
@@ -298,16 +312,16 @@ public class ESExprBinaryReader {
 
 					yield new ExprPlus.AppendedToStringTable();
 				}
-				
+
 				case ARRAY16 -> {
 					var n = readInt(BigInteger.ZERO, 0);
 					int len = n.intValueExact();
 					short[] b = new short[len];
 					for(int i = 0; i < len; ++i) {
 						short value = 0;
-						for (int j = 0; j < 2; ++j) {
+						for(int j = 0; j < 2; ++j) {
 							int byteVal = next();
-							if (byteVal < 0) {
+							if(byteVal < 0) {
 								throw new EOFException();
 							}
 							value |= (short)((byteVal & 0xFF) << (j * 8));
@@ -320,11 +334,11 @@ public class ESExprBinaryReader {
 					var n = readInt(BigInteger.ZERO, 0);
 					int len = n.intValueExact();
 					int[] b = new int[len];
-					for (int i = 0; i < len; ++i) {
+					for(int i = 0; i < len; ++i) {
 						int value = 0;
-						for (int j = 0; j < 4; ++j) {
+						for(int j = 0; j < 4; ++j) {
 							int byteVal = next();
-							if (byteVal < 0) {
+							if(byteVal < 0) {
 								throw new EOFException();
 							}
 							value |= (byteVal & 0xFF) << (j * 8);
@@ -337,14 +351,14 @@ public class ESExprBinaryReader {
 					var n = readInt(BigInteger.ZERO, 0);
 					int len = n.intValueExact();
 					long[] b = new long[len];
-					for (int i = 0; i < len; ++i) {
+					for(int i = 0; i < len; ++i) {
 						long value = 0;
-						for (int j = 0; j < 8; ++j) {
+						for(int j = 0; j < 8; ++j) {
 							int byteVal = next();
-							if (byteVal < 0) {
+							if(byteVal < 0) {
 								throw new EOFException();
 							}
-							value |= (long) (byteVal & 0xFF) << (j * 8);
+							value |= (long)(byteVal & 0xFF) << (j * 8);
 						}
 						b[i] = value;
 					}
@@ -354,14 +368,14 @@ public class ESExprBinaryReader {
 					var n = readInt(BigInteger.ZERO, 0);
 					int len = n.multiply(BigInteger.TWO).intValueExact();
 					long[] b = new long[len];
-					for (int i = 0; i < len; ++i) {
+					for(int i = 0; i < len; ++i) {
 						long value = 0;
-						for (int j = 0; j < 8; ++j) {
+						for(int j = 0; j < 8; ++j) {
 							int byteVal = next();
-							if (byteVal < 0) {
+							if(byteVal < 0) {
 								throw new EOFException();
 							}
-							value |= (long) (byteVal & 0xFF) << (j * 8);
+							value |= (long)(byteVal & 0xFF) << (j * 8);
 						}
 						b[i] = value;
 					}
@@ -375,9 +389,8 @@ public class ESExprBinaryReader {
 		var args = ImmutableList.<ESExpr>builder();
 		var kwargs = ImmutableMap.<String, ESExpr>builder();
 
-		body:
-		while(true) {
-			switch(readExprPlus()) {
+		body : while (true) {
+			switch (readExprPlus()) {
 				case ExprPlus.Expr(var expr) -> args.add(expr);
 				case ExprPlus.ConstructorEnd() -> {
 					break body;
@@ -386,7 +399,8 @@ public class ESExprBinaryReader {
 					var expr = read();
 					kwargs.put(kw, expr);
 				}
-				case ExprPlus.AppendedToStringTable() -> {}
+				case ExprPlus.AppendedToStringTable() -> {
+				}
 				case ExprPlus.EndOfFile() -> throw new EOFException();
 			}
 		}

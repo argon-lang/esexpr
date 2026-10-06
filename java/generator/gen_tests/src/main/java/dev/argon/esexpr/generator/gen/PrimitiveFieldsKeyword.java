@@ -21,4 +21,3 @@ public record PrimitiveFieldsKeyword(
 		return PrimitiveFieldsKeyword_CodecImpl.INSTANCE;
 	}
 }
-

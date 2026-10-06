@@ -11,14 +11,19 @@ import java.util.function.Consumer;
 
 /**
  * A base class list codecs.
- * @param <T> The type of the list elements.
- * @param <L> The type of the list.
+ * 
+ * @param <T>
+ *            The type of the list elements.
+ * @param <L>
+ *            The type of the list.
  */
 public abstract class ListCodecBase<T, L extends List<T>> implements ESExprCodec<L> {
 
 	/**
 	 * Create a codec for list values.
-	 * @param itemCodec The underlying codec for the values.
+	 * 
+	 * @param itemCodec
+	 *            The underlying codec for the values.
 	 */
 	public ListCodecBase(ESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
@@ -49,9 +54,7 @@ public abstract class ListCodecBase<T, L extends List<T>> implements ESExprCodec
 	@Override
 	public ESExpr encode(L value) {
 		return new ESExpr.Constructor(
-			"list",
-			value.stream().map(itemCodec::encode).collect(ImmutableList.toImmutableList()),
-			ImmutableMap.of()
+			"list", value.stream().map(itemCodec::encode).collect(ImmutableList.toImmutableList()), ImmutableMap.of()
 		);
 	}
 
@@ -59,17 +62,21 @@ public abstract class ListCodecBase<T, L extends List<T>> implements ESExprCodec
 	public abstract L decode(ESExpr expr, FailurePath path) throws DecodeException;
 
 	/**
-	 * Decodes the given ESExpr representing a list into individual elements and passes them to the
-	 * provided consumer.
-	 * The method expects the expression to represent a "list" constructor with no keyword arguments.
-	 * If the expression does not meet this requirement, a {@link DecodeException} is thrown.
+	 * Decodes the given ESExpr representing a list into individual elements and
+	 * passes them to the provided consumer. The method expects the expression to
+	 * represent a "list" constructor with no keyword arguments. If the expression
+	 * does not meet this requirement, a {@link DecodeException} is thrown.
 	 *
-	 * @param expr The ESExpr to be decoded.
-	 * @param path The current failure path for error reporting.
-	 * @param add A consumer that accepts each decoded list element.
-	 * @throws DecodeException If the expression is not a valid "list" constructor,
-	 *                         it contains keyword arguments, or
-	 *                         decoding fails for any of the list elements.
+	 * @param expr
+	 *            The ESExpr to be decoded.
+	 * @param path
+	 *            The current failure path for error reporting.
+	 * @param add
+	 *            A consumer that accepts each decoded list element.
+	 * @throws DecodeException
+	 *             If the expression is not a valid "list" constructor, it contains
+	 *             keyword arguments, or decoding fails for any of the list
+	 *             elements.
 	 */
 	protected final void decodeInto(ESExpr expr, FailurePath path, Consumer<T> add) throws DecodeException {
 		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals("list")) {

@@ -14,6 +14,7 @@ public class UnsignedShort {
 
 	/**
 	 * Returns the value as a short.
+	 * 
 	 * @return The value as a short.
 	 */
 	public short shortValue() {
@@ -22,15 +23,18 @@ public class UnsignedShort {
 
 	/**
 	 * Returns the value as an int.
+	 * 
 	 * @return The value as an int.
 	 */
 	public int intValue() {
 		return Short.toUnsignedInt(value);
 	}
-	
+
 	/**
 	 * Returns an {@link UnsignedShort} whose value is equal to the specified short.
-	 * @param value The value to wrap.
+	 * 
+	 * @param value
+	 *            The value to wrap.
 	 * @return An {@link UnsignedShort} instance.
 	 */
 	public static UnsignedShort fromShortBits(short value) {
@@ -58,7 +62,7 @@ public class UnsignedShort {
 	public boolean equals(Object obj) {
 		return obj instanceof UnsignedShort us && shortValue() == us.shortValue();
 	}
-	
+
 	@Override
 	public String toString() {
 		return Integer.toString(Short.toUnsignedInt(value));

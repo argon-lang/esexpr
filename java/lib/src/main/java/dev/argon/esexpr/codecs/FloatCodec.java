@@ -13,9 +13,8 @@ public class FloatCodec implements ESExprCodec<Float> {
 	/**
 	 * A codec for float values.
 	 */
-	
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.FLOAT32 })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.FLOAT32})
 	public static final ESExprCodec<Float> INSTANCE = new FloatCodec();
 
 	@Override

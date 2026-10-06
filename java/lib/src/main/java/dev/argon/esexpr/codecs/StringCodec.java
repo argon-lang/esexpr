@@ -13,8 +13,8 @@ public class StringCodec implements ESExprCodec<String> {
 	/**
 	 * A codec for string values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.STR })
+
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.STR})
 	public static final ESExprCodec<String> INSTANCE = new StringCodec();
 
 	@Override

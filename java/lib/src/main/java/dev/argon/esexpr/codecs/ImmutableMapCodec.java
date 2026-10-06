@@ -8,14 +8,20 @@ import java.util.Map;
 
 /**
  * A codec for immutable maps.
- * @param <K> The key type.
- * @param <V> The value type.
+ * 
+ * @param <K>
+ *            The key type.
+ * @param <V>
+ *            The value type.
  */
 public class ImmutableMapCodec<K, V> extends MapCodecBase<K, V, ImmutableMap<K, V>> {
 	/**
 	 * Create a codec for immutable maps.
-	 * @param kCodec The key codec.
-	 * @param vCodec The value codec.
+	 * 
+	 * @param kCodec
+	 *            The key codec.
+	 * @param vCodec
+	 *            The value codec.
 	 */
 	public ImmutableMapCodec(ESExprCodec<K> kCodec, ESExprCodec<V> vCodec) {
 		super(kCodec, vCodec);

@@ -10,13 +10,17 @@ import java.util.Set;
 
 /**
  * A codec for list values.
- * @param <T> The type of the list elements.
+ * 
+ * @param <T>
+ *            The type of the list elements.
  */
 public class ListCodec<T> extends ListCodecBase<T, List<T>> {
 
 	/**
 	 * Create a codec for list values.
-	 * @param itemCodec The underlying codec for the values.
+	 * 
+	 * @param itemCodec
+	 *            The underlying codec for the values.
 	 */
 	public ListCodec(ESExprCodec<T> itemCodec) {
 		super(itemCodec);

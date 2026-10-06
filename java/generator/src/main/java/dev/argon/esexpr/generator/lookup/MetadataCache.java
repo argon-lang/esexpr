@@ -11,7 +11,8 @@ public class MetadataCache {
 
 	private final Map<TypeMirror, TypeClassResult> resolvedTypeClasses = new HashMap<>();
 
-	@Nullable TypeClassResult resolveTypeClass(TypeClassResolver resolver, TypeMirror type) {
+	@Nullable
+	TypeClassResult resolveTypeClass(TypeClassResolver resolver, TypeMirror type) {
 		if(resolvedTypeClasses.containsKey(type)) {
 			return resolvedTypeClasses.get(type);
 		}
@@ -26,11 +27,10 @@ public class MetadataCache {
 	}
 
 	private static boolean hasLocal(TypeClassResult result) {
-		return switch(result) {
+		return switch (result) {
 			case TypeClassResult.Field _ -> false;
 			case TypeClassResult.Local _ -> true;
-			case TypeClassResult.Method method ->
-				method.arguments().stream().anyMatch(MetadataCache::hasLocal);
+			case TypeClassResult.Method method -> method.arguments().stream().anyMatch(MetadataCache::hasLocal);
 		};
 	}
 

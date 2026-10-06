@@ -19,8 +19,11 @@ public class ESExprBinaryWriter {
 
 	/**
 	 * Creates an encoder.
-	 * @param symbolTable The initial symbol table used when writing.
-	 * @param os The stream.
+	 * 
+	 * @param symbolTable
+	 *            The initial symbol table used when writing.
+	 * @param os
+	 *            The stream.
 	 */
 	public ESExprBinaryWriter(List<? extends String> symbolTable, OutputStream os) {
 		this.symbolTable = new ArrayList<>(symbolTable);
@@ -30,7 +33,9 @@ public class ESExprBinaryWriter {
 
 	/**
 	 * Creates an encoder.
-	 * @param os The stream.
+	 * 
+	 * @param os
+	 *            The stream.
 	 */
 	public ESExprBinaryWriter(OutputStream os) {
 		symbolTable = new ArrayList<>();
@@ -44,8 +49,11 @@ public class ESExprBinaryWriter {
 
 	/**
 	 * Write an ESExpr to the stream.
-	 * @param expr The ESExpr to write.
-	 * @throws IOException when an error occurs in the underlying stream.
+	 * 
+	 * @param expr
+	 *            The ESExpr to write.
+	 * @throws IOException
+	 *             when an error occurs in the underlying stream.
 	 */
 	public void write(ESExpr expr) throws IOException {
 		int oldSize = symbolTable.size();
@@ -68,10 +76,10 @@ public class ESExprBinaryWriter {
 	}
 
 	private void writeExprRaw(ESExpr expr) throws IOException {
-		switch(expr) {
+		switch (expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {
 				Objects.requireNonNull(constructor);
-				switch(constructor) {
+				switch (constructor) {
 					case BinToken.StringTableName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE);
 					case BinToken.ListName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_LIST);
 					case BinToken.MapName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_MAP);
@@ -103,7 +111,9 @@ public class ESExprBinaryWriter {
 
 			case ESExpr.Int(var i) -> {
 				if(i.signum() < 0) {
-					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.NEG_INT, i.negate().subtract(BigInteger.ONE)));
+					writeToken(
+						new BinToken.WithInteger(BinToken.WithIntegerType.NEG_INT, i.negate().subtract(BigInteger.ONE))
+					);
 				}
 				else {
 					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.INT, i));
@@ -178,14 +188,14 @@ public class ESExprBinaryWriter {
 				writeInt(BigInteger.valueOf(b.size()));
 				for(int i = 0; i < b.size(); ++i) {
 					long value = b.get(i);
-					os.write((int) value & 0xFF);
-					os.write((int) (value >> 8) & 0xFF);
-					os.write((int) (value >> 16) & 0xFF);
-					os.write((int) (value >> 24) & 0xFF);
-					os.write((int) (value >> 32) & 0xFF);
-					os.write((int) (value >> 40) & 0xFF);
-					os.write((int) (value >> 48) & 0xFF);
-					os.write((int) (value >> 56) & 0xFF);
+					os.write((int)value & 0xFF);
+					os.write((int)(value >> 8) & 0xFF);
+					os.write((int)(value >> 16) & 0xFF);
+					os.write((int)(value >> 24) & 0xFF);
+					os.write((int)(value >> 32) & 0xFF);
+					os.write((int)(value >> 40) & 0xFF);
+					os.write((int)(value >> 48) & 0xFF);
+					os.write((int)(value >> 56) & 0xFF);
 				}
 			}
 
@@ -197,14 +207,14 @@ public class ESExprBinaryWriter {
 				writeInt(BigInteger.valueOf(b.size() / 2));
 				for(int i = 0; i < b.size(); ++i) {
 					long value = b.get(i);
-					os.write((int) value & 0xFF);
-					os.write((int) (value >> 8) & 0xFF);
-					os.write((int) (value >> 16) & 0xFF);
-					os.write((int) (value >> 24) & 0xFF);
-					os.write((int) (value >> 32) & 0xFF);
-					os.write((int) (value >> 40) & 0xFF);
-					os.write((int) (value >> 48) & 0xFF);
-					os.write((int) (value >> 56) & 0xFF);
+					os.write((int)value & 0xFF);
+					os.write((int)(value >> 8) & 0xFF);
+					os.write((int)(value >> 16) & 0xFF);
+					os.write((int)(value >> 24) & 0xFF);
+					os.write((int)(value >> 32) & 0xFF);
+					os.write((int)(value >> 40) & 0xFF);
+					os.write((int)(value >> 48) & 0xFF);
+					os.write((int)(value >> 56) & 0xFF);
 				}
 			}
 
@@ -227,9 +237,9 @@ public class ESExprBinaryWriter {
 	}
 
 	private void writeToken(BinToken token) throws IOException {
-		switch(token) {
+		switch (token) {
 			case BinToken.WithInteger(var type, var value) -> {
-				int b = switch(type) {
+				int b = switch (type) {
 					case CONSTRUCTOR -> 0x00;
 					case INT -> 0x20;
 					case NEG_INT -> 0x40;
@@ -252,7 +262,7 @@ public class ESExprBinaryWriter {
 				}
 			}
 			case BinToken.Fixed fixed -> {
-				int b = switch(fixed) {
+				int b = switch (fixed) {
 					case CONSTRUCTOR_END -> 0xE0;
 					case TRUE -> 0xE1;
 					case FALSE -> 0xE2;
@@ -297,9 +307,8 @@ public class ESExprBinaryWriter {
 				b |= 0x80;
 			}
 			os.write(b);
-		} while(value.signum() > 0);
+		} while (value.signum() > 0);
 	}
-
 
 	private void addSymbols(ESExpr expr) {
 		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {

@@ -14,8 +14,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Annotation processor for ESExprCodecGen.
- * Generates ESExprCodecs.
+ * Annotation processor for ESExprCodecGen. Generates ESExprCodecs.
  */
 @SupportedAnnotationTypes({"dev.argon.esexpr.ESExprCodecGen", "dev.argon.esexpr.HashEqGen"})
 public class ESExprGeneratorProcessor extends AbstractProcessor {
@@ -23,11 +22,9 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 	/**
 	 * Create the generator.
 	 */
-	public ESExprGeneratorProcessor() {
-	}
+	public ESExprGeneratorProcessor() {}
 
 	private MetadataCache metadataCache;
-
 
 	@Override
 	public SourceVersion getSupportedSourceVersion() {
@@ -35,27 +32,28 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 	}
 
 	@Override
-    public synchronized void init(ProcessingEnvironment processingEnv) {
+	public synchronized void init(ProcessingEnvironment processingEnv) {
 		super.init(processingEnv);
 		this.metadataCache = new MetadataCache();
-    }
+	}
 
-    @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        var messager = processingEnv.getMessager();
+	@Override
+	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+		var messager = processingEnv.getMessager();
 
-        for(TypeElement annotation : annotations) {
-            if(!annotation.getQualifiedName().toString().equals("dev.argon.esexpr.ESExprCodecGen")) {
-                continue;
-            }
+		for(TypeElement annotation : annotations) {
+			if(!annotation.getQualifiedName().toString().equals("dev.argon.esexpr.ESExprCodecGen")) {
+				continue;
+			}
 
-            Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
-            
-            for(Element elem : annotatedElements) {
+			Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
+
+			for(Element elem : annotatedElements) {
 				var typeElem = (TypeElement)elem;
 
 				try {
-					Function<PrintWriter, GeneratorBase> generatorFactory = GeneratorBase.forElement(processingEnv, metadataCache, typeElem);
+					Function<PrintWriter, GeneratorBase> generatorFactory = GeneratorBase
+						.forElement(processingEnv, metadataCache, typeElem);
 
 					var sw = new StringWriter();
 					try(var pw = new PrintWriter(sw)) {
@@ -67,7 +65,7 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 
 					try(var w = processingEnv.getFiler().createSourceFile(codecClassName).openWriter()) {
 						w.write(sw.toString());
-					}	
+					}
 				}
 				catch(IOException ex) {
 					throw new RuntimeException(ex);
@@ -75,10 +73,10 @@ public class ESExprGeneratorProcessor extends AbstractProcessor {
 				catch(AbortException ex) {
 					messager.printError(ex.getMessage(), ex.element == null ? elem : ex.element);
 				}
-            }
-        }
-    
-        return false;
-    }
+			}
+		}
+
+		return false;
+	}
 
 }

@@ -6,6 +6,5 @@ module dev.argon.esexpr.generator.gen.tests {
 	requires dev.argon.esexpr.generator.gen;
 	requires org.junit.jupiter.api;
 
-
 	exports dev.argon.esexpr.generator.gen.tests;
 }

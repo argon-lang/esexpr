@@ -3,6 +3,5 @@ module dev.argon.esexpr.generator.tests {
 	requires org.junit.jupiter.api;
 	requires static org.jspecify;
 
-
 	exports dev.argon.esexpr.generator.typeclass.tests;
 }

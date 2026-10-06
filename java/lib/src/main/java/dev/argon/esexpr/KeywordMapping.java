@@ -1,6 +1,5 @@
 package dev.argon.esexpr;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -11,18 +10,24 @@ import java.util.Set;
 
 /**
  * A KeywordMapping is a Map with String keys.
- * @param map The underlying map.
- * @param <T> The element type.
+ * 
+ * @param map
+ *            The underlying map.
+ * @param <T>
+ *            The element type.
  */
 public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 	/**
 	 * Get a codec for the keyword mapping.
-	 * @param tCodec The element codec.
+	 * 
+	 * @param tCodec
+	 *            The element codec.
 	 * @return The codec.
-	 * @param <T> The element type.
+	 * @param <T>
+	 *            The element type.
 	 */
 	@TypeClassInstance
-	@ESExprCodecTags(constructors = { "dict" })
+	@ESExprCodecTags(constructors = {"dict"})
 	public static <T> ESExprCodec<KeywordMapping<T>> codec(ESExprCodec<T> tCodec) {
 		return new ESExprCodec<>() {
 			private static final String DICT_CONSTRUCTOR = "dict";
@@ -56,16 +61,13 @@ public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 			public ESExpr encode(KeywordMapping<T> value) {
 				var builder = ImmutableMap.<String, ESExpr>builder();
 				dictCodec(tCodec).encodeDict(value, builder);
-				return new ESExpr.Constructor(
-					DICT_CONSTRUCTOR,
-					ImmutableList.of(),
-					builder.build()
-				);
+				return new ESExpr.Constructor(DICT_CONSTRUCTOR, ImmutableList.of(), builder.build());
 			}
 
 			@Override
 			public KeywordMapping<T> decode(ESExpr expr, FailurePath path) throws DecodeException {
-				if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs) && name.equals(DICT_CONSTRUCTOR)) {
+				if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)
+					&& name.equals(DICT_CONSTRUCTOR)) {
 					if(!args.isEmpty()) {
 						throw new DecodeException("Invalid positional arguments for dict", path.withConstructor(name));
 					}
@@ -81,9 +83,12 @@ public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 
 	/**
 	 * Creates a DictCodec for KeywordMapping values.
-	 * @param tCodec A value codec for the element type.
+	 * 
+	 * @param tCodec
+	 *            A value codec for the element type.
 	 * @return The DictCodec.
-	 * @param <T> The element type.
+	 * @param <T>
+	 *            The element type.
 	 */
 	@TypeClassInstance
 	public static <T> DictCodec<KeywordMapping<T>, T> dictCodec(ESExprCodec<T> tCodec) {
@@ -116,7 +121,8 @@ public record KeywordMapping<T>(ImmutableMap<String, T> map) {
 			}
 
 			@Override
-			public KeywordMapping<T> decodeDict(Map<String, ESExpr> exprs, DictCodec.KeywordPathBuilder pathBuilder) throws DecodeException {
+			public KeywordMapping<T> decodeDict(Map<String, ESExpr> exprs, DictCodec.KeywordPathBuilder pathBuilder)
+				throws DecodeException {
 				var builder = ImmutableMap.<String, T>builder();
 				for(var entry : exprs.entrySet()) {
 					var value = tCodec.decode(entry.getValue(), pathBuilder.pathAt(entry.getKey()));

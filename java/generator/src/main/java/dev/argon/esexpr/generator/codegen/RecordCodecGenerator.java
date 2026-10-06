@@ -11,7 +11,9 @@ import javax.lang.model.element.TypeElement;
 import static dev.argon.esexpr.generator.utils.NameUtils.getConstructorName;
 
 public final class RecordCodecGenerator extends GeneratorBase {
-	public RecordCodecGenerator(PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem) {
+	public RecordCodecGenerator(
+		PrintWriter writer, ProcessingEnvironment env, MetadataCache metadataCache, TypeElement elem
+	) {
 		super(writer, env, metadataCache, elem);
 	}
 
@@ -32,7 +34,9 @@ public final class RecordCodecGenerator extends GeneratorBase {
 
 	@Override
 	protected void writeDecodeImpl() throws IOException, AbortException {
-		print("if(expr instanceof dev.argon.esexpr.ESExpr.Constructor(var name, var args0, var kwargs0) && name.equals(");
+		print(
+			"if(expr instanceof dev.argon.esexpr.ESExpr.Constructor(var name, var args0, var kwargs0) && name.equals("
+		);
 		printStringLiteral(getConstructorName(elem));
 		println(")) {");
 		indent();

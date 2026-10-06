@@ -8,12 +8,7 @@ import dev.argon.esexpr.TypeClassInstance;
 
 @ESExprCodecGen
 @Flags
-public record TwoFlags(
-	@FlagMask(0b01)
-	boolean a,
-	@FlagMask(0b10)
-	boolean b
-) {
+public record TwoFlags(@FlagMask(0b01) boolean a, @FlagMask(0b10) boolean b) {
 	@TypeClassInstance
 	public static ESExprCodec<TwoFlags> codec() {
 		return TwoFlags_CodecImpl.INSTANCE;

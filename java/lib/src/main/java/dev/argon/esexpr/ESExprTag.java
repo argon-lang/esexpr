@@ -1,17 +1,16 @@
 package dev.argon.esexpr;
 
-
 /**
  * A tag that indicates the type of ESExpr.
  */
 public sealed interface ESExprTag {
 	/**
 	 * A tag for a constructor value.
-	 * @param constructor The name of the constructor.
+	 * 
+	 * @param constructor
+	 *            The name of the constructor.
 	 */
-    public static record Constructor(
-		String constructor) implements ESExprTag {}
-
+	public static record Constructor(String constructor) implements ESExprTag {}
 
 	/**
 	 * A tag for scalar (primitive) values.
@@ -115,6 +114,5 @@ public sealed interface ESExprTag {
 	 * A tag for null values.
 	 */
 	public static final ESExprTag NULL = Scalar.NULL;
-	
 
 }

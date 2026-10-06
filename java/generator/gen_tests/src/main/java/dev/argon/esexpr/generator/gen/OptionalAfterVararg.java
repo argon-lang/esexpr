@@ -11,11 +11,9 @@ import java.util.Optional;
 
 @ESExprCodecGen
 public record OptionalAfterVararg(
-	@Vararg
-	List<Float> a,
+	@Vararg List<Float> a,
 
-	@OptionalValue
-	Optional<Integer> b
+	@OptionalValue Optional<Integer> b
 ) {
 	@TypeClassInstance
 	public static ESExprCodec<OptionalAfterVararg> codec() {

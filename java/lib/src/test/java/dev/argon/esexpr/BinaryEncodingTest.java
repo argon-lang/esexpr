@@ -28,8 +28,8 @@ class BinaryEncodingTest {
 	@ParameterizedTest
 	@MethodSource("fileProvider")
 	public void binaryEncoding(Path jsonPath) throws Exception {
-		var esxbPath = jsonPath.resolveSibling(FilenameUtils.removeExtension(jsonPath.getFileName().toString()) + ".esxb");
-
+		var esxbPath = jsonPath
+			.resolveSibling(FilenameUtils.removeExtension(jsonPath.getFileName().toString()) + ".esxb");
 
 		var jsonValue = parseJson(Files.readString(jsonPath));
 		var esxbValue = parseEsxb(Files.readAllBytes(esxbPath));
@@ -57,16 +57,14 @@ class BinaryEncodingTest {
 			res = List.of(mapper.readValue(value, ESExpr.class));
 		}
 
-		return res.stream()
-			.map(e -> {
-				if(e == null) {
-					return new ESExpr.Null(BigInteger.ZERO);
-				}
-				else {
-					return e;
-				}
-			})
-			.toList();
+		return res.stream().map(e -> {
+			if(e == null) {
+				return new ESExpr.Null(BigInteger.ZERO);
+			}
+			else {
+				return e;
+			}
+		}).toList();
 	}
 
 	private List<ESExpr> parseEsxb(byte[] value) throws Exception {
@@ -91,8 +89,7 @@ class BinaryEncodingTest {
 	@MustBeClosed
 	public static Stream<Path> fileProvider() throws IOException {
 		Path directory = Paths.get("../../tests");
-		return Files.list(directory)
-			.filter(Files::isRegularFile)
+		return Files.list(directory).filter(Files::isRegularFile)
 			.filter(p -> FilenameUtils.getExtension(p.getFileName().toString()).equals("json"));
 	}
 }

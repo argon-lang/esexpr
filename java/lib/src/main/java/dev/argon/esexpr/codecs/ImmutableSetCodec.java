@@ -5,12 +5,16 @@ import dev.argon.esexpr.*;
 
 /**
  * A codec for immutable sets.
- * @param <T> The element type.
+ * 
+ * @param <T>
+ *            The element type.
  */
 public class ImmutableSetCodec<T> extends SetCodecBase<T, ImmutableSet<T>> {
 	/**
 	 * Create a codec for immutable sets.
-	 * @param codec The element codec.
+	 * 
+	 * @param codec
+	 *            The element codec.
 	 */
 	public ImmutableSetCodec(ESExprCodec<T> codec) {
 		super(codec);

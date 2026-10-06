@@ -12,10 +12,9 @@ public class ImmutableByteListCodec implements ESExprCodec<ImmutableByteList> {
 	/**
 	 * A codec for binary values.
 	 */
-	
-	@ESExprCodecTags(scalar = { ESExprTag.Scalar.ARRAY8 })
-	public static final ESExprCodec<ImmutableByteList> INSTANCE = new ImmutableByteListCodec();
 
+	@ESExprCodecTags(scalar = {ESExprTag.Scalar.ARRAY8})
+	public static final ESExprCodec<ImmutableByteList> INSTANCE = new ImmutableByteListCodec();
 
 	@Override
 	public ESExprTagSet tags() {

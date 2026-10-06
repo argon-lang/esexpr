@@ -4,7 +4,6 @@ import dev.argon.esexpr.ESExprCodec;
 import dev.argon.esexpr.ESExprCodecGen;
 import dev.argon.esexpr.TypeClassInstance;
 
-
 @ESExprCodecGen
 public sealed interface MyGenericEnum<A, B> {
 	record Lefty<A, B>(A a) implements MyGenericEnum<A, B> {}

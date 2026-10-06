@@ -10,5 +10,4 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.RECORD_COMPONENT)
-public @interface Dict {
-}
+public @interface Dict {}

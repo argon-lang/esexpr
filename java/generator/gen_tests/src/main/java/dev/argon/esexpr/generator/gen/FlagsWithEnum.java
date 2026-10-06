@@ -9,8 +9,7 @@ import dev.argon.esexpr.TypeClassInstance;
 @ESExprCodecGen
 @Flags
 public record FlagsWithEnum(
-	@FlagMask(0b01)
-	boolean a,
+	@FlagMask(0b01) boolean a,
 
 	MyFlagsEnum b
 ) {
