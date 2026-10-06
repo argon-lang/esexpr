@@ -190,7 +190,7 @@ public interface ESExprCodec<T> {
 
 			@Override
 			public FailurePath append(String constructor, String keyword) {
-				return new Positional(this.constructor, index, next.append(constructor, keyword));
+				return new Positional(this.constructor, this.index, next.append(constructor, keyword));
 			}
 
 			@Override
@@ -217,7 +217,7 @@ public interface ESExprCodec<T> {
 
 			@Override
 			public FailurePath append(String constructor, String keyword) {
-				return new Keyword(this.constructor, keyword, next.append(constructor, keyword));
+				return new Keyword(this.constructor, this.keyword, next.append(constructor, keyword));
 			}
 
 			@Override

@@ -62,13 +62,13 @@ public class ESExprBinaryWriter {
 			writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
 
 			if(oldSize + 1 == symbolTable.size()) {
-				writeExprRaw(new ESExpr.Str(symbolTable.get(oldSize)));
+				writeExprRaw(new ESExpr.Str(symbolTable.get(oldSize)), false);
 			}
 			else {
 				var appendTable = new StringTable(
 					ImmutableList.copyOf(symbolTable.subList(oldSize, symbolTable.size()))
 				);
-				writeExprRaw(StringTable.codec().encode(appendTable));
+				writeExprRaw(StringTable.codec().encode(appendTable), false);
 			}
 		}
 
@@ -76,6 +76,10 @@ public class ESExprBinaryWriter {
 	}
 
 	private void writeExprRaw(ESExpr expr) throws IOException {
+		writeExprRaw(expr, true);
+	}
+
+	private void writeExprRaw(ESExpr expr, boolean usePooledStrings) throws IOException {
 		switch (expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {
 				Objects.requireNonNull(constructor);
@@ -90,12 +94,12 @@ public class ESExprBinaryWriter {
 					}
 				}
 				for(var arg : args) {
-					writeExprRaw(arg);
+					writeExprRaw(arg, usePooledStrings);
 				}
 				for(var pair : kwargs.entrySet()) {
 					var index = getSymbolIndex(pair.getKey());
 					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.KEYWORD, index));
-					writeExprRaw(pair.getValue());
+					writeExprRaw(pair.getValue(), usePooledStrings);
 				}
 				writeToken(BinToken.Fixed.CONSTRUCTOR_END);
 			}
@@ -121,9 +125,17 @@ public class ESExprBinaryWriter {
 			}
 
 			case ESExpr.Str(var s) -> {
-				byte[] b = s.getBytes(StandardCharsets.UTF_8);
-				writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.STRING, BigInteger.valueOf(b.length)));
-				os.write(b);
+				int index = usePooledStrings ? symbolTable.indexOf(s) : -1;
+				if(index >= 0) {
+					writeToken(
+						new BinToken.WithInteger(BinToken.WithIntegerType.STRING_POOL_INDEX, BigInteger.valueOf(index))
+					);
+				}
+				else {
+					byte[] b = s.getBytes(StandardCharsets.UTF_8);
+					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.STRING, BigInteger.valueOf(b.length)));
+					os.write(b);
+				}
 			}
 
 			case ESExpr.Float16(var f) -> {
@@ -293,7 +305,7 @@ public class ESExprBinaryWriter {
 		if(index < 0) {
 			index = symbolTable.size();
 			writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
-			writeExprRaw(new ESExpr.Str(symbol));
+			writeExprRaw(new ESExpr.Str(symbol), false);
 		}
 		return BigInteger.valueOf(index);
 	}

@@ -46,7 +46,6 @@ public class ESExprBinaryReader {
 
 	private final List<String> symbolTable;
 	private final InputStream is;
-	private int nextByte = -1;
 
 	/**
 	 * Attempts to read an ESExpr from the stream.
@@ -109,12 +108,6 @@ public class ESExprBinaryReader {
 	}
 
 	private int next() throws IOException {
-		if(nextByte >= 0) {
-			int res = nextByte;
-			nextByte = -1;
-			return res;
-		}
-
 		return is.read();
 	}
 
@@ -205,7 +198,6 @@ public class ESExprBinaryReader {
 				case INT -> new ExprPlus.Expr(new ESExpr.Int(value));
 				case NEG_INT -> new ExprPlus.Expr(new ESExpr.Int(value.add(BigInteger.ONE).negate()));
 
-				// Should be safe to bypass next/peekNext here.
 				case STRING -> {
 					int len = value.intValueExact();
 					byte[] b = new byte[len];

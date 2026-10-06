@@ -27,11 +27,6 @@ public class ListCodec<T> extends ListCodecBase<T, List<T>> {
 	}
 
 	@Override
-	public ESExprTagSet tags() {
-		return ESExprTagSet.of(new ESExprTag.Constructor("list"));
-	}
-
-	@Override
 	public List<T> decode(ESExpr expr, FailurePath path) throws DecodeException {
 		var builder = ImmutableList.<T>builder();
 		decodeInto(expr, path, builder::add);
