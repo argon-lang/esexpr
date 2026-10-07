@@ -1,16 +1,17 @@
-import { expect, test } from "vitest";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import * as esexpr from "./index.js";
 import { ESExpr, type ESExprCodec } from "./index.js";
 
 
 
 function expectCodecMatch<T>(codec: ESExprCodec<T>, expr: ESExpr, value: T): void {
-    expect(codec.encode(value)).toEqual(expr);
-    expect(codec.decode(expr)).toEqual({ success: true, value });
+    assert.deepStrictEqual(codec.encode(value), expr);
+    assert.deepStrictEqual(codec.decode(expr), { success: true, value });
 }
 
 function expectDecodeFailure<T>(codec: ESExprCodec<T>, expr: ESExpr): void {
-    expect(codec.decode(expr).success).toBe(false);
+    assert.strictEqual(codec.decode(expr).success, false);
 }
 
 interface BasicRecord {
@@ -24,7 +25,7 @@ namespace BasicRecord {
 }
 
 test("Basic record", () => {
-    expect(BasicRecord.codec.tags).toEqual(new Set(["basic-record"]));
+    assert.deepStrictEqual(BasicRecord.codec.tags, new Set(["basic-record"]));
     expectCodecMatch(
         BasicRecord.codec,
         { type: "constructor", name: "basic-record", args: [ 4 ], kwargs: new Map() },
@@ -64,7 +65,7 @@ namespace BasicEnum {
 }
 
 test("Basic enum", () => {
-    expect(BasicEnum.codec.tags).toEqual(new Set(["my-name123-test", "my-name456-test2"]));
+    assert.deepStrictEqual(BasicEnum.codec.tags, new Set(["my-name123-test", "my-name456-test2"]));
     expectCodecMatch(
         BasicEnum.codec,
         { type: "constructor", name: "my-name123-test", args: [ 4 ], kwargs: new Map() },
@@ -96,7 +97,7 @@ namespace InlineValueTest {
 
 
 test("Inline value", () => {
-    expect(InlineValueTest.codec.tags).toEqual(new Set([Boolean, "normal-case"]));
+    assert.deepStrictEqual(InlineValueTest.codec.tags, new Set([Boolean, "normal-case"]));
     expectCodecMatch(
         InlineValueTest.codec,
         true,
@@ -291,11 +292,11 @@ test("list codec", () => {
 
 
 test("Option", () => {
-    expect(esexpr.Option.some("b")).toBe("b");
-    expect(esexpr.Option.some(null)).toBeTruthy();
-    expect(esexpr.Option.some(null)).toBe(esexpr.Option.some(null));
-    expect(esexpr.Option.get(esexpr.Option.some("b"))).toBe("b");
-    expect(esexpr.Option.get(esexpr.Option.some(null))).toBeNull();
+    assert.strictEqual(esexpr.Option.some("b"), "b");
+    assert.ok(esexpr.Option.some(null));
+    assert.strictEqual(esexpr.Option.some(null), esexpr.Option.some(null));
+    assert.strictEqual(esexpr.Option.get(esexpr.Option.some("b")), "b");
+    assert.strictEqual(esexpr.Option.get(esexpr.Option.some(null)), null);
 });
 
 
@@ -307,12 +308,12 @@ test("Multiple optional positional", () => {
         readonly b?: number | undefined;
     }
 
-    expect(() => {
+    assert.throws(() => {
         return esexpr.recordCodec<MultipleOptionalPositional1>("multiple-optional-positional1", {
             a: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.signedInt32Codec)),
             b: esexpr.optionalPositionalFieldCodec(esexpr.undefinedOptionalCodec(esexpr.signedInt32Codec)),
         })
-    }).toThrowError("Field 'b' must have distinct tags from immediately preceding optional positional arguments");
+    }, { message: "Field 'b' must have distinct tags from immediately preceding optional positional arguments" });
 
 
     interface MultipleOptionalPositional2 {
@@ -320,12 +321,12 @@ test("Multiple optional positional", () => {
         readonly b: number;
     }
 
-    expect(() => {
+    assert.throws(() => {
         return esexpr.recordCodec<MultipleOptionalPositional2>("multiple-optional-positional2", {
             a: esexpr.defaultPositionalFieldCodec(esexpr.signedInt32Codec, () => 4),
             b: esexpr.defaultPositionalFieldCodec(esexpr.signedInt32Codec, () => 4),
         })
-    }).toThrowError("Field 'b' must have distinct tags from immediately preceding optional positional arguments");
+    }, { message: "Field 'b' must have distinct tags from immediately preceding optional positional arguments" });
 });
 
 test("Multiple vararg", () => {
@@ -334,12 +335,12 @@ test("Multiple vararg", () => {
         readonly b: readonly number[];
     }
 
-    expect(() => {
+    assert.throws(() => {
         return esexpr.recordCodec<MultipleVararg1>("multiple-varargs", {
             a: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.signedInt32Codec)),
             b: esexpr.varargFieldCodec(esexpr.arrayRepeatedValuesCodec(esexpr.signedInt32Codec)),
         })
-    }).toThrowError("Field 'b' must have distinct tags from immediately preceding optional positional arguments");
+    }, { message: "Field 'b' must have distinct tags from immediately preceding optional positional arguments" });
 
 
     expectCodecMatch(
@@ -376,7 +377,7 @@ test("Flags", () => {
         }),
     });
 
-    expect(codec.tags).toEqual(new Set([BigInt]));
+    assert.deepStrictEqual(codec.tags, new Set([BigInt]));
 
     expectCodecMatch(codec, 4n, { a: false, b: false, c: "v1" });
     expectCodecMatch(codec, 1n | 4n, { a: true, b: false, c: "v1" });
@@ -388,20 +389,20 @@ test("Flags", () => {
     expectDecodeFailure(codec, 12n); // Overlapping bits for 'c' but not matching any case
     expectDecodeFailure(codec, "not a bigint");
 
-    expect(() => {
+    assert.throws(() => {
         esexpr.flags({
             a: esexpr.flagBit(1n),
             b: esexpr.flagBit(1n),
         });
-    }).toThrowError("Flag masks have overlapping bits");
+    }, { message: "Flag masks have overlapping bits" });
 
-    expect(() => {
+    assert.throws(() => {
         esexpr.flagBit(0n);
-    }).toThrowError("Flag bit must be set exactly once");
+    }, { message: "Flag bit must be set exactly once" });
 
-    expect(() => {
+    assert.throws(() => {
         esexpr.flagBit(3n);
-    }).toThrowError("Flag bit must be set exactly once");
+    }, { message: "Flag bit must be set exactly once" });
 });
 
 

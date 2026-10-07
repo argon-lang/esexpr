@@ -1,13 +1,14 @@
-import { expect, test, describe } from "vitest";
+import { test, describe } from "node:test";
+import assert from "node:assert/strict";
 import { HashMap } from "./hashmap.js";
 import { hashSymbol, equalsSymbol } from "./hash.js";
 
 describe("HashMap", () => {
     test("empty map", () => {
         const map = new HashMap<string, number>();
-        expect(map.size).toBe(0);
-        expect(map.has("a")).toBe(false);
-        expect(map.get("a")).toBeUndefined();
+        assert.strictEqual(map.size, 0);
+        assert.strictEqual(map.has("a"), false);
+        assert.strictEqual(map.get("a"), undefined);
     });
 
     test("constructor with entries", () => {
@@ -15,9 +16,9 @@ describe("HashMap", () => {
             ["a", 1],
             ["b", 2],
         ]);
-        expect(map.size).toBe(2);
-        expect(map.get("a")).toBe(1);
-        expect(map.get("b")).toBe(2);
+        assert.strictEqual(map.size, 2);
+        assert.strictEqual(map.get("a"), 1);
+        assert.strictEqual(map.get("b"), 2);
     });
 
     test("set and update values", () => {
@@ -27,8 +28,8 @@ describe("HashMap", () => {
             ["a", 1],
             ["a", 2],
         ]);
-        expect(map.size).toBe(1);
-        expect(map.get("a")).toBe(2);
+        assert.strictEqual(map.size, 1);
+        assert.strictEqual(map.get("a"), 2);
     });
 
     test("different key types", () => {
@@ -42,15 +43,15 @@ describe("HashMap", () => {
             [{a: 1}, "object"],
         ]);
 
-        expect(map.get(1)).toBe("number");
-        expect(map.get("1")).toBe("string");
-        expect(map.get(true)).toBe("boolean");
-        expect(map.get(null)).toBe("null");
-        expect(map.get(undefined)).toBe("undefined");
-        expect(map.get([1, 2])).toBe("array");
-        expect(map.get({a: 1})).toBe("object");
+        assert.strictEqual(map.get(1), "number");
+        assert.strictEqual(map.get("1"), "string");
+        assert.strictEqual(map.get(true), "boolean");
+        assert.strictEqual(map.get(null), "null");
+        assert.strictEqual(map.get(undefined), "undefined");
+        assert.strictEqual(map.get([1, 2]), "array");
+        assert.strictEqual(map.get({a: 1}), "object");
         
-        expect(map.size).toBe(7);
+        assert.strictEqual(map.size, 7);
     });
 
     test("custom hash and equals", () => {
@@ -73,9 +74,9 @@ describe("HashMap", () => {
             [c3, "two"],
         ]);
 
-        expect(map.size).toBe(2);
-        expect(map.has(c2)).toBe(true);
-        expect(map.get(c2)).toBe("one");
+        assert.strictEqual(map.size, 2);
+        assert.strictEqual(map.has(c2), true);
+        assert.strictEqual(map.get(c2), "one");
     });
 
     test("iteration", () => {
@@ -86,10 +87,10 @@ describe("HashMap", () => {
         ];
         const map = new HashMap<string, number>(entries);
 
-        expect([...map.keys()].sort()).toEqual(["a", "b", "c"]);
-        expect([...map.values()].sort()).toEqual([1, 2, 3]);
-        expect([...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))).toEqual(entries);
-        expect([...map].sort((a, b) => a[0].localeCompare(b[0]))).toEqual(entries);
+        assert.deepStrictEqual([...map.keys()].sort(), ["a", "b", "c"]);
+        assert.deepStrictEqual([...map.values()].sort(), [1, 2, 3]);
+        assert.deepStrictEqual([...map.entries()].sort((a, b) => a[0].localeCompare(b[0])), entries);
+        assert.deepStrictEqual([...map].sort((a, b) => a[0].localeCompare(b[0])), entries);
     });
 
     test("collisions", () => {
@@ -101,9 +102,9 @@ describe("HashMap", () => {
             entries.push([i, i * 2]);
         }
         const map = new HashMap<number, number>(entries);
-        expect(map.size).toBe(1000);
+        assert.strictEqual(map.size, 1000);
         for (let i = 0; i < 1000; i++) {
-            expect(map.get(i)).toBe(i * 2);
+            assert.strictEqual(map.get(i), i * 2);
         }
     });
 });

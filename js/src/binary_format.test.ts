@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import { ESExpr } from "./index.js";
 import * as esxb from "./binary_format.js"
 
@@ -199,8 +200,8 @@ async function run_test_case(esxbFile: string): Promise<void> {
         reencoded.push(await decodeBin1(encodeBin(expr)))
     }
 
-    expect(json2esexprMany(json)).toEqual(exprs);
-    expect(reencoded).toEqual(exprs);
+    assert.deepStrictEqual(json2esexprMany(json), exprs);
+    assert.deepStrictEqual(reencoded, exprs);
 }
 
 const dir = path.join(import.meta.dirname, "../../tests/");
@@ -237,7 +238,7 @@ test("Multi byte strings", async () => {
       
     for(const s of strings) {
         const converted = await decodeBin1(singleByteChunks(encodeBin(s)))
-        expect(converted).toEqual(s);
+        assert.deepStrictEqual(converted, s);
     }
 }) 
 

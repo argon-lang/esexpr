@@ -730,7 +730,7 @@ export const array16Codec: ESExprCodec<Uint16Array> = {
 
 export const array32Codec: ESExprCodec<Uint32Array> = {
     get tags(): ESExprTagSet {
-        return new Set([Uint16Array]);
+        return new Set([Uint32Array]);
     },
 
     isEncodedEqual(a, b) {
@@ -1014,7 +1014,7 @@ export const float64Codec: ESExprCodec<number> = {
 
 export const float64NaNCodec: ESExprCodec<number | ESExpr.Float64NaN> = {
     get tags(): ESExprTagSet {
-        return new Set([Float16Symbol]);
+        return new Set([Number]);
     },
 
     isEncodedEqual(a, b) {
@@ -1037,7 +1037,7 @@ export const float64NaNCodec: ESExprCodec<number | ESExpr.Float64NaN> = {
         else {
             return {
                 success: false,
-                message: "Expected a float16, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
+                message: "Expected a float64, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
                 path: { type: "current" },
             };
         }
@@ -1228,7 +1228,7 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
         else {
             let expr2: ESExpr;
             if(ESExpr.isNestedNull(expr)) {
-                if(expr.level > 0n) {
+                if(expr.level === 1n) {
                     expr2 = null;
                 }
                 else {
@@ -2665,4 +2665,3 @@ class LazyCodec<A> implements ESExprCodec<A> {
 export function lazyCodec<A>(inner: () => ESExprCodec<A>): ESExprCodec<A> {
     return new LazyCodec(inner);
 }
-

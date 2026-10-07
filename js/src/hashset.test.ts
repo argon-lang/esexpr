@@ -1,20 +1,21 @@
-import { expect, test, describe } from "vitest";
+import { test, describe } from "node:test";
+import assert from "node:assert/strict";
 import { HashSet } from "./hashset.js";
 import { hashSymbol, equalsSymbol } from "./hash.js";
 
 describe("HashSet", () => {
     test("empty set", () => {
         const set = new HashSet<string>();
-        expect(set.size).toBe(0);
-        expect(set.has("a")).toBe(false);
+        assert.strictEqual(set.size, 0);
+        assert.strictEqual(set.has("a"), false);
     });
 
     test("constructor with values", () => {
         const set = new HashSet<string>(["a", "b", "a"]);
-        expect(set.size).toBe(2);
-        expect(set.has("a")).toBe(true);
-        expect(set.has("b")).toBe(true);
-        expect(set.has("c")).toBe(false);
+        assert.strictEqual(set.size, 2);
+        assert.strictEqual(set.has("a"), true);
+        assert.strictEqual(set.has("b"), true);
+        assert.strictEqual(set.has("c"), false);
     });
 
     test("different value types", () => {
@@ -30,10 +31,10 @@ describe("HashSet", () => {
         const set = new HashSet<unknown>(values);
 
         for (const v of values) {
-            expect(set.has(v)).toBe(true);
+            assert.strictEqual(set.has(v), true);
         }
         
-        expect(set.size).toBe(7);
+        assert.strictEqual(set.size, 7);
     });
 
     test("custom hash and equals", () => {
@@ -53,16 +54,16 @@ describe("HashSet", () => {
 
         const set = new HashSet<Custom>([c1, c3]);
 
-        expect(set.size).toBe(2);
-        expect(set.has(c2)).toBe(true);
+        assert.strictEqual(set.size, 2);
+        assert.strictEqual(set.has(c2), true);
     });
 
     test("iteration", () => {
         const values = ["a", "b", "c"];
         const set = new HashSet<string>(values);
 
-        expect([...set.values()].sort()).toEqual(values);
-        expect([...set].sort()).toEqual(values);
+        assert.deepStrictEqual([...set.values()].sort(), values);
+        assert.deepStrictEqual([...set].sort(), values);
     });
 
     test("collisions", () => {
@@ -71,9 +72,9 @@ describe("HashSet", () => {
             values.push(i);
         }
         const set = new HashSet<number>(values);
-        expect(set.size).toBe(1000);
+        assert.strictEqual(set.size, 1000);
         for (let i = 0; i < 1000; i++) {
-            expect(set.has(i)).toBe(true);
+            assert.strictEqual(set.has(i), true);
         }
     });
 });

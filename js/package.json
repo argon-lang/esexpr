@@ -1,6 +1,6 @@
 {
   "name": "@argon-lang/esexpr",
-  "version": "0.3.0",
+  "version": "0.z3.0",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -10,13 +10,12 @@
   },
   "scripts": {
     "build": "tsc --project .",
-    "test": "npm run build && vitest run --root lib"
+    "test": "npm run build && node --test --experimental-test-coverage --test-coverage-exclude='lib/*.test.js' lib/*.test.js"
   },
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "^25.9.2",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "@types/node": "^26.6.4",
+    "typescript": "^6.0.3"
   }
 }
