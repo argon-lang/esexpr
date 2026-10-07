@@ -18,12 +18,6 @@ public class NameUtils {
 			.collect(Collectors.joining("-"));
 	}
 
-	public static String nameToCamelCase(String name) {
-		var parts = name.split(NAME_SPLIT_PATTERN);
-		parts[0] = parts[0].toLowerCase(Locale.ROOT);
-		return String.join("", parts);
-	}
-
 	private static String enumConstNameToKebabCase(String name) {
 		return Arrays.stream(name.split("_")).map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.joining("-"));
 	}

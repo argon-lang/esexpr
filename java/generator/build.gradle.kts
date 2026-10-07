@@ -8,6 +8,16 @@ plugins {
 dependencies {
     implementation(libs.commons.text)
     implementation(project(":lib"))
+    testImplementation(libs.jspecify)
+    testAnnotationProcessor(project(":generator"))
+}
+
+tasks.test {
+    // Allow tests to exercise the internal cache without exposing it in the generator's module API.
+    jvmArgs("--add-opens=dev.argon.esexpr.generator/dev.argon.esexpr.generator.lookup=dev.argon.esexpr.generator.tests")
+    val generatorTestSources = layout.projectDirectory.dir("src/test/java/dev/argon/esexpr/generator/gen")
+    inputs.dir(generatorTestSources)
+    systemProperty("esexpr.generator.testSources", generatorTestSources.asFile.absolutePath)
 }
 
 tasks.javadoc {
