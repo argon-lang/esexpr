@@ -407,7 +407,7 @@ internal class ModelBuilder {
 			throw new Exception($"Could not resolve codec for type {type}. Looking for {lookupType}");
 		}
 
-		return GetTagsForCodec(type, res, seenTypes);
+		return GetTagsForCodec(type, res, seenTypes.Add(type));
 	}
 
 	private ESExprTagSet GetTagsForCodec(ITypeSymbol type, TypeClassResult res, ImmutableHashSet<ITypeSymbol> seenTypes) {
@@ -554,6 +554,12 @@ internal class ModelBuilder {
 		else if(t.IsRecord && t.IsAbstract) {
 			var tags = new HashSet<ESExprTag>();
 			var unionWithTypes = ImmutableList.CreateBuilder<ITypeSymbol>();
+			var substitutions = new Dictionary<ITypeParameterSymbol, ITypeSymbol>(typeParams, SymbolEqualityComparer.Default);
+			if(t is INamedTypeSymbol unionType) {
+				foreach(var (parameter, argument) in unionType.ConstructedFrom.TypeParameters.Zip(unionType.TypeArguments, (parameter, argument) => (parameter, argument))) {
+					substitutions[parameter] = argument;
+				}
+			}
 
 			var cases = t.GetTypeMembers()
 				.Where(caseRec =>
@@ -577,7 +583,7 @@ internal class ModelBuilder {
 
 					var field = fields[0];
 
-					var substType = resolver.SubstituteTypes(field.Type, typeParams);
+					var substType = resolver.SubstituteTypes(field.Type, substitutions);
 					if(substType is null) {
 						throw new Exception($"Unable to substitute type parameters in {field.Type}");
 					}

@@ -73,9 +73,9 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					Token(SyntaxKind.StaticKeyword),
 					Token(SyntaxKind.PartialKeyword)
 				)
-				.AddTypeParameterListParameters(
-					TypeModel.TypeParameters.Select(tp => tp.Syntax).ToArray()
-				)
+				.WithTypeParameterList(TypeModel.TypeParameters.IsEmpty
+					? null
+					: TypeParameterList(SeparatedList(TypeModel.TypeParameters.Select(tp => tp.Syntax))))
 				.AddParameterListParameters(
 					TypeModel.TypeClassInstanceAccessor.Parameters
 						.Select(p =>
@@ -251,7 +251,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			fileNamePrefix = TypeModel.TypeName;
 		}
 
-		syntaxTree = syntaxTree.NormalizeWhitespace();
+		syntaxTree = syntaxTree.WithLeadingTrivia(ParseLeadingTrivia("#nullable enable annotations\n")).NormalizeWhitespace();
 
 
 
@@ -1739,8 +1739,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 
 
-	protected TypeSyntax StringType => PredefinedType(Token(SyntaxKind.StringKeyword));
-
 	protected NameSyntax ESExprType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
@@ -1802,43 +1800,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		IdentifierName("DecodeFailurePath")
 	);
 
-	protected TypeSyntax DictionaryType(TypeSyntax keyType, TypeSyntax valueType) =>
-		QualifiedName(
-			QualifiedName(
-				QualifiedName(
-					AliasQualifiedName(
-						IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-						IdentifierName("System")
-					),
-					IdentifierName("Collections")
-				),
-				IdentifierName("Generic")
-			),
-			GenericName(
-				Identifier("Dictionary"),
-				TypeArgumentList(
-					SeparatedList([keyType, valueType])
-				)
-			)
-		);
-
-	protected TypeSyntax OptionType(TypeSyntax elementType) =>
-		QualifiedName(
-			QualifiedName(
-				AliasQualifiedName(
-					IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-					IdentifierName("ESExpr")
-				),
-				IdentifierName("Runtime")
-			),
-			GenericName(
-				Identifier("Option"),
-				TypeArgumentList(
-					SeparatedList([elementType])
-				)
-			)
-		);
-
 	protected static TypeSyntax GetDeclarationAsType(string name, IReadOnlyList<SourceModelSyntax<TypeParameterSyntax>> typeParameters) {
 		if(typeParameters.Count == 0) {
 			return IdentifierName(name);
@@ -1871,35 +1832,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 		return ns;
 	}
-
-	protected static NameSyntax? NameFromNamespaceNodes(SyntaxNode? syntax) {
-		if(syntax is not BaseNamespaceDeclarationSyntax ns) {
-			return null;
-		}
-
-		var parentNS = NameFromNamespaceNodes(ns.Parent);
-
-		if(parentNS is null) {
-			return ns.Name;
-		}
-
-		return MergeNames(parentNS, ns.Name);
-	}
-
-	protected static NameSyntax MergeNames(NameSyntax a, NameSyntax b) {
-		return b switch {
-			QualifiedNameSyntax qb => QualifiedName(
-				MergeNames(a, qb.Left),
-				qb.Right
-			),
-			SimpleNameSyntax sb => QualifiedName(a, sb),
-			_ => throw new ArgumentException(
-				"The right NameSyntax must be a SimpleNameSyntax or QualifiedNameSyntax.",
-				nameof(b)
-			),
-		};
-	}
-
 
 	protected ExpressionSyntax GetCodecExpr(SourceModelTypeClassInstance codec) {
 		switch(codec) {
@@ -2004,10 +1936,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		}
 	}
 
-	private string PascalCaseToCamelCase(string name) =>
-		name.Length == 0
-			? name
-			: name.Substring(0, 1).ToLowerInvariant() + name.Substring(1);
 
 
 }

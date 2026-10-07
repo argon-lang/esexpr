@@ -9,6 +9,9 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ESExpr.SourceGenerator;
 
 internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel> {
+	private NameSyntax GetCaseType(SourceModelEnumCase c) =>
+		QualifiedName((NameSyntax)GetDeclarationAsType(TypeModel.TypeName, TypeModel.TypeParameters), IdentifierName(c.Name));
+
 	private SourceModelField GetInlineValueField(SourceModelEnumCase c) {
 		if(c.Fields.Count != 1) {
 			throw new AbortGenerationException(
@@ -29,7 +32,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 		foreach(var c in TypeModel.Cases) {
 			var label = CasePatternSwitchLabel(
 				DeclarationPattern(
-					IdentifierName(c.Name),
+					GetCaseType(c),
 					SingleVariableDesignation(Identifier("a2"))
 				),
 				Token(SyntaxKind.ColonToken)
@@ -46,7 +49,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 								IsPatternExpression(
 									IdentifierName("b"),
 									DeclarationPattern(
-										IdentifierName(c.Name),
+										GetCaseType(c),
 										SingleVariableDesignation(
 											Identifier("b2")
 										)
@@ -95,7 +98,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			var label = CasePatternSwitchLabel(
 				DeclarationPattern(
-					IdentifierName(c.Name),
+					GetCaseType(c),
 					SingleVariableDesignation(Identifier(identName))
 				),
 				Token(SyntaxKind.ColonToken)
@@ -236,7 +239,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 					List(new SwitchLabelSyntax[] { label }),
 					List(new StatementSyntax[] {
 						ReturnStatement(
-							ObjectCreationExpression(IdentifierName(c.Name))
+							ObjectCreationExpression(GetCaseType(c))
 								.WithInitializer(InitializerExpression(
 									SyntaxKind.ObjectInitializerExpression,
 									SeparatedList(new ExpressionSyntax[] {
@@ -306,7 +309,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				var argsDeclaration = ParseStatement("var args = new global::ESExpr.Runtime.SliceList<global::ESExpr.Runtime.Expr>(args0);");
 				var kwargsDeclaration = ParseStatement("var kwargs = new global::System.Collections.Generic.Dictionary<string, global::ESExpr.Runtime.Expr>(kwargs0);");
 
-				var caseType = GetDeclarationAsType(c.Name, TypeModel.TypeParameters);
+				var caseType = GetCaseType(c);
 
 				var decodeBlock = WriteDecodeFields(c.ConstructorName, c.Fields, caseType);
 

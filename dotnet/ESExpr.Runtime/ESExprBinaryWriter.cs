@@ -310,6 +310,8 @@ public class ESExprBinaryWriter {
 			BinToken.TokenType.Array128 => 0xF0,
 			BinToken.TokenType.ConstructorStartStringTable => 0xE6,
 			BinToken.TokenType.ConstructorStartList => 0xE7,
+			BinToken.TokenType.ConstructorStartMap => 0xF1,
+			BinToken.TokenType.ConstructorStartSet => 0xF2,
 			BinToken.TokenType.Null0 => 0xE3,
 			BinToken.TokenType.Null1 => 0xE8,
 			BinToken.TokenType.Null2 => 0xE9,

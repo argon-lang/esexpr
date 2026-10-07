@@ -104,17 +104,6 @@ public class SourceModelTypeTests {
 	}
 
 	[Test]
-	public void WildcardEqualityTests() {
-		var w1 = new SourceModelType.Wildcard("T");
-		var w2 = new SourceModelType.Wildcard("T");
-		var w3 = new SourceModelType.Wildcard("U");
-
-		Assert.That(w1, Is.EqualTo(w2));
-		Assert.That(w1.GetHashCode(), Is.EqualTo(w2.GetHashCode()));
-		Assert.That(w1, Is.Not.EqualTo(w3));
-	}
-
-	[Test]
 	public void NullableEqualityTests() {
 		var inner = new SourceModelType.TypeParameter("T");
 		var n1 = new SourceModelType.Nullable(inner);

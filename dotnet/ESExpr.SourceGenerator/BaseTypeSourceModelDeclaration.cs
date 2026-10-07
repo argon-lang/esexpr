@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -13,9 +12,4 @@ internal abstract class BaseTypeSourceModelDeclaration : ITypeSourceModel {
 
 	public abstract ICodecGenerator Generator(SourceProductionContext context);
 
-	public virtual SourceModelType SourceModelType =>
-		new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(Namespace), TypeName) {
-			TypeArguments = [],
-			IsEnum = false,
-		};
 }

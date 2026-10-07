@@ -27,7 +27,6 @@ public class ESExprBinaryReader {
 	private readonly Stream stream;
 
 	private readonly byte[] byteBuffer = new byte[1];
-	private int nextByte = -1;
 
 	public async ValueTask<Expr?> TryRead(CancellationToken cancellationToken = default) {
 		var readVisitor = new ReadExprVisitor();
@@ -75,12 +74,6 @@ public class ESExprBinaryReader {
 
 
 	private async ValueTask<int> Next(CancellationToken cancellationToken = default) {
-		if(nextByte >= 0) {
-			int res = nextByte;
-			nextByte = -1;
-			return res;
-		}
-
 		int bytesRead = await stream.ReadAsync(byteBuffer, cancellationToken).ConfigureAwait(false);
 		if(bytesRead == 0) {
 			return -1;
@@ -372,7 +365,6 @@ public class ESExprBinaryReader {
 		}
 
 		int length = (int)tokenIntValue;
-		// Assume nextByte is -1 here.
 		byte[] buff = new byte[length];
 		await stream.ReadExactlyAsync(buff, cancellationToken);
 		return buff;

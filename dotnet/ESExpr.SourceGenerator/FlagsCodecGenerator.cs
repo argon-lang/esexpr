@@ -65,6 +65,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 					}
 
 					CheckFlagBits(flagField.Mask);
+					usedBits |= flagField.Mask;
 
 					var maskExpr = BigIntLiteral(flagField.Mask);
 

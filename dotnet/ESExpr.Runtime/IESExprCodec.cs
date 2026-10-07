@@ -158,15 +158,23 @@ public static class IESExprCodec {
 	public static IESExprCodec<IImmutableDictionary<K, V>> InterfaceImmutableMapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new InterfaceImmutableMapCodec<K, V>(keyCodec, valueCodec);
 
 	[TypeClassInstance]
+	[ESExprTags(Constructors = ["map"])]
+	public static IESExprCodec<Dictionary<string, T>> DictionaryCodec<T>(IESExprCodec<T> itemCodec) => new DictionaryCodec<T>(itemCodec);
+
+	[TypeClassInstance]
+	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<ImmutableDictionary<string, T>> ImmutableDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new ImmutableDictionaryCodec<T>(itemCodec);
 
 	[TypeClassInstance]
+	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<IDictionary<string, T>> InterfaceDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new InterfaceDictionaryCodec<T>(itemCodec);
 
 	[TypeClassInstance]
+	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<IReadOnlyDictionary<string, T>> ReadOnlyDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new ReadOnlyDictionaryCodec<T>(itemCodec);
 
 	[TypeClassInstance]
+	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<IImmutableDictionary<string, T>> InterfaceImmutableDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new InterfaceImmutableDictionaryCodec<T>(itemCodec);
 
 
@@ -177,4 +185,3 @@ public static class IESExprCodec {
 		return SimpleEnumCodec<T>.Instance;
 	}
 }
-

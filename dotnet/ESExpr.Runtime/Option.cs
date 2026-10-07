@@ -27,7 +27,7 @@ public struct Option<T> : IEquatable<Option<T>> {
 			return EqualityComparer<T>.Default.Equals(value, other.value);
 		}
 		else {
-			return true;
+			return hasValue == other.hasValue;
 		}
 	}
 

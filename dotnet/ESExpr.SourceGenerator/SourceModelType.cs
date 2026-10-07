@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -9,10 +8,6 @@ namespace ESExpr.SourceGenerator;
 
 internal abstract record SourceModelType {
 	private SourceModelType() { }
-
-
-	protected abstract bool ContainsTypeParameter(string name);
-	public abstract SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping);
 
 
 	public static SourceModelType FromSymbol(ITypeSymbol t) {
@@ -75,40 +70,13 @@ internal abstract record SourceModelType {
 
 
 
-	public record TypeParameter(string Name) : SourceModelType {
-		protected override bool ContainsTypeParameter(string name) =>
-			name == Name;
-
-		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
-			if(!paramMapping.TryGetValue(Name, out var substitute)) {
-				return this;
-			}
-
-			return substitute;
-		}
-	}
-
-	public record Wildcard(string Name) : SourceModelType {
-		protected override bool ContainsTypeParameter(string name) =>
-			name == Name;
-
-		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
-			return this;
-		}
-	}
+	public record TypeParameter(string Name) : SourceModelType;
 
 	public interface INamedSymbolParent : IEquatable<INamedSymbolParent?> {
 		bool IsEmpty { get; }
-		INamedSymbolParent Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping);
 	}
 
 	public sealed record NamespaceSymbolParent(ImmutableList<string> Namespace) : INamedSymbolParent {
-		public bool ContainsTypeParameter(string name) => false;
-
-
-		public INamedSymbolParent Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) =>
-			this;
-
 		public bool IsEmpty => Namespace.IsEmpty;
 
 		public override int GetHashCode() {
@@ -136,23 +104,7 @@ internal abstract record SourceModelType {
 		public required bool IsEnum { get; init; }
 
 
-		protected override bool ContainsTypeParameter(string name) =>
-			TypeArguments.Any(tp => tp.ContainsTypeParameter(name));
-
-		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) =>
-			SubstituteImpl(paramMapping);
-
-		INamedSymbolParent INamedSymbolParent.Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) =>
-			SubstituteImpl(paramMapping);
-
 		bool INamedSymbolParent.IsEmpty => false;
-
-		private NamedSymbol SubstituteImpl(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
-			return new NamedSymbol(Parent.Substitute(paramMapping), Name) {
-				TypeArguments = TypeArguments.Select(tp => tp.Substitute(paramMapping)).ToImmutableList(),
-				IsEnum = this.IsEnum,
-			};
-		}
 
 		public override int GetHashCode() {
 			int hash = 17;
@@ -197,31 +149,9 @@ internal abstract record SourceModelType {
 		}
 	}
 
-	public record Nullable(SourceModelType Inner) : SourceModelType {
-		protected override bool ContainsTypeParameter(string name) =>
-			Inner.ContainsTypeParameter(name);
+	public record Nullable(SourceModelType Inner) : SourceModelType;
 
-		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
-			return new Nullable(Inner.Substitute(paramMapping));
-		}
-	}
+	public record Array(SourceModelType Element) : SourceModelType;
 
-	public record Array(SourceModelType Element) : SourceModelType {
-		protected override bool ContainsTypeParameter(string name) =>
-			Element.ContainsTypeParameter(name);
-
-		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
-			return new Array(Element.Substitute(paramMapping));
-		}
-	}
-
-	public record Pointer(SourceModelType PointedAtType) : SourceModelType {
-		protected override bool ContainsTypeParameter(string name) =>
-			PointedAtType.ContainsTypeParameter(name);
-
-		public override SourceModelType Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) {
-			return new Pointer(PointedAtType.Substitute(paramMapping));
-		}
-	}
-
+	public record Pointer(SourceModelType PointedAtType) : SourceModelType;
 }

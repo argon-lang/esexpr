@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Linq;
 using ESExpr.SourceGenerator.TypeClass;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -12,12 +11,4 @@ internal abstract class TypeSourceModelDeclaration : BaseTypeSourceModelDeclarat
 
 	public required SourceModelTypeClassInstanceAccessor TypeClassInstanceAccessor { get; init; }
 
-	public override SourceModelType SourceModelType =>
-		new SourceModelType.NamedSymbol(new SourceModelType.NamespaceSymbolParent(Namespace), TypeName) {
-			TypeArguments =
-				TypeParameters
-					.Select(tp => new SourceModelType.TypeParameter(tp.Syntax.Identifier.Text))
-					.ToImmutableList<SourceModelType>(),
-			IsEnum = false,
-		};
 }

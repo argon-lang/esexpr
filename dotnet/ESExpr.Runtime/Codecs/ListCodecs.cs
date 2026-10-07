@@ -108,7 +108,7 @@ internal abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList, T>
 	protected abstract TList CreateList(IEnumerable<T> items);
 	protected abstract int GetCount(TList list);
 
-	public ESExprTagSet ElementTags => ESExprTagSet.Create([new ESExprTag.Constructor(ListCodecBase<T, TList>.ListConstructor)]);
+	public ESExprTagSet ElementTags => itemCodec.Tags;
 
 
 	public bool IsEncodedEqual(TList a, TList b) =>
@@ -129,17 +129,6 @@ internal abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList, T>
 		value = value.Slice(GetCount(res));
 
 		return res;
-	}
-
-	private IEnumerable<T> DecodeItems(Queue<Expr> queue, Func<int, DecodeFailurePath> pathBuilder) {
-		while(queue.TryPeek(out var item)) {
-			if(!itemCodec.Tags.Contains(item.Tag)) {
-				break;
-			}
-
-			queue.Dequeue();
-			yield return itemCodec.Decode(item, pathBuilder(0));
-		}
 	}
 }
 
@@ -179,5 +168,3 @@ internal class VListVarargCodec<T>(IESExprCodec<T> itemCodec) : ListVarargCodecB
 	protected override VList<T> CreateList(IEnumerable<T> items) => new(items.ToImmutableList());
 	protected override int GetCount(VList<T> list) => list.Count;
 }
-
-

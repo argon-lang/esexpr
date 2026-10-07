@@ -11,6 +11,7 @@ internal record SourceModelTypeClassInstanceAccessor {
 	public override int GetHashCode() {
 		int hash = 17;
 		unchecked {
+			hash = hash * 31 + IsProperty.GetHashCode();
 			foreach(var item in Parameters) {
 				hash = hash * 31 + item.GetHashCode();
 			}
@@ -22,6 +23,7 @@ internal record SourceModelTypeClassInstanceAccessor {
 
 	public virtual bool Equals(SourceModelTypeClassInstanceAccessor? other) {
 		return other is not null &&
+			IsProperty == other.IsProperty &&
 			Parameters.SequenceEqual(other.Parameters) &&
 			Name == other.Name;
 	}

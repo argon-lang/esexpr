@@ -21,7 +21,7 @@ public abstract class DictionaryCodecBase<T, TDict> : IESExprCodec<TDict>
 
 	internal const string DictConstructor = "dict";
 
-	public ESExprTagSet Tags => itemCodec.Tags;
+	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Constructor(DictConstructor)]);
 
 	public bool IsEncodedEqual(TDict a, TDict b) =>
 		GetCount(a) == GetCount(b) &&
@@ -268,4 +268,3 @@ internal class InterfaceImmutableDictionaryDictCodec<T> : DictionaryDictCodecBas
 		return dict.TryGetValue(key, out value);
 	}
 }
-
