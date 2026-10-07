@@ -89,14 +89,17 @@ mod tests {
 		}
 		list.push("A".to_owned());
 		let a1 = core::ptr::from_ref(list.get(0).expect("first string should exist"));
-		let sp1: *const String = unsafe { core::ptr::from_ref(&list.values.get().as_ref().expect("list storage should be initialized")[0]) };
+		let sp1: *const String =
+			unsafe { core::ptr::from_ref(&list.values.get().as_ref().expect("list storage should be initialized")[0]) };
 
 		let mut a2;
 		loop {
 			list.push("B".to_owned());
 
 			a2 = core::ptr::from_ref(list.get(0).expect("first string should exist"));
-			let sp2: *const String = unsafe { core::ptr::from_ref(&list.values.get().as_ref().expect("list storage should be initialized")[0]) };
+			let sp2: *const String = unsafe {
+				core::ptr::from_ref(&list.values.get().as_ref().expect("list storage should be initialized")[0])
+			};
 
 			if sp1 != sp2 {
 				break;

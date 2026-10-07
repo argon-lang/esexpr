@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, GenericParam, TypeParamBound, parse_quote};
 use syn::ext::IdentExt;
+use syn::{Data, DeriveInput, Fields, GenericParam, TypeParamBound, parse_quote};
 
 pub fn derive_encoded_eq_impl(input: TokenStream) -> TokenStream {
 	// Parse the input tokens into a syntax tree

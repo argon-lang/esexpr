@@ -1,4 +1,3 @@
-
 macro_rules! set_encoded_eq_impl {
     ($t: ty, $($bounds: tt)*) => {
         impl<$($bounds)*> ESExprEncodedEq for $t {
@@ -14,12 +13,11 @@ macro_rules! set_encoded_eq_impl {
     };
 }
 
-
 macro_rules! set_codec_impl {
     ($t: ty, $($bounds: tt)*) => {
         impl<$($bounds)*> ESExprCodec<'a> for $t {
             const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("set"))]);
-        
+
             fn encode_esexpr(&'a self) -> ESExpr<'a> {
                 ESExpr::constructor(
                     "set",
@@ -29,7 +27,7 @@ macro_rules! set_codec_impl {
                     [],
                 )
             }
-        
+
             fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
                 match expr {
                     ESExpr::Constructor(crate::ESExprConstructor { name, args, kwargs }) if name == "set" => {
@@ -39,14 +37,14 @@ macro_rules! set_codec_impl {
                                 DecodeErrorPath::Constructor(alloc::borrow::ToOwned::to_owned(name.deref())),
                             ));
                         }
-        
+
                         let mut set = Self::default();
-        
+
                         for v_expr in args {
                             let v = V::decode_esexpr(v_expr)?;
                             set.insert(v);
                         }
-        
+
                         Ok(set)
                     },
                     _ => Err(DecodeError::new(

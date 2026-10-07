@@ -171,9 +171,7 @@ impl<'a, 'b> PartialEq<ESExpr<'b>> for ESExpr<'a> {
 					return false;
 				};
 
-				name1 == name2 &&
-					args1 == args2 &&
-					kwargs1 == kwargs2
+				name1 == name2 && args1 == args2 && kwargs1 == kwargs2
 			},
 			&ESExpr::Bool(b1) => matches!(other, &ESExpr::Bool(b2) if b1 == b2),
 			ESExpr::Int(i1) => matches!(other, ESExpr::Int(i2) if i1 == i2),
@@ -199,7 +197,6 @@ impl<'a> ESExprEncodedEq for ESExpr<'a> {
 	}
 }
 
-
 impl<'a> ESExprCodec<'a> for ESExpr<'a> {
 	const TAGS: ESExprTagSet = ESExprTagSet::All;
 
@@ -222,7 +219,7 @@ impl ESExprStatic {
 	pub fn new(e: ESExpr<'static>) -> Self {
 		ESExprStatic(e)
 	}
-	
+
 	/// Get the underlying `ESExpr`.
 	pub fn into_inner(self) -> ESExpr<'static> {
 		self.0
@@ -539,9 +536,10 @@ impl<'a> From<BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	fn from(kwargs: BTreeMap<CowStr<'a>, ESExpr<'a>>) -> Self {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(
-				kwargs.into_iter()
+				kwargs
+					.into_iter()
 					.map(|(k, v)| (k.into_owned_cowstr(), v))
-					.collect::<HashMap<_, _>>()
+					.collect::<HashMap<_, _>>(),
 			),
 		}
 	}
@@ -551,9 +549,10 @@ impl<'a> From<&'a BTreeMap<CowStr<'a>, ESExpr<'a>>> for KeywordArgs<'a> {
 	fn from(kwargs: &'a BTreeMap<CowStr<'a>, ESExpr<'a>>) -> Self {
 		KeywordArgs {
 			kwargs: KeywordArgsInner::Owned(
-				kwargs.iter()
+				kwargs
+					.iter()
 					.map(|(k, v)| (k.as_borrowed(), v.as_borrowed()))
-					.collect::<HashMap<_, _>>()
+					.collect::<HashMap<_, _>>(),
 			),
 		}
 	}

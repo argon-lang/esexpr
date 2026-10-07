@@ -1,10 +1,12 @@
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeMap;
-use hashbrown::HashMap;
 use alloc::string::String;
 use core::ops::Deref;
-use crate::*;
+
+use hashbrown::HashMap;
+
 use crate::cowstr::CowStr;
+use crate::*;
 
 /**
  * A dictionary implementation using string keys.
@@ -12,7 +14,7 @@ use crate::cowstr::CowStr;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Dictionary<V>(HashMap<String, V>);
 
-impl <V> Dictionary<V> {
+impl<V> Dictionary<V> {
 	/**
 	 * Create a new dictionary.
 	 */
@@ -22,52 +24,51 @@ impl <V> Dictionary<V> {
 	}
 }
 
-impl <V> From<HashMap<String, V>> for Dictionary<V> {
+impl<V> From<HashMap<String, V>> for Dictionary<V> {
 	fn from(hashmap: HashMap<String, V>) -> Self {
 		Dictionary(hashmap)
 	}
 }
 
-impl <V> From<BTreeMap<String, V>> for Dictionary<V> {
+impl<V> From<BTreeMap<String, V>> for Dictionary<V> {
 	fn from(btree_map: BTreeMap<String, V>) -> Self {
 		Dictionary(btree_map.into_iter().collect())
 	}
 }
 
 #[cfg(feature = "std")]
-impl <V> From<std::collections::HashMap<String, V>> for Dictionary<V> {
+impl<V> From<std::collections::HashMap<String, V>> for Dictionary<V> {
 	fn from(hashmap: std::collections::HashMap<String, V>) -> Self {
 		Dictionary(hashmap.into_iter().collect())
 	}
 }
 
-impl <V> From<Dictionary<V>> for HashMap<String, V> {
+impl<V> From<Dictionary<V>> for HashMap<String, V> {
 	fn from(dictionary: Dictionary<V>) -> Self {
 		dictionary.0
 	}
 }
 
-impl <V> From<Dictionary<V>> for BTreeMap<String, V> {
+impl<V> From<Dictionary<V>> for BTreeMap<String, V> {
 	fn from(dictionary: Dictionary<V>) -> Self {
 		dictionary.0.into_iter().collect()
 	}
 }
 
 #[cfg(feature = "std")]
-impl <V, S: core::hash::BuildHasher + Default> From<Dictionary<V>> for std::collections::HashMap<String, V, S> {
+impl<V, S: core::hash::BuildHasher + Default> From<Dictionary<V>> for std::collections::HashMap<String, V, S> {
 	fn from(dictionary: Dictionary<V>) -> Self {
 		dictionary.0.into_iter().collect()
 	}
 }
 
-impl <V> Deref for Dictionary<V> {
+impl<V> Deref for Dictionary<V> {
 	type Target = HashMap<String, V>;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
 	}
 }
-
 
 impl<A: ESExprEncodedEq> ESExprEncodedEq for Dictionary<A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -117,7 +118,6 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Dictionary<A> {
 	}
 }
 
-
 impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for Dictionary<A> {
 	type Element = A;
 
@@ -132,4 +132,3 @@ impl<'a, A: ESExprCodec<'a>> ESExprDictCodec<'a> for Dictionary<A> {
 		HashMap::<String, A>::decode_dict_element(kwargs, constructor_name).map(Dictionary)
 	}
 }
-

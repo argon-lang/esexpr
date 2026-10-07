@@ -39,10 +39,7 @@ impl<'a, W> ExprGenerator<'a, W> {
 
 	/// Create an `ExprGenerator` with an existing string pool
 	pub fn new_with_string_pool(out: &'a mut W, string_pool: Vec<String>) -> Self {
-		ExprGenerator {
-			out,
-			string_pool,
-		}
+		ExprGenerator { out, string_pool }
 	}
 }
 
@@ -57,7 +54,6 @@ impl embedded_io::Write for DummyWriter {
 		Ok(buf.len())
 	}
 
-
 	fn flush(&mut self) -> Result<(), Self::Error> {
 		Ok(())
 	}
@@ -67,6 +63,7 @@ macro_rules! writer_mod {
 	($syncness: ident) => {
 		use alloc::borrow::Borrow;
 
+		use embedded_io::ErrorType;
 		use esexpr::{ESExpr, ESExprConstructor};
 		use half::f16;
 		use num_bigint::{BigUint, Sign};
@@ -74,7 +71,6 @@ macro_rules! writer_mod {
 		use super::*;
 		use crate::async_macros::{do_await, maybe_async, pinbox_future};
 		use crate::format::*;
-		use embedded_io::ErrorType;
 
 		/// Defines `ESExpr` generation for binary file format
 		#[allow(async_fn_in_trait, reason = "No additional traits to add")]
@@ -88,30 +84,50 @@ macro_rules! writer_mod {
 				///
 				/// # Errors
 				/// Returns `Err` if an error occurs during generation.
-				fn generate(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn generate(
+					&mut self,
+					expr: &ESExpr<'_>,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 		}
 
 		pub(super) trait ExprGeneratorWriteExt: ExprGeneratorWrite {
 			maybe_async!(
 				$syncness,
-				fn generate_expr(&mut self, expr: &ESExpr) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn generate_expr(
+					&mut self,
+					expr: &ESExpr,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn get_string_pool_index<S: Borrow<str>>(&mut self, s: S) -> Result<usize, GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn get_string_pool_index<S: Borrow<str>>(
+					&mut self,
+					s: S,
+				) -> Result<usize, GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_int_tag(&mut self, tag: u8, i: &BigUint) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn write_int_tag(
+					&mut self,
+					tag: u8,
+					i: &BigUint,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_int_tag_out(out: &mut Self::Write, tag: u8, i: &BigUint) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn write_int_tag_out(
+					out: &mut Self::Write,
+					tag: u8,
+					i: &BigUint,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
-				fn write_int_full(out: &mut Self::Write, i: &BigUint) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn write_int_full(
+					out: &mut Self::Write,
+					i: &BigUint,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
@@ -124,7 +140,10 @@ macro_rules! writer_mod {
 			);
 			maybe_async!(
 				$syncness,
-				fn write_string_expr(out: &mut Self::Write, s: &str) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn write_string_expr(
+					out: &mut Self::Write,
+					s: &str,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 			maybe_async!(
 				$syncness,
@@ -132,7 +151,10 @@ macro_rules! writer_mod {
 			);
 			maybe_async!(
 				$syncness,
-				fn write_out(out: &mut Self::Write, b: u8) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+				fn write_out(
+					out: &mut Self::Write,
+					b: u8,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
 		}
 
@@ -151,10 +173,8 @@ macro_rules! writer_mod {
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
-					super::writer_sync::ExprGeneratorWriteExt::generate_expr(
-						&mut generator,
-						expr,
-					).map_err(GeneratorError::from_infallible)?;
+					super::writer_sync::ExprGeneratorWriteExt::generate_expr(&mut generator, expr)
+						.map_err(GeneratorError::from_infallible)?;
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
@@ -268,7 +288,7 @@ macro_rules! writer_mod {
 						ESExpr::Array16(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY16))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							
+
 							#[cfg(target_endian = "little")]
 							{
 								do_await!(
@@ -276,21 +296,18 @@ macro_rules! writer_mod {
 									self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref()))
 								)?;
 							}
-							
+
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!(
-										$syncness,
-										self.out.write(&value.to_le_bytes())
-									)?;
+									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
 								}
 							}
 						},
 						ESExpr::Array32(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY32))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							
+
 							#[cfg(target_endian = "little")]
 							{
 								do_await!(
@@ -298,21 +315,18 @@ macro_rules! writer_mod {
 									self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref()))
 								)?;
 							}
-							
+
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!(
-										$syncness,
-										self.out.write(&value.to_le_bytes())
-									)?;
+									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
 								}
 							}
 						},
 						ESExpr::Array64(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY64))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							
+
 							#[cfg(target_endian = "little")]
 							{
 								do_await!(
@@ -320,21 +334,18 @@ macro_rules! writer_mod {
 									self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref()))
 								)?;
 							}
-							
+
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!(
-										$syncness,
-										self.out.write(&value.to_le_bytes())
-									)?;
+									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
 								}
 							}
 						},
 						ESExpr::Array128(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY128))?;
 							do_await!($syncness, Self::write_int_full(self.out, &BigUint::from(b.len())))?;
-							
+
 							#[cfg(target_endian = "little")]
 							{
 								do_await!(
@@ -342,14 +353,11 @@ macro_rules! writer_mod {
 									self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref()))
 								)?;
 							}
-							
+
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!(
-										$syncness,
-										self.out.write(&value.to_le_bytes())
-									)?;
+									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
 								}
 							}
 						},

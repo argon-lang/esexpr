@@ -14,7 +14,6 @@ macro_rules! pinbox_future {
 	(sync, $e:expr) => {
 		$e
 	};
-
 }
 
 macro_rules! maybe_async {
@@ -41,4 +40,7 @@ macro_rules! if_async {
 	};
 }
 
-pub(crate) use {do_await, if_async, maybe_async, pinbox_future};
+pub(crate) use do_await;
+pub(crate) use if_async;
+pub(crate) use maybe_async;
+pub(crate) use pinbox_future;

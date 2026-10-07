@@ -9,7 +9,17 @@ use esexpr::cowstr::CowStr;
 use half::f16;
 use nom::branch::alt;
 use nom::bytes::complete::{escaped_transform, tag, tag_no_case, take_until, take_while, take_while_m_n, take_while1};
-use nom::character::complete::{alphanumeric1, bin_digit1, char, digit1, hex_digit1, multispace1, none_of, oct_digit1, one_of};
+use nom::character::complete::{
+	alphanumeric1,
+	bin_digit1,
+	char,
+	digit1,
+	hex_digit1,
+	multispace1,
+	none_of,
+	oct_digit1,
+	one_of,
+};
 use nom::combinator::{cut, eof, map, map_res, not, opt, peek, recognize, value};
 use nom::multi::{many0, many0_count};
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
@@ -101,7 +111,8 @@ fn parse_dec_float(s: &str) -> ESExpr<'static> {
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
 		)]
-		let f = s.trim_end_matches("f16")
+		let f = s
+			.trim_end_matches("f16")
 			.trim_end_matches("F16")
 			.parse::<f16>()
 			.unwrap();
@@ -194,15 +205,13 @@ fn float16_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			tag("#float16:"),
 			opt(one_of("+-")),
 			tag("nan"),
-			opt(preceded(
-				tag(":"),
-				nom::character::complete::u16
-			))
+			opt(preceded(tag(":"), nom::character::complete::u16)),
 		),
 		|(_, sign, _, payload)| {
 			let is_neg = sign.is_some_and(|sign| sign == '-');
 
-			let Some(payload) = payload else {
+			let Some(payload) = payload
+			else {
 				if is_neg {
 					return Ok(ESExpr::Float16(-f16::NAN));
 				}
@@ -210,7 +219,7 @@ fn float16_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			};
 
 			if (payload & 0xFC00) != 0 {
-				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)))
+				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)));
 			}
 
 			let sign_bit: u16 = if is_neg { 0x8000 } else { 0 };
@@ -219,8 +228,9 @@ fn float16_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			let f = f16::from_bits(sign_bit | exponent | payload);
 
 			Ok(ESExpr::Float16(f))
-		}
-	).parse(input)
+		},
+	)
+	.parse(input)
 }
 
 fn float32_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
@@ -229,15 +239,13 @@ fn float32_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			tag("#float32:"),
 			opt(one_of("+-")),
 			tag("nan"),
-			opt(preceded(
-				tag(":"),
-				nom::character::complete::u32
-			))
+			opt(preceded(tag(":"), nom::character::complete::u32)),
 		),
 		|(_, sign, _, payload)| {
 			let is_neg = sign.is_some_and(|sign| sign == '-');
 
-			let Some(payload) = payload else {
+			let Some(payload) = payload
+			else {
 				if is_neg {
 					return Ok(ESExpr::Float32(-f32::NAN));
 				}
@@ -245,7 +253,7 @@ fn float32_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			};
 
 			if (payload & 0xFF80_0000) != 0 {
-				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)))
+				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)));
 			}
 
 			let sign_bit: u32 = if is_neg { 0x8000_0000 } else { 0 };
@@ -254,8 +262,9 @@ fn float32_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			let f = f32::from_bits(sign_bit | exponent | payload);
 
 			Ok(ESExpr::Float32(f))
-		}
-	).parse(input)
+		},
+	)
+	.parse(input)
 }
 
 fn float64_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
@@ -264,15 +273,13 @@ fn float64_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			tag("#float64:"),
 			opt(one_of("+-")),
 			tag("nan"),
-			opt(preceded(
-				tag(":"),
-				nom::character::complete::u64
-			))
+			opt(preceded(tag(":"), nom::character::complete::u64)),
 		),
 		|(_, sign, _, payload)| {
 			let is_neg = sign.is_some_and(|sign| sign == '-');
 
-			let Some(payload) = payload else {
+			let Some(payload) = payload
+			else {
 				if is_neg {
 					return Ok(ESExpr::Float64(-f64::NAN));
 				}
@@ -289,8 +296,9 @@ fn float64_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 			let f = f64::from_bits(sign_bit | exponent | payload);
 
 			Ok(ESExpr::Float64(f))
-		}
-	).parse(input)
+		},
+	)
+	.parse(input)
 }
 
 fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
@@ -320,11 +328,13 @@ fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
 pub fn integer(input: &str) -> IResult<&str, BigInt> {
 	preceded(
 		skip_ws,
-		map((
-			opt(one_of("+-")),
-			unsigned_integer
-		), |(sign, n)| {
-			let sign = if sign.is_some_and(|s| s == '-') { Sign::Minus } else { Sign::Plus };
+		map((opt(one_of("+-")), unsigned_integer), |(sign, n)| {
+			let sign = if sign.is_some_and(|s| s == '-') {
+				Sign::Minus
+			}
+			else {
+				Sign::Plus
+			};
 			BigInt::from_biguint(sign, n)
 		}),
 	)
@@ -339,22 +349,13 @@ pub fn unsigned_integer(input: &str) -> IResult<&str, BigUint> {
 	preceded(
 		skip_ws,
 		alt((
-			map(
-				preceded(tag_no_case("0x"), hex_digit1),
-				|s: &str| parse_int_base(s, 16),
-			),
-			map(
-				preceded(tag_no_case("0b"), bin_digit1),
-				|s: &str| parse_int_base(s, 2),
-			),
-			map(
-				preceded(tag("0o"), oct_digit1),
-				|s: &str| parse_int_base(s, 8),
-			),
+			map(preceded(tag_no_case("0x"), hex_digit1), |s: &str| parse_int_base(s, 16)),
+			map(preceded(tag_no_case("0b"), bin_digit1), |s: &str| parse_int_base(s, 2)),
+			map(preceded(tag("0o"), oct_digit1), |s: &str| parse_int_base(s, 8)),
 			map_res(recognize(digit1), str::parse::<BigUint>),
 		)),
 	)
-		.parse(input)
+	.parse(input)
 }
 
 fn parse_int_base(s: &str, radix: u32) -> BigUint {

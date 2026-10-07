@@ -15,11 +15,13 @@ mod option;
 mod scalar;
 mod vec;
 
-use crate::cowstr::CowStr;
-use crate::{DecodeError, ESExpr, ESExprTagSet};
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+
 use hashbrown::HashMap;
+
+use crate::cowstr::CowStr;
+use crate::{DecodeError, ESExpr, ESExprTagSet};
 
 /// Equality for the encoded `ESExpr` representation.
 pub trait ESExprEncodedEq {
@@ -96,4 +98,3 @@ where
 		constructor_name: &str,
 	) -> Result<Self, DecodeError>;
 }
-

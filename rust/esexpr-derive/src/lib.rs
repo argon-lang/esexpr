@@ -3,9 +3,9 @@
 use proc_macro::TokenStream;
 
 mod derive;
-mod literal;
 mod encoded_eq;
 mod flags;
+mod literal;
 
 #[proc_macro_derive(ESExprCodec, attributes(esexpr))]
 /// Derive macro for `ESExprCodec`
@@ -16,7 +16,9 @@ pub fn derive_esexpr_codec(input: TokenStream) -> TokenStream {
 /// Derive macro for `ESExprEncodedEq`
 #[proc_macro_derive(ESExprEncodedEq)]
 pub fn derive_encoded_eq(input: TokenStream) -> TokenStream {
-	TokenStream::from(encoded_eq::derive_encoded_eq_impl(proc_macro2::TokenStream::from(input)))
+	TokenStream::from(encoded_eq::derive_encoded_eq_impl(proc_macro2::TokenStream::from(
+		input,
+	)))
 }
 
 #[proc_macro]

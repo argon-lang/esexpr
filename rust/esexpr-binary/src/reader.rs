@@ -487,7 +487,10 @@ macro_rules! reader_mod {
 					ExprToken::BooleanValue(b) => ESExpr::Bool(b),
 					ExprToken::NullValue(level) => ESExpr::Null(Cow::Owned(level)),
 					ExprToken::AppendStringTable => {
-						let new_string_table = do_await!($syncness, pinbox_future!($syncness, read_next_expr_impl(iter, string_pool)))?;
+						let new_string_table = do_await!(
+							$syncness,
+							pinbox_future!($syncness, read_next_expr_impl(iter, string_pool))
+						)?;
 						let new_string_table = AppendedStringPool::decode_esexpr(new_string_table)
 							.map_err(ParseError::InvalidStringPool)?;
 
@@ -518,11 +521,17 @@ macro_rules! reader_mod {
 				let mut kwargs = BTreeMap::new();
 
 				loop {
-					match do_await!($syncness, pinbox_future!($syncness, read_expr_plus(iter, string_pool)))? {
+					match do_await!(
+						$syncness,
+						pinbox_future!($syncness, read_expr_plus(iter, string_pool))
+					)? {
 						ExprPlus::Expr(expr) => args.push(expr),
 						ExprPlus::Keyword(index) => {
 							let kw = get_string(string_pool, index)?;
-							let value = do_await!($syncness, pinbox_future!($syncness, read_next_expr_impl(iter, string_pool)))?;
+							let value = do_await!(
+								$syncness,
+								pinbox_future!($syncness, read_next_expr_impl(iter, string_pool))
+							)?;
 							kwargs.insert(CowStr::Borrowed(kw), value);
 						},
 						ExprPlus::ConstructorEnd => break,
@@ -556,8 +565,9 @@ macro_rules! reader_mod {
 mod reader_sync {
 	use core::iter::{self, Iterator as IterLike, Iterator};
 
-	use super::*;
 	use embedded_io::Read;
+
+	use super::*;
 
 	fn token_reader<R: Read>(read: &mut R) -> impl Iterator<Item = Result<ExprToken, ParseError<R::Error>>> {
 		iter::from_fn(|| read_token_impl(read).transpose())
@@ -571,10 +581,10 @@ mod reader_sync {
 mod reader_async {
 	use alloc::boxed::Box;
 
+	use embedded_io_async::Read;
 	use futures::{Stream as IterLike, Stream, StreamExt, stream};
 
 	use super::*;
-	use embedded_io_async::Read;
 
 	fn token_reader<R: Read>(read: &mut R) -> impl Stream<Item = Result<ExprToken, ParseError<R::Error>>> {
 		stream::try_unfold(read, async |read| {

@@ -1,12 +1,12 @@
 use std::collections::HashSet;
+use std::string::String;
+
 use num_bigint::BigUint;
 use num_traits::{Num, ToPrimitive, Zero};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::parse::{Parse, ParseStream};
-use syn::{braced, Ident, LitInt, LitStr, Result as SynResult, Token};
-use std::string::String;
-
+use syn::{Ident, LitInt, LitStr, Result as SynResult, Token, braced};
 
 pub fn esexpr_flags_impl(input: TokenStream) -> TokenStream {
 	let spec = match syn::parse2::<FlagsSpec>(input) {
@@ -14,7 +14,7 @@ pub fn esexpr_flags_impl(input: TokenStream) -> TokenStream {
 		Err(e) => {
 			let msg = format!("Error parsing esexpr_flags!: {e}");
 			return quote! { compile_error!(#msg); };
-		}
+		},
 	};
 
 	spec.codegen().unwrap_or_else(|msg| quote! { compile_error!(#msg); })
@@ -23,11 +23,14 @@ pub fn esexpr_flags_impl(input: TokenStream) -> TokenStream {
 fn parse_biguint_with_prefix(s: &str) -> Result<BigUint, String> {
 	let (radix, stripped) = if s.starts_with("0x") || s.starts_with("0X") {
 		(16, &s[2..])
-	} else if s.starts_with("0b") || s.starts_with("0B") {
+	}
+	else if s.starts_with("0b") || s.starts_with("0B") {
 		(2, &s[2..])
-	} else if s.starts_with("0o") || s.starts_with("0O") {
+	}
+	else if s.starts_with("0o") || s.starts_with("0O") {
 		(8, &s[2..])
-	} else {
+	}
+	else {
 		(10, s)
 	};
 	let cleaned = stripped.replace('_', "");
@@ -69,17 +72,29 @@ impl Parse for FlagsSpec {
 						let lit: LitInt = content.parse()?;
 						let s = lit.to_string();
 						parse_biguint_with_prefix(&s).map_err(|e| content.error(e))?
-					} else if content.peek(LitStr) {
+					}
+					else if content.peek(LitStr) {
 						let ls: LitStr = content.parse()?;
 						parse_biguint_with_prefix(&ls.value()).map_err(|e| content.error(e))?
-					} else {
+					}
+					else {
 						return Err(content.error("Expected integer or string literal for enum variant mask"));
 					};
-					let _: Option<Token![,]> = if content.peek(Token![,]) { Some(content.parse()?) } else { None };
+					let _: Option<Token![,]> = if content.peek(Token![,]) {
+						Some(content.parse()?)
+					}
+					else {
+						None
+					};
 					variants.push((vname, value));
 				}
 				// Optional comma after enum block
-				let _: Option<Token![,]> = if input.peek(Token![,]) { Some(input.parse()?) } else { None };
+				let _: Option<Token![,]> = if input.peek(Token![,]) {
+					Some(input.parse()?)
+				}
+				else {
+					None
+				};
 				items.push(FlagsItem::Enum(EnumSpec { name, variants }));
 			}
 			else {
@@ -89,13 +104,20 @@ impl Parse for FlagsSpec {
 					let lit: LitInt = input.parse()?;
 					let s = lit.to_string();
 					parse_biguint_with_prefix(&s).map_err(|e| input.error(e))?
-				} else if input.peek(LitStr) {
+				}
+				else if input.peek(LitStr) {
 					let ls: LitStr = input.parse()?;
 					parse_biguint_with_prefix(&ls.value()).map_err(|e| input.error(e))?
-				} else {
+				}
+				else {
 					return Err(input.error("Expected integer or string literal for flag mask"));
 				};
-				let _: Option<Token![,]> = if input.peek(Token![,]) { Some(input.parse()?) } else { None };
+				let _: Option<Token![,]> = if input.peek(Token![,]) {
+					Some(input.parse()?)
+				}
+				else {
+					None
+				};
 				items.push(FlagsItem::Flag(name, value));
 			}
 		}
@@ -143,7 +165,7 @@ impl FlagsSpec {
 					field_names.push(fname.to_token_stream());
 					encode_ors.push(quote! { if self.#fname { value |= #mask_expr; } });
 					decode_inits.push(quote! { #fname: !<::esexpr::core_types::num_bigint::BigUint as ::esexpr::core_types::num_traits::Zero>::is_zero(&(&v & #mask_expr)) });
-				}
+				},
 				FlagsItem::Enum(EnumSpec { name, variants }) => {
 					let ename = format_ident!("{}__{}", self.name, name);
 					let mut v_defs = Vec::new();
@@ -187,7 +209,7 @@ impl FlagsSpec {
 							}
 						}
 					});
-				}
+				},
 			}
 
 			if !(&item_mask & &flag_used_bits).is_zero() {
@@ -200,7 +222,8 @@ impl FlagsSpec {
 		let name_struct = &self.name;
 		let struct_def = quote! { #[automatically_derived] #[derive(Debug, Clone, PartialEq, Eq)] pub struct #name_struct { #( #struct_fields, )* } };
 
-		let tags_impl = quote! { const TAGS: ::esexpr::ESExprTagSet = ::esexpr::ESExprTagSet::Tags(&[::esexpr::ESExprTag::Int]); };
+		let tags_impl =
+			quote! { const TAGS: ::esexpr::ESExprTagSet = ::esexpr::ESExprTagSet::Tags(&[::esexpr::ESExprTag::Int]); };
 		let encode_impl = quote! {
 			fn encode_esexpr(&self) -> ::esexpr::ESExpr<'a> {
 				let mut value = ::esexpr::core_types::num_bigint::BigUint::from(0u8);
@@ -214,7 +237,8 @@ impl FlagsSpec {
 				Ok(#name_struct { #( #decode_inits, )* })
 			}
 		};
-		let codec_impl = quote! { impl<'a> ::esexpr::ESExprCodec<'a> for #name_struct { #tags_impl #encode_impl #decode_impl } };
+		let codec_impl =
+			quote! { impl<'a> ::esexpr::ESExprCodec<'a> for #name_struct { #tags_impl #encode_impl #decode_impl } };
 		let eq_impl = quote! { impl ::esexpr::ESExprEncodedEq for #name_struct { fn is_encoded_eq(&self, other: &Self) -> bool { self == other } } };
 
 		let output = quote! {

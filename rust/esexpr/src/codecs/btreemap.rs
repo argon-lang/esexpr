@@ -4,6 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Deref;
+
 use itertools::Itertools;
 
 use crate::cowstr::CowStr;
@@ -17,36 +18,38 @@ map_dict_codec_impl!(BTreeMap<CowStr<'a>, V>, k, k.as_borrowed(), k, 'a, V: ESEx
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::esexpr;
+	use super::*;
+	use crate::esexpr;
 
-    #[test]
-    fn test_btreemap_codec() {
-        let mut map = BTreeMap::new();
-        map.insert(1i64, "one".to_owned());
-        map.insert(2i64, "two".to_owned());
+	#[test]
+	fn test_btreemap_codec() {
+		let mut map = BTreeMap::new();
+		map.insert(1i64, "one".to_owned());
+		map.insert(2i64, "two".to_owned());
 
-        let expr = map.encode_esexpr();
-        assert_eq!(expr, esexpr! { (map 1 "one" 2 "two") });
+		let expr = map.encode_esexpr();
+		assert_eq!(expr, esexpr! { (map 1 "one" 2 "two") });
 
-        let decoded: BTreeMap<i64, String> = ESExprCodec::decode_esexpr(expr).expect("encoded collection should decode");
-        assert_eq!(map, decoded);
-    }
+		let decoded: BTreeMap<i64, String> =
+			ESExprCodec::decode_esexpr(expr).expect("encoded collection should decode");
+		assert_eq!(map, decoded);
+	}
 
-    #[test]
-    fn test_btreemap_dict_codec() {
-        let mut map = BTreeMap::new();
-        map.insert("one".to_owned(), 1i64);
-        map.insert("two".to_owned(), 2i64);
+	#[test]
+	fn test_btreemap_dict_codec() {
+		let mut map = BTreeMap::new();
+		map.insert("one".to_owned(), 1i64);
+		map.insert("two".to_owned(), 2i64);
 
-        let mut kwargs = hashbrown::HashMap::new();
-        map.encode_dict_element(&mut kwargs);
+		let mut kwargs = hashbrown::HashMap::new();
+		map.encode_dict_element(&mut kwargs);
 
-        assert_eq!(kwargs.len(), 2);
-        assert_eq!(kwargs.get(&CowStr::Borrowed("one")), Some(&esexpr! { 1 }));
-        assert_eq!(kwargs.get(&CowStr::Borrowed("two")), Some(&esexpr! { 2 }));
+		assert_eq!(kwargs.len(), 2);
+		assert_eq!(kwargs.get(&CowStr::Borrowed("one")), Some(&esexpr! { 1 }));
+		assert_eq!(kwargs.get(&CowStr::Borrowed("two")), Some(&esexpr! { 2 }));
 
-        let decoded: BTreeMap<String, i64> = ESExprDictCodec::decode_dict_element(&mut kwargs, "test").expect("encoded collection should decode");
-        assert_eq!(map, decoded);
-    }
+		let decoded: BTreeMap<String, i64> =
+			ESExprDictCodec::decode_dict_element(&mut kwargs, "test").expect("encoded collection should decode");
+		assert_eq!(map, decoded);
+	}
 }

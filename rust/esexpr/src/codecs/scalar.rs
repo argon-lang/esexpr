@@ -1,14 +1,16 @@
 use alloc::borrow::Cow;
 use alloc::format;
 use alloc::string::String;
+
+use esexpr::ESExprEncodedEq;
 use half::f16;
 use num_bigint::{BigInt, BigUint};
-use esexpr::ESExprEncodedEq;
+
 use crate::cowstr::CowStr;
 use crate::{DecodeError, DecodeErrorPath, DecodeErrorType, ESExpr, ESExprCodec, ESExprTag, ESExprTagSet};
 
 macro_rules! encoded_as_partial_eq {
-    ($t: ty) => {
+	($t: ty) => {
 		impl ESExprEncodedEq for $t {
 			fn is_encoded_eq(&self, other: &Self) -> bool {
 				*self == *other
@@ -137,8 +139,6 @@ int_codec!(u16);
 int_codec!(i8);
 int_codec!(u8);
 
-
-
 encoded_as_partial_eq!(String);
 
 impl<'a> ESExprCodec<'a> for String {
@@ -162,8 +162,7 @@ impl<'a> ESExprCodec<'a> for String {
 	}
 }
 
-
-impl <'a> ESExprEncodedEq for Cow<'a, str> {
+impl<'a> ESExprEncodedEq for Cow<'a, str> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
 		self == other
 	}
@@ -190,8 +189,7 @@ impl<'a> ESExprCodec<'a> for Cow<'a, str> {
 	}
 }
 
-
-impl <'a> ESExprEncodedEq for CowStr<'a> {
+impl<'a> ESExprEncodedEq for CowStr<'a> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
 		self == other
 	}
@@ -217,8 +215,6 @@ impl<'a> ESExprCodec<'a> for CowStr<'a> {
 		}
 	}
 }
-
-
 
 impl ESExprEncodedEq for f16 {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -300,7 +296,6 @@ impl<'a> ESExprCodec<'a> for f64 {
 		}
 	}
 }
-
 
 encoded_as_partial_eq!(());
 

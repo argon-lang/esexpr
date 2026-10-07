@@ -1,4 +1,3 @@
-
 macro_rules! map_encoded_eq_impl {
     ($t: ty, $($bounds: tt)*) => {
         impl<$($bounds)*> ESExprEncodedEq for $t {
@@ -14,12 +13,11 @@ macro_rules! map_encoded_eq_impl {
     };
 }
 
-
 macro_rules! map_codec_impl {
     ($t: ty, $($bounds: tt)*) => {
         impl<$($bounds)*> ESExprCodec<'a> for $t {
             const TAGS: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Static("map"))]);
-        
+
             fn encode_esexpr(&'a self) -> ESExpr<'a> {
                 ESExpr::constructor(
                     "map",
@@ -29,7 +27,7 @@ macro_rules! map_codec_impl {
                     [],
                 )
             }
-        
+
             fn decode_esexpr(expr: ESExpr<'a>) -> Result<Self, DecodeError> {
                 match expr {
                     ESExpr::Constructor(ESExprConstructor { name, args, kwargs }) if name == "map" => {
@@ -39,22 +37,22 @@ macro_rules! map_codec_impl {
                                 DecodeErrorPath::Constructor(name.deref().to_owned()),
                             ));
                         }
-        
+
                         if args.len() % 2 != 0 {
                             return Err(DecodeError::new(
                                 DecodeErrorType::OutOfRange("Map must not have an odd number of arguments".to_owned()),
                                 DecodeErrorPath::Constructor(name.deref().to_owned()),
                             ));
                         }
-        
+
                         let mut map = Self::default();
-        
+
                         for (k_expr, v_expr) in args.into_iter().tuples::<(_, _)>() {
                             let k = K::decode_esexpr(k_expr.clone())?;
                             let v = V::decode_esexpr(v_expr.clone())?;
                             map.insert(k, v);
                         }
-        
+
                         Ok(map)
                     },
                     _ => Err(DecodeError::new(
@@ -101,6 +99,3 @@ macro_rules! map_dict_codec_impl {
         }
     };
 }
-
-
-

@@ -341,36 +341,18 @@ mod tests {
 
 	#[test]
 	fn tag_collection_disjoint() {
-		assert!(
-			ESExprTagSet::Tags(&[ESExprTag::Int]).is_disjoint(ESExprTagSet::Tags(&[ESExprTag::Float32])),
-		);
+		assert!(ESExprTagSet::Tags(&[ESExprTag::Int]).is_disjoint(ESExprTagSet::Tags(&[ESExprTag::Float32])),);
 
 		assert!(
-			ESExprTagSet::Concat(&[
-				i32::TAGS,
-				f32::TAGS,
-			],)
-			.is_disjoint(<alloc::string::String as ESExprCodec>::TAGS)
+			ESExprTagSet::Concat(&[i32::TAGS, f32::TAGS,],).is_disjoint(<alloc::string::String as ESExprCodec>::TAGS)
 		);
 	}
 
 	#[test]
 	fn tag_collection_disjoint_substr() {
-		let t1: ESExprTagSet = ESExprTagSet::Tags(
-			&[
-				ESExprTag::Constructor(
-					CowStr::Borrowed("record"),
-				),
-			],
-		);
+		let t1: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Borrowed("record"))]);
 
-		let t2: ESExprTagSet = ESExprTagSet::Tags(
-			&[
-				ESExprTag::Constructor(
-					CowStr::Borrowed("record-field-literal"),
-				),
-			],
-		);
+		let t2: ESExprTagSet = ESExprTagSet::Tags(&[ESExprTag::Constructor(CowStr::Borrowed("record-field-literal"))]);
 
 		assert!(t1.is_disjoint(t2));
 	}

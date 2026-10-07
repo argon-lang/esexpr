@@ -4,6 +4,7 @@ use darling::util::Flag;
 use darling::{FromAttributes, FromMeta};
 use proc_macro2::Span;
 use quote::quote;
+use syn::ext::IdentExt;
 use syn::punctuated::Punctuated;
 use syn::{
 	Data,
@@ -26,7 +27,6 @@ use syn::{
 	Variant,
 	parse_quote,
 };
-use syn::ext::IdentExt;
 
 #[derive(Debug, Default, FromAttributes)]
 #[darling(attributes(esexpr))]
@@ -319,7 +319,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 
 		Data::Enum(e) if attr.simple_enum.is_present() => {
 			let mut names = HashSet::new();
-			
+
 			let cases: proc_macro2::TokenStream = e
 				.variants
 				.iter()
@@ -329,11 +329,11 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 
 					let case_name = &c.ident;
 					let case_name_str = make_constructor_name(variant_attr.constructor.as_ref(), case_name);
-					
+
 					if !names.insert(case_name_str.clone()) {
 						return Err(quote! {
 							compile_error!("Duplicate simple enum case name: {}", #case_name_str);
-						})
+						});
 					}
 
 					Ok(quote! {
@@ -352,7 +352,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 		Data::Enum(e) => {
 			let mut case_tag_exprs = Vec::new();
 			let mut case_tag_assertions = Vec::new();
-			
+
 			let cases: proc_macro2::TokenStream = e.variants.iter().map(|c| -> TokenRes {
                 fn make_field_name<'a>(name: Option<&'a Ident>, i: usize) -> proc_macro2::TokenStream {
                     let name =
@@ -398,12 +398,12 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 
 				let field_tags;
 				let case_tokens;
-				
+
                 if variant_attr.inline_value.is_present() {
                     let field = get_inline_value_field(c)?;
                     let field_name = make_field_name(field.ident.as_ref(), 0);
                     let field_type = &field.ty;
-					
+
 					field_tags = quote! {
 						<#field_type as ::esexpr::ESExprCodec>::TAGS
 					};
@@ -422,7 +422,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 					field_tags = quote! {
 						::esexpr::ESExprTagSet::Tags(&[ ::esexpr::ESExprTag::Constructor(::esexpr::cowstr::CowStr::Static(#constructor_name)) ])
 					};
-					
+
                     case_tokens = quote! {
                         #pattern => {
                             let mut args = ::esexpr::core_types::alloc::vec::Vec::<::esexpr::ESExpr<'esexpr_lifetime>>::new();
@@ -440,7 +440,7 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 				});
 
 				case_tag_exprs.push(field_tags);
-				
+
 				Ok(case_tokens)
 
             }).collect::<Result<_, _>>()?;
@@ -467,11 +467,10 @@ fn make_encode_fields<'a, F: Fn(Option<&'a Ident>, usize) -> proc_macro2::TokenS
 		prev_optional_positional_tags: &[proc_macro2::TokenStream],
 	) -> proc_macro2::TokenStream {
 		if prev_optional_positional_tags.is_empty() {
-			return quote! {}
+			return quote! {};
 		}
 
-		let message_nonfull =
-			format!("Field '{field_name}' cannot follow optional positional arguments with all tags");
+		let message_nonfull = format!("Field '{field_name}' cannot follow optional positional arguments with all tags");
 
 		let message_disjoint = format!(
 			"Field '{field_name}' must have distinct tags from immediately preceding optional positional arguments"

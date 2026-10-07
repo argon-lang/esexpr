@@ -35,11 +35,17 @@ mod test {
 			let mut buff: Vec<u8> = Vec::new();
 
 			let mut eg = ExprGenerator::new(&mut buff);
-			eg.generate(&ESExpr::Int(Cow::Owned(BigInt::from(n.clone())))).expect("test expression should encode or decode");
+			eg.generate(&ESExpr::Int(Cow::Owned(BigInt::from(n.clone()))))
+				.expect("test expression should encode or decode");
 
 			assert_eq!(enc, &buff);
 
-			let m = BigUint::decode_esexpr(parse_sync(&mut enc).read_next_expr().expect("generated expression should parse")).expect("test expression should encode or decode");
+			let m = BigUint::decode_esexpr(
+				parse_sync(&mut enc)
+					.read_next_expr()
+					.expect("generated expression should parse"),
+			)
+			.expect("test expression should encode or decode");
 			assert_eq!(n, m);
 		}
 

@@ -184,14 +184,15 @@ struct OptionalAfterVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, #[esexpr(opti
 struct RequiredAfterVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, u32);
 
 #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
-struct MultipleVararg(#[esexpr(vararg)] alloc::vec::Vec<f32>, #[esexpr(vararg)] alloc::vec::Vec<i32>);
-
+struct MultipleVararg(
+	#[esexpr(vararg)] alloc::vec::Vec<f32>,
+	#[esexpr(vararg)] alloc::vec::Vec<i32>,
+);
 
 #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq)]
 pub struct AnyExpr {
 	pub a: esexpr::ESExprStatic,
 }
-
 
 #[derive(esexpr::ESExprCodec, esexpr::ESExprEncodedEq, Debug, PartialEq)]
 pub struct RustKeywords {
@@ -213,13 +214,24 @@ pub enum RustKeywordsEnum {
 
 #[cfg(test)]
 mod tests {
-	use alloc::borrow::ToOwned;
+	use alloc::borrow::{Cow, ToOwned};
 	use alloc::collections::BTreeMap;
 	use alloc::vec;
+
 	use esexpr::cowstr::CowStr;
-	use esexpr::{ESExprCodec, ESExprTag, ESExprTagSet, ESExprEncodedEq, esexpr, ESExpr, ESExprConstructor, ConstructorArgs, KeywordArgs, esexpr_flags};
+	use esexpr::{
+		ConstructorArgs,
+		ESExpr,
+		ESExprCodec,
+		ESExprConstructor,
+		ESExprEncodedEq,
+		ESExprTag,
+		ESExprTagSet,
+		KeywordArgs,
+		esexpr,
+		esexpr_flags,
+	};
 	use num_bigint::{BigInt, BigUint};
-	use alloc::borrow::Cow;
 
 	use super::*;
 
@@ -376,7 +388,10 @@ mod tests {
 
 		assert_eq!(tags, KeywordEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ESExprEncodedEq::is_encoded_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(
+			&value,
+			&KeywordEnum::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr! { (keywords a: true b2: true f: #null) };
 
@@ -405,7 +420,10 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ESExprEncodedEq::is_encoded_eq(&value, &KeywordEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(
+			&value,
+			&KeywordEnum::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr! {
 			(keywords a: true b2: true)
@@ -421,19 +439,28 @@ mod tests {
 
 		assert_eq!(ESExprTagSet::Tags(&[ESExprTag::Str]), SimpleEnum::TAGS);
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(
+			&value,
+			&SimpleEnum::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr!("b");
 		let value = SimpleEnum::B;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(
+			&value,
+			&SimpleEnum::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr!("my-c");
 		let value = SimpleEnum::C;
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ESExprEncodedEq::is_encoded_eq(&value, &SimpleEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(
+			&value,
+			&SimpleEnum::decode_esexpr(expr).unwrap()
+		));
 
 		let expr = esexpr!("d");
 
@@ -462,7 +489,10 @@ mod tests {
 		};
 
 		assert_eq!(expr, value.encode_esexpr());
-		assert!(ESExprEncodedEq::is_encoded_eq(&value, &ManyArgsEnum::decode_esexpr(expr).unwrap()));
+		assert!(ESExprEncodedEq::is_encoded_eq(
+			&value,
+			&ManyArgsEnum::decode_esexpr(expr).unwrap()
+		));
 	}
 
 	#[test]
@@ -474,26 +504,24 @@ mod tests {
 		assert_eq!(expr, GenericTest(5).encode_esexpr());
 		assert_eq!(5, GenericTest::<i32>::decode_esexpr(expr).unwrap().0);
 	}
-	
+
 	#[test]
 	fn vararg_after_optional() {
 		let expr = esexpr! {
 			("vararg-after-optional" 5 1.0_f32 2.0_f32 3.0_f32)
 		};
-		let value = VarargAfterOptional(Some(5), vec![ 1.0, 2.0, 3.0 ]);
+		let value = VarargAfterOptional(Some(5), vec![1.0, 2.0, 3.0]);
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
 
-		
 		let expr = esexpr! {
 			("vararg-after-optional" 1.0_f32 2.0_f32 3.0_f32)
 		};
-		let value = VarargAfterOptional(None, vec![ 1.0, 2.0, 3.0 ]);
+		let value = VarargAfterOptional(None, vec![1.0, 2.0, 3.0]);
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
-		
 
 		let expr = esexpr! {
 			("vararg-after-optional" 5)
@@ -502,7 +530,6 @@ mod tests {
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, VarargAfterOptional::decode_esexpr(expr).unwrap());
-
 
 		let expr = esexpr! {
 			("vararg-after-optional")
@@ -523,7 +550,6 @@ mod tests {
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
 
-
 		let expr = esexpr! {
 			("optional-after-vararg" 1.0_f32 2.0_f32 3.0_f32)
 		};
@@ -532,7 +558,6 @@ mod tests {
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
 
-
 		let expr = esexpr! {
 			("optional-after-vararg" 5)
 		};
@@ -540,7 +565,6 @@ mod tests {
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, OptionalAfterVararg::decode_esexpr(expr).unwrap());
-
 
 		let expr = esexpr! {
 			("optional-after-vararg")
@@ -587,8 +611,7 @@ mod tests {
 
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, MultipleVararg::decode_esexpr(expr).unwrap());
-		
-		
+
 		let expr = esexpr! {
 			("multiple-vararg" 1 2 3)
 		};
@@ -610,10 +633,8 @@ mod tests {
 	fn rust_keywords_test() {
 		let expr = ESExpr::Constructor(ESExprConstructor {
 			name: CowStr::Static("rust-keywords"),
-			args: ConstructorArgs::from([ ESExpr::Str(CowStr::Static("A")) ]),
-			kwargs: KeywordArgs::from([
-				(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("B"))),
-			]),
+			args: ConstructorArgs::from([ESExpr::Str(CowStr::Static("A"))]),
+			kwargs: KeywordArgs::from([(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("B")))]),
 		});
 		let value = RustKeywords {
 			r#type: "A".to_owned(),
@@ -623,13 +644,10 @@ mod tests {
 		assert_eq!(expr, value.encode_esexpr());
 		assert_eq!(value, RustKeywords::decode_esexpr(expr).unwrap());
 
-
 		let expr = ESExpr::Constructor(ESExprConstructor {
 			name: CowStr::Static("keywords"),
-			args: ConstructorArgs::from([ ESExpr::Str(CowStr::Static("A")) ]),
-			kwargs: KeywordArgs::from([
-				(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("B"))),
-			]),
+			args: ConstructorArgs::from([ESExpr::Str(CowStr::Static("A"))]),
+			kwargs: KeywordArgs::from([(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("B")))]),
 		});
 		let value = RustKeywordsEnum::Keywords {
 			r#type: "A".to_owned(),
@@ -645,10 +663,8 @@ mod tests {
 		let expr1 = esexpr! { ("f" "a" r#extern: "b") };
 		let expr2 = ESExpr::Constructor(ESExprConstructor {
 			name: CowStr::Static("f"),
-			args: ConstructorArgs::from([ ESExpr::Str(CowStr::Static("a")) ]),
-			kwargs: KeywordArgs::from([
-				(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("b"))),
-			]),
+			args: ConstructorArgs::from([ESExpr::Str(CowStr::Static("a"))]),
+			kwargs: KeywordArgs::from([(CowStr::Static("extern"), ESExpr::Str(CowStr::Static("b")))]),
 		});
 
 		assert_eq!(expr1, expr2);
@@ -669,25 +685,96 @@ mod tests {
 			let decoded: MyFlags = MyFlags::decode_esexpr(expr).unwrap();
 			assert_eq!(flags, decoded);
 
-			let decoded_from_int: MyFlags = MyFlags::decode_esexpr(ESExpr::Int(Cow::Owned(BigInt::from(expected)))).unwrap();
+			let decoded_from_int: MyFlags =
+				MyFlags::decode_esexpr(ESExpr::Int(Cow::Owned(BigInt::from(expected)))).unwrap();
 			assert_eq!(flags, decoded_from_int);
 		};
 
-		check(MyFlags { flag1: false, flag2: false, flag3: false }, 0u8.into());
-		check(MyFlags { flag1: true, flag2: false, flag3: false }, 1u8.into());
-		check(MyFlags { flag1: false, flag2: true, flag3: false }, 2u8.into());
-		check(MyFlags { flag1: true, flag2: true, flag3: false }, 3u8.into());
-		check(MyFlags { flag1: false, flag2: false, flag3: true }, 4u8.into());
-		check(MyFlags { flag1: true, flag2: false, flag3: true }, 5u8.into());
-		check(MyFlags { flag1: false, flag2: true, flag3: true }, 6u8.into());
-		check(MyFlags { flag1: true, flag2: true, flag3: true }, 7u8.into());
+		check(
+			MyFlags {
+				flag1: false,
+				flag2: false,
+				flag3: false,
+			},
+			0u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: true,
+				flag2: false,
+				flag3: false,
+			},
+			1u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: false,
+				flag2: true,
+				flag3: false,
+			},
+			2u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: true,
+				flag2: true,
+				flag3: false,
+			},
+			3u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: false,
+				flag2: false,
+				flag3: true,
+			},
+			4u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: true,
+				flag2: false,
+				flag3: true,
+			},
+			5u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: false,
+				flag2: true,
+				flag3: true,
+			},
+			6u8.into(),
+		);
+		check(
+			MyFlags {
+				flag1: true,
+				flag2: true,
+				flag3: true,
+			},
+			7u8.into(),
+		);
 
 		// Test decoding with extra bits
 		let decoded: MyFlags = MyFlags::decode_esexpr(esexpr! { 0b1111 }).unwrap();
-		assert_eq!(decoded, MyFlags { flag1: true, flag2: true, flag3: true });
+		assert_eq!(
+			decoded,
+			MyFlags {
+				flag1: true,
+				flag2: true,
+				flag3: true
+			}
+		);
 
 		let decoded: MyFlags = MyFlags::decode_esexpr(esexpr! { 0b1000 }).unwrap();
-		assert_eq!(decoded, MyFlags { flag1: false, flag2: false, flag3: false });
+		assert_eq!(
+			decoded,
+			MyFlags {
+				flag1: false,
+				flag2: false,
+				flag3: false
+			}
+		);
 	}
 
 	#[test]
@@ -714,17 +801,60 @@ mod tests {
 			let decoded: MyFlags = MyFlags::decode_esexpr(expr).unwrap();
 			assert_eq!(flags, decoded);
 
-			let decoded_from_int: MyFlags = MyFlags::decode_esexpr(ESExpr::Int(Cow::Owned(BigInt::from(expected)))).unwrap();
+			let decoded_from_int: MyFlags =
+				MyFlags::decode_esexpr(ESExpr::Int(Cow::Owned(BigInt::from(expected)))).unwrap();
 			assert_eq!(flags, decoded_from_int);
 		};
 
-		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::A }, 0u8.into());
-		check(MyFlags { my_enum1: MyFlags__my_enum1::B, my_enum2: MyFlags__my_enum2::A }, 1u8.into());
-		check(MyFlags { my_enum1: MyFlags__my_enum1::C, my_enum2: MyFlags__my_enum2::A }, 2u8.into());
-		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::B }, 4u8.into());
-		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::C }, 8u8.into());
-		check(MyFlags { my_enum1: MyFlags__my_enum1::A, my_enum2: MyFlags__my_enum2::D }, 12u8.into());
-		check(MyFlags { my_enum1: MyFlags__my_enum1::C, my_enum2: MyFlags__my_enum2::D }, 14u8.into());
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::A,
+				my_enum2: MyFlags__my_enum2::A,
+			},
+			0u8.into(),
+		);
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::B,
+				my_enum2: MyFlags__my_enum2::A,
+			},
+			1u8.into(),
+		);
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::C,
+				my_enum2: MyFlags__my_enum2::A,
+			},
+			2u8.into(),
+		);
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::A,
+				my_enum2: MyFlags__my_enum2::B,
+			},
+			4u8.into(),
+		);
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::A,
+				my_enum2: MyFlags__my_enum2::C,
+			},
+			8u8.into(),
+		);
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::A,
+				my_enum2: MyFlags__my_enum2::D,
+			},
+			12u8.into(),
+		);
+		check(
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::C,
+				my_enum2: MyFlags__my_enum2::D,
+			},
+			14u8.into(),
+		);
 
 		// Test invalid bits for enums
 		let decoded = MyFlags::decode_esexpr(esexpr! { 0b11 });
@@ -732,7 +862,13 @@ mod tests {
 
 		// Test decoding with extra unrelated bits
 		let decoded = MyFlags::decode_esexpr(esexpr! { 30 }).unwrap();
-		assert_eq!(decoded, MyFlags { my_enum1: MyFlags__my_enum1::C, my_enum2: MyFlags__my_enum2::D });
+		assert_eq!(
+			decoded,
+			MyFlags {
+				my_enum1: MyFlags__my_enum1::C,
+				my_enum2: MyFlags__my_enum2::D
+			}
+		);
 	}
 
 	#[test]
@@ -755,9 +891,30 @@ mod tests {
 			assert_eq!(flags, decoded);
 		};
 
-		check(MixedFlags { flag1: false, e1: MixedFlags__e1::A, flag2: false }, 0u8.into());
-		check(MixedFlags { flag1: true, e1: MixedFlags__e1::B, flag2: true }, 11u8.into());
-		check(MixedFlags { flag1: false, e1: MixedFlags__e1::C, flag2: true }, 12u8.into());
+		check(
+			MixedFlags {
+				flag1: false,
+				e1: MixedFlags__e1::A,
+				flag2: false,
+			},
+			0u8.into(),
+		);
+		check(
+			MixedFlags {
+				flag1: true,
+				e1: MixedFlags__e1::B,
+				flag2: true,
+			},
+			11u8.into(),
+		);
+		check(
+			MixedFlags {
+				flag1: false,
+				e1: MixedFlags__e1::C,
+				flag2: true,
+			},
+			12u8.into(),
+		);
 
 		// Overlapping enum bits: e1 uses bits for 2 and 4. 2 | 4 = 6.
 		// If we pass 6, it should fail because 6 is not A(0), B(2), or C(4).

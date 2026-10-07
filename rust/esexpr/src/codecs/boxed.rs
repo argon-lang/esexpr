@@ -1,9 +1,11 @@
-use crate::cowstr::CowStr;
-use crate::*;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+
 use hashbrown::HashMap;
+
+use crate::cowstr::CowStr;
+use crate::*;
 
 impl<A: ESExprEncodedEq> ESExprEncodedEq for Box<A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
@@ -25,7 +27,6 @@ impl<'a, A: ESExprCodec<'a>> ESExprCodec<'a> for Box<A> {
 
 impl<'a, F: ESExprOptionalFieldCodec<'a>> ESExprOptionalFieldCodec<'a> for Box<F> {
 	type Element = F::Element;
-
 
 	fn encode_optional_field(&'a self) -> Option<ESExpr<'a>> {
 		(**self).encode_optional_field()

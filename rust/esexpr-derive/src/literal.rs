@@ -71,7 +71,6 @@ impl Parse for ESExprConstructorBody {
 				name = &name[2..];
 			}
 
-
 			LitStr::new(name, ident.span())
 		}
 		else {
