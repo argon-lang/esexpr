@@ -1,6 +1,7 @@
 src/
 dist/
 tsconfig.json
+eslint.config.js
 *.tgz
 
 .nvmrc

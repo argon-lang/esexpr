@@ -165,7 +165,7 @@ class ByteReader {
 
     async readFixed(size: number): Promise<Uint8Array> {
         let offset = 0;
-        let res = new Uint8Array(size);
+        const res = new Uint8Array(size);
         while(offset < size) {
             const buff = await this.#ensureBuffer();
             const len = Math.min(size - offset, buff.length - this.#index);
@@ -606,17 +606,17 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 }
 
 function readInt(reader: ByteReader, b: number): Promise<bigint> {
-    let n = BigInt(b & 0x0F);
-    let bitOffset = 4n;
-    let hasNext = (b & 0x10) == 0x10;
+    const n = BigInt(b & 0x0F);
+    const bitOffset = 4n;
+    const hasNext = (b & 0x10) == 0x10;
 
     return readIntRest(reader, n, bitOffset, hasNext)
 }
 
 function readIntFull(reader: ByteReader): Promise<bigint> {
-    let n = 0n;
-    let bitOffset = 0n;
-    let hasNext = true;
+    const n = 0n;
+    const bitOffset = 0n;
+    const hasNext = true;
 
     return readIntRest(reader, n, bitOffset, hasNext)
 }
@@ -655,10 +655,10 @@ async function writeByte(b: number): Promise<Uint8Array> {
 }
 
 async function* writeInt(tag: number, value: bigint): AsyncIterable<Uint8Array> {
-    let bits = Number(value & 0x0Fn);
+    const bits = Number(value & 0x0Fn);
     value >>= 4n;
 
-    let hasNext = value > 0;
+    const hasNext = value > 0;
 
     yield writeByte(tag | (hasNext ? 0x10 : 0x00) | bits);
 
@@ -860,7 +860,9 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 }
 
 async function drain(iter: AsyncIterable<unknown>): Promise<void> {
-    for await(const _ of iter) {}
+    for await(const _ of iter) {
+        // Consume the iterable for its side effects.
+    }
 }
 
 export async function* writeExprs(exprs: AsyncIterable<ESExpr> | Iterable<ESExpr>): AsyncIterable<Uint8Array> {

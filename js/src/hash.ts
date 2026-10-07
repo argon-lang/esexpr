@@ -1,6 +1,6 @@
 
-export const hashSymbol: symbol = Symbol.for("esexpr-hash");
-export const equalsSymbol: symbol = Symbol.for("esexpr-equals");
+export const hashSymbol: unique symbol = Symbol.for("esexpr-hash");
+export const equalsSymbol: unique symbol = Symbol.for("esexpr-equals");
 
 export function hash(value: unknown): number {
     switch(typeof value) {
@@ -25,7 +25,7 @@ export function hash(value: unknown): number {
                 return hashBufferView(value);
             }
             else if(hashSymbol in value) {
-                return (value as any)[hashSymbol]();
+                return (value as { [hashSymbol](): number; })[hashSymbol]();
             }
             else if(isSimpleObject(value)) {
                 return hashObject(value);
@@ -62,7 +62,7 @@ export function equals(a: unknown, b: unknown): boolean {
             arrayBufferViewEquals(a, b);
     }
     else if(equalsSymbol in a) {
-        return (a as any)[equalsSymbol](b);
+        return (a as Record<symbol, (other: unknown) => boolean>)[equalsSymbol]!(b);
     }
     else if(isSimpleObject(a)) {
         return isSimpleObject(b) && objectEquals(a, b);
@@ -102,7 +102,7 @@ function hashBigInt(x: bigint): number {
 
     let h = 0;
     let v = x < 0n ? -x : x; // ignore sign initially
-    let sign = x < 0n ? 1 : 0;
+    const sign = x < 0n ? 1 : 0;
 
     while (v !== 0n) {
         const limb = Number(BigInt.asUintN(32, v));
@@ -225,12 +225,12 @@ function hashBytes(bytes: Uint8Array) {
     return h | 0;
 }
 
-function isSimpleObject(obj: object): boolean {
+function isSimpleObject(obj: object): obj is Record<PropertyKey, unknown> {
     const proto = Object.getPrototypeOf(obj);
     return proto === Object.prototype || proto === null;
 }
 
-function hashObject(obj: any): number {
+function hashObject(obj: Record<PropertyKey, unknown>): number {
     let h = 0;
 
     const keys = Reflect.ownKeys(obj);
@@ -278,7 +278,7 @@ function arrayBufferViewEquals(a: Readonly<ArrayBufferView>, b: Readonly<ArrayBu
     return true;
 }
 
-function objectEquals(a: any, b: any): boolean {
+function objectEquals(a: Record<PropertyKey, unknown>, b: Record<PropertyKey, unknown>): boolean {
     const aKeys = Reflect.ownKeys(a);
     const bKeys = Reflect.ownKeys(b);
 
@@ -293,4 +293,3 @@ function objectEquals(a: any, b: any): boolean {
 
     return true;
 }
-

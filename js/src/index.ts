@@ -1138,6 +1138,8 @@ function getWrappedNull(level: number): WrappedNull {
 export type Option<A> = Option.Some<A> | null;
 
 export namespace Option {
+    // The empty object type excludes null while preserving other values.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     export type Some<A> = (A & ({} | undefined)) | (A extends null ? WrappedNull : never);
 
     export function some<A>(value: A): Some<A> {
@@ -1493,7 +1495,7 @@ class FlagsCodec<T> implements ESExprCodec<T> {
             };
         }
 
-        const obj: any = {};
+        const obj: Partial<T> = {};
 
         for(const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
             const result = this.#flagsMap[field].decode(expr);
@@ -1511,7 +1513,7 @@ class FlagsCodec<T> implements ESExprCodec<T> {
 
         return {
             success: true,
-            value: obj,
+            value: obj as T,
         };
     }
 }
@@ -1555,7 +1557,7 @@ class FlagsEnumFieldCodec<T extends string> implements ESExprFlagsFieldCodec<T> 
         this.#cases = cases;
 
         let mask = 0n;
-        let valueLookup = new Map<bigint, T>();
+        const valueLookup = new Map<bigint, T>();
         for(const [caseName, bitValue] of Object.entries(cases) as [T, bigint][]) {
             mask |= bitValue;
             valueLookup.set(bitValue, caseName);
@@ -1627,8 +1629,8 @@ class RecordCodec<T> implements ESExprCodec<T> {
     }
 
     encode(value: T): ESExpr {
-        let args: ESExpr[] = [];
-        let kwargs = new Map<string, ESExpr>();
+        const args: ESExpr[] = [];
+        const kwargs = new Map<string, ESExpr>();
         for(const field of Object.keys(this.#fields) as (keyof T)[]) {
             this.#fields[field].encode(value[field], args, kwargs);
         }
@@ -1650,9 +1652,9 @@ class RecordCodec<T> implements ESExprCodec<T> {
             };
         }
 
-        let obj: any = {};
-        let args = [...expr.args];
-        let kwargs = new Map<string, ESExpr>(expr.kwargs);
+        const obj: Partial<T> = {};
+        const args = [...expr.args];
+        const kwargs = new Map<string, ESExpr>(expr.kwargs);
 
         const state: FieldDecodeState = {
             constructor: expr.name,
@@ -1709,7 +1711,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
 
         return {
             success: true,
-            value: obj,
+            value: obj as T,
         };
     }
 
@@ -2082,7 +2084,7 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
     }
 
     decodeMany(exprs: ESExpr[]): RepeatedDecodeResult<readonly T[]> {
-        let result: T[] = [];
+        const result: T[] = [];
         for(let i = 0; exprs.length > 0; ++i) {
             const expr = exprs[0];
             if(expr === undefined) {
@@ -2176,7 +2178,7 @@ function validateKeywordField(state: RecordCodecValidationState, name: string) {
     }
 
     if(state.keywords.has(name)) {
-        throw new Error(`Duplicate keyword argument \"${name}\"`);
+        throw new Error(`Duplicate keyword argument "${name}"`);
     }
 }
 

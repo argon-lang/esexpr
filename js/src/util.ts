@@ -136,7 +136,7 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
         }
 
         for(const k of aKeys) {
-            if(!valuesEqual((a as any)[k], (b as any)[k])) {
+            if(!valuesEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) {
                 return false;
             }
         }

@@ -9,13 +9,18 @@
     "./binary_format": "./lib/binary_format.js"
   },
   "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "npm run lint -- --fix",
     "build": "tsc --project .",
     "test": "npm run build && node --test --experimental-test-coverage --test-coverage-exclude='lib/*.test.js' lib/*.test.js"
   },
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.4",
-    "typescript": "^6.0.3"
+    "eslint": "^10.12.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1"
   }
 }
