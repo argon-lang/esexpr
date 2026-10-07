@@ -28,6 +28,8 @@ half = { workspace = true }
 static_assertions = { workspace = true }
 
 [dev-dependencies]
+esexpr = { workspace = true, features = ["proptest"] }
+proptest = { workspace = true }
 esexpr-json = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "fs"] }

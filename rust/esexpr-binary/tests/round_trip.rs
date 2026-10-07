@@ -7,6 +7,20 @@ use esexpr_binary::{ExprGenerator, ExprGeneratorSync, ExprParserSync, parse_exis
 use half::f16;
 use num_bigint::{BigInt, BigUint};
 
+proptest::proptest! {
+	#[test]
+	fn arbitrary_expressions_round_trip(
+		expected in proptest::collection::vec(proptest::arbitrary::any::<ESExpr<'static>>(), 0..16),
+	) {
+		let data = encode_sync(&expected);
+		let actual = parse_sync(&mut data.as_slice())
+			.iter_static()
+			.collect::<Result<Vec<_>, _>>()
+			.map_err(|error| proptest::test_runner::TestCaseError::fail(format!("{error:?}")))?;
+		proptest::prop_assert_eq!(actual, expected);
+	}
+}
+
 fn expressions() -> Vec<ESExpr<'static>> {
 	let mut result = vec![
 		ESExpr::Bool(true),

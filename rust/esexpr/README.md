@@ -17,6 +17,14 @@ Constructor tags include the constructor name.
 
 
 ## Derivation
+The optional `proptest` feature implements `proptest::arbitrary::Arbitrary` for
+`ESExpr<'static>`, generating bounded recursive expressions with all value variants.
+The binary round-trip property test enables this feature automatically through its dev-dependencies:
+
+```sh
+cargo test -p esexpr-binary --test round_trip
+```
+
 The `ESExprCodec` trait can be derived.
 
 ```rust

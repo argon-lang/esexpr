@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a67f7e9963f8844b016151b9f74eb54f64f961fc58701c2a4f2802524ec7d503 # shrinks to expected = [Constructor(ESExprConstructor { name: "", args: ConstructorArgs { args: [Constructor(ESExprConstructor { name: "", args: ConstructorArgs { args: [Int(32592575621351777380295131014550050576823494298654980010178247189670100796213387298934358016)] }, kwargs: KeywordArgs { kwargs: {} } })] }, kwargs: KeywordArgs { kwargs: {} } })]

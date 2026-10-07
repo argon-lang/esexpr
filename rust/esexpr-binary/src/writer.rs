@@ -468,18 +468,22 @@ macro_rules! writer_mod {
 							bit_index += written_bits;
 							bit_index2 += written_bits;
 							if bit_index >= 7 {
-								if i < buff.len() - 1 || (bit_index2 < 8 && (b >> bit_index2) != 0) {
+								let has_next = i < buff.len() - 1 || (bit_index2 < 8 && (b >> bit_index2) != 0);
+								if has_next {
 									current |= 0x80;
 								}
 
 								do_await!($syncness, Self::write_out(out, current))?;
+								if !has_next {
+									return Ok(());
+								}
 								bit_index = 0;
 								current = 0;
 							}
 						}
 					}
 
-					if current != 0 {
+					if bit_index > 0 {
 						do_await!($syncness, Self::write_out(out, current))?;
 					}
 

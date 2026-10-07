@@ -4,6 +4,8 @@
 
 extern crate self as esexpr;
 
+#[cfg(feature = "proptest")]
+mod arbitrary;
 mod codecs;
 pub mod cowstr;
 mod error;
