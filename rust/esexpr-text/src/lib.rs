@@ -1,4 +1,4 @@
-//! `ESExpr` text format parser.
+//! `ESExpr` text format parser and printer.
 #![no_std]
 
 extern crate alloc;
@@ -7,6 +7,10 @@ extern crate core;
 use alloc::vec::Vec;
 
 use esexpr::ESExpr;
+
+pub mod printer;
+
+pub use printer::{ExprPrinter, Indentation, format_as_string};
 
 /// Underlying nom parser.
 pub mod parser;

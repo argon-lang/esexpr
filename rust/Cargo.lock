@@ -445,6 +445,7 @@ dependencies = [
  "hexponent",
  "nom",
  "num-bigint",
+ "proptest",
  "serde_json",
 ]
 

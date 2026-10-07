@@ -19,6 +19,8 @@ num-bigint = { workspace = true }
 nom = { workspace = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
+esexpr = { workspace = true, features = ["proptest"] }
 serde_json = { workspace = true }
 esexpr-json = { workspace = true }
 

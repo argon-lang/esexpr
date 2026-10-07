@@ -394,30 +394,33 @@ fn string_impl<'a>(
 	move |input| {
 		delimited(
 			char(quote),
-			escaped_transform(
-				none_of(non_normal_chars),
-				'\\',
-				alt((
-					value('\x0C', char('f')),
-					value('\n', char('n')),
-					value('\r', char('r')),
-					value('\t', char('t')),
-					value('\\', char('\\')),
-					value('"', char('"')),
-					value('\'', char('\'')),
-					delimited(
-						tag("u{"),
-						map_res(hex_digit1, |codepoint| -> Result<core::primitive::char, LexErrorType> {
-							#[expect(
-								clippy::unwrap_used,
-								reason = "Shouldn't fail because the parser should ensure the format is valid."
-							)]
-							let codepoint = u32::from_str_radix(codepoint, 16).unwrap();
-							char::from_u32(codepoint).ok_or(LexErrorType::InvalidUnicodeCodePoint(codepoint))
-						}),
-						char('}'),
-					),
+			map(
+				opt(escaped_transform(
+					none_of(non_normal_chars),
+					'\\',
+					alt((
+						value('\x0C', char('f')),
+						value('\n', char('n')),
+						value('\r', char('r')),
+						value('\t', char('t')),
+						value('\\', char('\\')),
+						value('"', char('"')),
+						value('\'', char('\'')),
+						delimited(
+							tag("u{"),
+							map_res(hex_digit1, |codepoint| -> Result<core::primitive::char, LexErrorType> {
+								#[expect(
+									clippy::unwrap_used,
+									reason = "Shouldn't fail because the parser should ensure the format is valid."
+								)]
+								let codepoint = u32::from_str_radix(codepoint, 16).unwrap();
+								char::from_u32(codepoint).ok_or(LexErrorType::InvalidUnicodeCodePoint(codepoint))
+							}),
+							char('}'),
+						),
+					)),
 				)),
+				Option::unwrap_or_default,
 			),
 			char(quote),
 		)
