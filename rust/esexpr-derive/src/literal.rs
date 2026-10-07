@@ -33,7 +33,7 @@ impl Parse for ESExprLiteral {
 			let name: Ident = input.parse()?;
 			match name.to_string().as_str() {
 				"null" => ESExprLiteral::Null(0),
-				_ => todo!(),
+				_ => return Err(syn::Error::new(name.span(), "unsupported ESExpr atom; expected #null")),
 			}
 		}
 		else {

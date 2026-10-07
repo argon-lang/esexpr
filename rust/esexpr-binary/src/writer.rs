@@ -260,22 +260,22 @@ macro_rules! writer_mod {
 						},
 						ESExpr::Float16(f) => {
 							do_await!($syncness, self.write(TAG_FLOAT16))?;
-							do_await!($syncness, self.out.write(&f16::to_le_bytes(*f)))?;
+							do_await!($syncness, self.out.write_all(&f16::to_le_bytes(*f)))?;
 						},
 						ESExpr::Float32(f) => {
 							do_await!($syncness, self.write(TAG_FLOAT32))?;
-							do_await!($syncness, self.out.write(&f32::to_le_bytes(*f)))?;
+							do_await!($syncness, self.out.write_all(&f32::to_le_bytes(*f)))?;
 						},
 						ESExpr::Float64(d) => {
 							do_await!($syncness, self.write(TAG_FLOAT64))?;
-							do_await!($syncness, self.out.write(&f64::to_le_bytes(*d)))?;
+							do_await!($syncness, self.out.write_all(&f64::to_le_bytes(*d)))?;
 						},
 						ESExpr::Str(s) => {
 							do_await!(
 								$syncness,
 								self.write_int_tag(TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))
 							)?;
-							do_await!($syncness, self.out.write(s.as_bytes()))?;
+							do_await!($syncness, self.out.write_all(s.as_bytes()))?;
 						},
 
 						ESExpr::Array8(b) => {
@@ -283,7 +283,7 @@ macro_rules! writer_mod {
 								$syncness,
 								self.write_int_tag(TAG_VARINT_ARRAY8_LENGTH, &BigUint::from(b.len()))
 							)?;
-							do_await!($syncness, self.out.write(b.as_ref()))?;
+							do_await!($syncness, self.out.write_all(b.as_ref()))?;
 						},
 						ESExpr::Array16(b) => {
 							do_await!($syncness, self.write(TAG_ARRAY16))?;
@@ -293,14 +293,14 @@ macro_rules! writer_mod {
 							{
 								do_await!(
 									$syncness,
-									self.out.write(bytemuck::cast_slice::<u16, u8>(b.as_ref()))
+									self.out.write_all(bytemuck::cast_slice::<u16, u8>(b.as_ref()))
 								)?;
 							}
 
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
+									do_await!($syncness, self.out.write_all(&value.to_le_bytes()))?;
 								}
 							}
 						},
@@ -312,14 +312,14 @@ macro_rules! writer_mod {
 							{
 								do_await!(
 									$syncness,
-									self.out.write(bytemuck::cast_slice::<u32, u8>(b.as_ref()))
+									self.out.write_all(bytemuck::cast_slice::<u32, u8>(b.as_ref()))
 								)?;
 							}
 
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
+									do_await!($syncness, self.out.write_all(&value.to_le_bytes()))?;
 								}
 							}
 						},
@@ -331,14 +331,14 @@ macro_rules! writer_mod {
 							{
 								do_await!(
 									$syncness,
-									self.out.write(bytemuck::cast_slice::<u64, u8>(b.as_ref()))
+									self.out.write_all(bytemuck::cast_slice::<u64, u8>(b.as_ref()))
 								)?;
 							}
 
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
+									do_await!($syncness, self.out.write_all(&value.to_le_bytes()))?;
 								}
 							}
 						},
@@ -350,14 +350,14 @@ macro_rules! writer_mod {
 							{
 								do_await!(
 									$syncness,
-									self.out.write(bytemuck::cast_slice::<u128, u8>(b.as_ref()))
+									self.out.write_all(bytemuck::cast_slice::<u128, u8>(b.as_ref()))
 								)?;
 							}
 
 							#[cfg(target_endian = "big")]
 							{
 								for value in b.iter().copied() {
-									do_await!($syncness, self.out.write(&value.to_le_bytes()))?;
+									do_await!($syncness, self.out.write_all(&value.to_le_bytes()))?;
 								}
 							}
 						},
@@ -494,7 +494,7 @@ macro_rules! writer_mod {
 						$syncness,
 						Self::write_int_tag_out(out, TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))
 					)?;
-					do_await!($syncness, out.write(s.as_bytes()))?;
+					do_await!($syncness, out.write_all(s.as_bytes()))?;
 					Ok(())
 				}
 			);
@@ -509,7 +509,7 @@ macro_rules! writer_mod {
 			maybe_async!(
 				$syncness,
 				fn write_out(out: &mut W, b: u8) -> Result<(), GeneratorError<W::Error>> {
-					do_await!($syncness, out.write(core::slice::from_ref(&b)))?;
+					do_await!($syncness, out.write_all(core::slice::from_ref(&b)))?;
 					Ok(())
 				}
 			);

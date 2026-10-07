@@ -1,0 +1,8 @@
+error: Unknown field: `unknown`. Available values: `constructor`, `simple_enum`
+ --> error-test-cases/derive_unknown_type_attr.rs:2:10
+  |
+2 | #[esexpr(unknown)]
+  |          ^^^^^^^
+
+error: aborting due to 1 previous error
+

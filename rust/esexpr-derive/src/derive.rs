@@ -83,6 +83,24 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 	let type_name = input.ident;
 
 	let generics_params = input.generics.params;
+	let borrowed_lifetimes = generics_params
+		.iter()
+		.filter_map(|param| {
+			if let GenericParam::Lifetime(param) = param {
+				Some(&param.lifetime)
+			}
+			else {
+				None
+			}
+		})
+		.collect::<Vec<_>>();
+	// Borrowing codecs decode values that retain the expression's lifetime.
+	let codec_lifetime = if borrowed_lifetimes.is_empty() {
+		quote! { 'esexpr_lifetime }
+	}
+	else {
+		quote! { 'esexpr_lifetime: #(#borrowed_lifetimes)+* }
+	};
 
 	let generics_lt = input.generics.lt_token;
 	let generics_gt = input.generics.gt_token;
@@ -105,7 +123,11 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 						p.bounds.push(parse_quote! { ::esexpr::ESExprCodec<'esexpr_lifetime> });
 					},
 
-					GenericParam::Lifetime(_) | GenericParam::Const(_) => {},
+					GenericParam::Lifetime(p) => {
+						p.colon_token.get_or_insert_default();
+						p.bounds.push(parse_quote! { 'esexpr_lifetime });
+					},
+					GenericParam::Const(_) => {},
 				}
 
 				p
@@ -113,7 +135,7 @@ pub fn derive_esexpr_codec_impl(input: proc_macro2::TokenStream) -> proc_macro2:
 			.collect::<Vec<_>>();
 
 		quote! {
-			<'esexpr_lifetime, #(#params),*>
+			<#codec_lifetime, #(#params),*>
 		}
 	};
 
@@ -164,9 +186,17 @@ fn validate_attributes(attr: &ESExprTypeAttr, _type_name: &Ident, data: &Data) -
 				)?;
 			}
 
+			let mut simple_enum_names = HashSet::new();
 			for c in &e.variants {
 				let variant_attr =
 					ESExprVariantAttr::from_attributes(&c.attrs).map_err(darling::Error::write_errors)?;
+				if attr.simple_enum.is_present() {
+					let name = make_constructor_name(variant_attr.constructor.as_ref(), &c.ident);
+					if !simple_enum_names.insert(name.clone()) {
+						let message = format!("Duplicate simple enum case name: {name}");
+						return Err(quote! { compile_error!(#message); });
+					}
+				}
 
 				if variant_attr.inline_value.is_present() && variant_attr.constructor.is_some() {
 					Err(quote! { compile_error!("Variant cannot have both inline_value and constructor."); })?;
@@ -318,8 +348,6 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 		},
 
 		Data::Enum(e) if attr.simple_enum.is_present() => {
-			let mut names = HashSet::new();
-
 			let cases: proc_macro2::TokenStream = e
 				.variants
 				.iter()
@@ -329,12 +357,6 @@ fn get_esexpr_encode(attr: &ESExprTypeAttr, type_name: &Ident, data: &Data) -> T
 
 					let case_name = &c.ident;
 					let case_name_str = make_constructor_name(variant_attr.constructor.as_ref(), case_name);
-
-					if !names.insert(case_name_str.clone()) {
-						return Err(quote! {
-							compile_error!("Duplicate simple enum case name: {}", #case_name_str);
-						});
-					}
 
 					Ok(quote! {
 						#type_name::#case_name => ::esexpr::ESExpr::Str(::esexpr::cowstr::CowStr::Static(#case_name_str)),
@@ -1009,6 +1031,19 @@ mod test {
 		assert_eq!("test-abc", reformat_type_name("TestABC"));
 		assert_eq!("test-name-with-parts", reformat_type_name("TestNameWithParts"));
 		assert_eq!("test-abc-after", reformat_type_name("TestABCAfter"));
+	}
+
+	#[test]
+	fn reformat_type_names_with_digits_and_underscores() {
+		for (name, expected) in [
+			("A1", "a1"),
+			("TypeA1", "type-a1"),
+			("ABC1After", "abc1-after"),
+			("A_B", "a_-b"),
+			("ABC_After", "abc_-after"),
+		] {
+			assert_eq!(reformat_type_name(name), expected, "{name}");
+		}
 	}
 
 	macro_rules! ensure_error {

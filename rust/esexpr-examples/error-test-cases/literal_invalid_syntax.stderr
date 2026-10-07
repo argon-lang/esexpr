@@ -1,0 +1,10 @@
+error: Error parsing ESExpr literal: Error("unexpected end of input, expected one of bool, str, int, or float")
+ --> error-test-cases/literal_invalid_syntax.rs:1:1
+  |
+1 | esexpr::esexpr!((name field:));
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `esexpr::esexpr` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 1 previous error
+

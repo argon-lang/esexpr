@@ -72,7 +72,12 @@ impl<V> Deref for Dictionary<V> {
 
 impl<A: ESExprEncodedEq> ESExprEncodedEq for Dictionary<A> {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
-		self.0.is_encoded_eq(&other.0)
+		self.len() == other.len() &&
+			self.iter().all(|(key, value)| {
+				other
+					.get(key)
+					.is_some_and(|other_value| value.is_encoded_eq(other_value))
+			})
 	}
 }
 

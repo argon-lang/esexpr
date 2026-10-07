@@ -1,0 +1,8 @@
+error: ESExprEncodedEq derive is not supported for unions
+ --> error-test-cases/encoded_eq_union.rs:2:7
+  |
+2 | union Invalid {
+  |       ^^^^^^^
+
+error: aborting due to 1 previous error
+

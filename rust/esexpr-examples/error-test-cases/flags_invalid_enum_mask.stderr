@@ -1,0 +1,10 @@
+error: Error parsing esexpr_flags!: unexpected end of input, Could not parse bigint: bad
+ --> error-test-cases/flags_invalid_enum_mask.rs:1:1
+  |
+1 | esexpr::esexpr_flags! { Invalid: enum mode { value = "bad" } }
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `esexpr::esexpr_flags` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 1 previous error
+

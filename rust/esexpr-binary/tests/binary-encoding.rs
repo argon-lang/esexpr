@@ -76,6 +76,7 @@ fn encoding_test_sync(expected: &[ESExpr<'static>], path: &Path) {
 				.expect("binary expressions should parse"),
 		);
 	}
+	assert_eq!(reencoded, expected, "sync round trip for {test_name}");
 }
 
 async fn encoding_test_async(expected: &[ESExpr<'static>], path: &Path) {
@@ -119,6 +120,7 @@ async fn encoding_test_async(expected: &[ESExpr<'static>], path: &Path) {
 				.expect("binary expressions should parse"),
 		);
 	}
+	assert_eq!(reencoded, expected, "async round trip for {test_name}");
 }
 
 #[tokio::test]

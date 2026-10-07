@@ -1,0 +1,10 @@
+error: Error parsing ESExpr literal: Error("unsupported ESExpr atom; expected #null")
+ --> error-test-cases/literal_unsupported_atom.rs:1:1
+  |
+1 | esexpr::esexpr!(#unsupported);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `esexpr::esexpr` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 1 previous error
+

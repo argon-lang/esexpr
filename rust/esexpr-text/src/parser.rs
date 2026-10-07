@@ -131,7 +131,7 @@ fn parse_dec_float(s: &str) -> ESExpr<'static> {
 			clippy::unwrap_used,
 			reason = "Shouldn't fail because the parser should ensure the format is valid."
 		)]
-		let d = s.trim_end_matches('f').trim_end_matches('F').parse::<f64>().unwrap();
+		let d = s.trim_end_matches('d').trim_end_matches('D').parse::<f64>().unwrap();
 		ESExpr::Float64(d)
 	}
 }
@@ -163,7 +163,7 @@ fn parse_hex_float(s: &str) -> ESExpr<'static> {
 		)]
 		let repr: hexponent::FloatLiteral = s
 			.trim_end_matches("f16")
-			.trim_end_matches("f16")
+			.trim_end_matches("F16")
 			.parse::<hexponent::FloatLiteral>()
 			.unwrap();
 		let f = repr.convert().inner();

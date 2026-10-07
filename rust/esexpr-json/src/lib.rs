@@ -153,7 +153,8 @@ pub enum JsonEncodedESExpr {
 
 	/// An array of 128-bit values.
 	Array128 {
-		/// The 128-bit values encoded as uint128.
+		/// The 128-bit values, encoded as JSON numbers through `u64::MAX`
+		/// and decimal strings for larger values.
 		#[serde(with = "serde_u128_vec")]
 		array128: Vec<u128>,
 	},
@@ -310,21 +311,76 @@ impl<'de> serde::Deserialize<'de> for Base64Value {
 // Helper modules for serialization/deserialization
 
 mod serde_u128_vec {
-	use alloc::format;
+	use alloc::string::ToString;
 	use alloc::vec::Vec;
+	use core::fmt;
 
-	use serde::{Deserialize, Serialize};
+	use serde::de::{SeqAccess, Visitor};
+	use serde::ser::SerializeSeq;
+	use serde::{Deserialize, Deserializer, Serializer};
 
-	pub fn serialize<S: serde::Serializer>(f: &Vec<u128>, serializer: S) -> Result<S::Ok, S::Error> {
-		<Vec<u128>>::serialize(f, serializer)
+	pub fn serialize<S: Serializer>(values: &[u128], serializer: S) -> Result<S::Ok, S::Error> {
+		let mut sequence = serializer.serialize_seq(Some(values.len()))?;
+		for value in values {
+			if let Ok(value) = u64::try_from(*value) {
+				sequence.serialize_element(&value)?;
+			}
+			else {
+				sequence.serialize_element(&value.to_string())?;
+			}
+		}
+		sequence.end()
 	}
 
-	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<u128>, D::Error> {
-		let value = serde_json::Value::deserialize(deserializer)?;
-		match serde_json::from_value(value) {
-			Ok(v) => Ok(v),
-			Err(e) => Err(serde::de::Error::custom(format!("{e:?}"))),
+	struct Uint128(u128);
+
+	impl<'de> Deserialize<'de> for Uint128 {
+		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+			struct Uint128Visitor;
+
+			impl<'de> Visitor<'de> for Uint128Visitor {
+				type Value = Uint128;
+
+				fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+					formatter.write_str("a uint64 number or a decimal string containing a uint128")
+				}
+
+				fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Self::Value, E> {
+					Ok(Uint128(u128::from(value)))
+				}
+
+				fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+					value
+						.parse()
+						.map(Uint128)
+						.map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
+				}
+			}
+
+			deserializer.deserialize_any(Uint128Visitor)
 		}
+	}
+
+	pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<u128>, D::Error> {
+		struct Uint128VecVisitor;
+
+		impl<'de> Visitor<'de> for Uint128VecVisitor {
+			type Value = Vec<u128>;
+
+			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+				formatter.write_str("an array of uint128 values")
+			}
+
+			fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
+				let mut values = Vec::new();
+				while let Some(Uint128(value)) = sequence.next_element()? {
+					values.push(value);
+				}
+				Ok(values)
+			}
+		}
+
+		deserializer.deserialize_seq(Uint128VecVisitor)
 	}
 }
 
