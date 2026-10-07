@@ -171,7 +171,6 @@ public class ESExprBinaryWriter {
 					buff[0] = unchecked((byte)value);
 					buff[1] = unchecked((byte)(value >> 8));
 					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
-					;
 				}
 
 				break;

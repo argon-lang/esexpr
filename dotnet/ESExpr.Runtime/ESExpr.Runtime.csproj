@@ -4,6 +4,10 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<LangVersion>13.0</LangVersion>
 		<Nullable>Enable</Nullable>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AnalysisLevel>10</AnalysisLevel>
+		<AnalysisMode>Recommended</AnalysisMode>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 		<Version>0.2.0</Version>
 		<NoWarn>CS1998</NoWarn>
 	</PropertyGroup>
@@ -15,6 +19,10 @@
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<RespositoryURL>https://github.com/argon-lang/esexpr</RespositoryURL>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Meziantou.Analyzer" Version="3.0.294" PrivateAssets="all" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="docs/readme.md" Pack="true" PackagePath="/" />
