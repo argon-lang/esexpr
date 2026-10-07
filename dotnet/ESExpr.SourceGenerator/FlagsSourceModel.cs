@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ESExpr.SourceGenerator;
+
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 internal class FlagsSourceModel : TypeSourceModelDeclaration {

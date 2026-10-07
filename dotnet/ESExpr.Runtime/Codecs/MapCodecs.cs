@@ -7,19 +7,19 @@ namespace ESExpr.Runtime.Codecs;
 
 public abstract class MapCodecBase<K, V, TMap> : IESExprCodec<TMap>
 	where TMap : IReadOnlyDictionary<K, V> {
-	
+
 	private protected MapCodecBase(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) {
 		this.keyCodec = keyCodec;
 		this.valueCodec = valueCodec;
 	}
-	
+
 	internal const string MapConstructor = "map";
-	
+
 	private readonly IESExprCodec<K> keyCodec;
 	private readonly IESExprCodec<V> valueCodec;
-	
+
 	protected abstract TMap CreateMap(IEnumerable<KeyValuePair<K, V>> items);
-	
+
 	public ESExprTagSet Tags { get; } = ESExprTagSet.Create([new ESExprTag.Constructor(MapConstructor)]);
 
 	public bool IsEncodedEqual(TMap a, TMap b) =>
@@ -73,7 +73,7 @@ internal class MapCodec<K, V> : MapCodecBase<K, V, Dictionary<K, V>> where K : n
 internal class ImmutableMapCodec<K, V> : MapCodecBase<K, V, ImmutableDictionary<K, V>> where K : notnull {
 	public ImmutableMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
-	
+
 	protected override ImmutableDictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToImmutableDictionary();
 }
 
@@ -87,6 +87,6 @@ internal class ReadOnlyMapCodec<K, V> : MapCodecBase<K, V, IReadOnlyDictionary<K
 internal class InterfaceImmutableMapCodec<K, V> : MapCodecBase<K, V, IImmutableDictionary<K, V>> where K : notnull {
 	public InterfaceImmutableMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
-	
+
 	protected override IImmutableDictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToImmutableDictionary();
 }

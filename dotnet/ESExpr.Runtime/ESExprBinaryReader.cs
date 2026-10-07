@@ -186,12 +186,12 @@ public class ESExprBinaryReader {
 				var bits = await ReadFixed<ushort>(sizeof(ushort), cancellationToken);
 				var value = BitConverter.UInt16BitsToHalf(bits);
 				if(Half.IsNaN(value)) {
-					expr = new Expr.Float16NaN(bits);					
+					expr = new Expr.Float16NaN(bits);
 				}
 				else {
 					expr = new Expr.Float16(value);
 				}
-				
+
 				break;
 			}
 
@@ -203,7 +203,7 @@ public class ESExprBinaryReader {
 					expr = new Expr.Float32NaN(bits);
 				}
 				else {
-					expr = new Expr.Float32(value);	
+					expr = new Expr.Float32(value);
 				}
 				break;
 			}
@@ -255,11 +255,11 @@ public class ESExprBinaryReader {
 			case BinToken.TokenType.ConstructorStartList:
 				expr = await ReadConstructor(ListCodecBase<int, List<int>>.ListConstructor, cancellationToken).ConfigureAwait(false);
 				break;
-			
+
 			case BinToken.TokenType.ConstructorStartMap:
 				expr = await ReadConstructor(MapCodecBase<int, int, Dictionary<int, int>>.MapConstructor, cancellationToken).ConfigureAwait(false);
 				break;
-			
+
 			case BinToken.TokenType.ConstructorStartSet:
 				expr = await ReadConstructor(SetCodecBase<int, HashSet<int>>.SetConstructor, cancellationToken).ConfigureAwait(false);
 				break;

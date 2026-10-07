@@ -12,6 +12,6 @@ public class FlagBitsAttribute : Attribute {
 	public FlagBitsAttribute(string bits) {
 		Bits = BigInteger.Parse(bits, CultureInfo.InvariantCulture);
 	}
-	
+
 	public BigInteger Bits { get; }
 }

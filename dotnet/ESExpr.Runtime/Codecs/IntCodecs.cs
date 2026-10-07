@@ -10,7 +10,7 @@ public abstract class IntCodecBase<I> : IESExprCodec<I>
 	internal IntCodecBase() {
 
 	}
-	
+
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Int()]);
 
 	public bool IsEncodedEqual(I a, I b) {
@@ -68,7 +68,7 @@ internal sealed class UInt128Codec : IntCodecBase<UInt128> {
 
 internal sealed class BigIntegerCodec : IESExprCodec<BigInteger> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Int()]);
-	
+
 	public bool IsEncodedEqual(BigInteger a, BigInteger b) => a == b;
 
 	public Expr Encode(BigInteger value) {

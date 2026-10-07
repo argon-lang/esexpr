@@ -19,9 +19,9 @@ public class SourceModelTypeTests {
 
 		Assert.That(nsEmpty, Is.EqualTo(nsEmpty2));
 		Assert.That(nsEmpty.GetHashCode(), Is.EqualTo(nsEmpty2.GetHashCode()));
-		
+
 		Assert.That(ns1, Is.Not.EqualTo(nsEmpty));
-		
+
 		// Interface equality
 		SourceModelType.INamedSymbolParent i1 = ns1;
 		SourceModelType.INamedSymbolParent i2 = ns2;
@@ -32,7 +32,7 @@ public class SourceModelTypeTests {
 	public void NamedSymbolEqualityTests() {
 		var ns = new SourceModelType.NamespaceSymbolParent(ImmutableList.Create("MyNamespace"));
 		var ns2 = new SourceModelType.NamespaceSymbolParent(ImmutableList.Create("MyNamespace"));
-		
+
 		var t1 = new SourceModelType.NamedSymbol(ns, "MyClass") {
 			TypeArguments = ImmutableList<SourceModelType>.Empty,
 			IsEnum = false
@@ -49,7 +49,7 @@ public class SourceModelTypeTests {
 			TypeArguments = ImmutableList<SourceModelType>.Empty,
 			IsEnum = false
 		};
-		
+
 		Assert.That(t1, Is.EqualTo(t2));
 		Assert.That(t1, Is.EqualTo(t2b));
 		Assert.That<SourceModelType>(t1, Is.EqualTo<SourceModelType>(t2));
@@ -152,7 +152,7 @@ public class SourceModelTypeTests {
 		Assert.That(p1, Is.Not.EqualTo(p3));
 		Assert.That(p1.Equals(pointedAt), Is.False);
 	}
-	
+
 	[Test]
 	public void NestedNamedSymbolEqualityTests() {
 		var ns = new SourceModelType.NamespaceSymbolParent(ImmutableList.Create("N"));
@@ -160,7 +160,7 @@ public class SourceModelTypeTests {
 			TypeArguments = ImmutableList<SourceModelType>.Empty,
 			IsEnum = false
 		};
-		
+
 		var inner1 = new SourceModelType.NamedSymbol(outer, "Inner") {
 			TypeArguments = ImmutableList<SourceModelType>.Empty,
 			IsEnum = false
@@ -169,7 +169,7 @@ public class SourceModelTypeTests {
 			TypeArguments = ImmutableList<SourceModelType>.Empty,
 			IsEnum = false
 		};
-		
+
 		Assert.That(inner1, Is.EqualTo(inner2));
 		Assert.That(inner1.GetHashCode(), Is.EqualTo(inner2.GetHashCode()));
 

@@ -11,41 +11,41 @@ public class MultipleVarargsTests : TestBase {
 			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
-				[ new Expr.Str("A"), new Expr.Int(1) ],
+				[new Expr.Str("A"), new Expr.Int(1)],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new MultipleVarargs() {
-				A = [ "A" ],
-				B = [ 1 ],
+				A = ["A"],
+				B = [1],
 			}
 		);
-		
+
 		AssertCodecMatch(
 			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
-				[ new Expr.Str("A") ],
+				[new Expr.Str("A")],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new MultipleVarargs() {
-				A = [ "A" ],
+				A = ["A"],
 				B = [],
 			}
 		);
-		
+
 		AssertCodecMatch(
 			MultipleVarargs.Codec,
 			new Expr.Constructor(
 				"multiple-varargs",
-				[ new Expr.Int(1) ],
+				[new Expr.Int(1)],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new MultipleVarargs() {
 				A = [],
-				B = [ 1 ],
+				B = [1],
 			}
 		);
-		
+
 		AssertCodecMatch(
 			MultipleVarargs.Codec,
 			new Expr.Constructor(
@@ -58,7 +58,7 @@ public class MultipleVarargsTests : TestBase {
 				B = [],
 			}
 		);
-		
+
 	}
-	
+
 }

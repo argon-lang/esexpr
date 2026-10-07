@@ -16,17 +16,17 @@ public class OptionalDefaultValuesTests : TestBase {
 			),
 			new OptionalDefaultValues { A = Option<int>.Empty }
 		);
-		
+
 		AssertCodecMatch(
 			OptionalDefaultValues.Codec,
 			new Expr.Constructor(
 				"optional-default-values",
-				[ new Expr.Int(4), ],
+				[new Expr.Int(4),],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new OptionalDefaultValues { A = new Option<int>(4) }
 		);
-		
+
 	}
-	
+
 }

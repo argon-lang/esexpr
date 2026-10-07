@@ -13,74 +13,74 @@ public interface IESExprCodec<T> {
 	T Decode(Expr expr, DecodeFailurePath path);
 
 	sealed T Decode(Expr expr) => Decode(expr, new DecodeFailurePath.Current());
-	
+
 }
 
 public static class IESExprCodec {
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Bool ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Bool])]
 	public static IESExprCodec<bool> BoolCodec { get; } = new BoolCodec();
-	
+
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Str ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Str])]
 	public static IESExprCodec<string> StrCodec { get; } = new StringCodec();
-	
+
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float64 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Float64])]
 	public static IESExprCodec<double> DoubleCodec { get; } = new DoubleCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float32 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Float32])]
 	public static IESExprCodec<float> FloatCodec { get; } = new FloatCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Float16 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Float16])]
 	public static IESExprCodec<Half> HalfCodec { get; } = new HalfCodec();
-	
+
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<sbyte> SByteCodec { get; } = new SByteCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<byte> ByteCodec { get; } = new ByteCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<short> ShortCodec { get; } = new ShortCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<ushort> UShortCodec { get; } = new UShortCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<int> IntCodec { get; } = new IntCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<uint> UIntCodec { get; } = new UIntCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<long> LongCodec { get; } = new LongCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<ulong> ULongCodec { get; } = new ULongCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<Int128> Int128Codec { get; } = new Int128Codec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<UInt128> UInt128Codec { get; } = new UInt128Codec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Int ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Int])]
 	public static IESExprCodec<BigInteger> BigIntegerCodec { get; } = new BigIntegerCodec();
-	
+
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["list"])]
 	public static IESExprCodec<List<T>> ListCodec<T>(IESExprCodec<T> itemCodec) => new ListCodec<T>(itemCodec);
@@ -106,23 +106,23 @@ public static class IESExprCodec {
 	public static IESExprCodec<VList<T>> VListCodec<T>(IESExprCodec<T> itemCodec) => new VListCodec<T>(itemCodec);
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array8 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Array8])]
 	public static IESExprCodec<ImmutableArray<byte>> ImmutableArrayByteCodec { get; } = new ImmutableArrayByteCodec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array16 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Array16])]
 	public static IESExprCodec<ImmutableArray<ushort>> ImmutableArrayUInt16Codec { get; } = new ImmutableArrayUInt16Codec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array32 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Array32])]
 	public static IESExprCodec<ImmutableArray<uint>> ImmutableArrayUInt32Codec { get; } = new ImmutableArrayUInt32Codec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array64 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Array64])]
 	public static IESExprCodec<ImmutableArray<ulong>> ImmutableArrayUInt64Codec { get; } = new ImmutableArrayUInt64Codec();
 
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Array128 ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Array128])]
 	public static IESExprCodec<ImmutableArray<UInt128>> ImmutableArrayUInt128Codec { get; } = new ImmutableArrayUInt128Codec();
 
 	[TypeClassInstance]
@@ -156,7 +156,7 @@ public static class IESExprCodec {
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]
 	public static IESExprCodec<IImmutableDictionary<K, V>> InterfaceImmutableMapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new InterfaceImmutableMapCodec<K, V>(keyCodec, valueCodec);
-	
+
 	[TypeClassInstance]
 	public static IESExprCodec<ImmutableDictionary<string, T>> ImmutableDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new ImmutableDictionaryCodec<T>(itemCodec);
 
@@ -168,9 +168,9 @@ public static class IESExprCodec {
 
 	[TypeClassInstance]
 	public static IESExprCodec<IImmutableDictionary<string, T>> InterfaceImmutableDictionaryCodec<T>(IESExprCodec<T> itemCodec) => new InterfaceImmutableDictionaryCodec<T>(itemCodec);
-	
-	
-	
+
+
+
 	[TypeClassInstance]
 	[ESExprTags(Scalar = [ESExprTag.ScalarType.Str])]
 	public static IESExprCodec<T> EnumCodec<T>() where T : struct, Enum {

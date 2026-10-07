@@ -20,11 +20,11 @@ internal class ModelBuilder {
 		this.context = context;
 		resolver = new TypeClassResolver(compilation, BuildLocalScope(context));
 	}
-	
+
 	private readonly Compilation compilation;
 	private readonly GeneratorAttributeSyntaxContext context;
 	private readonly TypeClassResolver resolver;
-	
+
 	public ITypeSourceModel? CreateSourceModel(BaseTypeDeclarationSyntax decl) {
 		if(decl.Parent is not (BaseNamespaceDeclarationSyntax or CompilationUnitSyntax)) {
 			return new InvalidTypeSourceModel {
@@ -48,7 +48,7 @@ internal class ModelBuilder {
 				}
 
 				var codecAttr = GetAttribute(recordDecl, "ESExpr.Runtime.ESExprCodecAttribute", context.SemanticModel);
-				
+
 				if(
 					codecAttr?.ArgumentList?.Arguments
 						.Any(arg =>
@@ -154,7 +154,7 @@ internal class ModelBuilder {
 		if(accessor is null) {
 			goto notFound;
 		}
-		
+
 		var member = GetTypeClassInstanceMember(accessor);
 		if(member is null) {
 			goto notFound;
@@ -171,7 +171,7 @@ internal class ModelBuilder {
 				: [],
 		};
 
-		notFound:
+	notFound:
 		throw new Exception("Unable to find TypeClassInstance method or property for " + recordDecl.Identifier.ToString());
 	}
 
@@ -270,11 +270,11 @@ internal class ModelBuilder {
 
 					var codecType = resolver.GetTypeClassType(res);
 					var elementType = ((INamedTypeSymbol)codecType).TypeArguments[1];
-					
+
 					mode = new SourceModelField.FieldMode.Optional {
 						OptionalValueCodecInstance = BuildTypeClassInstanceModel(res),
 						ElementType = SourceModelType.FromSymbol(elementType),
-						KeywordMode = IsKeyword(prop) is {} keyword
+						KeywordMode = IsKeyword(prop) is { } keyword
 							? new SourceModelField.KeywordMode.Keyword {
 								KeywordName = keyword,
 							}
@@ -297,7 +297,7 @@ internal class ModelBuilder {
 
 					var codecType = resolver.GetTypeClassType(res);
 					var elementType = ((INamedTypeSymbol)codecType).TypeArguments[1];
-					
+
 					mode = new SourceModelField.FieldMode.Dict {
 						DictCodecInstance = BuildTypeClassInstanceModel(res),
 						ElementType = SourceModelType.FromSymbol(elementType),
@@ -317,7 +317,7 @@ internal class ModelBuilder {
 
 					var codecType = resolver.GetTypeClassType(res);
 					var elementType = ((INamedTypeSymbol)codecType).TypeArguments[1];
-					
+
 					mode = new SourceModelField.FieldMode.Vararg {
 						ElementTags = GetTagsFor(elementType),
 						ElementType = SourceModelType.FromSymbol(elementType),
@@ -329,31 +329,31 @@ internal class ModelBuilder {
 					if(codecType is null) {
 						throw new Exception("Could not find IESExprCodec<T> type");
 					}
-		
+
 					var lookupType = codecType.Construct(t);
-		
+
 					var res = resolver.Resolve(lookupType);
 					if(res is null) {
 						throw new Exception($"Could not resolve codec for type {t}. Looking for {lookupType}");
 					}
-					
-					
+
+
 
 					mode = new SourceModelField.FieldMode.Normal {
 						CodecInstance = BuildTypeClassInstanceModel(res),
-						
-						DefaultValue = IsDefaultValue(prop) is {} defaultValue
+
+						DefaultValue = IsDefaultValue(prop) is { } defaultValue
 							? new SourceModelSyntax<ExpressionSyntax>(defaultValue)
 							: null,
-						
-						KeywordMode = IsKeyword(prop) is {} keyword
+
+						KeywordMode = IsKeyword(prop) is { } keyword
 							? new SourceModelField.KeywordMode.Keyword {
 								KeywordName = keyword,
 							}
 							: new SourceModelField.KeywordMode.Positional {
 								Tags = GetTagsForCodec(t, res, ImmutableHashSet.Create<ITypeSymbol>(SymbolEqualityComparer.Default, t)),
 							},
-						
+
 					};
 				}
 
@@ -363,7 +363,7 @@ internal class ModelBuilder {
 					Type = SourceModelType.FromSymbol(t),
 					Mode = mode,
 				};
-				
+
 			})
 			.ToImmutableList();
 
@@ -394,19 +394,19 @@ internal class ModelBuilder {
 		if(seenTypes.Contains(type)) {
 			return ESExprTagSet.All;
 		}
-		
+
 		var codecType = compilation.GetTypeByMetadataName("ESExpr.Runtime.IESExprCodec`1");
 		if(codecType is null) {
 			throw new Exception("Could not find IESExprCodec<T> type");
 		}
-		
+
 		var lookupType = codecType.Construct(type);
-		
+
 		var res = resolver.Resolve(lookupType);
 		if(res is null) {
 			throw new Exception($"Could not resolve codec for type {type}. Looking for {lookupType}");
 		}
-		
+
 		return GetTagsForCodec(type, res, seenTypes);
 	}
 
@@ -430,7 +430,7 @@ internal class ModelBuilder {
 	}
 
 	internal record TypeTags(ESExprTagSet tags, ImmutableList<ITypeSymbol> unionWithTypes);
-	
+
 	private ESExprTagSet GetTagsForMember(ITypeSymbol type, ISymbol symbol, Dictionary<ITypeParameterSymbol, ITypeSymbol> typeParams, ImmutableHashSet<ITypeSymbol> seenTypes) {
 		var typeTags = LoadESExprTagsFromAttr(symbol, typeParams) ?? LoadIntrinsicTags(type, typeParams);
 		if(typeTags is null) {
@@ -444,9 +444,9 @@ internal class ModelBuilder {
 
 		return tags;
 	}
-	
-	
-	
+
+
+
 	private static TypeTags? LoadESExprTagsFromAttr(ISymbol symbol, Dictionary<ITypeParameterSymbol, ITypeSymbol> typeParams) {
 		ESExprTagSet tags = ESExprTagSet.Empty;
 		ImmutableList<ITypeSymbol> unionWithTypes = [];
@@ -455,14 +455,14 @@ internal class ModelBuilder {
 		if(tagsAttr is null) {
 			return null;
 		}
-		
+
 		TypedConstant? GetAttributeField(string name) =>
 			tagsAttr.NamedArguments
 				.Where(kvp => kvp.Key == name)
 				.Select(kvp => new TypedConstant?(kvp.Value))
 				.FirstOrDefault();
-		
-		if(GetAttributeField("Scalar") is {} scalars) {
+
+		if(GetAttributeField("Scalar") is { } scalars) {
 			foreach(var scalar in scalars.Values) {
 				if(scalar.Value is not int intValue) {
 					throw new Exception("Expected int enum value for scalar tag");
@@ -488,7 +488,7 @@ internal class ModelBuilder {
 			}
 		}
 
-		if(GetAttributeField("Constructors") is {} constructors) {
+		if(GetAttributeField("Constructors") is { } constructors) {
 			foreach(var constructor in constructors.Values) {
 				if(constructor.Value is not string s) {
 					throw new Exception("Expected string value for constructor tag");
@@ -498,7 +498,7 @@ internal class ModelBuilder {
 			}
 		}
 
-		if(GetAttributeField("All") is {} all) {
+		if(GetAttributeField("All") is { } all) {
 			if(all.Value is not bool b) {
 				throw new Exception("Expected bool value for all tag");
 			}
@@ -508,7 +508,7 @@ internal class ModelBuilder {
 			}
 		}
 
-		if(GetAttributeField("UnionWithTypeParameters") is {} tps) {
+		if(GetAttributeField("UnionWithTypeParameters") is { } tps) {
 			unionWithTypes = tps.Values
 				.Select(tp => {
 					if(tp.Value is not string tpName) {
@@ -518,7 +518,7 @@ internal class ModelBuilder {
 					var typeArg = typeParams.Where(kvp => kvp.Key.Name == tpName)
 						.Select(kvp => kvp.Value)
 						.FirstOrDefault();
-					
+
 					if(typeArg is null) {
 						throw new Exception("Unknown type parameter " + tpName);
 					}
@@ -527,7 +527,7 @@ internal class ModelBuilder {
 				})
 				.ToImmutableList();
 		}
-		
+
 		return new TypeTags(tags, unionWithTypes);
 	}
 
@@ -537,7 +537,7 @@ internal class ModelBuilder {
 		}
 
 		if(t.TypeKind == TypeKind.Enum) {
-			return new TypeTags(ESExprTagSet.Create([ new ESExprTag.Str() ]), []);
+			return new TypeTags(ESExprTagSet.Create([new ESExprTag.Str()]), []);
 		}
 		else if(t.IsRecord && t.IsSealed) {
 			if(
@@ -564,7 +564,7 @@ internal class ModelBuilder {
 			foreach(var c in cases) {
 				if(HasAttribute(c, "ESExpr.Runtime.InlineValueAttribute")) {
 					var fields = c.GetMembers().OfType<IFieldSymbol>().ToList();
-					
+
 					if(fields.Count != 1) {
 						throw new AbortGenerationException(
 							Diagnostic.Create(
@@ -574,14 +574,14 @@ internal class ModelBuilder {
 							)
 						);
 					}
-					
+
 					var field = fields[0];
-					
+
 					var substType = resolver.SubstituteTypes(field.Type, typeParams);
 					if(substType is null) {
 						throw new Exception($"Unable to substitute type parameters in {field.Type}");
 					}
-					
+
 					unionWithTypes.Add(substType);
 				}
 				else {
@@ -598,8 +598,8 @@ internal class ModelBuilder {
 			return null;
 		}
 	}
-	
-	
+
+
 
 	private static ImmutableList<SourceModelFlagsField> GetFlagsFields(TypeDeclarationSyntax decl, SemanticModel semanticModel) =>
 		decl.Members
@@ -610,7 +610,7 @@ internal class ModelBuilder {
 				if(t is null) {
 					throw new Exception("Could not get type of field");
 				}
-				
+
 				var declType = ModelExtensions.GetDeclaredSymbol(semanticModel, decl);
 				if(declType is null) {
 					throw new Exception("Could not get declared symbol for flags type declaration");
@@ -623,13 +623,13 @@ internal class ModelBuilder {
 					if(flagBitsAttr is not { ArgumentList.Arguments: var args } || args.Count != 1) {
 						throw new Exception("Flag must specify FlagBitsAttribute with exactly one constructor argument");
 					}
-					
+
 					var maskExpr = args[0].Expression;
 					var maskValue = semanticModel.GetConstantValue(maskExpr);
 					if(!maskValue.HasValue) {
 						throw new Exception("FlagBitsAttribute mask must be a constant value");
 					}
-					
+
 					BigInteger mask = maskValue.Value switch {
 						string s => BigInteger.Parse(s, CultureInfo.InvariantCulture),
 						byte b => b,
@@ -667,7 +667,7 @@ internal class ModelBuilder {
 								if(attr is null) {
 									throw new Exception("Enum field must be marked with FlagBitsAttribute");
 								}
-								
+
 								if(attr.ConstructorArguments.Length != 1) {
 									throw new Exception("FlagBitsAttribute must have exactly one constructor argument");
 								}
@@ -684,11 +684,11 @@ internal class ModelBuilder {
 									ulong ul => ul,
 									_ => throw new Exception("FlagBitsAttribute value must be a ulong or string"),
 								};
-								
+
 								if(value < 0) {
 									throw new Exception("FlagBitsAttribute value must be non-negative");
 								}
-								
+
 								return new SourceModelFlagsEnumCase {
 									Name = f.Name,
 									Value = value,
@@ -700,7 +700,7 @@ internal class ModelBuilder {
 				else {
 					throw new Exception("Flag field type must be a bool or enum defined as a nested type.");
 				}
-				
+
 				return field;
 			})
 			.ToImmutableList();
@@ -744,7 +744,7 @@ internal class ModelBuilder {
 			if(args[0].Expression is not LiteralExpressionSyntax value) {
 				throw new Exception("KeywordAttribute must have a string literal argument");
 			}
-			
+
 			return value.Token.ValueText;
 		}
 		else {
@@ -754,16 +754,16 @@ internal class ModelBuilder {
 
 	private bool IsInlineValue(RecordDeclarationSyntax decl) =>
 		HasAttribute(decl, "ESExpr.Runtime.InlineValueAttribute", context.SemanticModel);
-	
 
-	
+
+
 
 	private static List<LocalInfo> BuildLocalScope(GeneratorAttributeSyntaxContext context) {
 		if(context.TargetSymbol is INamedTypeSymbol t) {
 			if(t.TypeKind == TypeKind.Enum) {
 				return [];
 			}
-			
+
 			var member = GetTypeClassInstanceMember(t);
 			switch(member) {
 				case IMethodSymbol method:
@@ -781,7 +781,7 @@ internal class ModelBuilder {
 		if(t.TypeKind == TypeKind.Enum) {
 			return null;
 		}
-			
+
 		INamedTypeSymbol instanceOwner = t;
 		if(EnsureNonGenericType(ref instanceOwner)) {
 			foreach(var member in instanceOwner.GetMembers()) {
@@ -796,9 +796,9 @@ internal class ModelBuilder {
 				}
 			}
 		}
-		
+
 		return null;
 	}
-	
-	
+
+
 }

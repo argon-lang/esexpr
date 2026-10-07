@@ -16,17 +16,17 @@ public class PositionalDefaultValuesTests : TestBase {
 			),
 			new PositionalDefaultValues()
 		);
-		
+
 		AssertCodecMatch(
 			PositionalDefaultValues.Codec,
 			new Expr.Constructor(
 				"positional-default-values",
-				[ new Expr.Int(4), ],
+				[new Expr.Int(4),],
 				ImmutableDictionary<string, Expr>.Empty
 			),
 			new PositionalDefaultValues { A = 4 }
 		);
-		
+
 	}
-	
+
 }

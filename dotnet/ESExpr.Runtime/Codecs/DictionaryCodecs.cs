@@ -7,30 +7,29 @@ using System.Linq;
 namespace ESExpr.Runtime.Codecs;
 
 public abstract class DictionaryCodecBase<T, TDict> : IESExprCodec<TDict>
-	where TDict : IEnumerable<KeyValuePair<string, T>>
-{
+	where TDict : IEnumerable<KeyValuePair<string, T>> {
 	private protected DictionaryCodecBase(IESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
 	}
-	
+
 	private readonly IESExprCodec<T> itemCodec;
-	
+
 	protected abstract TDict CreateDictionary(IEnumerable<KeyValuePair<string, T>> items);
 	protected abstract int GetCount(TDict dict);
 	protected abstract bool TryGetValue(TDict dict, string key, [MaybeNullWhen(false)] out T value);
-	
-	
+
+
 	internal const string DictConstructor = "dict";
 
 	public ESExprTagSet Tags => itemCodec.Tags;
-	
+
 	public bool IsEncodedEqual(TDict a, TDict b) =>
 		GetCount(a) == GetCount(b) &&
 		a.All(kvp => {
 			if(!TryGetValue(b, kvp.Key, out var bValue)) {
 				return false;
 			}
-					
+
 			return itemCodec.IsEncodedEqual(kvp.Value, bValue);
 		});
 
@@ -150,30 +149,29 @@ internal class InterfaceImmutableDictionaryCodec<T> : DictionaryCodecBase<T, IIm
 }
 
 public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict, T>
-	where TDict : IEnumerable<KeyValuePair<string, T>>
-{
+	where TDict : IEnumerable<KeyValuePair<string, T>> {
 	private protected DictionaryDictCodecBase(IESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
 	}
-	
+
 	private readonly IESExprCodec<T> itemCodec;
-	
+
 	protected abstract TDict CreateDictionary(IEnumerable<KeyValuePair<string, T>> items);
 	protected abstract int GetCount(TDict dict);
 	protected abstract bool TryGetValue(TDict dict, string key, [MaybeNullWhen(false)] out T value);
-	
-	
+
+
 	internal const string DictConstructor = "dict";
 
 	public ESExprTagSet ElementTags => itemCodec.Tags;
-	
+
 	public bool IsEncodedEqual(TDict a, TDict b) =>
 		GetCount(a) == GetCount(b) &&
 		a.All(kvp => {
 			if(!TryGetValue(b, kvp.Key, out var bValue)) {
 				return false;
 			}
-					
+
 			return itemCodec.IsEncodedEqual(kvp.Value, bValue);
 		});
 

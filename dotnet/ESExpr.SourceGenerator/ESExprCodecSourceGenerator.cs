@@ -30,14 +30,14 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 
 		var modelsProvider =
 			typesToGenerate.Combine(context.CompilationProvider)
-				.Select(static ( pair, _) => {
+				.Select(static (pair, _) => {
 					var context = pair.Left;
 					var compilation = pair.Right;
 
 					if(context.TargetNode is not BaseTypeDeclarationSyntax typeDecl) {
 						return null;
 					}
-				
+
 					var builder = new ModelBuilder(compilation, context);
 
 
@@ -73,5 +73,5 @@ public class ESExprCodecSourceGenerator : IIncrementalGenerator {
 			}
 		);
 	}
-	
+
 }

@@ -32,32 +32,32 @@ public abstract record Expr {
 		}
 
 		public bool Equals(Constructor? other) {
-            if (other is null) return false;
-            
-            if (constructor != other.constructor) return false;
-            if (args.Count != other.args.Count) return false;
-            if (kwargs.Count != other.kwargs.Count) return false;
-            
-            for(int i = 0; i < args.Count; i++) {
-                if (!args[i].Equals(other.args[i])) return false;
-            }
-            
-            foreach(var kvp in kwargs) {
-                if (!other.kwargs.TryGetValue(kvp.Key, out var otherValue) || 
-                    !kvp.Value.Equals(otherValue)) return false;
-            }
-            
-            return true;
+			if(other is null) return false;
+
+			if(constructor != other.constructor) return false;
+			if(args.Count != other.args.Count) return false;
+			if(kwargs.Count != other.kwargs.Count) return false;
+
+			for(int i = 0; i < args.Count; i++) {
+				if(!args[i].Equals(other.args[i])) return false;
+			}
+
+			foreach(var kvp in kwargs) {
+				if(!other.kwargs.TryGetValue(kvp.Key, out var otherValue) ||
+					!kvp.Value.Equals(otherValue)) return false;
+			}
+
+			return true;
 		}
 
 		public override string ToString() {
-            var argsStr = string.Join(", ",
-	            args.Select(arg => arg.ToString())
-		            .Concat(kwargs.Select(kv => $"{kv.Key}: {kv.Value}"))
-	        );
-            
-	        return $"{constructor}({argsStr})";
-        }
+			var argsStr = string.Join(", ",
+				args.Select(arg => arg.ToString())
+					.Concat(kwargs.Select(kv => $"{kv.Key}: {kv.Value}"))
+			);
+
+			return $"{constructor}({argsStr})";
+		}
 	}
 
 	public sealed record Bool(bool value) : Expr {
@@ -210,9 +210,9 @@ public abstract record Expr {
 
 	private sealed class ExprCodec : IESExprCodec<Expr> {
 		public ESExprTagSet Tags => ESExprTagSet.All;
-		
+
 		public bool IsEncodedEqual(Expr a, Expr b) => a == b;
-		
+
 		public Expr Encode(Expr value) => value;
 
 		public Expr Decode(Expr expr, DecodeFailurePath path) => expr;

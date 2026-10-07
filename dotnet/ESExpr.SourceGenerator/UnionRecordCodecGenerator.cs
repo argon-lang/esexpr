@@ -64,7 +64,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 					)
 				)
 			);
-			
+
 			cases.Add(SwitchSection(
 				List(new SwitchLabelSyntax[] { label }),
 				List(new StatementSyntax[] {
@@ -89,7 +89,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 		var cases = new List<SwitchSectionSyntax>();
 
 		var prevTags = ESExprTagSet.Empty;
-		
+
 		foreach(var c in TypeModel.Cases) {
 			var identName = "value2";
 
@@ -100,16 +100,16 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				),
 				Token(SyntaxKind.ColonToken)
 			);
-			
+
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
 
 				if(field.Mode is not SourceModelField.FieldMode.Normal {
-					   KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
+					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
 				}) {
 					throw new Exception("Inline value field must be a required positional argument");
 				}
-				
+
 				if(!prevTags.IsDisjointFrom(tags)) {
 					Context.ReportDiagnostic(Diagnostic.Create(
 						Errors.OverlappingEnumConstructors,
@@ -119,7 +119,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 						prevTags
 					));
 				}
-				
+
 				prevTags = prevTags.Union(tags);
 			}
 			else {
@@ -133,7 +133,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 						prevTags
 					));
 				}
-				
+
 				prevTags = prevTags.Add(tag);
 			}
 
@@ -141,8 +141,8 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
-				
-				
+
+
 				if(field.Mode is not SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
 				}) {
@@ -199,8 +199,8 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 
 			if(c.IsInlineValue) {
 				var field = GetInlineValueField(c);
-				
-				
+
+
 				if(field.Mode is not SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
 				}) {

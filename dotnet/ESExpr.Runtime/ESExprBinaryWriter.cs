@@ -245,8 +245,8 @@ public class ESExprBinaryWriter {
 			default:
 				throw new InvalidOperationException();
 		}
-		
-		
+
+
 	}
 
 	private async Task WriteFixed64(ulong bits, CancellationToken cancellationToken) {

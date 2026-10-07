@@ -9,7 +9,7 @@ namespace ESExpr.SourceGenerator;
 internal abstract class TypeSourceModelDeclaration : BaseTypeSourceModelDeclaration {
 	public required ImmutableList<SourceModelSyntax<TypeParameterSyntax>> TypeParameters { get; init; }
 	public abstract ESExprTagSet Tags { get; init; }
-	
+
 	public required SourceModelTypeClassInstanceAccessor TypeClassInstanceAccessor { get; init; }
 
 	public override SourceModelType SourceModelType =>

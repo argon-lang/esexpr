@@ -30,7 +30,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 
 	protected override BlockSyntax GenerateEncodeBody() {
 		var stmts = new List<StatementSyntax>();
-		
+
 		stmts.Add(LocalDeclarationStatement(
 			VariableDeclaration(
 				BigIntegerType,
@@ -59,7 +59,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 					if((usedBits & flagField.Mask) != BigInteger.Zero) {
 						throw new InvalidOperationException("Duplicate flag mask");
 					}
-					
+
 					if(flagField.Mask < 0) {
 						throw new InvalidOperationException("Negative mask not supported");
 					}
@@ -67,8 +67,8 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 					CheckFlagBits(flagField.Mask);
 
 					var maskExpr = BigIntLiteral(flagField.Mask);
-					
-					
+
+
 					stmts.Add(IfStatement(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -77,7 +77,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 						),
 						SetBits(maskExpr)
 					));
-					
+
 					break;
 				}
 
@@ -90,7 +90,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 						throw new InvalidOperationException("Duplicate enum mask");
 					}
 					usedBits |= mask;
-					
+
 					var bitsValue = SwitchExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -137,16 +137,16 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 
 					stmts.Add(SetBits(bitsValue));
 
-					break;					
+					break;
 				}
 
-				
+
 				default:
 					throw new InvalidOperationException($"Unknown flags field type: {field.GetType().Name}");
 			}
 		}
 
-		
+
 		stmts.Add(ReturnStatement(
 			ObjectCreationExpression(
 				QualifiedName(
@@ -254,7 +254,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 						SeparatedList<ExpressionSyntax>(
 							TypeModel.Fields.Select(field => {
 								ExpressionSyntax fieldValue;
-								
+
 								switch(field) {
 									case SourceModelFlagsFieldFlag flagField: {
 										fieldValue = BinaryExpression(
@@ -293,7 +293,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 														ConvertTypeToTypeSyntax(enumField.Type),
 														IdentifierName(enumCase.Name)
 													);
-													
+
 													var bigIntValue = BigIntLiteral(enumCase.Value);
 													return SwitchExpressionArm(
 														VarPattern(SingleVariableDesignation(Identifier("maskedValue"))),
@@ -343,7 +343,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 									default:
 										throw new InvalidOperationException($"Unknown flags field type: {field.GetType().Name}");
 								}
-								
+
 								return AssignmentExpression(
 									SyntaxKind.SimpleAssignmentExpression,
 									IdentifierName(field.Name),
@@ -369,7 +369,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 					if(hasBit) {
 						throw new InvalidOperationException("Flag mask must have only one bit set");
 					}
-					
+
 					hasBit = true;
 				}
 			}
@@ -416,7 +416,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 					))
 				]))
 			);
-	
+
 
 	private BigInteger GetEnumMask(SourceModelFlagsFieldEnum enumField) {
 		var mask = BigInteger.Zero;
@@ -424,7 +424,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 			if(enumCase.Value < 0) {
 				throw new InvalidOperationException("Negative enum value not supported");
 			}
-						
+
 			mask |= enumCase.Value;
 		}
 

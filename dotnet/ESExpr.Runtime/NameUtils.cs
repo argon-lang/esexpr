@@ -19,7 +19,7 @@ namespace ESExpr.Runtime;
 internal static partial class NameUtils {
 
 	private const string RegexPattern = "(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])_(?=[0-9])";
-	
+
 #if ESEXPR_SOURCE_GENERATOR
 	public static string GetConstructorName(TypeDeclarationSyntax decl, SemanticModel semanticModel) {
 		if(
@@ -83,12 +83,12 @@ internal static partial class NameUtils {
 			return NameToKebabCase(name);
 		}
 	}
-	
-	
+
+
 	[GeneratedRegex(RegexPattern, RegexOptions.CultureInvariant)]
 	private static partial Regex NameSeparatorRegex();
 #endif
-	
+
 
 	public static string NameToKebabCase(string name) =>
 		string.Join(

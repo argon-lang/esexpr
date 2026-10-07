@@ -43,7 +43,7 @@ public class FlagsTests : TestBase {
 	[Test]
 	public void FlagWithEnumTest() {
 		var codec = FlagWithEnum.Codec;
-		
+
 		Assert.Throws<DecodeException>(() => ((IESExprCodec<FlagWithEnum>)codec).Decode(new Expr.Int(0)));
 		Assert.Throws<DecodeException>(() => ((IESExprCodec<FlagWithEnum>)codec).Decode(new Expr.Int(1)));
 

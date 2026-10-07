@@ -5,8 +5,8 @@ namespace ESExpr.SourceGenerator.TypeClass;
 
 internal record SourceModelTypeClassInstanceAccessor {
 	public required bool IsProperty { get; init; }
-	public required ImmutableList<SourceModelTypeClassInstanceAccessorParameter> Parameters { get; init; } 
-	public required string Name {  get; init; }
+	public required ImmutableList<SourceModelTypeClassInstanceAccessorParameter> Parameters { get; init; }
+	public required string Name { get; init; }
 
 	public override int GetHashCode() {
 		int hash = 17;
@@ -14,7 +14,7 @@ internal record SourceModelTypeClassInstanceAccessor {
 			foreach(var item in Parameters) {
 				hash = hash * 31 + item.GetHashCode();
 			}
-			
+
 			hash = hash * 23 + Name.GetHashCode();
 		}
 		return hash;

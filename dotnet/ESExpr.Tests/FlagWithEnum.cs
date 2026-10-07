@@ -6,7 +6,7 @@ namespace ESExpr.Tests;
 public sealed partial record FlagWithEnum {
 	[FlagBits(0x1)]
 	public required bool A { get; init; }
-	
+
 	public required MyEnum B { get; init; }
 
 	public enum MyEnum {
@@ -17,8 +17,8 @@ public sealed partial record FlagWithEnum {
 		[FlagBits(0x6)]
 		Z,
 	}
-	
-	
+
+
 	[TypeClassInstance]
 	public static partial IESExprCodec<FlagWithEnum> Codec { get; }
 }

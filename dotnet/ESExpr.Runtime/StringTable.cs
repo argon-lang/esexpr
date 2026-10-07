@@ -10,10 +10,10 @@ public record StringTable(ImmutableList<string> strings) {
 
 
 	internal const string StringTableConstructor = "string-table";
-	
+
 	[TypeClassInstance]
 	public static IESExprCodec<StringTable> Codec { get; } = new CodecImpl();
-	
+
 	private class CodecImpl : IESExprCodec<StringTable> {
 		public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Constructor("string-table")]);
 

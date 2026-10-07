@@ -12,5 +12,5 @@ internal abstract record TypeClassResult {
 	) : TypeClassResult;
 	public sealed record Property(IPropertySymbol PropertySymbol) : TypeClassResult;
 	public sealed record Local(LocalInfo LocalInfo) : TypeClassResult;
-	
+
 }

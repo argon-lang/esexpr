@@ -6,10 +6,10 @@ namespace ESExpr.Tests;
 public sealed partial record TwoFlags {
 	[FlagBits(0x1)]
 	public required bool A { get; init; }
-	
+
 	[FlagBits(0x2)]
 	public required bool B { get; init; }
-	
+
 	[TypeClassInstance]
 	public static partial IESExprCodec<TwoFlags> Codec { get; }
 }

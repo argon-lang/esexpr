@@ -103,10 +103,10 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				))
 				.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 		}
-		
-		
 
-		
+
+
+
 		var constructor = ConstructorDeclaration("GeneratedCodecImpl")
 			.AddModifiers(Token(SyntaxKind.PublicKeyword))
 			.AddParameterListParameters(
@@ -146,7 +146,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					.AddModifiers(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.ReadOnlyKeyword))
 			);
 		}
-		
+
 		var tagsProp =
 			PropertyDeclaration(
 				QualifiedName(
@@ -181,7 +181,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			)
 			.WithBody(GenerateIsEqualBody());
 		members.Add(isEncodedEqualMethod);
-		
+
 		var encodeMethod =
 			MethodDeclaration(
 					ESExprType,
@@ -222,19 +222,19 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			Token(TypeModel.TypeParameters.Count == 0 ? SyntaxKind.RecordKeyword : SyntaxKind.ClassKeyword),
 			TypeModel.TypeName
 		);
-		
+
 		if(TypeModel.TypeParameters.Count != 0) {
 			outerClass = outerClass.AddModifiers(Token(SyntaxKind.StaticKeyword));
-			
+
 			codecClass = codecClass.AddTypeParameterListParameters(TypeModel.TypeParameters.Select(tp => tp.Syntax).ToArray());
 		}
-		
-		outerClass = outerClass			
+
+		outerClass = outerClass
 			.AddModifiers(Token(SyntaxKind.PartialKeyword))
 			.WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken))
 			.WithCloseBraceToken(Token(SyntaxKind.CloseBraceToken))
 			.AddMembers(typeClassInstanceMember, codecClass);
-		
+
 		// Generate the namespace with the class
 		var nsName = GetNamespaceName();
 
@@ -260,7 +260,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	private ExpressionSyntax WriteTagsExpr() =>
 		TagsToExpr(TypeModel.Tags);
-	
+
 
 	private ExpressionSyntax TagsToExpr(ESExprTagSet tags) {
 		return tags.Visit<ExpressionSyntax>(
@@ -269,7 +269,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				ESExprTagSetType,
 				IdentifierName("All")
 			),
-			visitFinite: tags => 
+			visitFinite: tags =>
 				InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -390,7 +390,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 												ArgumentList([]),
 												null
 											),
-											
+
 											_ => throw new Exception("Unknown tag type: " + tag.GetType()),
 										}).Select(ExpressionElement)
 									)
@@ -402,7 +402,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		);
 
 	}
-	
+
 	private AttributeSyntax TagsToAttribute(ESExprTagSet tags) {
 		var attrName = QualifiedName(
 			QualifiedName(
@@ -414,7 +414,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			),
 			IdentifierName("ESExprTags")
 		);
-		
+
 		return tags.Visit<AttributeSyntax>(
 			visitAll: () => Attribute(
 				attrName,
@@ -452,7 +452,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 								.Where(t => t != null)
 								.Select(tNull => {
 									var t = tNull!.Value;
-									
+
 									return ExpressionElement(
 										QualifiedName(
 											QualifiedName(
@@ -472,7 +472,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 										)
 									);
 								})
-							
+
 						))
 					),
 					AttributeArgument(
@@ -489,11 +489,11 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					),
 				])
 			)
-				
+
 		);
 
 	}
-	
+
 	protected BlockSyntax WriteIsEqualFields(IReadOnlyList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
 		var stmts = new List<StatementSyntax>();
 
@@ -509,7 +509,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				IdentifierName(field.Name)
 			);
 
-			
+
 			ExpressionSyntax codecExpr = field.Mode switch {
 				SourceModelField.FieldMode.Normal { CodecInstance: var codec } => GetCodecExpr(codec),
 				SourceModelField.FieldMode.Optional { OptionalValueCodecInstance: var codec } => GetCodecExpr(codec),
@@ -556,7 +556,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		var kwargsDeclaration = ParseStatement(
 			"var kwargs = global::System.Collections.Immutable.ImmutableDictionary.CreateBuilder<string, global::ESExpr.Runtime.Expr>();"
 		);
-		
+
 		// return new global::ESExpr.Runtime.Expr.Constructor(name, args.ToImmutable(), kwargs.ToImmutable());
 		var returnStatement = ReturnStatement(
 			ObjectCreationExpression(
@@ -599,7 +599,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				valueExpr,
 				IdentifierName(field.Name)
 			);
-			
+
 			void PosTagCheck(ESExprTagSet tags) {
 				if(prevOptionalPositionalTags.IsEmpty) {
 					return;
@@ -626,7 +626,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						PosTagCheck(tags);
 						prevOptionalPositionalTags = ESExprTagSet.Empty;
 					}
-					
+
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -650,18 +650,18 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					);
 
 					stmts.Add(ExpressionStatement(expr));
-					
+
 					break;
 				}
-				
+
 				case SourceModelField.FieldMode.Normal {
-					DefaultValue: {} defaultValue,
+					DefaultValue: { } defaultValue,
 					CodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
 				} normalField: {
 					PosTagCheck(tags);
 					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
-					
+
 					var codecExpr = GetCodecExpr(codec);
 
 					stmts.Add(Block(
@@ -719,10 +719,10 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							)
 						)
 					));
-					
+
 					break;
 				}
-				
+
 				case SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
@@ -741,8 +741,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							keyword
 						));
 					}
-					
-					
+
+
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -754,7 +754,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						]))
 					);
 
-					if(normalField.DefaultValue is {} defaultValue) {
+					if(normalField.DefaultValue is { } defaultValue) {
 						stmts.Add(Block(
 							LocalDeclarationStatement(
 								VariableDeclaration(ESExprType)
@@ -818,7 +818,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							}))
 						)));
 					}
-					
+
 					break;
 				}
 
@@ -829,7 +829,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				}: {
 					PosTagCheck(tags);
 					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
-					
+
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -870,15 +870,15 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					stmts.Add(Block(
 						ifStatement
 					));
-					
+
 					break;
 				}
-				
+
 				case SourceModelField.FieldMode.Optional {
-					 OptionalValueCodecInstance: var codec,
+					OptionalValueCodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
 				}: {
-					
+
 					if(hasDict) {
 						Context.ReportDiagnostic(Diagnostic.Create(
 							Errors.KeywordWithDict,
@@ -893,8 +893,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							keyword
 						));
 					}
-					
-					
+
+
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -938,14 +938,14 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					stmts.Add(Block(
 						ifStatement
 					));
-					
+
 					break;
 				}
 
 				case SourceModelField.FieldMode.Dict {
 					DictCodecInstance: var codec,
 				}: {
-					
+
 					if(hasDict) {
 						Context.ReportDiagnostic(Diagnostic.Create(
 							Errors.MultipleDict,
@@ -988,7 +988,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					);
 
 					stmts.Add(loop);
-					
+
 					break;
 				}
 
@@ -1023,7 +1023,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					);
 
 					stmts.Add(ExpressionStatement(expr));
-					
+
 					break;
 				}
 
@@ -1041,17 +1041,17 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		var stmts = new List<StatementSyntax>();
 
 		var fieldInits = new List<ExpressionSyntax>();
-		
-		
-		
+
+
+
 
 		int positionalIndex = 0;
 
 		foreach(var field in fields) {
 			var localName = "local_" + field.Name;
 
-			
-			
+
+
 			switch(field.Mode) {
 				case SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
@@ -1062,7 +1062,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						var exprExpr = posBlocks.exprExpr;
 						var pathExpr = posBlocks.pathExpr;
 						var sliceStatement = posBlocks.sliceStatement;
-						
+
 						var ifCondition = BinaryExpression(
 							SyntaxKind.EqualsExpression,
 							MemberAccessExpression(
@@ -1071,7 +1071,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 								IdentifierName("Count")),
 							LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
 						);
-						
+
 						var codecExpr = GetCodecExpr(codec);
 
 						var throwStatement = ThrowStatement(
@@ -1131,17 +1131,17 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					});
 					break;
 				}
-				
+
 				case SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
-					DefaultValue: {} defaultValue,
+					DefaultValue: { } defaultValue,
 					KeywordMode: SourceModelField.KeywordMode.Positional
 				}: {
 					DecodePositionalCommon(posBlocks => {
 						var exprExpr = posBlocks.exprExpr;
 						var pathExpr = posBlocks.pathExpr;
 						var sliceStatement = posBlocks.sliceStatement;
-						
+
 						var codecExpr = GetCodecExpr(codec);
 
 						stmts.Add(LocalDeclarationStatement(
@@ -1152,7 +1152,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 									)
 								)
 						));
-						
+
 						var ifCondition = BinaryExpression(
 							SyntaxKind.LogicalAndExpression,
 							BinaryExpression(
@@ -1190,8 +1190,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 								))
 							)
 						);
-						
-						
+
+
 						var ifStatement = IfStatement(
 							ifCondition,
 							Block(
@@ -1225,13 +1225,13 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 							))
 						);
 						stmts.Add(ifStatement);
-						
+
 					});
-					
+
 					break;
 				}
-				
-				
+
+
 				case SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
@@ -1290,11 +1290,11 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 							falseBody = Block(throwStatement);
 						}
-						
+
 						return (decodedExpr, falseBody);
 					});
 
-					
+
 					break;
 				}
 
@@ -1306,7 +1306,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						var exprExpr = posBlocks.exprExpr;
 						var pathExpr = posBlocks.pathExpr;
 						var sliceStatement = posBlocks.sliceStatement;
-						
+
 						ExpressionSyntax DecodeOptionalExpr(ExpressionSyntax expr) =>
 							AssignmentExpression(
 								SyntaxKind.SimpleAssignmentExpression,
@@ -1379,7 +1379,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					});
 					break;
 				}
-				
+
 				case SourceModelField.FieldMode.Optional {
 					OptionalValueCodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
@@ -1419,7 +1419,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 						return (decodedExpr, falseBody);
 					});
-					
+
 					break;
 				}
 
@@ -1531,7 +1531,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 								)
 							)
 					));
-					
+
 					break;
 				}
 
@@ -1650,8 +1650,8 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				SeparatedList(fieldInits)
 			));
 
-		
-		
+
+
 		// if(args.Count > 0) throw new global::ESExpr.Runtime.DecodeException("Extra positional arguments", path.WithConstructor("<name>"));
 		stmts.Add(IfStatement(
 			BinaryExpression(
@@ -1731,7 +1731,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				])))
 			))
 		));
-		
+
 		stmts.Add(ReturnStatement(objExpr));
 
 		return Block(stmts);
@@ -1905,14 +1905,14 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		switch(codec) {
 			case SourceModelTypeClassInstance.Local { Name: var name }:
 				return IdentifierName("instance_" + name);
-			
+
 			case SourceModelTypeClassInstance.Property property:
 				return MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
 					ConvertTypeToTypeSyntax(property.DeclaringType),
 					IdentifierName(property.Name)
 				);
-			
+
 			case SourceModelTypeClassInstance.Method method:
 				return InvocationExpression(
 					MemberAccessExpression(
@@ -1932,12 +1932,12 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						method.Arguments.Select(arg => Argument(GetCodecExpr(arg)))
 					))
 				);
-			
+
 			default:
 				throw new ArgumentException("Unknown SourceModelTypeClassInstance codec", nameof(codec));
 		}
 	}
-	
+
 	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
 		switch(t) {
 			case SourceModelType.NamedSymbol namedTypeSymbol: {
@@ -1962,7 +1962,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				throw new Exception("Unexpected SourceModelType");
 		}
 	}
-	
+
 	private static NameSyntax GetNamedSymbolSyntax(SourceModelType.NamedSymbol namedTypeSymbol) {
 		SimpleNameSyntax name;
 		if(namedTypeSymbol.TypeArguments.Count != 0) {
@@ -1978,15 +1978,15 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 		return GetNamedParentMemberSyntax(namedTypeSymbol.Parent, name);
 	}
-	
+
 	private static NameSyntax GetNamedParentMemberSyntax(SourceModelType.INamedSymbolParent parent, SimpleNameSyntax name) {
 		switch(parent) {
 			case SourceModelType.NamespaceSymbolParent nsParent:
 				return GetNamespaceMemberSyntax(nsParent.Namespace, nsParent.Namespace.Count, name);
-			
+
 			case SourceModelType.NamedSymbol namedParent:
 				return QualifiedName(GetNamedSymbolSyntax(namedParent), name);
-			
+
 			default:
 				throw new Exception("Unexpected parent type");
 		}

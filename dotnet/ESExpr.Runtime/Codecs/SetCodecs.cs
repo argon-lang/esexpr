@@ -7,17 +7,17 @@ namespace ESExpr.Runtime.Codecs;
 
 public abstract class SetCodecBase<T, TSet> : IESExprCodec<TSet>
 	where TSet : IReadOnlyCollection<T> {
-	
+
 	private protected SetCodecBase(IESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
 	}
-	
+
 	internal const string SetConstructor = "set";
-	
+
 	private readonly IESExprCodec<T> itemCodec;
-	
+
 	protected abstract TSet CreateSet(IEnumerable<T> items);
-	
+
 	public ESExprTagSet Tags { get; } = ESExprTagSet.Create([new ESExprTag.Constructor(SetConstructor)]);
 
 	public abstract bool IsEncodedEqual(TSet a, TSet b);
@@ -60,7 +60,7 @@ internal class ImmutableHashSetCodec<T> : SetCodecBase<T, ImmutableHashSet<T>> {
 
 	public override bool IsEncodedEqual(ImmutableHashSet<T> a, ImmutableHashSet<T> b) =>
 		a.SetEquals(b);
-	
+
 	protected override ImmutableHashSet<T> CreateSet(IEnumerable<T> items) => items.ToImmutableHashSet();
 }
 
@@ -80,6 +80,6 @@ internal class InterfaceImmutableSetCodec<T> : SetCodecBase<T, IImmutableSet<T>>
 
 	public override bool IsEncodedEqual(IImmutableSet<T> a, IImmutableSet<T> b) =>
 		a.SetEquals(b);
-	
+
 	protected override IImmutableSet<T> CreateSet(IEnumerable<T> items) => items.ToImmutableHashSet();
 }

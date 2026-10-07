@@ -22,7 +22,7 @@ internal abstract record SourceModelType {
 
 			case INamedTypeSymbol named: {
 				SourceModelType res = FromNamedSymbol(named);
-				
+
 				if(named.NullableAnnotation == NullableAnnotation.Annotated) {
 					res = new Nullable(res);
 				}
@@ -52,7 +52,7 @@ internal abstract record SourceModelType {
 		else {
 			parent = new NamespaceSymbolParent(GetNamespaceFromSymbol(named.ContainingNamespace));
 		}
-				
+
 		var res = new NamedSymbol(parent, named.Name) {
 			TypeArguments = named.TypeArguments.Select(FromSymbol).ToImmutableList(),
 			IsEnum = named.TypeKind == TypeKind.Enum,
@@ -104,19 +104,19 @@ internal abstract record SourceModelType {
 
 	public sealed record NamespaceSymbolParent(ImmutableList<string> Namespace) : INamedSymbolParent {
 		public bool ContainsTypeParameter(string name) => false;
-		
+
 
 		public INamedSymbolParent Substitute(IReadOnlyDictionary<string, SourceModelType> paramMapping) =>
 			this;
-		
+
 		public bool IsEmpty => Namespace.IsEmpty;
 
 		public override int GetHashCode() {
 			int hash = 17;
-			foreach (var ns in Namespace) {
+			foreach(var ns in Namespace) {
 				hash = hash * 31 + ns.GetHashCode();
 			}
-			
+
 			return hash;
 		}
 
@@ -155,23 +155,23 @@ internal abstract record SourceModelType {
 		}
 
 		public override int GetHashCode() {
-            int hash = 17;
-            hash = hash * 31 + Parent.GetHashCode();
-            hash = hash * 31 + Name.GetHashCode();
-            foreach (var typeArg in TypeArguments) {
-                hash = hash * 31 + typeArg.GetHashCode();
-            }
-            hash = hash * 31 + IsEnum.GetHashCode();
-            return hash;
-        }
+			int hash = 17;
+			hash = hash * 31 + Parent.GetHashCode();
+			hash = hash * 31 + Name.GetHashCode();
+			foreach(var typeArg in TypeArguments) {
+				hash = hash * 31 + typeArg.GetHashCode();
+			}
+			hash = hash * 31 + IsEnum.GetHashCode();
+			return hash;
+		}
 
 		public bool Equals(NamedSymbol? other) {
-		    if(other is null) return false;
-		    
-		    return Parent.Equals(other.Parent) &&
-		           Name == other.Name &&
-		           TypeArguments.SequenceEqual(other.TypeArguments) &&
-		           IsEnum == other.IsEnum;
+			if(other is null) return false;
+
+			return Parent.Equals(other.Parent) &&
+				   Name == other.Name &&
+				   TypeArguments.SequenceEqual(other.TypeArguments) &&
+				   IsEnum == other.IsEnum;
 		}
 
 		public bool Equals(INamedSymbolParent? other) =>
@@ -191,7 +191,7 @@ internal abstract record SourceModelType {
 				sb.Append(string.Join(", ", TypeArguments));
 				sb.Append(">");
 			}
-			
+
 			sb.Append(")");
 			return sb.ToString();
 		}

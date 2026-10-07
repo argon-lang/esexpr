@@ -14,7 +14,7 @@ internal sealed class TypeClassResolver {
 		this.localScope = localScope;
 
 	}
-	
+
 	private readonly Compilation compilation;
 	private readonly List<LocalInfo> localScope;
 
@@ -34,16 +34,16 @@ internal sealed class TypeClassResolver {
 			if(method.Arguments.Count != method.MethodSymbol.Parameters.Length) {
 				throw new ArgumentException("Method arguments count does not match parameter count", nameof(method));
 			}
-			
+
 			var typeParams = new Dictionary<ITypeParameterSymbol, ITypeSymbol>(SymbolEqualityComparer.Default);
-			
+
 			foreach(var (arg, param) in method.Arguments.Zip(method.MethodSymbol.Parameters, (arg, param) => (arg, param))) {
 				var argType = GetTypeClassType(arg);
 				if(!Unify(argType, param.Type, typeParams)) {
 					throw new ArgumentException("Could not unify argument type with parameter type", nameof(method));
 				}
 			}
-			
+
 			return SubstituteTypes(method.MethodSymbol.ReturnType, typeParams)
 				?? throw new ArgumentException("Could not substitute return type", nameof(method));
 		}
@@ -71,7 +71,7 @@ internal sealed class TypeClassResolver {
 							return result;
 						}
 						break;
-					
+
 					case ITypeParameterSymbol tp:
 						if(!hasCheckedLocal) {
 							result = ResolveLocal(typeSymbol);
@@ -92,7 +92,7 @@ internal sealed class TypeClassResolver {
 		if(!EnsureNonGenericType(ref declaringType)) {
 			return null;
 		}
-		
+
 		foreach(var member in declaringType.GetMembers()) {
 			switch(member) {
 				case IMethodSymbol method: {
@@ -112,12 +112,12 @@ internal sealed class TypeClassResolver {
 							if(argType is null) {
 								goto nextCandidate;
 							}
-							
+
 							var argResult = Resolve(argType, depthLimit - 1);
 							if(argResult is null) {
 								goto nextCandidate;
 							}
-							
+
 							arguments.Add(argResult);
 						}
 
@@ -126,14 +126,14 @@ internal sealed class TypeClassResolver {
 							if(!typeParams.TryGetValue(typeParam, out var value)) {
 								goto nextCandidate;
 							}
-							
+
 							if(!CheckConstraints(typeParam, value)) {
 								goto nextCandidate;
 							}
-							
+
 							typeArguments.Add(value);
 						}
-						
+
 						return new TypeClassResult.Method(
 							typeArguments.ToImmutable(),
 							arguments.ToImmutable(),
@@ -157,12 +157,12 @@ internal sealed class TypeClassResolver {
 					if(Unify(t, property.Type, typeParams)) {
 						return new TypeClassResult.Property(property);
 					}
-					
+
 					break;
 				}
 			}
-			
-			nextCandidate: ;
+
+		nextCandidate:;
 		}
 
 		return null;
@@ -174,7 +174,7 @@ internal sealed class TypeClassResolver {
 				return new TypeClassResult.Local(local);
 			}
 		}
-		
+
 		return null;
 	}
 
@@ -213,12 +213,12 @@ internal sealed class TypeClassResolver {
 				typeParams.Add(actualTP, expectedType);
 				return true;
 			}
-			
+
 			return ExpectedTypeMatches(knownParamValue, expectedType);
 		}
 		else {
 			return false;
-		} 
+		}
 	}
 
 	public ITypeSymbol? SubstituteTypes(ITypeSymbol t, Dictionary<ITypeParameterSymbol, ITypeSymbol> typeParams) {
@@ -230,7 +230,7 @@ internal sealed class TypeClassResolver {
 				if(!nt.IsGenericType) {
 					return nt;
 				}
-				
+
 				var substArgs = new ITypeSymbol[nt.TypeArguments.Length];
 				int i = 0;
 				foreach(var typeArg in nt.TypeArguments) {
@@ -241,7 +241,7 @@ internal sealed class TypeClassResolver {
 					substArgs[i] = substArg;
 					++i;
 				}
-				
+
 				return nt.ConstructedFrom.Construct(substArgs);
 			}
 
@@ -250,7 +250,7 @@ internal sealed class TypeClassResolver {
 				if(substElem is null) {
 					return null;
 				}
-				
+
 				return compilation.CreatePointerTypeSymbol(substElem);
 			}
 
@@ -259,10 +259,10 @@ internal sealed class TypeClassResolver {
 				if(substElem is null) {
 					return null;
 				}
-				
+
 				return compilation.CreateArrayTypeSymbol(substElem, at.Rank);
 			}
-			
+
 			default:
 				return t;
 		}
@@ -287,7 +287,7 @@ internal sealed class TypeClassResolver {
 			return a.Name == b.Name;
 		}
 		else {
-			return SymbolEqualityComparer.Default.Equals(a, b);			
+			return SymbolEqualityComparer.Default.Equals(a, b);
 		}
 	}
 
@@ -295,7 +295,7 @@ internal sealed class TypeClassResolver {
 		if(tp.HasValueTypeConstraint && !typeSymbol.IsValueType) {
 			return false;
 		}
-							
+
 		if(tp.HasReferenceTypeConstraint && typeSymbol.IsValueType) {
 			return false;
 		}
@@ -312,13 +312,13 @@ internal sealed class TypeClassResolver {
 			if(typeSymbol is not INamedTypeSymbol nt) {
 				return false;
 			}
-			
+
 			if(!nt.Constructors.Any(ctor => ctor.Parameters.Length == 0 && ctor.DeclaredAccessibility == Accessibility.Public)) {
 				return false;
 			}
 		}
-			
-		
+
+
 		foreach(var constraint in tp.ConstraintTypes) {
 			if(!SatisfiesTypeConstraint(typeSymbol, constraint)) {
 				return false;
@@ -327,9 +327,9 @@ internal sealed class TypeClassResolver {
 
 		return true;
 	}
-	
+
 	private bool SatisfiesTypeConstraint(ITypeSymbol type, ITypeSymbol constraint) {
-		if (SymbolEqualityComparer.Default.Equals(type, constraint))
+		if(SymbolEqualityComparer.Default.Equals(type, constraint))
 			return true;
 
 		for(var current = type.BaseType; current != null; current = current.BaseType) {
@@ -344,6 +344,6 @@ internal sealed class TypeClassResolver {
 
 		return false;
 	}
-	
-	
+
+
 }

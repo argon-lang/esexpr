@@ -59,10 +59,10 @@ public struct Option<T> : IEquatable<Option<T>> {
 
 public static class Option {
 	[TypeClassInstance]
-	[ESExprTags(Scalar = [ ESExprTag.ScalarType.Null ], UnionWithTypeParameters = [ nameof(T) ])]
+	[ESExprTags(Scalar = [ESExprTag.ScalarType.Null], UnionWithTypeParameters = [nameof(T)])]
 	public static IESExprCodec<Option<T>> Codec<T>(IESExprCodec<T> elementCodec) =>
 		new OptionCodec<T>(elementCodec);
-	
+
 	private sealed class OptionCodec<T> : IESExprCodec<Option<T>> {
 		public OptionCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
@@ -80,7 +80,7 @@ public static class Option {
 			if(!b.TryGetValue(out var bValue)) {
 				return false;
 			}
-			
+
 			return elementCodec.IsEncodedEqual(aValue, bValue);
 		}
 
@@ -113,14 +113,14 @@ public static class Option {
 			}
 		}
 	}
-	
-	
-	
+
+
+
 	[TypeClassInstance]
 	public static IOptionalValueCodec<Option<T>, T> OptionOptionalValueCodec<T>(IESExprCodec<T> itemCodec) =>
 		new OptionalValueCodec<T>(itemCodec);
-	
-	
+
+
 	private sealed class OptionalValueCodec<T> : IOptionalValueCodec<Option<T>, T> {
 		public OptionalValueCodec(IESExprCodec<T> elementCodec) {
 			this.elementCodec = elementCodec;
@@ -138,7 +138,7 @@ public static class Option {
 			if(!b.TryGetValue(out var bValue)) {
 				return false;
 			}
-			
+
 			return elementCodec.IsEncodedEqual(aValue, bValue);
 		}
 

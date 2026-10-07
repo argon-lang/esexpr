@@ -7,20 +7,20 @@ namespace ESExpr.Runtime.Codecs;
 
 public abstract class ListCodecBase<T, TList> : IESExprCodec<TList>
 	where TList : IEnumerable<T> {
-	
-	
+
+
 	private protected ListCodecBase(IESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
 	}
-	
+
 	internal const string ListConstructor = "list";
-	
+
 	private readonly IESExprCodec<T> itemCodec;
-	
+
 	protected abstract TList CreateList(IEnumerable<T> items);
 	protected abstract int GetCount(TList list);
-	
-	
+
+
 	public ESExprTagSet Tags { get; } = ESExprTagSet.Create([new ESExprTag.Constructor(ListConstructor)]);
 
 
@@ -61,7 +61,7 @@ internal class ListCodec<T> : ListCodecBase<T, List<T>> {
 internal class ImmutableListCodec<T> : ListCodecBase<T, ImmutableList<T>> {
 	public ImmutableListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
-	
+
 	protected override ImmutableList<T> CreateList(IEnumerable<T> items) => items.ToImmutableList();
 	protected override int GetCount(ImmutableList<T> list) => list.Count;
 }
@@ -85,7 +85,7 @@ internal class ReadOnlyListCodec<T> : ListCodecBase<T, IReadOnlyList<T>> {
 internal class InterfaceImmutableListCodec<T> : ListCodecBase<T, IImmutableList<T>> {
 	public InterfaceImmutableListCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
-	
+
 	protected override IImmutableList<T> CreateList(IEnumerable<T> items) => items.ToImmutableList();
 	protected override int GetCount(IImmutableList<T> list) => list.Count;
 }
@@ -97,17 +97,17 @@ internal class VListCodec<T>(IESExprCodec<T> itemCodec) : ListCodecBase<T, VList
 
 internal abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList, T>
 	where TList : IEnumerable<T> {
-	
-	
+
+
 	private protected ListVarargCodecBase(IESExprCodec<T> itemCodec) {
 		this.itemCodec = itemCodec;
 	}
-	
+
 	private readonly IESExprCodec<T> itemCodec;
-	
+
 	protected abstract TList CreateList(IEnumerable<T> items);
 	protected abstract int GetCount(TList list);
-	
+
 	public ESExprTagSet ElementTags => ESExprTagSet.Create([new ESExprTag.Constructor(ListCodecBase<T, TList>.ListConstructor)]);
 
 
@@ -136,7 +136,7 @@ internal abstract class ListVarargCodecBase<T, TList> : IVarargCodec<TList, T>
 			if(!itemCodec.Tags.Contains(item.Tag)) {
 				break;
 			}
-			
+
 			queue.Dequeue();
 			yield return itemCodec.Decode(item, pathBuilder(0));
 		}
@@ -154,7 +154,7 @@ internal class ListVarargCodec<T> : ListVarargCodecBase<T, List<T>> {
 internal class ImmutableListVarargCodec<T> : ListVarargCodecBase<T, ImmutableList<T>> {
 	public ImmutableListVarargCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
-	
+
 	protected override ImmutableList<T> CreateList(IEnumerable<T> items) => items.ToImmutableList();
 	protected override int GetCount(ImmutableList<T> list) => list.Count;
 }
