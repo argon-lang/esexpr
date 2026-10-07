@@ -20,10 +20,10 @@ repository = "https://github.com/argon-lang/esexpr"
 categories = [ "encoding" ]
 
 [workspace.dependencies]
-base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
-bytemuck = { version = "1.25.0", features = ["extern_crate_alloc"] }
+base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
+bytemuck = { version = "1.25.2", features = ["extern_crate_alloc"] }
 ctrlc = { version = "3.5.2" }
-darling = "0.23.0"
+darling = "0.24.1"
 derive_more = { version = "2.1.1", default-features = false, features = [ "full" ] }
 duplicate = { version = "2.0.1" }
 embedded-io = { version = "0.7.1", features = ["alloc"] }
@@ -34,21 +34,21 @@ esexpr-binary = { version = "0.3.1", path = "esexpr-binary", default-features = 
 esexpr-derive = { version = "0.3.1", path = "esexpr-derive", default-features = false }
 esexpr-json = { version = "0.3.1", path = "esexpr-json", default-features = false }
 esexpr-text = { version = "0.3.1", path = "esexpr-text", default-features = false }
-futures = { version = "0.3.32", default-features = false }
+futures = { version = "0.3.34", default-features = false }
 half = { version = "2.7.1", default-features = false, features = ["alloc"] }
 hashbrown = { version = "0.17.1" }
 hexponent = { version = "0.3.1", default-features = false }
-itertools = { version = "0.14.0", default-features = false }
+itertools = { version = "0.15.0", default-features = false }
 nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
-num-bigint = { version = "0.4.6", default-features = false }
+num-bigint = { version = "0.5.1", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
-proc-macro2 = "1.0.106"
-quote = "1.0.45"
-serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
-serde_json = { version = "1.0.150", default-features = false, features = ["float_roundtrip", "alloc"] }
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+serde = { version = "1.0.229", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1.0.151", default-features = false, features = ["float_roundtrip", "alloc"] }
 static_assertions = "1.1.0"
-syn = { version = "2.0.117", features = ["derive", "full", "visit"] }
-tokio = "1.52.3"
+syn = { version = "3.0.6", features = ["derive", "full", "visit"] }
+tokio = "1.53.2"
 ui_test = "0.30.7"
 
 

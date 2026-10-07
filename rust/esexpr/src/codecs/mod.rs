@@ -21,7 +21,7 @@ use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use hashbrown::HashMap;
 
-/// Equality for the encoded ESExpr representation.
+/// Equality for the encoded `ESExpr` representation.
 pub trait ESExprEncodedEq {
 	/// Determines whether two values are equal when encoded as `ESExpr`.
 	fn is_encoded_eq(&self, other: &Self) -> bool;

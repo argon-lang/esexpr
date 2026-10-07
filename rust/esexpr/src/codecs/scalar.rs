@@ -220,7 +220,7 @@ impl<'a> ESExprCodec<'a> for CowStr<'a> {
 
 
 
-impl <'a> ESExprEncodedEq for f16 {
+impl ESExprEncodedEq for f16 {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
 		self.to_bits() == other.to_bits()
 	}
@@ -247,7 +247,7 @@ impl<'a> ESExprCodec<'a> for f16 {
 	}
 }
 
-impl <'a> ESExprEncodedEq for f32 {
+impl ESExprEncodedEq for f32 {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
 		self.to_bits() == other.to_bits()
 	}
@@ -274,7 +274,7 @@ impl<'a> ESExprCodec<'a> for f32 {
 	}
 }
 
-impl <'a> ESExprEncodedEq for f64 {
+impl ESExprEncodedEq for f64 {
 	fn is_encoded_eq(&self, other: &Self) -> bool {
 		self.to_bits() == other.to_bits()
 	}

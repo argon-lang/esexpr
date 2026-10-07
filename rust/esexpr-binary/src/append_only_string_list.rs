@@ -8,21 +8,20 @@ pub struct AppendOnlyStringList {
 	values: UnsafeCell<Vec<String>>,
 }
 
-#[expect(clippy::unwrap_used, reason = "UnsafeCell does not give null pointers")]
 impl AppendOnlyStringList {
 	pub fn get(&self, i: usize) -> Option<&str> {
-		unsafe { self.values.get().as_ref().unwrap() }
+		unsafe { self.values.get().as_ref().expect("list storage should be initialized") }
 			.get(i)
 			.map(String::as_str)
 	}
 
 	pub fn append(&self, values: &mut Vec<String>) {
-		let vec = unsafe { self.values.get().as_mut().unwrap() };
+		let vec = unsafe { self.values.get().as_mut().expect("list storage should be initialized") };
 		vec.append(values);
 	}
 
 	pub fn push(&self, value: String) {
-		let vec = unsafe { self.values.get().as_mut().unwrap() };
+		let vec = unsafe { self.values.get().as_mut().expect("list storage should be initialized") };
 		vec.push(value);
 	}
 }
@@ -85,19 +84,19 @@ mod tests {
 		let list = AppendOnlyStringList::from(vec![]);
 
 		unsafe {
-			let values = list.values.get().as_mut().unwrap();
+			let values = list.values.get().as_mut().expect("list storage should be initialized");
 			values.reserve_exact(1);
 		}
 		list.push("A".to_owned());
-		let a1 = list.get(0).unwrap() as *const str;
-		let sp1: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };
+		let a1 = core::ptr::from_ref(list.get(0).expect("first string should exist"));
+		let sp1: *const String = unsafe { core::ptr::from_ref(&list.values.get().as_ref().expect("list storage should be initialized")[0]) };
 
 		let mut a2;
 		loop {
 			list.push("B".to_owned());
 
-			a2 = list.get(0).unwrap() as *const str;
-			let sp2: *const String = unsafe { &list.values.get().as_ref().unwrap()[0] as *const String };
+			a2 = core::ptr::from_ref(list.get(0).expect("first string should exist"));
+			let sp2: *const String = unsafe { core::ptr::from_ref(&list.values.get().as_ref().expect("list storage should be initialized")[0]) };
 
 			if sp1 != sp2 {
 				break;

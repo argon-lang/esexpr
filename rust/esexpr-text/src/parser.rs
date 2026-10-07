@@ -206,9 +206,7 @@ fn float16_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 				if is_neg {
 					return Ok(ESExpr::Float16(-f16::NAN));
 				}
-				else {
-					return Ok(ESExpr::Float16(f16::NAN));
-				}
+				return Ok(ESExpr::Float16(f16::NAN));
 			};
 
 			if (payload & 0xFC00) != 0 {
@@ -243,17 +241,15 @@ fn float32_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 				if is_neg {
 					return Ok(ESExpr::Float32(-f32::NAN));
 				}
-				else {
-					return Ok(ESExpr::Float32(f32::NAN));
-				}
+				return Ok(ESExpr::Float32(f32::NAN));
 			};
 
-			if (payload & 0xFF800000) != 0 {
+			if (payload & 0xFF80_0000) != 0 {
 				return Err(LexErrorType::InvalidNaNPayload(u64::from(payload)))
 			}
 
-			let sign_bit: u32 = if is_neg { 0x80000000 } else { 0 };
-			let exponent: u32 = 0x7F800000;
+			let sign_bit: u32 = if is_neg { 0x8000_0000 } else { 0 };
+			let exponent: u32 = 0x7F80_0000;
 
 			let f = f32::from_bits(sign_bit | exponent | payload);
 
@@ -280,17 +276,15 @@ fn float64_nan(input: &str) -> IResult<&str, ESExpr<'static>> {
 				if is_neg {
 					return Ok(ESExpr::Float64(-f64::NAN));
 				}
-				else {
-					return Ok(ESExpr::Float64(f64::NAN));
-				}
+				return Ok(ESExpr::Float64(f64::NAN));
 			};
 
-			if (payload & 0xFFF0000000000000) != 0 {
+			if (payload & 0xFFF0_0000_0000_0000) != 0 {
 				return Err(LexErrorType::InvalidNaNPayload(payload));
 			}
 
-			let sign_bit: u64 = if is_neg { 0x8000000000000000 } else { 0 };
-			let exponent: u64 = 0x7FF0000000000000;
+			let sign_bit: u64 = if is_neg { 0x8000_0000_0000_0000 } else { 0 };
+			let exponent: u64 = 0x7FF0_0000_0000_0000;
 
 			let f = f64::from_bits(sign_bit | exponent | payload);
 
@@ -320,6 +314,9 @@ fn float<'a>(input: &'a str) -> IResult<&'a str, ESExpr<'static>> {
 }
 
 /// Parses an input string and extracts an integer of arbitrary size (`BigInt`).
+///
+/// # Errors
+/// Returns a parse error if the input does not begin with a valid integer.
 pub fn integer(input: &str) -> IResult<&str, BigInt> {
 	preceded(
 		skip_ws,
@@ -335,6 +332,9 @@ pub fn integer(input: &str) -> IResult<&str, BigInt> {
 }
 
 /// Parses an input string and extracts an unsigned integer of arbitrary size (`BigUint`).
+///
+/// # Errors
+/// Returns a parse error if the input does not begin with a valid unsigned integer.
 pub fn unsigned_integer(input: &str) -> IResult<&str, BigUint> {
 	preceded(
 		skip_ws,
@@ -351,13 +351,7 @@ pub fn unsigned_integer(input: &str) -> IResult<&str, BigUint> {
 				preceded(tag("0o"), oct_digit1),
 				|s: &str| parse_int_base(s, 8),
 			),
-			map(recognize(digit1), |s: &str| {
-				#[expect(
-					clippy::unwrap_used,
-					reason = "Shouldn't fail because the parser should ensure the format is valid."
-				)]
-				s.parse::<BigUint>().unwrap()
-			}),
+			map_res(recognize(digit1), str::parse::<BigUint>),
 		)),
 	)
 		.parse(input)

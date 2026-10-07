@@ -14,6 +14,7 @@ pub enum GeneratorError<E> {
 
 impl<E> GeneratorError<E> {
 	/// Convert from an `Infallible` error
+	#[must_use]
 	pub fn from_infallible(error: GeneratorError<Infallible>) -> Self {
 		match error {
 			GeneratorError::IOError(e) => match e {},

@@ -21,7 +21,7 @@ mod tests {
         let expr = set.encode_esexpr();
         assert_eq!(expr, esexpr! { (set 1 2) });
 
-        let decoded: BTreeSet<i64> = ESExprCodec::decode_esexpr(expr).unwrap();
+        let decoded: BTreeSet<i64> = ESExprCodec::decode_esexpr(expr).expect("encoded collection should decode");
         assert_eq!(set, decoded);
     }
 }

@@ -30,7 +30,7 @@ mod tests {
         let expr = map.encode_esexpr();
         assert_eq!(expr, esexpr! { (map 1 "one") });
 
-        let decoded: HashMap<i64, String> = ESExprCodec::decode_esexpr(expr).unwrap();
+        let decoded: HashMap<i64, String> = ESExprCodec::decode_esexpr(expr).expect("encoded collection should decode");
         assert_eq!(map, decoded);
     }
 
@@ -44,10 +44,10 @@ mod tests {
         map.encode_dict_element(&mut kwargs);
 
         assert_eq!(kwargs.len(), 2);
-        assert_eq!(kwargs.get(&CowStr::Borrowed("one")).unwrap(), &esexpr! { 1 });
-        assert_eq!(kwargs.get(&CowStr::Borrowed("two")).unwrap(), &esexpr! { 2 });
+        assert_eq!(kwargs.get(&CowStr::Borrowed("one")), Some(&esexpr! { 1 }));
+        assert_eq!(kwargs.get(&CowStr::Borrowed("two")), Some(&esexpr! { 2 }));
 
-        let decoded: HashMap<String, i64> = ESExprDictCodec::decode_dict_element(&mut kwargs, "test").unwrap();
+        let decoded: HashMap<String, i64> = ESExprDictCodec::decode_dict_element(&mut kwargs, "test").expect("encoded collection should decode");
         assert_eq!(map, decoded);
     }
 }

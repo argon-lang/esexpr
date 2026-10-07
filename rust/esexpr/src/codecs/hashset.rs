@@ -31,7 +31,7 @@ mod tests {
         let expr = set.encode_esexpr();
         assert_eq!(expr, esexpr! { (set 1) });
 
-        let decoded: HashSet<i64> = ESExprCodec::decode_esexpr(expr).unwrap();
+        let decoded: HashSet<i64> = ESExprCodec::decode_esexpr(expr).expect("encoded collection should decode");
         assert_eq!(set, decoded);
     }
 }

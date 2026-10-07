@@ -234,6 +234,7 @@ fn param_to_arg(p: &GenericParam) -> GenericArgument {
 	match p {
 		GenericParam::Lifetime(l) => GenericArgument::Lifetime(l.lifetime.clone()),
 		GenericParam::Type(t) => GenericArgument::Type(Type::Path(TypePath {
+			attrs: vec![],
 			qself: None,
 			path: Path::from(t.ident.clone()),
 		})),
@@ -1027,9 +1028,9 @@ mod test {
 			compile_error_messages: Vec::new(),
 		};
 
-		eprintln!("{}", tokens);
+		eprintln!("{tokens}");
 
-		checker.visit_item(&syn::parse2(tokens).unwrap());
+		checker.visit_item(&syn::parse2(tokens).expect("derive output should parse as an item"));
 
 		if checker.compile_error_messages.is_empty() {
 			println!("No compile_error!s were found");
@@ -1037,7 +1038,7 @@ mod test {
 		else {
 			println!("Error messages:");
 			for e in &checker.compile_error_messages {
-				println!("{}", e);
+				println!("{e}");
 			}
 		}
 
@@ -1053,10 +1054,10 @@ mod test {
 
 	impl<'a> visit::Visit<'a> for CompileErrorChecker {
 		fn visit_macro(&mut self, mac: &'a syn::Macro) {
-			if mac.path.get_ident().is_some_and(|i| i.to_string() == "compile_error") {
+			if mac.path.get_ident().is_some_and(|i| i == "compile_error") {
 				let args = syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated
 					.parse2(mac.tokens.clone())
-					.unwrap();
+					.expect("compile_error arguments should parse");
 
 				match &args[0] {
 					syn::Expr::Lit(syn::ExprLit {
@@ -1068,7 +1069,7 @@ mod test {
 				}
 			}
 
-			visit::visit_macro(self, mac)
+			visit::visit_macro(self, mac);
 		}
 	}
 

@@ -16,6 +16,7 @@ impl <V> Dictionary<V> {
 	/**
 	 * Create a new dictionary.
 	 */
+	#[must_use]
 	pub fn new() -> Self {
 		Dictionary(HashMap::new())
 	}
@@ -53,7 +54,7 @@ impl <V> From<Dictionary<V>> for BTreeMap<String, V> {
 }
 
 #[cfg(feature = "std")]
-impl <V> From<Dictionary<V>> for std::collections::HashMap<String, V> {
+impl <V, S: core::hash::BuildHasher + Default> From<Dictionary<V>> for std::collections::HashMap<String, V, S> {
 	fn from(dictionary: Dictionary<V>) -> Self {
 		dictionary.0.into_iter().collect()
 	}

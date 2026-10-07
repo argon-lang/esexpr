@@ -30,7 +30,7 @@ fn parse_biguint_with_prefix(s: &str) -> Result<BigUint, String> {
 	} else {
 		(10, s)
 	};
-	let cleaned = stripped.replace("_", "");
+	let cleaned = stripped.replace('_', "");
 	BigUint::from_str_radix(&cleaned, radix).map_err(|_| format!("Could not parse bigint: {s}"))
 }
 

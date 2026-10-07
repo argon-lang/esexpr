@@ -13,6 +13,7 @@ use crate::*;
 /// Representation of an `ESExpr` value.
 /// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
 #[derive(Debug, Clone)]
+#[must_use]
 pub enum ESExpr<'a> {
 	/// A constructor expression.
 	/// Can contain positional and keyword arguments.
@@ -93,7 +94,6 @@ impl<'a> ESExpr<'a> {
 	}
 
 	/// Performs a deep clone of the value.
-	#[must_use]
 	pub fn as_owned(&self) -> ESExpr<'static> {
 		match self {
 			ESExpr::Constructor(constructor) => ESExpr::Constructor(constructor.as_owned()),
@@ -113,7 +113,6 @@ impl<'a> ESExpr<'a> {
 	}
 
 	/// Ensures that any borrowed values are converted to owned values.
-	#[must_use]
 	pub fn into_owned(self) -> ESExpr<'static> {
 		match self {
 			ESExpr::Constructor(constructor) => ESExpr::Constructor(constructor.into_owned()),
@@ -133,7 +132,6 @@ impl<'a> ESExpr<'a> {
 	}
 
 	/// Creates an `ESExpr` value from a reference without making a deep copy.
-	#[must_use]
 	pub fn as_borrowed<'b>(&'b self) -> ESExpr<'b>
 	where
 		'a: 'b,
@@ -220,6 +218,7 @@ pub struct ESExprStatic(ESExpr<'static>);
 
 impl ESExprStatic {
 	/// Create an `ESExprStatic`
+	#[must_use]
 	pub fn new(e: ESExpr<'static>) -> Self {
 		ESExprStatic(e)
 	}
@@ -295,6 +294,7 @@ pub struct ConstructorArgs<'a> {
 
 impl<'a> ConstructorArgs<'a> {
 	/// Creates empty constructor arguments.
+	#[must_use]
 	pub fn new() -> Self {
 		ConstructorArgs {
 			args: ConstructorArgsInner::Owned(Vec::new()),
@@ -337,6 +337,12 @@ impl<'a> ConstructorArgs<'a> {
 				ConstructorArgsInner::Borrowed(args) => ConstructorArgsInner::Borrowed(args),
 			},
 		}
+	}
+}
+
+impl<'a> Default for ConstructorArgs<'a> {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
