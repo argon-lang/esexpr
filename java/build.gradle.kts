@@ -90,6 +90,7 @@ subprojects {
             options.errorprone {
                 disable("RefactorSwitch")
                 option("NullAway:OnlyNullMarked", "true")
+                option("NullAway:JSpecifyExperimental", "true")
                 option("NullAway:JSpecifyMode", "true")
                 error("NullAway")
                 error("RequireExplicitNullMarking")

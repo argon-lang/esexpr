@@ -296,3 +296,62 @@ async fn async_io_errors_at_every_stream_byte() {
 		}
 	}
 }
+
+fn additions() -> Vec<Vec<String>> {
+	vec![
+		vec![],
+		vec!["single".into()],
+		vec!["first".into(), "second".into(), "first".into()],
+	]
+}
+
+#[test]
+fn sync_add_strings_short_writes_and_errors() {
+	for strings in additions() {
+		let mut bytes = Vec::new();
+		ExprGenerator::new(&mut bytes)
+			.add_strings(strings.clone())
+			.expect("baseline addition");
+		for offset in 0..=bytes.len() {
+			let mut writer = ChunkedIo {
+				input: &[],
+				output: Vec::new(),
+				remaining: Some(offset),
+			};
+			let result = ExprGenerator::new(&mut writer).add_strings(strings.clone());
+			if offset == bytes.len() {
+				result.expect("one-byte writes should succeed");
+			}
+			else {
+				assert!(matches!(result, Err(GeneratorError::IOError(ErrorKind::Other))));
+			}
+			assert_eq!(writer.output, bytes[..offset]);
+		}
+	}
+}
+
+#[cfg(feature = "async")]
+#[tokio::test]
+async fn async_add_strings_short_writes_and_errors() {
+	use esexpr_binary::ExprGeneratorAsync;
+	for strings in additions() {
+		let mut bytes = Vec::new();
+		ExprGeneratorSync::add_strings(&mut ExprGenerator::new(&mut bytes), strings.clone())
+			.expect("baseline addition");
+		for offset in 0..=bytes.len() {
+			let mut writer = ChunkedIo {
+				input: &[],
+				output: Vec::new(),
+				remaining: Some(offset),
+			};
+			let result = ExprGeneratorAsync::add_strings(&mut ExprGenerator::new(&mut writer), strings.clone()).await;
+			if offset == bytes.len() {
+				result.expect("one-byte writes should succeed");
+			}
+			else {
+				assert!(matches!(result, Err(GeneratorError::IOError(ErrorKind::Other))));
+			}
+			assert_eq!(writer.output, bytes[..offset]);
+		}
+	}
+}

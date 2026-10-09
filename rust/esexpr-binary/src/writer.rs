@@ -37,7 +37,8 @@ impl<'a, W> ExprGenerator<'a, W> {
 		}
 	}
 
-	/// Create an `ExprGenerator` with an existing string pool
+	/// Create an `ExprGenerator` with a string pool already known to the reader.
+	/// Use `add_strings` to emit new entries into the stream instead.
 	pub fn new_with_string_pool(out: &'a mut W, string_pool: Vec<String>) -> Self {
 		ExprGenerator { out, string_pool }
 	}
@@ -89,9 +90,31 @@ macro_rules! writer_mod {
 					expr: &ESExpr<'_>,
 				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
 			);
+			maybe_async!(
+				$syncness,
+				/// Add strings to the pool and record them in the output stream.
+				/// Existing strings and repeated entries are skipped; new entries retain
+				/// their supplied order. An empty addition writes nothing.
+				///
+				/// # Errors
+				/// Returns an IO error if emission fails. Discard the generator and
+				/// output stream after an error, since output may be partially written.
+				fn add_strings(
+					&mut self,
+					strings: Vec<String>,
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+			);
 		}
 
 		pub(super) trait ExprGeneratorWriteExt: ExprGeneratorWrite {
+			maybe_async!(
+				$syncness,
+				fn write_string_append(
+					out: &mut Self::Write,
+					strings: &[String],
+				) -> Result<(), GeneratorError<<Self::Write as ErrorType>::Error>>;
+			);
+
 			maybe_async!(
 				$syncness,
 				fn generate_expr(
@@ -178,32 +201,60 @@ macro_rules! writer_mod {
 
 					core::mem::swap(&mut self.string_pool, &mut generator.string_pool);
 
-					match &self.string_pool[old_string_pool_end..] {
-						[] => {},
-						[s] => {
-							do_await!($syncness, Self::write_out(self.out, TAG_APPEND_STRING_TABLE))?;
-							do_await!($syncness, Self::write_string_expr(self.out, s.as_str()))?;
-						},
-						new_strings => {
-							do_await!($syncness, Self::write_out(self.out, TAG_APPEND_STRING_TABLE))?;
-							do_await!(
-								$syncness,
-								Self::write_out(self.out, TAG_CONSTRUCTOR_START_STRING_TABLE)
-							)?;
-							for s in new_strings {
-								do_await!($syncness, Self::write_string_expr(self.out, s))?;
-							}
-							do_await!($syncness, Self::write_out(self.out, TAG_CONSTRUCTOR_END))?;
-						},
-					}
+					do_await!(
+						$syncness,
+						Self::write_string_append(self.out, &self.string_pool[old_string_pool_end..])
+					)?;
 
 					do_await!($syncness, self.generate_expr(expr))?;
+					Ok(())
+				}
+			);
+			maybe_async!(
+				$syncness,
+				fn add_strings(&mut self, strings: Vec<String>) -> Result<(), GeneratorError<W::Error>> {
+					let mut seen: alloc::collections::BTreeSet<&str> =
+						self.string_pool.iter().map(String::as_str).collect();
+					let selected: Vec<_> = strings.iter().map(|s| seen.insert(s.as_str())).collect();
+					drop(seen);
+					let strings: Vec<_> = strings
+						.into_iter()
+						.zip(selected)
+						.filter_map(|(s, selected)| selected.then_some(s))
+						.collect();
+					do_await!($syncness, Self::write_string_append(self.out, &strings))?;
+					self.string_pool.extend(strings);
 					Ok(())
 				}
 			);
 		}
 
 		impl<'a, W: Write> ExprGeneratorWriteExt for ExprGenerator<'a, W> {
+			maybe_async!(
+				$syncness,
+				fn write_string_append(out: &mut W, strings: &[String]) -> Result<(), GeneratorError<W::Error>> {
+					match strings {
+						[] => {},
+						[s] => {
+							do_await!($syncness, Self::write_out(out, TAG_APPEND_STRING_TABLE))?;
+							do_await!($syncness, Self::write_string_expr(out, s.as_str()))?;
+						},
+						new_strings => {
+							do_await!($syncness, Self::write_out(out, TAG_APPEND_STRING_TABLE))?;
+							do_await!(
+								$syncness,
+								Self::write_out(out, TAG_CONSTRUCTOR_START_STRING_TABLE)
+							)?;
+							for s in new_strings {
+								do_await!($syncness, Self::write_string_expr(out, s))?;
+							}
+							do_await!($syncness, Self::write_out(out, TAG_CONSTRUCTOR_END))?;
+						},
+					}
+					Ok(())
+				}
+			);
+
 			maybe_async!(
 				$syncness,
 				fn generate_expr(&mut self, expr: &ESExpr<'_>) -> Result<(), GeneratorError<W::Error>> {
@@ -271,11 +322,18 @@ macro_rules! writer_mod {
 							do_await!($syncness, self.out.write_all(&f64::to_le_bytes(*d)))?;
 						},
 						ESExpr::Str(s) => {
-							do_await!(
-								$syncness,
-								self.write_int_tag(TAG_VARINT_STRING_LENGTH, &BigUint::from(s.len()))
-							)?;
-							do_await!($syncness, self.out.write_all(s.as_bytes()))?;
+							let index = self.string_pool.iter().position(|entry| entry == &**s);
+							if let Some(index) = index
+								.filter(|&i| crate::format::tagged_int_size(i) <= crate::format::inline_string_size(s))
+							{
+								do_await!(
+									$syncness,
+									self.write_int_tag(TAG_VARINT_STRING_POOL, &BigUint::from(index))
+								)?;
+							}
+							else {
+								do_await!($syncness, Self::write_string_expr(self.out, s))?;
+							}
 						},
 
 						ESExpr::Array8(b) => {
@@ -396,8 +454,10 @@ macro_rules! writer_mod {
 					let index = self.string_pool.len();
 					self.string_pool.push(s.to_owned());
 
-					do_await!($syncness, self.write(TAG_APPEND_STRING_TABLE))?;
-					do_await!($syncness, Self::write_string_expr(self.out, s))?;
+					do_await!(
+						$syncness,
+						Self::write_string_append(self.out, &self.string_pool[index..])
+					)?;
 
 					Ok(index)
 				}

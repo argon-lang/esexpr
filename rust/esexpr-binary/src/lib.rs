@@ -1,4 +1,4 @@
-//! Binary format for `ESExpr`.
+#![doc = include_str!("../README.md")]
 #![no_std]
 
 extern crate alloc;
@@ -11,9 +11,11 @@ mod append_only_string_list;
 mod async_macros;
 mod format;
 mod reader;
+mod string_table_builder;
 mod writer;
 
 pub use reader::*;
+pub use string_table_builder::StringTableBuilder;
 pub use writer::*;
 
 #[cfg(test)]

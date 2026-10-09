@@ -13,7 +13,6 @@ use crate::*;
 /// Representation of an `ESExpr` value.
 /// Must be a constructor, bool, int, string, float32, float64, {int,uint}{8,16,32,64} or null.
 #[derive(Debug, Clone)]
-#[must_use]
 pub enum ESExpr<'a> {
 	/// A constructor expression.
 	/// Can contain positional and keyword arguments.

@@ -35,9 +35,18 @@ public class BinaryRoundTripPropertyTests {
 		await RoundTrip([a, b, a], ImmutableList.Create(name, key).Distinct().ToImmutableList(), 7);
 	}, iter: 200);
 
-	private static async Task RoundTrip(Expr[] expected, ImmutableList<string> symbols, int maxRead) {
+	[Test]
+	public Task CompactedStreamsRoundTrip() => ExprGenerators.Expression.Array[0, 16].SampleAsync(
+		async exprs => await RoundTrip(exprs, [], 1, compact: true), iter: 500);
+
+	private static async Task RoundTrip(Expr[] expected, ImmutableList<string> symbols, int maxRead, bool compact = false) {
 		using var encoded = new MemoryStream();
 		var writer = new ESExprBinaryWriter(symbols, encoded);
+		if(compact) {
+			var builder = new StringTableBuilder();
+			foreach(var expr in expected) builder.Record(expr);
+			await writer.AddStrings(builder.Build());
+		}
 		foreach(var expr in expected) await writer.Write(expr);
 		using var input = new ShortReadStream(encoded.ToArray(), maxRead);
 		var reader = new ESExprBinaryReader(symbols, input);

@@ -4,6 +4,20 @@ use alloc::vec::Vec;
 use half::f16;
 use num_bigint::{BigInt, BigUint};
 
+pub(crate) fn tagged_int_size(mut value: usize) -> usize {
+	let mut size = 1;
+	value >>= 4;
+	while value != 0 {
+		size += 1;
+		value >>= 7;
+	}
+	size
+}
+
+pub(crate) fn inline_string_size(value: &str) -> usize {
+	value.len().saturating_add(tagged_int_size(value.len()))
+}
+
 pub enum VarIntTag {
 	ConstructorStart,
 	NonNegIntValue,

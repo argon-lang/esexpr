@@ -1,7 +1,5 @@
 package dev.argon.esexpr;
 
-import com.google.common.collect.ImmutableList;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -21,7 +19,9 @@ public class ESExprBinaryWriter {
 	 * Creates an encoder.
 	 * 
 	 * @param symbolTable
-	 *            The initial symbol table used when writing.
+	 *            The initial symbol table, which must already be known to the
+	 *            reader. Use {@link #addStrings(List)} to emit new entries into the
+	 *            stream.
 	 * @param os
 	 *            The stream.
 	 */
@@ -58,21 +58,46 @@ public class ESExprBinaryWriter {
 	public void write(ESExpr expr) throws IOException {
 		int oldSize = symbolTable.size();
 		addSymbols(expr);
-		if(symbolTable.size() > oldSize) {
-			writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
-
-			if(oldSize + 1 == symbolTable.size()) {
-				writeExprRaw(new ESExpr.Str(symbolTable.get(oldSize)), false);
-			}
-			else {
-				var appendTable = new StringTable(
-					ImmutableList.copyOf(symbolTable.subList(oldSize, symbolTable.size()))
-				);
-				writeExprRaw(StringTable.codec().encode(appendTable), false);
-			}
-		}
+		writeStringAppend(symbolTable.subList(oldSize, symbolTable.size()));
 
 		writeExprRaw(expr);
+	}
+
+	/**
+	 * Adds supplied strings to the table and records them in the stream. Existing
+	 * strings and repeated entries are skipped; new entries retain their supplied
+	 * order and existing indices remain unchanged.
+	 * 
+	 * @param strings
+	 *            The strings to add, such as a built compaction table.
+	 * @throws IOException
+	 *             When emission fails. Discard the writer and stream after an error
+	 *             because output may be partially written.
+	 */
+	public void addStrings(List<? extends String> strings) throws IOException {
+		var seen = new HashSet<>(symbolSet);
+		var additions = new ArrayList<String>();
+		for(var value : strings) {
+			Objects.requireNonNull(value);
+			if(seen.add(value))
+				additions.add(value);
+		}
+		writeStringAppend(additions);
+		symbolTable.addAll(additions);
+		symbolSet.addAll(additions);
+	}
+
+	private void writeStringAppend(List<String> strings) throws IOException {
+		if(strings.isEmpty())
+			return;
+		writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
+		if(strings.size() > 1)
+			writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE);
+		for(var value : strings) {
+			writeExprRaw(new ESExpr.Str(value), false);
+		}
+		if(strings.size() > 1)
+			writeToken(BinToken.Fixed.CONSTRUCTOR_END);
 	}
 
 	private void writeExprRaw(ESExpr expr) throws IOException {
@@ -126,13 +151,14 @@ public class ESExprBinaryWriter {
 
 			case ESExpr.Str(var s) -> {
 				int index = usePooledStrings ? symbolTable.indexOf(s) : -1;
-				if(index >= 0) {
+				byte[] b = s.getBytes(StandardCharsets.UTF_8);
+				if(index >= 0 && StringTableBuilder.taggedIntSize(index) <= (long)b.length
+					+ StringTableBuilder.taggedIntSize(b.length)) {
 					writeToken(
 						new BinToken.WithInteger(BinToken.WithIntegerType.STRING_POOL_INDEX, BigInteger.valueOf(index))
 					);
 				}
 				else {
-					byte[] b = s.getBytes(StandardCharsets.UTF_8);
 					writeToken(new BinToken.WithInteger(BinToken.WithIntegerType.STRING, BigInteger.valueOf(b.length)));
 					os.write(b);
 				}
@@ -304,8 +330,7 @@ public class ESExprBinaryWriter {
 		int index = symbolTable.indexOf(symbol);
 		if(index < 0) {
 			index = symbolTable.size();
-			writeToken(BinToken.Fixed.APPEND_STRING_TABLE);
-			writeExprRaw(new ESExpr.Str(symbol), false);
+			addStrings(List.of(symbol));
 		}
 		return BigInteger.valueOf(index);
 	}
@@ -324,7 +349,7 @@ public class ESExprBinaryWriter {
 
 	private void addSymbols(ESExpr expr) {
 		if(expr instanceof ESExpr.Constructor(var name, var args, var kwargs)) {
-			if(!name.equals(BinToken.StringTableName) && !name.equals(BinToken.ListName)) {
+			if(!StringTableBuilder.isDedicatedConstructor(name)) {
 				addSymbol(name);
 			}
 

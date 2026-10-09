@@ -41,3 +41,37 @@ hexadecimal floats, decimal/binary/octal/hexadecimal integers, arbitrary-size
 null levels, and all five unsigned array widths. Strings and names must contain
 valid Unicode scalar values. As in the Rust parser, comments end at a newline,
 and repeated keyword names keep the last value.
+
+## Compacting binary streams
+
+`StringTableBuilder` records constructor names, keywords, and string literals.
+It includes names required by the binary format and selects literal-only strings
+used at least twice when their references save more bytes than their table-entry
+cost. The calculation uses UTF-8 byte lengths and index widths. Selected entries
+use decreasing combined frequency, with Unicode scalar ordering for ties. The
+heuristic excludes shared framing and effects on later indices. `Build()` retains
+recorded usage and returns an independent list, filtering sorted candidates in
+place.
+
+```csharp
+var expressions = new Expr[] {
+    new Expr.Str("repeated value"), new Expr.Str("repeated value"),
+};
+var builder = new StringTableBuilder();
+foreach(var expr in expressions) builder.Record(expr);
+
+using var output = new MemoryStream();
+var writer = new ESExprBinaryWriter(output);
+await writer.AddStrings(builder.Build());
+foreach(var expr in expressions) await writer.Write(expr);
+```
+
+`AddStrings(strings, cancellationToken)` emits new entries into the stream so a
+fresh binary reader needs no initial table. It skips duplicates, preserves
+existing indices, and can be called between expression writes. Table payloads
+are always inline; subsequent literals use references when no larger than inline
+encoding. Use the writer sequentially and discard it and the stream after a write
+failure or cancellation because output may be partially written.
+
+The constructor accepting an initial symbol table assumes the reader already
+knows that table and does not emit it.

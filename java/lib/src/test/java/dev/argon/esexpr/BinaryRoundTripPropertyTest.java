@@ -29,6 +29,19 @@ class BinaryRoundTripPropertyTest {
 		assertRoundTrip(expressions, symbols);
 	}
 
+	@Property
+	void compactedStreamRoundTrip(@ForAll("expressionStreams") List<ESExpr> expressions) throws Exception {
+		var builder = new StringTableBuilder();
+		expressions.forEach(builder::record);
+		var output = new ByteArrayOutputStream();
+		var writer = new ESExprBinaryWriter(output);
+		writer.addStrings(builder.build());
+		for(var expression : expressions)
+			writer.write(expression);
+		var reader = new ESExprBinaryReader(new ByteArrayInputStream(output.toByteArray()));
+		assertEquals(expressions, reader.readAll().toList());
+	}
+
 	private void assertRoundTrip(List<ESExpr> expressions, List<String> symbols) throws Exception {
 		var output = new ByteArrayOutputStream();
 		var writer = new ESExprBinaryWriter(symbols, output);

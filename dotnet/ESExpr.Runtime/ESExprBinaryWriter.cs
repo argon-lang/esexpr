@@ -18,9 +18,11 @@ public class ESExprBinaryWriter {
 		this.stream = stream;
 	}
 
+	/// <summary>Creates a writer with a table already known to the reader.</summary>
+	/// <remarks>Use <see cref="AddStrings"/> to emit new entries into the stream.</remarks>
 	public ESExprBinaryWriter(IImmutableList<string> symbolTable, Stream stream) {
 		this.symbolTable = symbolTable.ToList();
-		symbolSet = new HashSet<string>(symbolTable);
+		symbolSet = new HashSet<string>(symbolTable, StringComparer.Ordinal);
 		this.stream = stream;
 	}
 
@@ -32,20 +34,50 @@ public class ESExprBinaryWriter {
 		int oldCount = symbolTable.Count;
 		AddSymbols(expr);
 
-		if(oldCount < symbolTable.Count) {
-			await WriteToken(new BinToken(BinToken.TokenType.AppendStringTable, null), cancellationToken);
-
-			if(oldCount + 1 == symbolTable.Count) {
-				await WriteRaw(new Expr.Str(symbolTable[oldCount]), cancellationToken);
-			}
-			else {
-				var newStrings = new StringTable(symbolTable.Skip(oldCount).ToImmutableList());
-				var newStringExpr = StringTable.Codec.Encode(newStrings);
-				await WriteRaw(newStringExpr, cancellationToken);
-			}
-		}
+		await WriteStringAppend(symbolTable.GetRange(oldCount, symbolTable.Count - oldCount), cancellationToken).ConfigureAwait(false);
 
 		await WriteRaw(expr, cancellationToken);
+	}
+
+	/// <summary>Adds supplied strings to the table and records them in the stream.</summary>
+	/// <remarks>
+	/// Existing strings and duplicates are skipped. New entries retain their supplied order
+	/// and existing indices remain unchanged. Use the writer sequentially. Discard the writer
+	/// and stream after a write failure or cancellation because output may be partially written.
+	/// </remarks>
+	/// <param name="strings">The strings to add, such as a built compaction table.</param>
+	/// <param name="cancellationToken">The token used to cancel emission.</param>
+	public async Task AddStrings(IEnumerable<string> strings, CancellationToken cancellationToken = default) {
+		cancellationToken.ThrowIfCancellationRequested();
+		var seen = new HashSet<string>(symbolSet, StringComparer.Ordinal);
+		var additions = new List<string>();
+		foreach(var value in strings) {
+			if(value is null) throw new ArgumentException("String entries cannot be null.", nameof(strings));
+			if(seen.Add(value)) additions.Add(value);
+		}
+		await WriteStringAppend(additions, cancellationToken).ConfigureAwait(false);
+		symbolTable.AddRange(additions);
+		symbolSet.UnionWith(additions);
+	}
+
+	private async Task WriteStringAppend(List<string> strings, CancellationToken cancellationToken) {
+		if(strings.Count == 0) return;
+		await WriteToken(new BinToken(BinToken.TokenType.AppendStringTable, null), cancellationToken).ConfigureAwait(false);
+		if(strings.Count > 1) {
+			await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartStringTable, null), cancellationToken).ConfigureAwait(false);
+		}
+		foreach(var value in strings) {
+			await WriteInlineString(value, cancellationToken).ConfigureAwait(false);
+		}
+		if(strings.Count > 1) {
+			await WriteToken(new BinToken(BinToken.TokenType.ConstructorEnd, null), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteInlineString(string value, CancellationToken cancellationToken) {
+		var bytes = Encoding.UTF8.GetBytes(value);
+		await WriteToken(new BinToken(BinToken.TokenType.String, bytes.Length), cancellationToken).ConfigureAwait(false);
+		await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
 	}
 
 	private async Task WriteRaw(Expr expr, CancellationToken cancellationToken) {
@@ -106,9 +138,13 @@ public class ESExprBinaryWriter {
 				break;
 
 			case Expr.Str(var s): {
-				var b = Encoding.UTF8.GetBytes(s);
-				await WriteToken(new BinToken(BinToken.TokenType.String, b.Length), cancellationToken).ConfigureAwait(false);
-				await stream.WriteAsync(b, cancellationToken).ConfigureAwait(false);
+				int index = symbolTable.IndexOf(s);
+				if(index >= 0 && StringTableBuilder.TaggedIntSize(index) <= StringTableBuilder.InlineStringSize(s)) {
+					await WriteToken(new BinToken(BinToken.TokenType.StringPoolIndex, index), cancellationToken).ConfigureAwait(false);
+				}
+				else {
+					await WriteInlineString(s, cancellationToken).ConfigureAwait(false);
+				}
 				break;
 			}
 
@@ -279,11 +315,8 @@ public class ESExprBinaryWriter {
 	private async ValueTask<BigInteger> GetSymbolIndex(string constructor, CancellationToken cancellationToken) {
 		int index = symbolTable.IndexOf(constructor);
 		if(index < 0) {
-			await WriteToken(new BinToken(BinToken.TokenType.AppendStringTable, null), cancellationToken);
-			await WriteRaw(new Expr.Str(constructor), cancellationToken);
-
 			index = symbolTable.Count;
-			symbolTable.Add(constructor);
+			await AddStrings([constructor], cancellationToken).ConfigureAwait(false);
 		}
 
 		return index;
@@ -364,7 +397,7 @@ public class ESExprBinaryWriter {
 		}
 
 		if(expr is Expr.Constructor(var name, var args, var kwargs)) {
-			if(name != ListCodecBase<int, List<int>>.ListConstructor && name != StringTable.StringTableConstructor) {
+			if(!StringTableBuilder.IsDedicatedConstructor(name)) {
 				AddSymbol(name);
 			}
 

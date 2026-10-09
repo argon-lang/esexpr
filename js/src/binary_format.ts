@@ -677,6 +677,129 @@ async function* writeIntRest(value: bigint, hasNext: boolean): AsyncIterable<Uin
 	}
 }
 
+function taggedIntSize(value: number): number {
+	let size = 1;
+	value = Math.floor(value / 16);
+	while (value !== 0) {
+		++size;
+		value = Math.floor(value / 128);
+	}
+	return size;
+}
+
+function isDedicatedConstructor(name: string): boolean {
+	return name === "list" || name === "map" || name === "set" || name === "string-table";
+}
+
+function compareStrings(a: string, b: string): number {
+	let ai = 0;
+	let bi = 0;
+	while (ai < a.length && bi < b.length) {
+		const ac = a.codePointAt(ai)!;
+		const bc = b.codePointAt(bi)!;
+		if (ac !== bc) return ac - bc;
+		ai += ac > 0xFFFF ? 2 : 1;
+		bi += bc > 0xFFFF ? 2 : 1;
+	}
+	return (a.length - ai) - (b.length - bi);
+}
+
+/** Records string usage to build a compact, frequency-ordered binary table. */
+export class StringTableBuilder {
+	readonly #strings = new Map<string, { required: bigint, literal: bigint }>();
+
+	/** Record constructor names, keywords, and literals recursively. */
+	record(expr: ESExpr): void {
+		if (typeof expr === "string") {
+			this.#recordString(expr, false);
+		}
+		else if (esexpr.ESExpr.isConstructor(expr)) {
+			if (!isDedicatedConstructor(expr.name)) this.#recordString(expr.name, true);
+			for (const arg of expr.args) this.record(arg);
+			for (const [key, value] of expr.kwargs) {
+				this.#recordString(key, true);
+				this.record(value);
+			}
+		}
+	}
+
+	#recordString(value: string, required: boolean): void {
+		let usage = this.#strings.get(value);
+		if (usage === undefined) {
+			usage = { required: 0n, literal: 0n };
+			this.#strings.set(value, usage);
+		}
+		if (required) ++usage.required;
+		else ++usage.literal;
+	}
+
+	/**
+	 * Build a table by decreasing combined frequency, with Unicode lexical ties.
+	 * Constructor and keyword entries are mandatory. Literal-only entries must
+	 * occur twice and save more bytes than their inline table-entry cost at their
+	 * prospective index. Shared framing and effects on later indices are excluded.
+	 * Recorded usage is retained, and the returned array is independent.
+	 */
+	build(): string[] {
+		const candidates: string[] = [];
+		for (const [value, usage] of this.#strings) {
+			if (usage.required !== 0n || usage.literal > 1n) candidates.push(value);
+		}
+		candidates.sort((a, b) => {
+			const au = this.#strings.get(a)!;
+			const bu = this.#strings.get(b)!;
+			const at = au.required + au.literal;
+			const bt = bu.required + bu.literal;
+			return at > bt ? -1 : at < bt ? 1 : compareStrings(a, b);
+		});
+		let accepted = 0;
+		for (const value of candidates) {
+			const usage = this.#strings.get(value)!;
+			const length = new TextEncoder().encode(value).length;
+			const inline = length + taggedIntSize(length);
+			const saving = inline - taggedIntSize(accepted);
+			if (usage.required !== 0n || (saving > 0 && usage.literal > BigInt(inline) / BigInt(saving))) {
+				candidates[accepted++] = value;
+			}
+		}
+		candidates.length = accepted;
+		return candidates;
+	}
+}
+
+async function* writeInlineString(value: string): AsyncIterable<Uint8Array> {
+	const bytes = new TextEncoder().encode(value);
+	yield* writeInt(TAG_VARINT_STRING_LENGTH, BigInt(bytes.length));
+	yield bytes;
+}
+
+async function* writeStringAppend(strings: readonly string[]): AsyncIterable<Uint8Array> {
+	if (strings.length === 0) return;
+	yield writeByte(TAG_APPEND_STRING_TABLE);
+	if (strings.length > 1) yield writeByte(TAG_CONSTRUCTOR_START_STRING_TABLE);
+	for (const value of strings) yield* writeInlineString(value);
+	if (strings.length > 1) yield writeByte(TAG_CONSTRUCTOR_END);
+}
+
+/**
+ * Emit supplied strings into the stream and add them to the pool, skipping
+ * duplicates while preserving new-entry order and existing indices.
+ * Fully consume this iterable before writing expressions with the same pool.
+ * Discard the stream and pool if emission fails or is stopped partway through.
+ */
+export async function* addStrings(strings: readonly string[], stringPool: StringPool): AsyncIterable<Uint8Array> {
+	const seen = new Set<string>();
+	const additions: string[] = [];
+	for (const value of strings) {
+		if (stringPool.lookupIndex(value) === undefined && !seen.has(value)) {
+			seen.add(value);
+			additions.push(value);
+		}
+	}
+	yield* writeStringAppend(additions);
+	if (additions.length !== 0) stringPool.append(additions);
+}
+
 export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterable<Uint8Array> {
 	switch (typeof e) {
 		case "boolean":
@@ -695,8 +818,14 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 		case "string":
 		{
 			const buff = new TextEncoder().encode(e);
-			yield* writeInt(TAG_VARINT_STRING_LENGTH, BigInt(buff.length));
-			yield buff;
+			const index = stringPool.lookupIndex(e);
+			if (index !== undefined && taggedIntSize(index) <= buff.length + taggedIntSize(buff.length)) {
+				yield* writeInt(TAG_VARINT_STRING_POOL, BigInt(index));
+			}
+			else {
+				yield* writeInt(TAG_VARINT_STRING_LENGTH, BigInt(buff.length));
+				yield buff;
+			}
 			break;
 		}
 
@@ -736,9 +865,8 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 				async function* writeStringTag(tag: number, s: string): AsyncIterable<Uint8Array> {
 					let index = stringPool.lookupIndex(s);
 					if (index === undefined) {
-						yield writeByte(TAG_APPEND_STRING_TABLE);
-						yield* writeExpr(s, stringPool);
-						index = stringPool.append(s);
+						yield* addStrings([s], stringPool);
+						index = stringPool.lookupIndex(s)!;
 					}
 
 					yield* writeInt(tag, BigInt(index));
@@ -863,8 +991,8 @@ async function drain(iter: AsyncIterable<unknown>): Promise<void> {
 	}
 }
 
-export async function* writeExprs(exprs: AsyncIterable<ESExpr> | Iterable<ESExpr>): AsyncIterable<Uint8Array> {
-	const sp = new ArrayStringPool();
+/** Write expressions using a shared pool. Initial entries must already be known to the reader. */
+export async function* writeExprs(exprs: AsyncIterable<ESExpr> | Iterable<ESExpr>, sp: ArrayStringPool = new ArrayStringPool()): AsyncIterable<Uint8Array> {
 	for await (const expr of exprs) {
 		const oldLength = sp.length;
 
@@ -872,23 +1000,9 @@ export async function* writeExprs(exprs: AsyncIterable<ESExpr> | Iterable<ESExpr
 
 		const newLength = sp.length;
 
-		if (newLength > oldLength) {
-			yield writeByte(TAG_APPEND_STRING_TABLE);
-
-			const n = newLength - oldLength;
-			if (n == 1) {
-				yield* writeExpr(sp.get(oldLength), new ArrayStringPool());
-			}
-			else {
-				const values: string[] = [];
-				for (let i = oldLength; i < newLength; ++i) {
-					values.push(sp.get(i));
-				}
-
-				const spExpr = StringPoolEncoded.codec.encode({ values });
-				yield* writeExpr(spExpr, new ArrayStringPool());
-			}
-		}
+		const values: string[] = [];
+		for (let i = oldLength; i < newLength; ++i) values.push(sp.get(i));
+		yield* writeStringAppend(values);
 
 		yield* writeExpr(expr, sp);
 	}
