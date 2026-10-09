@@ -9,6 +9,7 @@ public class AbortException extends Exception {
 		super(message);
 		this.element = null;
 	}
+
 	public AbortException(String message, Element element) {
 		super(message);
 		this.element = element;

@@ -45,5 +45,6 @@ public abstract class IntCodecBase<T> implements ESExprCodec<T> {
 	}
 
 	abstract T fromBigInt(BigInteger value);
+
 	abstract BigInteger toBigInt(T value);
 }

@@ -6,6 +6,7 @@ plugins {
 }
 
 dependencies {
+    testImplementation(libs.jqwik)
     compileOnly(libs.jspecify)
     testImplementation(libs.commons.io)
     testImplementation(libs.commons.collections)

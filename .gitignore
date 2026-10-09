@@ -12,6 +12,7 @@
 
 /java/**/build/
 /java/**/bin/
+/java/**/.jqwik-database
 /java/*.zip
 
 /js/**/lib/

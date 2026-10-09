@@ -450,6 +450,7 @@ public class GeneratorValidationTests {
 						throw failure;
 					return super.getJavaFileForOutput(location, className, kind, sibling);
 				}
+
 				@Override
 				public JavaFileObject getJavaFileForOutputForOriginatingFiles(
 					JavaFileManager.Location location,

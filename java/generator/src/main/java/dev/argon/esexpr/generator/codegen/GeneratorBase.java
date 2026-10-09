@@ -973,8 +973,11 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 	}
 
 	protected abstract void validateAnnotations() throws AbortException;
+
 	protected abstract void writeEncodedEqualImpl() throws IOException, AbortException;
+
 	protected abstract void writeEncodeImpl() throws IOException, AbortException;
+
 	protected abstract void writeDecodeImpl() throws IOException, AbortException;
 
 }

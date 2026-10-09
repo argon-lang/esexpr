@@ -169,7 +169,7 @@ class ByteReader {
 		while (offset < size) {
 			const buff = await this.#ensureBuffer();
 			const len = Math.min(size - offset, buff.length - this.#index);
-			res.set(buff.subarray(this.#index, this.#index + len));
+			res.set(buff.subarray(this.#index, this.#index + len), offset);
 			this.#index += len;
 			offset += len;
 		}

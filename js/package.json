@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./lib/index.js",
-    "./binary_format": "./lib/binary_format.js"
+    "./binary_format": "./lib/binary_format.js",
+    "./text_format": "./lib/text_format.js"
   },
   "scripts": {
     "lint": "eslint . --max-warnings=0",
@@ -21,6 +22,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/node": "^26.6.4",
     "eslint": "^10.12.0",
+    "fast-check": "^4.10.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.1"
   }
