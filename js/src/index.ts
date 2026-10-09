@@ -27,7 +27,7 @@ export type ESExpr =
 
 export namespace ESExpr {
 	export function tagOf(e: ESExpr): ESExprTag {
-		switch (typeof e) {
+		switch(typeof e) {
 			case "boolean":
 				return Boolean;
 
@@ -41,24 +41,24 @@ export namespace ESExpr {
 				return Number;
 
 			case "object":
-				if (e === null) {
+				if(e === null) {
 					return null;
 				}
 
-				if (e instanceof Uint8Array) {
+				if(e instanceof Uint8Array) {
 					return Uint8Array;
 				}
-				if (e instanceof Uint16Array) {
+				if(e instanceof Uint16Array) {
 					return Uint16Array;
 				}
-				if (e instanceof Uint32Array) {
+				if(e instanceof Uint32Array) {
 					return Uint32Array;
 				}
-				if (e instanceof BigUint64Array) {
+				if(e instanceof BigUint64Array) {
 					return BigUint64Array;
 				}
 
-				switch (e.type) {
+				switch(e.type) {
 					case "constructor":
 						return e.name;
 
@@ -162,85 +162,85 @@ export namespace ESExpr {
 		},
 
 		isEncodedEqual(a: ESExpr, b: ESExpr): boolean {
-			if (typeof a !== "object") {
+			if(typeof a !== "object") {
 				return typeof b !== "object" && Object.is(a, b);
 			}
 
-			if (typeof b !== "object") {
+			if(typeof b !== "object") {
 				return false;
 			}
 
-			if (a === null) {
+			if(a === null) {
 				return b === null;
 			}
-			if (b === null) {
+			if(b === null) {
 				return false;
 			}
 
-			if (a instanceof Uint8Array) {
-				if (b instanceof Uint8Array) {
+			if(a instanceof Uint8Array) {
+				if(b instanceof Uint8Array) {
 					return array8Codec.isEncodedEqual(a, b);
 				}
 				else {
 					return false;
 				}
 			}
-			if (b instanceof Uint8Array) {
+			if(b instanceof Uint8Array) {
 				return false;
 			}
 
-			if (a instanceof Uint16Array) {
-				if (b instanceof Uint16Array) {
+			if(a instanceof Uint16Array) {
+				if(b instanceof Uint16Array) {
 					return array16Codec.isEncodedEqual(a, b);
 				}
 				else {
 					return false;
 				}
 			}
-			if (b instanceof Uint16Array) {
+			if(b instanceof Uint16Array) {
 				return false;
 			}
 
-			if (a instanceof Uint32Array) {
-				if (b instanceof Uint32Array) {
+			if(a instanceof Uint32Array) {
+				if(b instanceof Uint32Array) {
 					return array32Codec.isEncodedEqual(a, b);
 				}
 				else {
 					return false;
 				}
 			}
-			if (b instanceof Uint32Array) {
+			if(b instanceof Uint32Array) {
 				return false;
 			}
 
-			if (a instanceof BigUint64Array) {
-				if (b instanceof BigUint64Array) {
+			if(a instanceof BigUint64Array) {
+				if(b instanceof BigUint64Array) {
 					return array64Codec.isEncodedEqual(a, b);
 				}
 				else {
 					return false;
 				}
 			}
-			if (b instanceof BigUint64Array) {
+			if(b instanceof BigUint64Array) {
 				return false;
 			}
 
-			switch (a.type) {
+			switch(a.type) {
 				case "constructor":
 				{
-					if (b.type !== "constructor") {
+					if(b.type !== "constructor") {
 						return false;
 					}
 
-					if (a.name !== b.name) {
+					if(a.name !== b.name) {
 						return false;
 					}
 
-					if (!listCodec(this).isEncodedEqual(a.args, b.args)) {
+					if(!listCodec(this).isEncodedEqual(a.args, b.args)) {
 						return false;
 					}
 
-					if (!mapMappedValueCodec(this).isEncodedEqual(a.kwargs, b.kwargs)) {
+					if(!mapMappedValueCodec(this).isEncodedEqual(a.kwargs, b.kwargs)) {
 						return false;
 					}
 
@@ -305,43 +305,43 @@ export type ESExprTag =
 
 export namespace ESExprTag {
 	export function show(tag: ESExprTag): string {
-		if (typeof tag === "string") {
+		if(typeof tag === "string") {
 			return "constructor " + tag;
 		}
-		else if (tag === Boolean) {
+		else if(tag === Boolean) {
 			return "bool";
 		}
-		else if (tag === BigInt) {
+		else if(tag === BigInt) {
 			return "int";
 		}
-		else if (tag === String) {
+		else if(tag === String) {
 			return "string";
 		}
-		else if (tag === Float16Symbol) {
+		else if(tag === Float16Symbol) {
 			return "float16";
 		}
-		else if (tag === Float32Symbol) {
+		else if(tag === Float32Symbol) {
 			return "float32";
 		}
-		else if (tag === Number) {
+		else if(tag === Number) {
 			return "float64";
 		}
-		else if (tag === Uint8Array) {
+		else if(tag === Uint8Array) {
 			return "array8";
 		}
-		else if (tag === Uint16Array) {
+		else if(tag === Uint16Array) {
 			return "array16";
 		}
-		else if (tag === Uint32Array) {
+		else if(tag === Uint32Array) {
 			return "array32";
 		}
-		else if (tag === BigUint64Array) {
+		else if(tag === BigUint64Array) {
 			return "array64";
 		}
-		else if (tag === Array128Symbol) {
+		else if(tag === Array128Symbol) {
 			return "array128";
 		}
-		else if (tag === null) {
+		else if(tag === null) {
 			return "null";
 		}
 		else {
@@ -363,7 +363,7 @@ export namespace ESExprTagSet {
 	}
 
 	export function has(a: ESExprTagSet, b: ESExprTag): boolean {
-		if (a === "all-tags") {
+		if(a === "all-tags") {
 			return true;
 		}
 
@@ -371,11 +371,11 @@ export namespace ESExprTagSet {
 	}
 
 	export function disjoint(a: ESExprTagSet, b: ESExprTagSet) {
-		if (a === "all-tags") {
+		if(a === "all-tags") {
 			return isEmpty(b);
 		}
 
-		if (b === "all-tags") {
+		if(b === "all-tags") {
 			return a.size === 0;
 		}
 
@@ -383,10 +383,10 @@ export namespace ESExprTagSet {
 	}
 
 	export function union(a: ESExprTagSet, b: ESExprTagSet): ESExprTagSet {
-		if (a === "all-tags") {
+		if(a === "all-tags") {
 			return a;
 		}
-		if (b === "all-tags") {
+		if(b === "all-tags") {
 			return b;
 		}
 
@@ -394,7 +394,7 @@ export namespace ESExprTagSet {
 	}
 
 	export function show(a: ESExprTagSet): string {
-		if (a === "all-tags") {
+		if(a === "all-tags") {
 			return "all-tags";
 		}
 		else {
@@ -465,7 +465,7 @@ export const boolCodec: ESExprCodec<boolean> = {
 	},
 
 	decode(expr: ESExpr): DecodeResult<boolean> {
-		if (typeof expr === "boolean") {
+		if(typeof expr === "boolean") {
 			return { success: true, value: expr };
 		}
 		else {
@@ -493,7 +493,7 @@ export const intCodec: ESExprCodec<bigint> = {
 	},
 
 	decode(expr: ESExpr): DecodeResult<bigint> {
-		if (typeof expr === "bigint") {
+		if(typeof expr === "bigint") {
 			return { success: true, value: expr };
 		}
 		else {
@@ -521,7 +521,7 @@ export const natCodec: ESExprCodec<bigint> = {
 
 	decode(expr: ESExpr): DecodeResult<bigint> {
 		const result = intCodec.decode(expr);
-		if (result.success && result.value < 0n) {
+		if(result.success && result.value < 0n) {
 			return {
 				success: false,
 				message: "Nat values must be non-negative",
@@ -556,11 +556,11 @@ class SmallIntCodec implements ESExprCodec<number> {
 
 	decode(expr: ESExpr): DecodeResult<number> {
 		const n = intCodec.decode(expr);
-		if (!n.success) {
+		if(!n.success) {
 			return n;
 		}
 
-		if (n.value < this.#min || n.value > this.#max) {
+		if(n.value < this.#min || n.value > this.#max) {
 			return {
 				success: false,
 				message: "Integer value is out of range",
@@ -598,11 +598,11 @@ class BigIntCodec implements ESExprCodec<bigint> {
 
 	decode(expr: ESExpr): DecodeResult<bigint> {
 		const n = intCodec.decode(expr);
-		if (!n.success) {
+		if(!n.success) {
 			return n;
 		}
 
-		if (n.value < this.#min || n.value > this.#max) {
+		if(n.value < this.#min || n.value > this.#max) {
 			return {
 				success: false,
 				message: "Integer value is out of range",
@@ -635,12 +635,12 @@ export const strCodec: ESExprCodec<string> = {
 		return a === b;
 	},
 
-	encode: function (value: string): ESExpr {
+	encode: function(value: string): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<string> {
-		if (typeof expr === "string") {
+	decode: function(expr: ESExpr): DecodeResult<string> {
+		if(typeof expr === "string") {
 			return { success: true, value: expr };
 		}
 		else {
@@ -659,12 +659,12 @@ export const array8Codec: ESExprCodec<Uint8Array> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (a[i] !== b[i]) {
+		for(let i = 0; i < a.length; ++i) {
+			if(a[i] !== b[i]) {
 				return false;
 			}
 		}
@@ -672,12 +672,12 @@ export const array8Codec: ESExprCodec<Uint8Array> = {
 		return true;
 	},
 
-	encode: function (value: Uint8Array): ESExpr {
+	encode: function(value: Uint8Array): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<Uint8Array> {
-		if (expr instanceof Uint8Array) {
+	decode: function(expr: ESExpr): DecodeResult<Uint8Array> {
+		if(expr instanceof Uint8Array) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -696,12 +696,12 @@ export const array16Codec: ESExprCodec<Uint16Array> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (a[i] !== b[i]) {
+		for(let i = 0; i < a.length; ++i) {
+			if(a[i] !== b[i]) {
 				return false;
 			}
 		}
@@ -709,12 +709,12 @@ export const array16Codec: ESExprCodec<Uint16Array> = {
 		return true;
 	},
 
-	encode: function (value: Uint16Array): ESExpr {
+	encode: function(value: Uint16Array): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<Uint16Array> {
-		if (expr instanceof Uint16Array) {
+	decode: function(expr: ESExpr): DecodeResult<Uint16Array> {
+		if(expr instanceof Uint16Array) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -733,12 +733,12 @@ export const array32Codec: ESExprCodec<Uint32Array> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (a[i] !== b[i]) {
+		for(let i = 0; i < a.length; ++i) {
+			if(a[i] !== b[i]) {
 				return false;
 			}
 		}
@@ -746,12 +746,12 @@ export const array32Codec: ESExprCodec<Uint32Array> = {
 		return true;
 	},
 
-	encode: function (value: Uint32Array): ESExpr {
+	encode: function(value: Uint32Array): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<Uint32Array> {
-		if (expr instanceof Uint32Array) {
+	decode: function(expr: ESExpr): DecodeResult<Uint32Array> {
+		if(expr instanceof Uint32Array) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -770,12 +770,12 @@ export const array64Codec: ESExprCodec<BigUint64Array> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (a[i] !== b[i]) {
+		for(let i = 0; i < a.length; ++i) {
+			if(a[i] !== b[i]) {
 				return false;
 			}
 		}
@@ -783,12 +783,12 @@ export const array64Codec: ESExprCodec<BigUint64Array> = {
 		return true;
 	},
 
-	encode: function (value: BigUint64Array): ESExpr {
+	encode: function(value: BigUint64Array): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<BigUint64Array> {
-		if (expr instanceof BigUint64Array) {
+	decode: function(expr: ESExpr): DecodeResult<BigUint64Array> {
+		if(expr instanceof BigUint64Array) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -807,12 +807,12 @@ export const array128Codec: ESExprCodec<Uint8Array> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (a[i] !== b[i]) {
+		for(let i = 0; i < a.length; ++i) {
+			if(a[i] !== b[i]) {
 				return false;
 			}
 		}
@@ -820,15 +820,15 @@ export const array128Codec: ESExprCodec<Uint8Array> = {
 		return true;
 	},
 
-	encode: function (value: Uint8Array): ESExpr {
+	encode: function(value: Uint8Array): ESExpr {
 		return {
 			type: "array128",
 			value,
 		};
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<Uint8Array> {
-		if (ESExpr.isArray128(expr)) {
+	decode: function(expr: ESExpr): DecodeResult<Uint8Array> {
+		if(ESExpr.isArray128(expr)) {
 			return { success: true, value: expr.value };
 		}
 		else {
@@ -850,15 +850,15 @@ export const float16Codec: ESExprCodec<number> = {
 		return Object.is(a, b);
 	},
 
-	encode: function (value: number): ESExpr {
+	encode: function(value: number): ESExpr {
 		return { type: "float16", value };
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<number> {
-		if (ESExpr.isFloat16(expr)) {
+	decode: function(expr: ESExpr): DecodeResult<number> {
+		if(ESExpr.isFloat16(expr)) {
 			return { success: true, value: expr.value };
 		}
-		else if (ESExpr.isFloat16NaN(expr)) {
+		else if(ESExpr.isFloat16NaN(expr)) {
 			return { success: true, value: Number.NaN };
 		}
 		else {
@@ -877,7 +877,7 @@ export const float16NaNCodec: ESExprCodec<number | ESExpr.Float16NaN> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (typeof a === "number") {
+		if(typeof a === "number") {
 			return Object.is(a, b);
 		}
 		else {
@@ -885,8 +885,8 @@ export const float16NaNCodec: ESExprCodec<number | ESExpr.Float16NaN> = {
 		}
 	},
 
-	encode: function (value: number | ESExpr.Float16NaN): ESExpr {
-		if (typeof value === "number") {
+	encode: function(value: number | ESExpr.Float16NaN): ESExpr {
+		if(typeof value === "number") {
 			return { type: "float16", value };
 		}
 		else {
@@ -894,11 +894,11 @@ export const float16NaNCodec: ESExprCodec<number | ESExpr.Float16NaN> = {
 		}
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<number | ESExpr.Float16NaN> {
-		if (ESExpr.isFloat16(expr)) {
+	decode: function(expr: ESExpr): DecodeResult<number | ESExpr.Float16NaN> {
+		if(ESExpr.isFloat16(expr)) {
 			return { success: true, value: expr.value };
 		}
-		else if (ESExpr.isFloat16NaN(expr)) {
+		else if(ESExpr.isFloat16NaN(expr)) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -920,15 +920,15 @@ export const float32Codec: ESExprCodec<number> = {
 		return Object.is(a, b);
 	},
 
-	encode: function (value: number): ESExpr {
+	encode: function(value: number): ESExpr {
 		return { type: "float32", value };
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<number> {
-		if (ESExpr.isFloat32(expr)) {
+	decode: function(expr: ESExpr): DecodeResult<number> {
+		if(ESExpr.isFloat32(expr)) {
 			return { success: true, value: expr.value };
 		}
-		else if (ESExpr.isFloat32NaN(expr)) {
+		else if(ESExpr.isFloat32NaN(expr)) {
 			return { success: true, value: Number.NaN };
 		}
 		else {
@@ -947,7 +947,7 @@ export const float32NaNCodec: ESExprCodec<number | ESExpr.Float32NaN> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (typeof a === "number") {
+		if(typeof a === "number") {
 			return Object.is(a, b);
 		}
 		else {
@@ -955,8 +955,8 @@ export const float32NaNCodec: ESExprCodec<number | ESExpr.Float32NaN> = {
 		}
 	},
 
-	encode: function (value: number | ESExpr.Float32NaN): ESExpr {
-		if (typeof value === "number") {
+	encode: function(value: number | ESExpr.Float32NaN): ESExpr {
+		if(typeof value === "number") {
 			return { type: "float32", value };
 		}
 		else {
@@ -964,11 +964,11 @@ export const float32NaNCodec: ESExprCodec<number | ESExpr.Float32NaN> = {
 		}
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<number | ESExpr.Float32NaN> {
-		if (ESExpr.isFloat32(expr)) {
+	decode: function(expr: ESExpr): DecodeResult<number | ESExpr.Float32NaN> {
+		if(ESExpr.isFloat32(expr)) {
 			return { success: true, value: expr.value };
 		}
-		else if (ESExpr.isFloat32NaN(expr)) {
+		else if(ESExpr.isFloat32NaN(expr)) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -990,15 +990,15 @@ export const float64Codec: ESExprCodec<number> = {
 		return Object.is(a, b);
 	},
 
-	encode: function (value: number): ESExpr {
+	encode: function(value: number): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<number> {
-		if (typeof expr === "number") {
+	decode: function(expr: ESExpr): DecodeResult<number> {
+		if(typeof expr === "number") {
 			return { success: true, value: expr };
 		}
-		else if (ESExpr.isFloat64NaN(expr)) {
+		else if(ESExpr.isFloat64NaN(expr)) {
 			return { success: true, value: Number.NaN };
 		}
 		else {
@@ -1017,7 +1017,7 @@ export const float64NaNCodec: ESExprCodec<number | ESExpr.Float64NaN> = {
 	},
 
 	isEncodedEqual(a, b) {
-		if (typeof a === "number") {
+		if(typeof a === "number") {
 			return Object.is(a, b);
 		}
 		else {
@@ -1025,12 +1025,12 @@ export const float64NaNCodec: ESExprCodec<number | ESExpr.Float64NaN> = {
 		}
 	},
 
-	encode: function (value: number | ESExpr.Float64NaN): ESExpr {
+	encode: function(value: number | ESExpr.Float64NaN): ESExpr {
 		return value;
 	},
 
-	decode: function (expr: ESExpr): DecodeResult<number | ESExpr.Float64NaN> {
-		if (typeof expr === "number" || ESExpr.isFloat64NaN(expr)) {
+	decode: function(expr: ESExpr): DecodeResult<number | ESExpr.Float64NaN> {
+		if(typeof expr === "number" || ESExpr.isFloat64NaN(expr)) {
 			return { success: true, value: expr };
 		}
 		else {
@@ -1055,12 +1055,12 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
 	}
 
 	isEncodedEqual(a: readonly T[], b: readonly T[]): boolean {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (!this.#itemCodec.isEncodedEqual(a[i]!, b[i]!)) {
+		for(let i = 0; i < a.length; ++i) {
+			if(!this.#itemCodec.isEncodedEqual(a[i]!, b[i]!)) {
 				return false;
 			}
 		}
@@ -1078,8 +1078,8 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
 	}
 
 	decode(expr: ESExpr): DecodeResult<readonly T[]> {
-		if (ESExpr.isConstructor(expr) && expr.name === "list") {
-			if (expr.kwargs.size > 0) {
+		if(ESExpr.isConstructor(expr) && expr.name === "list") {
+			if(expr.kwargs.size > 0) {
 				return {
 					success: false,
 					message: "List must not have keyword arguments",
@@ -1089,9 +1089,9 @@ class ListCodec<T> implements ESExprCodec<readonly T[]> {
 
 			const items: T[] = [];
 			let i = 0;
-			for (const t of expr.args) {
+			for(const t of expr.args) {
 				const res = this.#itemCodec.decode(t);
-				if (!res.success) {
+				if(!res.success) {
 					return {
 						success: false,
 						message: res.message,
@@ -1127,7 +1127,7 @@ export interface WrappedNull {
 const wrappedNullMemo: WrappedNull[] = [];
 function getWrappedNull(level: number): WrappedNull {
 	let wn = wrappedNullMemo[level];
-	if (wn === undefined) {
+	if(wn === undefined) {
 		wn = { [wrappedNullLevelSymbol]: level };
 		wrappedNullMemo[level] = wn;
 	}
@@ -1142,10 +1142,10 @@ export namespace Option {
 	export type Some<A> = (A & ({} | undefined)) | (A extends null ? WrappedNull : never);
 
 	export function some<A>(value: A): Some<A> {
-		if (value === null) {
+		if(value === null) {
 			return getWrappedNull(1) as Some<A>;
 		}
-		else if (typeof value === "object" && wrappedNullLevelSymbol in value) {
+		else if(typeof value === "object" && wrappedNullLevelSymbol in value) {
 			const wrappedNull = value as WrappedNull;
 			return getWrappedNull(wrappedNull[wrappedNullLevelSymbol] + 1) as Some<A>;
 		}
@@ -1155,9 +1155,9 @@ export namespace Option {
 	}
 
 	export function get<A>(value: Some<A>): A {
-		if (typeof value === "object" && wrappedNullLevelSymbol in value) {
+		if(typeof value === "object" && wrappedNullLevelSymbol in value) {
 			const wrappedNull = value as WrappedNull;
-			if (wrappedNull[wrappedNullLevelSymbol] > 1) {
+			if(wrappedNull[wrappedNullLevelSymbol] > 1) {
 				return getWrappedNull(wrappedNull[wrappedNullLevelSymbol] - 1) as A;
 			}
 			else {
@@ -1180,24 +1180,24 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 
 	get tags(): ESExprTagSet {
 		const itemTags = this.#itemCodec.tags;
-		if (!(itemTags instanceof Set)) {
+		if(!(itemTags instanceof Set)) {
 			return itemTags;
 		}
 
 		const tags = new Set<ESExprTag>();
 		tags.add(null);
-		for (const tag of itemTags) {
+		for(const tag of itemTags) {
 			tags.add(tag);
 		}
 		return tags;
 	}
 
 	isEncodedEqual(a: Option<T>, b: Option<T>): boolean {
-		if (a === null) {
+		if(a === null) {
 			return b === null;
 		}
 
-		if (b === null) {
+		if(b === null) {
 			return false;
 		}
 
@@ -1205,15 +1205,15 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 	}
 
 	encode(value: Option<T>): ESExpr {
-		if (value === null) {
+		if(value === null) {
 			return null;
 		}
 		else {
 			const result = this.#itemCodec.encode(Option.get(value));
-			if (result === null) {
+			if(result === null) {
 				return { type: "null", level: 1n };
 			}
-			else if (ESExpr.isNestedNull(result)) {
+			else if(ESExpr.isNestedNull(result)) {
 				return { type: "null", level: result.level + 1n };
 			}
 			else {
@@ -1223,13 +1223,13 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 	}
 
 	decode(expr: ESExpr): DecodeResult<Option<T>> {
-		if (expr === null) {
+		if(expr === null) {
 			return { success: true, value: null };
 		}
 		else {
 			let expr2: ESExpr;
-			if (ESExpr.isNestedNull(expr)) {
-				if (expr.level === 1n) {
+			if(ESExpr.isNestedNull(expr)) {
+				if(expr.level === 1n) {
 					expr2 = null;
 				}
 				else {
@@ -1241,7 +1241,7 @@ class OptionCodec<T> implements ESExprCodec<Option<T>> {
 			}
 
 			const value = this.#itemCodec.decode(expr2);
-			if (!value.success) {
+			if(!value.success) {
 				return value;
 			}
 
@@ -1269,17 +1269,17 @@ class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
 	}
 
 	isEncodedEqual(a: HashMap<K, V>, b: HashMap<K, V>): boolean {
-		if (a.size !== b.size) {
+		if(a.size !== b.size) {
 			return false;
 		}
 
-		for (const [k, va] of a) {
-			if (!b.has(k)) {
+		for(const [k, va] of a) {
+			if(!b.has(k)) {
 				return false;
 			}
 
 			const vb: V = b.get(k)!; ;
-			if (!this.#valueCodec.isEncodedEqual(va, vb)) {
+			if(!this.#valueCodec.isEncodedEqual(va, vb)) {
 				return false;
 			}
 		}
@@ -1289,7 +1289,7 @@ class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
 
 	encode(value: HashMap<K, V>): ESExpr {
 		const args: ESExpr[] = [];
-		for (const [k, v] of value) {
+		for(const [k, v] of value) {
 			args.push(this.#keyCodec.encode(k));
 			args.push(this.#valueCodec.encode(v));
 		}
@@ -1303,7 +1303,7 @@ class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
 	}
 
 	decode(expr: ESExpr): DecodeResult<HashMap<K, V>> {
-		if (!ESExpr.isConstructor(expr) || expr.name !== "map") {
+		if(!ESExpr.isConstructor(expr) || expr.name !== "map") {
 			return {
 				success: false,
 				message: "Expected a map constructor",
@@ -1311,7 +1311,7 @@ class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
 			};
 		}
 
-		if (expr.kwargs.size > 0) {
+		if(expr.kwargs.size > 0) {
 			return {
 				success: false,
 				message: "Map must not have keyword arguments",
@@ -1320,9 +1320,9 @@ class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
 		}
 
 		const items: [K, V][] = [];
-		for (let i = 0; i < expr.args.length; i += 2) {
+		for(let i = 0; i < expr.args.length; i += 2) {
 			const k = this.#keyCodec.decode(expr.args[i]!);
-			if (!k.success) {
+			if(!k.success) {
 				return {
 					success: false,
 					message: k.message,
@@ -1331,7 +1331,7 @@ class VMapCodec<K, V> implements ESExprCodec<HashMap<K, V>> {
 			}
 
 			const v = this.#valueCodec.decode(expr.args[i + 1]!);
-			if (!v.success) {
+			if(!v.success) {
 				return {
 					success: false,
 					message: v.message,
@@ -1365,12 +1365,12 @@ class VSetCodec<A> implements ESExprCodec<HashSet<A>> {
 	}
 
 	isEncodedEqual(a: HashSet<A>, b: HashSet<A>): boolean {
-		if (a.size !== b.size) {
+		if(a.size !== b.size) {
 			return false;
 		}
 
-		for (const item of a) {
-			if (!b.has(item)) {
+		for(const item of a) {
+			if(!b.has(item)) {
 				return false;
 			}
 		}
@@ -1380,7 +1380,7 @@ class VSetCodec<A> implements ESExprCodec<HashSet<A>> {
 
 	encode(value: HashSet<A>): ESExpr {
 		const args: ESExpr[] = [];
-		for (const item of value) {
+		for(const item of value) {
 			args.push(this.#itemCodec.encode(item));
 		}
 
@@ -1393,7 +1393,7 @@ class VSetCodec<A> implements ESExprCodec<HashSet<A>> {
 	}
 
 	decode(expr: ESExpr): DecodeResult<HashSet<A>> {
-		if (!ESExpr.isConstructor(expr) || expr.name !== "set") {
+		if(!ESExpr.isConstructor(expr) || expr.name !== "set") {
 			return {
 				success: false,
 				message: "Expected a set constructor",
@@ -1401,7 +1401,7 @@ class VSetCodec<A> implements ESExprCodec<HashSet<A>> {
 			};
 		}
 
-		if (expr.kwargs.size > 0) {
+		if(expr.kwargs.size > 0) {
 			return {
 				success: false,
 				message: "Set must not have keyword arguments",
@@ -1410,9 +1410,9 @@ class VSetCodec<A> implements ESExprCodec<HashSet<A>> {
 		}
 
 		const items: A[] = [];
-		for (let i = 0; i < expr.args.length; i++) {
+		for(let i = 0; i < expr.args.length; i++) {
 			const item = this.#itemCodec.decode(expr.args[i]!);
-			if (!item.success) {
+			if(!item.success) {
 				return {
 					success: false,
 					message: item.message,
@@ -1457,9 +1457,9 @@ export function flags<T>(flagsMap: ESExprFlagsMap<T>): ESExprCodec<T> {
 class FlagsCodec<T> implements ESExprCodec<T> {
 	constructor(flagsMap: ESExprFlagsMap<T>) {
 		const masks = Object.values(flagsMap).map(f => (f as { readonly mask: bigint }).mask);
-		for (let i = 0; i < masks.length; i++) {
-			for (let j = i + 1; j < masks.length; j++) {
-				if ((masks[i]! & masks[j]!) !== 0n) {
+		for(let i = 0; i < masks.length; i++) {
+			for(let j = i + 1; j < masks.length; j++) {
+				if((masks[i]! & masks[j]!) !== 0n) {
 					throw new Error("Flag masks have overlapping bits");
 				}
 			}
@@ -1478,14 +1478,14 @@ class FlagsCodec<T> implements ESExprCodec<T> {
 
 	encode(value: T): ESExpr {
 		let bits = 0n;
-		for (const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
+		for(const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
 			bits |= this.#flagsMap[field].encode(value[field]);
 		}
 		return bits;
 	}
 
 	decode(expr: ESExpr): DecodeResult<T> {
-		if (typeof (expr) !== "bigint") {
+		if(typeof (expr) !== "bigint") {
 			return {
 				success: false,
 				message: "Expected a bigint for flags, got: " + ESExprTag.show(ESExpr.tagOf(expr)),
@@ -1495,13 +1495,13 @@ class FlagsCodec<T> implements ESExprCodec<T> {
 
 		const obj: Partial<T> = {};
 
-		for (const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
+		for(const field of Object.keys(this.#flagsMap) as (keyof T)[]) {
 			const result = this.#flagsMap[field].decode(expr);
-			if (!result.success) {
+			if(!result.success) {
 				return result;
 			}
 
-			if (field in Object.prototype) {
+			if(field in Object.prototype) {
 				Object.defineProperty(obj, field, { value: result.value, enumerable: true });
 			}
 			else {
@@ -1523,7 +1523,7 @@ export function flagBit(bit: bigint): ESExprFlagsFieldCodec<boolean> {
 
 class FlagBitFieldCodec implements ESExprFlagsFieldCodec<boolean> {
 	constructor(bit: bigint) {
-		if (bit === 0n || (bit & (bit - 1n)) !== 0n) {
+		if(bit === 0n || (bit & (bit - 1n)) !== 0n) {
 			throw new Error("Flag bit must be set exactly once");
 		}
 
@@ -1556,7 +1556,7 @@ class FlagsEnumFieldCodec<T extends string> implements ESExprFlagsFieldCodec<T> 
 
 		let mask = 0n;
 		const valueLookup = new Map<bigint, T>();
-		for (const [caseName, bitValue] of Object.entries(cases) as [T, bigint][]) {
+		for(const [caseName, bitValue] of Object.entries(cases) as [T, bigint][]) {
 			mask |= bitValue;
 			valueLookup.set(bitValue, caseName);
 		}
@@ -1575,7 +1575,7 @@ class FlagsEnumFieldCodec<T extends string> implements ESExprFlagsFieldCodec<T> 
 
 	decode(bits: bigint): DecodeResult<T> {
 		const value = this.#valueLookup.get(bits & this.mask);
-		if (value === undefined) {
+		if(value === undefined) {
 			return { success: false, message: "Invalid flag value", path: { type: "current" } };
 		}
 		return { success: true, value };
@@ -1588,8 +1588,8 @@ export type RecordFieldCodecs<T> = {
 };
 
 function checkRecordValueEqual<T>(fields: RecordFieldCodecs<T>, a: T, b: T): boolean {
-	for (const field of Object.keys(fields) as (keyof T)[]) {
-		if (!fields[field].isEncodedEqual(a[field], b[field])) {
+	for(const field of Object.keys(fields) as (keyof T)[]) {
+		if(!fields[field].isEncodedEqual(a[field], b[field])) {
 			return false;
 		}
 	}
@@ -1608,7 +1608,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
 			hasDict: false,
 		};
 
-		for (const field of Object.keys(this.#fields) as (keyof T & string)[]) {
+		for(const field of Object.keys(this.#fields) as (keyof T & string)[]) {
 			this.#fields[field].validate(state, field);
 		}
 	}
@@ -1628,7 +1628,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
 	encode(value: T): ESExpr {
 		const args: ESExpr[] = [];
 		const kwargs = new Map<string, ESExpr>();
-		for (const field of Object.keys(this.#fields) as (keyof T)[]) {
+		for(const field of Object.keys(this.#fields) as (keyof T)[]) {
 			this.#fields[field].encode(value[field], args, kwargs);
 		}
 
@@ -1641,7 +1641,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
 	}
 
 	decode(expr: ESExpr): DecodeResult<T> {
-		if (!(typeof expr === "object" && expr !== null && "type" in expr && expr.type == "constructor") || expr.name !== this.#constructorName) {
+		if(!(typeof expr === "object" && expr !== null && "type" in expr && expr.type == "constructor") || expr.name !== this.#constructorName) {
 			return {
 				success: false,
 				message: `Expected a constructor of name ${this.#constructorName}`,
@@ -1660,13 +1660,13 @@ class RecordCodec<T> implements ESExprCodec<T> {
 			kwargs,
 		};
 
-		for (const field of Object.keys(this.#fields) as (keyof T)[]) {
+		for(const field of Object.keys(this.#fields) as (keyof T)[]) {
 			const result = this.#fields[field].decode(state);
-			if (!result.success) {
+			if(!result.success) {
 				return result;
 			}
 
-			if (field in Object.prototype) {
+			if(field in Object.prototype) {
 				Object.defineProperty(obj, field, { value: result.value, enumerable: true });
 			}
 			else {
@@ -1674,7 +1674,7 @@ class RecordCodec<T> implements ESExprCodec<T> {
 			}
 		}
 
-		if (state.args.length > 0) {
+		if(state.args.length > 0) {
 			return {
 				success: false,
 				message: "Additional positional arguments",
@@ -1688,12 +1688,12 @@ class RecordCodec<T> implements ESExprCodec<T> {
 		}
 
 		let firstRemainingKeyword: string | undefined = undefined;
-		for (const kw of state.kwargs.keys()) {
+		for(const kw of state.kwargs.keys()) {
 			firstRemainingKeyword = kw;
 			break;
 		}
 
-		if (firstRemainingKeyword !== undefined) {
+		if(firstRemainingKeyword !== undefined) {
 			return {
 				success: false,
 				message: "Additional keyword arguments",
@@ -1729,10 +1729,10 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
 
 		this.#tags = (() => {
 			let tags: ESExprTagSet = new Set();
-			for (const c of Object.keys(this.#cases) as T["$type"][]) {
+			for(const c of Object.keys(this.#cases) as T["$type"][]) {
 				const caseTags = this.#cases[c].tags;
 
-				if (!ESExprTagSet.disjoint(tags, caseTags)) {
+				if(!ESExprTagSet.disjoint(tags, caseTags)) {
 					throw new Error(`Overlapping tags: ${ESExprTagSet.show(tags)} and ${ESExprTagSet.show(caseTags)}`);
 				}
 
@@ -1750,7 +1750,7 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
 	}
 
 	isEncodedEqual(a: T, b: T): boolean {
-		if (a.$type !== b.$type) {
+		if(a.$type !== b.$type) {
 			return false;
 		}
 
@@ -1765,9 +1765,9 @@ class EnumCodec<T extends { readonly $type: string }> implements ESExprCodec<T> 
 
 	decode(expr: ESExpr): DecodeResult<T> {
 		const tag = ESExpr.tagOf(expr);
-		for (const c of Object.keys(this.#cases) as T["$type"][]) {
+		for(const c of Object.keys(this.#cases) as T["$type"][]) {
 			const cc = this.#cases[c];
-			if (ESExprTagSet.has(cc.tags, tag)) {
+			if(ESExprTagSet.has(cc.tags, tag)) {
 				return cc.decode(c, expr) as DecodeResult<T>;
 			}
 		}
@@ -1796,8 +1796,8 @@ class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
 
 		const prevNames = new Set<string>();
 
-		for (const name of Object.values(names) as string[]) {
-			if (prevNames.has(name)) {
+		for(const name of Object.values(names) as string[]) {
+			if(prevNames.has(name)) {
 				throw new Error("Simple enum has duplicate value: " + name);
 			}
 
@@ -1820,10 +1820,10 @@ class SimpleEnumCodec<T extends string> implements ESExprCodec<T> {
 	}
 
 	decode(expr: ESExpr): DecodeResult<T> {
-		if (typeof expr === "string") {
+		if(typeof expr === "string") {
 
-			for (const [name, value] of Object.entries(this.#names)) {
-				if (expr === value) {
+			for(const [name, value] of Object.entries(this.#names)) {
+				if(expr === value) {
 					return { success: true, value: name as T };
 				}
 			}
@@ -1851,11 +1851,11 @@ export function simpleEnumCodec<T extends string>(names: SimpleEnumNames<T>): ES
 
 
 function validatePositionalFieldTags(state: RecordCodecValidationState, codec: { readonly tags: ESExprTagSet }, fieldName: string): void {
-	if (!(state.previousOptionalPositionalTags instanceof Set)) {
+	if(!(state.previousOptionalPositionalTags instanceof Set)) {
 		throw new Error(`Field '${fieldName}' cannot follow optional positional arguments with all tags`);
 	}
 
-	if (!ESExprTagSet.disjoint(state.previousOptionalPositionalTags, codec.tags)) {
+	if(!ESExprTagSet.disjoint(state.previousOptionalPositionalTags, codec.tags)) {
 		throw new Error(`Field '${fieldName}' must have distinct tags from immediately preceding optional positional arguments`);
 	}
 }
@@ -1887,7 +1887,7 @@ class PositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		const expr = state.args.shift();
-		if (expr === undefined) {
+		if(expr === undefined) {
 			return {
 				success: false,
 				message: "Not enough arguments",
@@ -1896,7 +1896,7 @@ class PositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 		}
 
 		const result = this.#codec.decode(expr);
-		if (!result.success) {
+		if(!result.success) {
 			return {
 				success: false,
 				message: result.message,
@@ -1942,15 +1942,15 @@ class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 
 	encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
 		const encoded = this.#codec.encodeOptional(value);
-		if (encoded !== undefined) {
+		if(encoded !== undefined) {
 			args.push(encoded);
 		}
 	}
 
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		let expr = state.args[0];
-		if (expr !== undefined) {
-			if (ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
+		if(expr !== undefined) {
+			if(ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
 				state.args.shift();
 			}
 			else {
@@ -1959,7 +1959,7 @@ class OptionalPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 		}
 
 		const result = this.#codec.decodeOptional(expr);
-		if (!result.success) {
+		if(!result.success) {
 			return {
 				success: false,
 				message: result.message,
@@ -2006,15 +2006,15 @@ class DefaultPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 	}
 
 	encode(value: T, args: ESExpr[], _kwargs: Map<string, ESExpr>): void {
-		if (!this.#codec.isEncodedEqual(value, this.#defaultValue.call(null))) {
+		if(!this.#codec.isEncodedEqual(value, this.#defaultValue.call(null))) {
 			args.push(this.#codec.encode(value));
 		}
 	}
 
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		let expr = state.args[0];
-		if (expr !== undefined) {
-			if (ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
+		if(expr !== undefined) {
+			if(ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
 				state.args.shift();
 			}
 			else {
@@ -2022,7 +2022,7 @@ class DefaultPositionalFieldCodec<T> implements ESExprFieldCodec<T> {
 			}
 		}
 
-		if (expr === undefined) {
+		if(expr === undefined) {
 			return {
 				success: true,
 				value: this.#defaultValue.call(null),
@@ -2061,12 +2061,12 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
 	}
 
 	isEncodedEqual(a: readonly T[], b: readonly T[]): boolean {
-		if (a.length !== b.length) {
+		if(a.length !== b.length) {
 			return false;
 		}
 
-		for (let i = 0; i < a.length; ++i) {
-			if (!this.#codec.isEncodedEqual(a[i]!, b[i]!)) {
+		for(let i = 0; i < a.length; ++i) {
+			if(!this.#codec.isEncodedEqual(a[i]!, b[i]!)) {
 				return false;
 			}
 		}
@@ -2075,27 +2075,27 @@ class ArrayRepeatedValuesCodec<T> implements RepeatedValuesCodec<readonly T[]> {
 	}
 
 	encodeMany(value: readonly T[], exprs: ESExpr[]): void {
-		for (const v of value) {
+		for(const v of value) {
 			exprs.push(this.#codec.encode(v));
 		}
 	}
 
 	decodeMany(exprs: ESExpr[]): RepeatedDecodeResult<readonly T[]> {
 		const result: T[] = [];
-		for (let i = 0; exprs.length > 0; ++i) {
+		for(let i = 0; exprs.length > 0; ++i) {
 			const expr = exprs[0];
-			if (expr === undefined) {
+			if(expr === undefined) {
 				break;
 			}
 
-			if (!ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
+			if(!ESExprTagSet.has(this.#codec.tags, ESExpr.tagOf(expr))) {
 				break;
 			}
 
 			exprs.shift();
 
 			const item = this.#codec.decode(expr);
-			if (!item.success) {
+			if(!item.success) {
 				return {
 					success: false,
 					message: item.message,
@@ -2146,7 +2146,7 @@ class VarargFieldCodec<T> implements ESExprFieldCodec<T> {
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		const result = this.#codec.decodeMany(state.args);
 
-		if (result.success) {
+		if(result.success) {
 			return result;
 		}
 
@@ -2170,11 +2170,11 @@ export function varargFieldCodec<T>(codec: RepeatedValuesCodec<T>): ESExprFieldC
 
 
 function validateKeywordField(state: RecordCodecValidationState, name: string) {
-	if (state.hasDict) {
+	if(state.hasDict) {
 		throw new Error("Keyword arguments cannot be used with dict arguments");
 	}
 
-	if (state.keywords.has(name)) {
+	if(state.keywords.has(name)) {
 		throw new Error(`Duplicate keyword argument "${name}"`);
 	}
 }
@@ -2207,7 +2207,7 @@ class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
 
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		const expr = state.kwargs.get(this.#name);
-		if (expr === undefined) {
+		if(expr === undefined) {
 			return {
 				success: false,
 				message: "Not enough arguments",
@@ -2218,7 +2218,7 @@ class KeywordFieldCodec<T> implements ESExprFieldCodec<T> {
 		state.kwargs.delete(this.#name);
 
 		const result = this.#codec.decode(expr);
-		if (!result.success) {
+		if(!result.success) {
 			return {
 				success: false,
 				message: result.message,
@@ -2259,17 +2259,17 @@ class UndefinedOptionalValueCodec<T> implements OptionalValueCodec<T | undefined
 	}
 
 	isEncodedEqual(a: T | undefined, b: T | undefined): boolean {
-		if (a === undefined) {
+		if(a === undefined) {
 			return b === undefined;
 		}
-		if (b === undefined) {
+		if(b === undefined) {
 			return false;
 		}
 		return this.#codec.isEncodedEqual(a, b);
 	}
 
 	encodeOptional(value: T | undefined): ESExpr | undefined {
-		if (value === undefined) {
+		if(value === undefined) {
 			return undefined;
 		}
 
@@ -2277,7 +2277,7 @@ class UndefinedOptionalValueCodec<T> implements OptionalValueCodec<T | undefined
 	}
 
 	decodeOptional(expr: ESExpr | undefined): DecodeResult<T | undefined> {
-		if (expr === undefined) {
+		if(expr === undefined) {
 			return { success: true, value: undefined };
 		}
 
@@ -2314,14 +2314,14 @@ class OptionalKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
 
 	encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
 		const expr = this.#codec.encodeOptional(value);
-		if (expr !== undefined) {
+		if(expr !== undefined) {
 			kwargs.set(this.#name, expr);
 		}
 	}
 
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		const expr = state.kwargs.get(this.#name);
-		if (expr !== undefined) {
+		if(expr !== undefined) {
 			state.kwargs.delete(this.#name);
 
 		}
@@ -2360,21 +2360,21 @@ class DefaultKeywordFieldCodec<T> implements ESExprFieldCodec<T> {
 	}
 
 	encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
-		if (!valuesEqual(value, this.#defaultValue.call(null))) {
+		if(!valuesEqual(value, this.#defaultValue.call(null))) {
 			kwargs.set(this.#name, this.#codec.encode(value));
 		}
 	}
 
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		const expr = state.kwargs.get(this.#name);
-		if (expr === undefined) {
+		if(expr === undefined) {
 			return { success: true, value: this.#defaultValue.call(null) };
 		}
 
 		state.kwargs.delete(this.#name);
 
 		const result = this.#codec.decode(expr);
-		if (!result.success) {
+		if(!result.success) {
 			return {
 				success: false,
 				message: result.message,
@@ -2421,16 +2421,16 @@ class MapMappedValueCodec<T> implements MappedValueCodec<ReadonlyMap<string, T>>
 	}
 
 	isEncodedEqual(a: ReadonlyMap<string, T>, b: ReadonlyMap<string, T>): boolean {
-		if (a.size != b.size) {
+		if(a.size != b.size) {
 			return false;
 		}
 
-		for (const [k, v1] of a) {
-			if (!b.has(k)) {
+		for(const [k, v1] of a) {
+			if(!b.has(k)) {
 				return false;
 			}
 
-			if (!this.#codec.isEncodedEqual(v1, b.get(k)!)) {
+			if(!this.#codec.isEncodedEqual(v1, b.get(k)!)) {
 				return false;
 			}
 		}
@@ -2440,7 +2440,7 @@ class MapMappedValueCodec<T> implements MappedValueCodec<ReadonlyMap<string, T>>
 
 	encodeMapped(value: ReadonlyMap<string, T>): ReadonlyMap<string, ESExpr> {
 		const m = new Map<string, ESExpr>();
-		for (const [k, v] of value) {
+		for(const [k, v] of value) {
 			m.set(k, this.#codec.encode(v));
 		}
 		return m;
@@ -2449,9 +2449,9 @@ class MapMappedValueCodec<T> implements MappedValueCodec<ReadonlyMap<string, T>>
 	decodeMapped(expr: ReadonlyMap<string, ESExpr>): MappedValueDecodeResult<ReadonlyMap<string, T>> {
 		const m = new Map<string, T>();
 
-		for (const [kw, item] of expr) {
+		for(const [kw, item] of expr) {
 			const decItem = this.#codec.decode(item);
-			if (!decItem.success) {
+			if(!decItem.success) {
 				return {
 					success: false,
 					message: decItem.message,
@@ -2486,11 +2486,11 @@ class DictFieldCodec<T> implements ESExprFieldCodec<T> {
 	}
 
 	validate(state: RecordCodecValidationState, _fieldName: string): void {
-		if (state.hasDict) {
+		if(state.hasDict) {
 			throw new Error("Only a single dict argument is allowed");
 		}
 
-		if (state.keywords.size > 0) {
+		if(state.keywords.size > 0) {
 			throw new Error("Keyword arguments cannot be used with dict arguments");
 		}
 
@@ -2503,7 +2503,7 @@ class DictFieldCodec<T> implements ESExprFieldCodec<T> {
 
 	encode(value: T, _args: ESExpr[], kwargs: Map<string, ESExpr>): void {
 		const encoded = this.#codec.encodeMapped(value);
-		for (const [k, v] of encoded) {
+		for(const [k, v] of encoded) {
 			kwargs.set(k, v);
 		}
 	}
@@ -2511,7 +2511,7 @@ class DictFieldCodec<T> implements ESExprFieldCodec<T> {
 	decode(state: FieldDecodeState): DecodeResult<T> {
 		const result = this.#codec.decodeMapped(state.kwargs);
 		state.kwargs.clear();
-		if (result.success) {
+		if(result.success) {
 			return result;
 		}
 
@@ -2559,7 +2559,7 @@ class CaseCodec<Name extends string, T extends { readonly $type: Name }> impleme
 
 	decode(caseName: Name, expr: ESExpr): DecodeResult<T> {
 		const res = recordCodec(this.#constructor_name, this.#fields).decode(expr);
-		if (!res.success) {
+		if(!res.success) {
 			return res;
 		}
 
@@ -2602,7 +2602,7 @@ class InlineCaseCodec<Field extends string, Name extends string, T> implements E
 
 	decode(caseName: Name, expr: ESExpr): DecodeResult<{ readonly $type: Name } & { [F in Field]: T; }> {
 		const res = this.#codec.decode(expr);
-		if (!res.success) {
+		if(!res.success) {
 			return res;
 		}
 
@@ -2634,7 +2634,7 @@ class LazyCodec<A> implements ESExprCodec<A> {
 	#inner: ESExprCodec<A> | null;
 
 	#getInner(): ESExprCodec<A> {
-		if (this.#inner === null) {
+		if(this.#inner === null) {
 			this.#inner = this.#create.call(null);
 		}
 

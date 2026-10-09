@@ -4,22 +4,22 @@ export class HashMap<K, V> {
 	constructor(entries?: readonly (readonly [K, V])[] | null) {
 		this.#buckets = Array.from({ length: HashMap.#BUCKET_COUNT }, () => []);
 
-		if (entries) {
-			for (const [k, v] of entries) {
+		if(entries) {
+			for(const [k, v] of entries) {
 				const h = hash(k) >>> 0;
 				const bucketIndex = (h % HashMap.#BUCKET_COUNT + HashMap.#BUCKET_COUNT) % HashMap.#BUCKET_COUNT;
 				const bucket = this.#buckets[bucketIndex]!;
 
 				let found = false;
-				for (const entry of bucket) {
-					if (entry[0] === h && equals(entry[1], k)) {
+				for(const entry of bucket) {
+					if(entry[0] === h && equals(entry[1], k)) {
 						entry[2] = v;
 						found = true;
 						break;
 					}
 				}
 
-				if (!found) {
+				if(!found) {
 					bucket.push([h, k, v]);
 					this.#size++;
 				}
@@ -40,8 +40,8 @@ export class HashMap<K, V> {
 		const bucketIndex = (h % HashMap.#BUCKET_COUNT + HashMap.#BUCKET_COUNT) % HashMap.#BUCKET_COUNT;
 		const bucket = this.#buckets[bucketIndex]!;
 
-		for (const [entryHash, k, v] of bucket) {
-			if (entryHash === h && equals(k, key)) {
+		for(const [entryHash, k, v] of bucket) {
+			if(entryHash === h && equals(k, key)) {
 				return v;
 			}
 		}
@@ -54,8 +54,8 @@ export class HashMap<K, V> {
 		const bucketIndex = (h % HashMap.#BUCKET_COUNT + HashMap.#BUCKET_COUNT) % HashMap.#BUCKET_COUNT;
 		const bucket = this.#buckets[bucketIndex]!;
 
-		for (const [entryHash, k, _] of bucket) {
-			if (entryHash === h && equals(k, key)) {
+		for(const [entryHash, k, _] of bucket) {
+			if(entryHash === h && equals(k, key)) {
 				return true;
 			}
 		}
@@ -64,8 +64,8 @@ export class HashMap<K, V> {
 	}
 
 	* entries(): IterableIterator<[K, V], undefined, undefined> {
-		for (const bucket of this.#buckets) {
-			for (const [_, k, v] of bucket) {
+		for(const bucket of this.#buckets) {
+			for(const [_, k, v] of bucket) {
 				yield [k, v];
 			}
 		}
@@ -73,8 +73,8 @@ export class HashMap<K, V> {
 	}
 
 	* keys(): IterableIterator<K, undefined, undefined> {
-		for (const bucket of this.#buckets) {
-			for (const [_, k, _v] of bucket) {
+		for(const bucket of this.#buckets) {
+			for(const [_, k, _v] of bucket) {
 				yield k;
 			}
 		}
@@ -82,8 +82,8 @@ export class HashMap<K, V> {
 	}
 
 	* values(): IterableIterator<V, undefined, undefined> {
-		for (const bucket of this.#buckets) {
-			for (const [_, _k, v] of bucket) {
+		for(const bucket of this.#buckets) {
+			for(const [_, _k, v] of bucket) {
 				yield v;
 			}
 		}

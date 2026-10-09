@@ -83,7 +83,7 @@ public class ESExprTextWriter {
 		for(int i = 0; i < value.length();) {
 			int c = value.codePointAt(i);
 			i += Character.charCount(c);
-			switch (c) {
+			switch(c) {
 				case '\\' -> writer.write("\\\\");
 				case '\n' -> writer.write("\\n");
 				case '\r' -> writer.write("\\r");
@@ -106,12 +106,12 @@ public class ESExprTextWriter {
 
 	private void floating(long bits, int width, String finite, String suffix) throws IOException {
 		long sign = 1L << (width - 1);
-		long exponent = switch (width) {
+		long exponent = switch(width) {
 			case 16 -> 0x7C00L;
 			case 32 -> 0x7F800000L;
 			default -> 0x7FF0000000000000L;
 		};
-		long mask = switch (width) {
+		long mask = switch(width) {
 			case 16 -> 0x3FFL;
 			case 32 -> 0x7FFFFFL;
 			default -> 0xFFFFFFFFFFFFFL;
@@ -133,7 +133,7 @@ public class ESExprTextWriter {
 	}
 
 	private void writeExpr(ESExpr expr, int depth) throws IOException {
-		switch (expr) {
+		switch(expr) {
 			case ESExpr.Constructor(var name, var args, var kwargs) -> {
 				writer.write('(');
 				identifier(name);

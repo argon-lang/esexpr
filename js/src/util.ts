@@ -1,28 +1,28 @@
 
 export function valuesEqual(a: unknown, b: unknown): boolean {
-	if (typeof a !== typeof b) {
+	if(typeof a !== typeof b) {
 		return false;
 	}
-	else if (typeof a === "object") {
-		if (a === b) {
+	else if(typeof a === "object") {
+		if(a === b) {
 			return true;
 		}
 
-		if (a === null || b == null) {
+		if(a === null || b == null) {
 			return false;
 		}
 
-		if (a instanceof Uint8Array) {
-			if (!(b instanceof Uint8Array)) {
+		if(a instanceof Uint8Array) {
+			if(!(b instanceof Uint8Array)) {
 				return false;
 			}
 
-			if (a.length !== b.length) {
+			if(a.length !== b.length) {
 				return false;
 			}
 
-			for (let i = 0; i < a.length; ++i) {
-				if (a[i] !== b[i]) {
+			for(let i = 0; i < a.length; ++i) {
+				if(a[i] !== b[i]) {
 					return false;
 				}
 			}
@@ -30,17 +30,17 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 			return true;
 		}
 
-		if (a instanceof Uint16Array) {
-			if (!(b instanceof Uint16Array)) {
+		if(a instanceof Uint16Array) {
+			if(!(b instanceof Uint16Array)) {
 				return false;
 			}
 
-			if (a.length !== b.length) {
+			if(a.length !== b.length) {
 				return false;
 			}
 
-			for (let i = 0; i < a.length; ++i) {
-				if (a[i] !== b[i]) {
+			for(let i = 0; i < a.length; ++i) {
+				if(a[i] !== b[i]) {
 					return false;
 				}
 			}
@@ -48,17 +48,17 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 			return true;
 		}
 
-		if (a instanceof Uint32Array) {
-			if (!(b instanceof Uint32Array)) {
+		if(a instanceof Uint32Array) {
+			if(!(b instanceof Uint32Array)) {
 				return false;
 			}
 
-			if (a.length !== b.length) {
+			if(a.length !== b.length) {
 				return false;
 			}
 
-			for (let i = 0; i < a.length; ++i) {
-				if (a[i] !== b[i]) {
+			for(let i = 0; i < a.length; ++i) {
+				if(a[i] !== b[i]) {
 					return false;
 				}
 			}
@@ -66,17 +66,17 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 			return true;
 		}
 
-		if (a instanceof BigUint64Array) {
-			if (!(b instanceof BigUint64Array)) {
+		if(a instanceof BigUint64Array) {
+			if(!(b instanceof BigUint64Array)) {
 				return false;
 			}
 
-			if (a.length !== b.length) {
+			if(a.length !== b.length) {
 				return false;
 			}
 
-			for (let i = 0; i < a.length; ++i) {
-				if (a[i] !== b[i]) {
+			for(let i = 0; i < a.length; ++i) {
+				if(a[i] !== b[i]) {
 					return false;
 				}
 			}
@@ -84,23 +84,23 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 			return true;
 		}
 
-		if (a instanceof Map) {
-			if (!(b instanceof Map)) {
+		if(a instanceof Map) {
+			if(!(b instanceof Map)) {
 				return false;
 			}
 
-			for (const k of a.keys()) {
-				if (!b.has(k)) {
+			for(const k of a.keys()) {
+				if(!b.has(k)) {
 					return false;
 				}
 
-				if (!valuesEqual(a.get(k), b.get(k))) {
+				if(!valuesEqual(a.get(k), b.get(k))) {
 					return false;
 				}
 			}
 
-			for (const k of b.keys()) {
-				if (!a.has(k)) {
+			for(const k of b.keys()) {
+				if(!a.has(k)) {
 					return false;
 				}
 			}
@@ -108,19 +108,19 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 			return true;
 		}
 
-		if (a instanceof Set) {
-			if (!(b instanceof Set)) {
+		if(a instanceof Set) {
+			if(!(b instanceof Set)) {
 				return false;
 			}
 
-			for (const k of a) {
-				if (!b.has(k)) {
+			for(const k of a) {
+				if(!b.has(k)) {
 					return false;
 				}
 			}
 
-			for (const k of b) {
-				if (!a.has(k)) {
+			for(const k of b) {
+				if(!a.has(k)) {
 					return false;
 				}
 			}
@@ -131,12 +131,12 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 
 		const aKeys = Object.keys(a);
 		const bKeys = Object.keys(b);
-		if (!aKeys.every(k => bKeys.includes(k)) || !bKeys.every(k => aKeys.includes(k))) {
+		if(!aKeys.every(k => bKeys.includes(k)) || !bKeys.every(k => aKeys.includes(k))) {
 			return false;
 		}
 
-		for (const k of aKeys) {
-			if (!valuesEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) {
+		for(const k of aKeys) {
+			if(!valuesEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) {
 				return false;
 			}
 		}

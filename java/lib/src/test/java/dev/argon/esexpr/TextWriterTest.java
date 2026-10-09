@@ -62,7 +62,8 @@ class TextWriterTest {
 	@Test
 	void escapingAndFormatting() throws Exception {
 		var expr = new ESExpr.Constructor(
-			"a'b", ImmutableList.of(new ESExpr.Str("\u0000\n\r\t\f\\\"😀")),
+			"a'b",
+			ImmutableList.of(new ESExpr.Str("\u0000\n\r\t\f\\\"😀")),
 			ImmutableMap.of("z", new ESExpr.Bool(false), "A", new ESExpr.Bool(true))
 		);
 		assertEquals("('a\\'b' \"\\u{0}\\n\\r\\t\\f\\\\\\\"😀\" 'A': #true z: #false)", format(expr));

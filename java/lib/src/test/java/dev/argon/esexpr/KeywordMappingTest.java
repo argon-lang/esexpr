@@ -89,7 +89,9 @@ class KeywordMappingTest {
 				DecodeException.class,
 				() -> codec.decode(
 					new ESExpr.Constructor(
-						"string-table", ImmutableList.of(), ImmutableMap.of("bad", new ESExpr.Bool(true))
+						"string-table",
+						ImmutableList.of(),
+						ImmutableMap.of("bad", new ESExpr.Bool(true))
 					)
 				)
 			).path

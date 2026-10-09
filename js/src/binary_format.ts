@@ -77,7 +77,7 @@ const isBigEndian: boolean = (() => {
 const u8ToU16: (u8: Uint8Array, len: number) => Uint16Array = isBigEndian
 	? (u8, len) => {
 			const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-			for (let i = 0; i < len; ++i) {
+			for(let i = 0; i < len; ++i) {
 				buff.setUint16(i * 2, buff.getUint16(i * 2, false), true);
 			}
 			return new Uint16Array(u8.buffer, u8.byteOffset, len);
@@ -87,7 +87,7 @@ const u8ToU16: (u8: Uint8Array, len: number) => Uint16Array = isBigEndian
 const u8ToU32: (u8: Uint8Array, len: number) => Uint32Array = isBigEndian
 	? (u8, len) => {
 			const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-			for (let i = 0; i < len; ++i) {
+			for(let i = 0; i < len; ++i) {
 				buff.setUint32(i * 4, buff.getUint32(i * 4, false), true);
 			}
 			return new Uint32Array(u8.buffer, u8.byteOffset, len);
@@ -97,7 +97,7 @@ const u8ToU32: (u8: Uint8Array, len: number) => Uint32Array = isBigEndian
 const u8ToU64: (u8: Uint8Array, len: number) => BigUint64Array = isBigEndian
 	? (u8, len) => {
 			const buff = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-			for (let i = 0; i < len; ++i) {
+			for(let i = 0; i < len; ++i) {
 				buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, false), true);
 			}
 			return new BigUint64Array(u8.buffer, u8.byteOffset, len);
@@ -107,7 +107,7 @@ const u8ToU64: (u8: Uint8Array, len: number) => BigUint64Array = isBigEndian
 const u16ToU8: (u16: Uint16Array) => Uint8Array = isBigEndian
 	? u16 => {
 		const buff = new DataView(u16.buffer, u16.byteOffset, u16.byteLength);
-		for (let i = 0; i < u16.length; ++i) {
+		for(let i = 0; i < u16.length; ++i) {
 			buff.setUint16(i * 2, buff.getUint16(i * 2, true), false);
 		}
 		return new Uint8Array(u16.buffer, u16.byteOffset, u16.byteLength);
@@ -117,7 +117,7 @@ const u16ToU8: (u16: Uint16Array) => Uint8Array = isBigEndian
 const u32ToU8: (u32: Uint32Array) => Uint8Array = isBigEndian
 	? u32 => {
 		const buff = new DataView(u32.buffer, u32.byteOffset, u32.byteLength);
-		for (let i = 0; i < u32.length; ++i) {
+		for(let i = 0; i < u32.length; ++i) {
 			buff.setUint32(i * 4, buff.getUint32(i * 4, true), false);
 		}
 		return new Uint8Array(u32.buffer, u32.byteOffset, u32.byteLength);
@@ -127,7 +127,7 @@ const u32ToU8: (u32: Uint32Array) => Uint8Array = isBigEndian
 const u64ToU8: (u64: BigUint64Array) => Uint8Array = isBigEndian
 	? u64 => {
 		const buff = new DataView(u64.buffer, u64.byteOffset, u64.byteLength);
-		for (let i = 0; i < u64.length; ++i) {
+		for(let i = 0; i < u64.length; ++i) {
 			buff.setBigUint64(i * 8, buff.getBigUint64(i * 8, true), false);
 		}
 		return new Uint8Array(u64.buffer, u64.byteOffset, u64.byteLength);
@@ -146,7 +146,7 @@ class ByteReader {
 
 	async tryReadByte(): Promise<number | null> {
 		const buff = await this.#tryLoadBuffer();
-		if (buff === null) {
+		if(buff === null) {
 			return null;
 		}
 
@@ -166,7 +166,7 @@ class ByteReader {
 	async readFixed(size: number): Promise<Uint8Array> {
 		let offset = 0;
 		const res = new Uint8Array(size);
-		while (offset < size) {
+		while(offset < size) {
 			const buff = await this.#ensureBuffer();
 			const len = Math.min(size - offset, buff.length - this.#index);
 			res.set(buff.subarray(this.#index, this.#index + len), offset);
@@ -180,7 +180,7 @@ class ByteReader {
 		let s = "";
 		const decoder = new TextDecoder();
 		let offset = 0;
-		while (offset < size) {
+		while(offset < size) {
 			const buff = await this.#ensureBuffer();
 			const len = Math.min(size - offset, buff.length - this.#index);
 			s += decoder.decode(buff.subarray(this.#index, this.#index + len), { stream: true });
@@ -193,9 +193,9 @@ class ByteReader {
 	}
 
 	async #tryLoadBuffer(): Promise<Uint8Array | null> {
-		while (this.#current == null || this.#index >= this.#current.length) {
+		while(this.#current == null || this.#index >= this.#current.length) {
 			const res = await this.#iter.next();
-			if (res.done) {
+			if(res.done) {
 				return null;
 			}
 
@@ -208,7 +208,7 @@ class ByteReader {
 
 	async #ensureBuffer(): Promise<Uint8Array> {
 		const buff = await this.#tryLoadBuffer();
-		if (buff === null) {
+		if(buff === null) {
 			throw new ESExprFormatError("Unexpected end of file");
 		}
 		return buff;
@@ -226,11 +226,11 @@ export class ExprReader {
 
 	async tryReadExpr(): Promise<ESExpr | undefined> {
 		read:
-		for (;;) {
+		for(;;) {
 			const expr = await this.#readExprPlus();
 
-			if (typeof expr === "object" && expr !== null && !ArrayBuffer.isView(expr)) {
-				switch (expr.type) {
+			if(typeof expr === "object" && expr !== null && !ArrayBuffer.isView(expr)) {
+				switch(expr.type) {
 					case "constructor_end":
 						throw new ESExprFormatError("Unexpected constructor end");
 
@@ -255,7 +255,7 @@ export class ExprReader {
 
 	async readExpr(): Promise<ESExpr> {
 		const expr = await this.tryReadExpr();
-		if (expr === undefined) {
+		if(expr === undefined) {
 			throw new ESExprFormatError("Unexpected end of file");
 		}
 
@@ -263,9 +263,9 @@ export class ExprReader {
 	}
 
 	async* readAll(): AsyncIterable<ESExpr> {
-		for (;;) {
+		for(;;) {
 			const expr = await this.tryReadExpr();
-			if (expr === undefined) {
+			if(expr === undefined) {
 				break;
 			}
 
@@ -275,13 +275,13 @@ export class ExprReader {
 
 	async #readExprPlus(): Promise<ExprPlus> {
 		const startTokenRes = await this.#tokens.next();
-		if (startTokenRes.done) {
+		if(startTokenRes.done) {
 			return { type: "eof" };
 		}
 
 		const startToken = startTokenRes.value;
 
-		switch (startToken.type) {
+		switch(startToken.type) {
 			case "constructor_start":
 			{
 				const name = this.#stringPool.get(startToken.index);
@@ -327,7 +327,7 @@ export class ExprReader {
 				return startToken.value;
 
 			case "null_value":
-				if (startToken.level > 0) {
+				if(startToken.level > 0) {
 					return {
 						type: "null",
 						level: startToken.level,
@@ -341,12 +341,12 @@ export class ExprReader {
 			{
 				const newStringPool = await this.readExpr();
 
-				if (typeof newStringPool === "string") {
+				if(typeof newStringPool === "string") {
 					this.#stringPool.append(newStringPool);
 				}
 				else {
 					const spRes = StringPoolEncoded.codec.decode(newStringPool);
-					if (!spRes.success) {
+					if(!spRes.success) {
 						throw new ESExprFormatError("Invalid string pool");
 					}
 
@@ -372,11 +372,11 @@ export class ExprReader {
 		const kwargs = new Map<string, ESExpr>();
 
 		args:
-		for (;;) {
+		for(;;) {
 			const expr = await this.#readExprPlus();
 
-			if (typeof expr === "object" && expr !== null && !ArrayBuffer.isView(expr)) {
-				switch (expr.type) {
+			if(typeof expr === "object" && expr !== null && !ArrayBuffer.isView(expr)) {
+				switch(expr.type) {
 					case "constructor_end":
 						break args;
 
@@ -415,15 +415,15 @@ export class ExprReader {
 
 
 async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
-	for (;;) {
+	for(;;) {
 		const b = await reader.tryReadByte();
-		if (b === null) {
+		if(b === null) {
 			break;
 		}
 
 
-		if ((b & TAG_VARINT_MASK) == TAG_VARINT_MASK) {
-			switch (b) {
+		if((b & TAG_VARINT_MASK) == TAG_VARINT_MASK) {
+			switch(b) {
 				case TAG_CONSTRUCTOR_END:
 					yield { type: "constructor_end" };
 					break;
@@ -460,7 +460,7 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 					const buff = await reader.readFixed(2);
 					const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
 					const value = dv.getFloat16(0, true);
-					if (Number.isNaN(value)) {
+					if(Number.isNaN(value)) {
 						yield { type: "float16_nan", bits: dv.getUint16(0, true) };
 					}
 					else {
@@ -474,7 +474,7 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 					const buff = await reader.readFixed(4);
 					const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
 					const value = dv.getFloat32(0, true);
-					if (Number.isNaN(value)) {
+					if(Number.isNaN(value)) {
 						yield { type: "float32_nan", bits: dv.getUint32(0, true) };
 					}
 					else {
@@ -488,7 +488,7 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 					const buff = await reader.readFixed(8);
 					const dv = new DataView(buff.buffer, buff.byteOffset, buff.byteLength);
 					const value = dv.getFloat64(0, true);
-					if (Number.isNaN(value)) {
+					if(Number.isNaN(value)) {
 						yield { type: "float64_nan", bits: dv.getBigUint64(0, true) };
 					}
 					else {
@@ -567,7 +567,7 @@ async function* getTokens(reader: ByteReader): AsyncIterator<Token> {
 		}
 		else {
 			const n = await readInt(reader, b);
-			switch (b & TAG_VARINT_MASK) {
+			switch(b & TAG_VARINT_MASK) {
 				case TAG_VARINT_CONSTRUCTOR_START:
 					yield { type: "constructor_start", index: checkIntRange(n) };
 					break;
@@ -622,7 +622,7 @@ function readIntFull(reader: ByteReader): Promise<bigint> {
 }
 
 async function readIntRest(reader: ByteReader, n: bigint, bitOffset: bigint, hasNext: boolean): Promise<bigint> {
-	while (hasNext) {
+	while(hasNext) {
 		const b = await reader.readByte();
 		n |= BigInt(b & 0x7F) << bitOffset;
 		bitOffset += 7n;
@@ -640,7 +640,7 @@ export function readExprStream(data: AsyncIterable<Uint8Array>, stringPool?: Str
 
 
 function checkIntRange(n: bigint): number {
-	if (n > Number.MAX_SAFE_INTEGER) {
+	if(n > Number.MAX_SAFE_INTEGER) {
 		throw new ESExprFormatError("Integer is too large");
 	}
 
@@ -668,7 +668,7 @@ async function* writeIntFull(value: bigint): AsyncIterable<Uint8Array> {
 }
 
 async function* writeIntRest(value: bigint, hasNext: boolean): AsyncIterable<Uint8Array> {
-	while (hasNext) {
+	while(hasNext) {
 		const bits = Number(value & 0x7Fn);
 		value >>= 7n;
 		hasNext = value > 0;
@@ -680,7 +680,7 @@ async function* writeIntRest(value: bigint, hasNext: boolean): AsyncIterable<Uin
 function taggedIntSize(value: number): number {
 	let size = 1;
 	value = Math.floor(value / 16);
-	while (value !== 0) {
+	while(value !== 0) {
 		++size;
 		value = Math.floor(value / 128);
 	}
@@ -694,10 +694,10 @@ function isDedicatedConstructor(name: string): boolean {
 function compareStrings(a: string, b: string): number {
 	let ai = 0;
 	let bi = 0;
-	while (ai < a.length && bi < b.length) {
+	while(ai < a.length && bi < b.length) {
 		const ac = a.codePointAt(ai)!;
 		const bc = b.codePointAt(bi)!;
-		if (ac !== bc) return ac - bc;
+		if(ac !== bc) return ac - bc;
 		ai += ac > 0xFFFF ? 2 : 1;
 		bi += bc > 0xFFFF ? 2 : 1;
 	}
@@ -710,13 +710,13 @@ export class StringTableBuilder {
 
 	/** Record constructor names, keywords, and literals recursively. */
 	record(expr: ESExpr): void {
-		if (typeof expr === "string") {
+		if(typeof expr === "string") {
 			this.#recordString(expr, false);
 		}
-		else if (esexpr.ESExpr.isConstructor(expr)) {
-			if (!isDedicatedConstructor(expr.name)) this.#recordString(expr.name, true);
-			for (const arg of expr.args) this.record(arg);
-			for (const [key, value] of expr.kwargs) {
+		else if(esexpr.ESExpr.isConstructor(expr)) {
+			if(!isDedicatedConstructor(expr.name)) this.#recordString(expr.name, true);
+			for(const arg of expr.args) this.record(arg);
+			for(const [key, value] of expr.kwargs) {
 				this.#recordString(key, true);
 				this.record(value);
 			}
@@ -725,11 +725,11 @@ export class StringTableBuilder {
 
 	#recordString(value: string, required: boolean): void {
 		let usage = this.#strings.get(value);
-		if (usage === undefined) {
+		if(usage === undefined) {
 			usage = { required: 0n, literal: 0n };
 			this.#strings.set(value, usage);
 		}
-		if (required) ++usage.required;
+		if(required) ++usage.required;
 		else ++usage.literal;
 	}
 
@@ -742,8 +742,8 @@ export class StringTableBuilder {
 	 */
 	build(): string[] {
 		const candidates: string[] = [];
-		for (const [value, usage] of this.#strings) {
-			if (usage.required !== 0n || usage.literal > 1n) candidates.push(value);
+		for(const [value, usage] of this.#strings) {
+			if(usage.required !== 0n || usage.literal > 1n) candidates.push(value);
 		}
 		candidates.sort((a, b) => {
 			const au = this.#strings.get(a)!;
@@ -753,12 +753,12 @@ export class StringTableBuilder {
 			return at > bt ? -1 : at < bt ? 1 : compareStrings(a, b);
 		});
 		let accepted = 0;
-		for (const value of candidates) {
+		for(const value of candidates) {
 			const usage = this.#strings.get(value)!;
 			const length = new TextEncoder().encode(value).length;
 			const inline = length + taggedIntSize(length);
 			const saving = inline - taggedIntSize(accepted);
-			if (usage.required !== 0n || (saving > 0 && usage.literal > BigInt(inline) / BigInt(saving))) {
+			if(usage.required !== 0n || (saving > 0 && usage.literal > BigInt(inline) / BigInt(saving))) {
 				candidates[accepted++] = value;
 			}
 		}
@@ -774,11 +774,11 @@ async function* writeInlineString(value: string): AsyncIterable<Uint8Array> {
 }
 
 async function* writeStringAppend(strings: readonly string[]): AsyncIterable<Uint8Array> {
-	if (strings.length === 0) return;
+	if(strings.length === 0) return;
 	yield writeByte(TAG_APPEND_STRING_TABLE);
-	if (strings.length > 1) yield writeByte(TAG_CONSTRUCTOR_START_STRING_TABLE);
-	for (const value of strings) yield* writeInlineString(value);
-	if (strings.length > 1) yield writeByte(TAG_CONSTRUCTOR_END);
+	if(strings.length > 1) yield writeByte(TAG_CONSTRUCTOR_START_STRING_TABLE);
+	for(const value of strings) yield* writeInlineString(value);
+	if(strings.length > 1) yield writeByte(TAG_CONSTRUCTOR_END);
 }
 
 /**
@@ -790,24 +790,24 @@ async function* writeStringAppend(strings: readonly string[]): AsyncIterable<Uin
 export async function* addStrings(strings: readonly string[], stringPool: StringPool): AsyncIterable<Uint8Array> {
 	const seen = new Set<string>();
 	const additions: string[] = [];
-	for (const value of strings) {
-		if (stringPool.lookupIndex(value) === undefined && !seen.has(value)) {
+	for(const value of strings) {
+		if(stringPool.lookupIndex(value) === undefined && !seen.has(value)) {
 			seen.add(value);
 			additions.push(value);
 		}
 	}
 	yield* writeStringAppend(additions);
-	if (additions.length !== 0) stringPool.append(additions);
+	if(additions.length !== 0) stringPool.append(additions);
 }
 
 export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterable<Uint8Array> {
-	switch (typeof e) {
+	switch(typeof e) {
 		case "boolean":
 			yield writeByte(e ? TAG_TRUE : TAG_FALSE);
 			break;
 
 		case "bigint":
-			if (e >= 0n) {
+			if(e >= 0n) {
 				yield* writeInt(TAG_VARINT_NON_NEG_INT, e);
 			}
 			else {
@@ -819,7 +819,7 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 		{
 			const buff = new TextEncoder().encode(e);
 			const index = stringPool.lookupIndex(e);
-			if (index !== undefined && taggedIntSize(index) <= buff.length + taggedIntSize(buff.length)) {
+			if(index !== undefined && taggedIntSize(index) <= buff.length + taggedIntSize(buff.length)) {
 				yield* writeInt(TAG_VARINT_STRING_POOL, BigInt(index));
 			}
 			else {
@@ -839,24 +839,24 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 		}
 
 		case "object":
-			if (e === null) {
+			if(e === null) {
 				yield writeByte(TAG_NULL0);
 			}
-			else if (e instanceof Uint8Array) {
+			else if(e instanceof Uint8Array) {
 				yield* writeInt(TAG_VARINT_ARRAY8_LENGTH, BigInt(e.length));
 				yield e;
 			}
-			else if (e instanceof Uint16Array) {
+			else if(e instanceof Uint16Array) {
 				yield writeByte(TAG_ARRAY16);
 				yield* writeIntFull(BigInt(e.length));
 				yield u16ToU8(e);
 			}
-			else if (e instanceof Uint32Array) {
+			else if(e instanceof Uint32Array) {
 				yield writeByte(TAG_ARRAY32);
 				yield* writeIntFull(BigInt(e.length));
 				yield u32ToU8(e);
 			}
-			else if (e instanceof BigUint64Array) {
+			else if(e instanceof BigUint64Array) {
 				yield writeByte(TAG_ARRAY64);
 				yield* writeIntFull(BigInt(e.length));
 				yield u64ToU8(e);
@@ -864,7 +864,7 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 			else {
 				async function* writeStringTag(tag: number, s: string): AsyncIterable<Uint8Array> {
 					let index = stringPool.lookupIndex(s);
-					if (index === undefined) {
+					if(index === undefined) {
 						yield* addStrings([s], stringPool);
 						index = stringPool.lookupIndex(s)!;
 					}
@@ -872,10 +872,10 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 					yield* writeInt(tag, BigInt(index));
 				}
 
-				switch (e.type) {
+				switch(e.type) {
 					case "constructor":
 					{
-						switch (e.name) {
+						switch(e.name) {
 							case "string-table":
 								yield writeByte(TAG_CONSTRUCTOR_START_STRING_TABLE);
 								break;
@@ -896,11 +896,11 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 								yield* writeStringTag(TAG_VARINT_CONSTRUCTOR_START, e.name);
 						}
 
-						for (const arg of e.args) {
+						for(const arg of e.args) {
 							yield* writeExpr(arg, stringPool);
 						}
 
-						for (const [kw, value] of e.kwargs) {
+						for(const [kw, value] of e.kwargs) {
 							yield* writeStringTag(TAG_VARINT_KEYWORD, kw);
 							yield* writeExpr(value, stringPool);
 						}
@@ -956,10 +956,10 @@ export async function* writeExpr(e: ESExpr, stringPool: StringPool): AsyncIterab
 
 					case "null":
 					{
-						if (e.level === 1n) {
+						if(e.level === 1n) {
 							yield writeByte(TAG_NULL1);
 						}
-						else if (e.level === 2n) {
+						else if(e.level === 2n) {
 							yield writeByte(TAG_NULL2);
 						}
 						else {
@@ -1001,7 +1001,7 @@ export async function* writeExprs(exprs: AsyncIterable<ESExpr> | Iterable<ESExpr
 		const newLength = sp.length;
 
 		const values: string[] = [];
-		for (let i = oldLength; i < newLength; ++i) values.push(sp.get(i));
+		for(let i = oldLength; i < newLength; ++i) values.push(sp.get(i));
 		yield* writeStringAppend(values);
 
 		yield* writeExpr(expr, sp);
@@ -1036,7 +1036,7 @@ export class ArrayStringPool implements StringPool {
 
 	get(i: number): string {
 		const s = this.#values[i];
-		if (s === undefined) {
+		if(s === undefined) {
 			throw new ESExprFormatError("Invalid string pool index");
 		}
 
@@ -1045,7 +1045,7 @@ export class ArrayStringPool implements StringPool {
 
 	lookupIndex(s: string): number | undefined {
 		const i = this.#values.indexOf(s);
-		if (i < 0) {
+		if(i < 0) {
 			return undefined;
 		}
 
@@ -1055,7 +1055,7 @@ export class ArrayStringPool implements StringPool {
 	append(s: string | readonly string[]): number {
 		const index = this.#values.length;
 
-		if (typeof s === "string") {
+		if(typeof s === "string") {
 			this.#values.push(s);
 		}
 		else {

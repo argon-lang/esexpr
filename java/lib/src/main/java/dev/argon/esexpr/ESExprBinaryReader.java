@@ -58,7 +58,7 @@ public class ESExprBinaryReader {
 	 */
 	public @Nullable ESExpr tryRead() throws IOException, SyntaxException {
 		for(;;) {
-			switch (readExprPlus()) {
+			switch(readExprPlus()) {
 				case ExprPlus.Expr(var expr) -> {
 					return expr;
 				}
@@ -117,7 +117,7 @@ public class ESExprBinaryReader {
 			return null;
 		}
 
-		BinToken.WithIntegerType type = switch ((b & 0xE0)) {
+		BinToken.WithIntegerType type = switch((b & 0xE0)) {
 			case 0x00 -> BinToken.WithIntegerType.CONSTRUCTOR;
 			case 0x20 -> BinToken.WithIntegerType.INT;
 			case 0x40 -> BinToken.WithIntegerType.NEG_INT;
@@ -129,7 +129,7 @@ public class ESExprBinaryReader {
 		};
 
 		if(type == null) {
-			return switch (b) {
+			return switch(b) {
 				case 0xE0 -> BinToken.Fixed.CONSTRUCTOR_END;
 				case 0xE1 -> BinToken.Fixed.TRUE;
 				case 0xE2 -> BinToken.Fixed.FALSE;
@@ -187,10 +187,10 @@ public class ESExprBinaryReader {
 	}
 
 	private ExprPlus readExprPlus() throws SyntaxException, IOException {
-		return switch (nextToken()) {
+		return switch(nextToken()) {
 			case null -> new ExprPlus.EndOfFile();
 
-			case BinToken.WithInteger(var type, var value) -> switch (type) {
+			case BinToken.WithInteger(var type, var value) -> switch(type) {
 				case CONSTRUCTOR -> {
 					var sym = symbolTable.get(value.intValueExact());
 					yield new ExprPlus.Expr(readConstructor(sym));
@@ -229,7 +229,7 @@ public class ESExprBinaryReader {
 				}
 			};
 
-			case BinToken.Fixed fixed -> switch (fixed) {
+			case BinToken.Fixed fixed -> switch(fixed) {
 				case CONSTRUCTOR_END -> new ExprPlus.ConstructorEnd();
 				case TRUE -> new ExprPlus.Expr(new ESExpr.Bool(true));
 				case FALSE -> new ExprPlus.Expr(new ESExpr.Bool(false));
@@ -382,7 +382,7 @@ public class ESExprBinaryReader {
 		var kwargs = ImmutableMap.<String, ESExpr>builder();
 
 		body : while (true) {
-			switch (readExprPlus()) {
+			switch(readExprPlus()) {
 				case ExprPlus.Expr(var expr) -> args.add(expr);
 				case ExprPlus.ConstructorEnd() -> {
 					break body;

@@ -25,7 +25,8 @@ public class OptionalTests {
 				new ESExpr.Float32(1.0f),
 				new ESExpr.Float32(2.0f),
 				new ESExpr.Float32(3.0f)
-			), ImmutableMap.of()
+			),
+			ImmutableMap.of()
 		);
 		VarargAfterOptional value = new VarargAfterOptional(Optional.of(5), ImmutableList.of(1.0f, 2.0f, 3.0f));
 
@@ -43,7 +44,9 @@ public class OptionalTests {
 		assertEquals(value, VarargAfterOptional.codec().decode(expr));
 
 		expr = new ESExpr.Constructor(
-			"vararg-after-optional", ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))), ImmutableMap.of()
+			"vararg-after-optional",
+			ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))),
+			ImmutableMap.of()
 		);
 		value = new VarargAfterOptional(Optional.of(5), ImmutableList.of());
 
@@ -66,7 +69,8 @@ public class OptionalTests {
 				new ESExpr.Float32(2.0f),
 				new ESExpr.Float32(3.0f),
 				new ESExpr.Int(BigInteger.valueOf(5))
-			), ImmutableMap.of()
+			),
+			ImmutableMap.of()
 		);
 		OptionalAfterVararg value = new OptionalAfterVararg(ImmutableList.of(1.0f, 2.0f, 3.0f), Optional.of(5));
 
@@ -84,7 +88,9 @@ public class OptionalTests {
 		assertEquals(value, OptionalAfterVararg.codec().decode(expr));
 
 		expr = new ESExpr.Constructor(
-			"optional-after-vararg", ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))), ImmutableMap.of()
+			"optional-after-vararg",
+			ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))),
+			ImmutableMap.of()
 		);
 		value = new OptionalAfterVararg(ImmutableList.of(), Optional.of(5));
 
@@ -107,7 +113,8 @@ public class OptionalTests {
 				new ESExpr.Float32(2.0f),
 				new ESExpr.Float32(3.0f),
 				new ESExpr.Int(BigInteger.valueOf(5))
-			), ImmutableMap.of()
+			),
+			ImmutableMap.of()
 		);
 		RequiredAfterVararg value = new RequiredAfterVararg(ImmutableList.of(1.0f, 2.0f, 3.0f), 5);
 
@@ -115,7 +122,9 @@ public class OptionalTests {
 		assertEquals(value, RequiredAfterVararg.codec().decode(expr));
 
 		expr = new ESExpr.Constructor(
-			"required-after-vararg", ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))), ImmutableMap.of()
+			"required-after-vararg",
+			ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(5))),
+			ImmutableMap.of()
 		);
 		value = new RequiredAfterVararg(ImmutableList.of(), 5);
 
@@ -134,7 +143,8 @@ public class OptionalTests {
 				new ESExpr.Int(BigInteger.valueOf(1)),
 				new ESExpr.Int(BigInteger.valueOf(2)),
 				new ESExpr.Int(BigInteger.valueOf(3))
-			), ImmutableMap.of()
+			),
+			ImmutableMap.of()
 		);
 		MultipleVararg value = new MultipleVararg(ImmutableList.of(1.0f, 2.0f, 3.0f), ImmutableList.of(1, 2, 3));
 
@@ -157,7 +167,8 @@ public class OptionalTests {
 				new ESExpr.Int(BigInteger.valueOf(1)),
 				new ESExpr.Int(BigInteger.valueOf(2)),
 				new ESExpr.Int(BigInteger.valueOf(3))
-			), ImmutableMap.of()
+			),
+			ImmutableMap.of()
 		);
 		value = new MultipleVararg(ImmutableList.of(), ImmutableList.of(1, 2, 3));
 
@@ -184,7 +195,8 @@ public class OptionalTests {
 		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
 
 		expr = new ESExpr.Constructor(
-			"positional-default-value", ImmutableList.of(new ESExpr.Float32(20.0f), new ESExpr.Str("abc")),
+			"positional-default-value",
+			ImmutableList.of(new ESExpr.Float32(20.0f), new ESExpr.Str("abc")),
 			ImmutableMap.of()
 		);
 		value = new PositionalDefaultValue(4, 20.0f, "abc");
@@ -193,7 +205,8 @@ public class OptionalTests {
 		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
 
 		expr = new ESExpr.Constructor(
-			"positional-default-value", ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(10)), new ESExpr.Str("abc")),
+			"positional-default-value",
+			ImmutableList.of(new ESExpr.Int(BigInteger.valueOf(10)), new ESExpr.Str("abc")),
 			ImmutableMap.of()
 		);
 		value = new PositionalDefaultValue(10, 5.0f, "abc");
@@ -202,7 +215,9 @@ public class OptionalTests {
 		assertEquals(value, PositionalDefaultValue.codec().decode(expr));
 
 		expr = new ESExpr.Constructor(
-			"positional-default-value", ImmutableList.of(new ESExpr.Str("abc")), ImmutableMap.of()
+			"positional-default-value",
+			ImmutableList.of(new ESExpr.Str("abc")),
+			ImmutableMap.of()
 		);
 		value = new PositionalDefaultValue(4, 5.0f, "abc");
 

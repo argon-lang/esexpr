@@ -15,15 +15,15 @@ const expressions: readonly (readonly [e.ESExpr, e.ESExprTag, string])[] = [
 	[{ type: "float64-nan", bits: 0x7FF8000000000001n }, Number, "float64"],
 	[{ type: "constructor", name: "box", args: [true], kwargs: new Map([["a", 1n]]) }, "box", "constructor box"],
 ];
-for (const [i, [expr, tag, display]] of expressions.entries()) {
+for(const [i, [expr, tag, display]] of expressions.entries()) {
 	test(`expression codec preserves representation and tag (${i}: ${display})`, () => {
 		assert.strictEqual(e.ESExpr.tagOf(expr), tag);
 		assert.strictEqual(e.ESExprTag.show(tag), display);
 		assert.strictEqual(e.ESExpr.codec.encode(expr), expr);
 		assert.deepStrictEqual(e.ESExpr.codec.decode(expr), { success: true, value: expr });
 		assert.ok(e.ESExpr.codec.isEncodedEqual(expr, structuredClone(expr)));
-		for (const [other] of expressions) {
-			if (e.ESExpr.tagOf(other) !== tag) {
+		for(const [other] of expressions) {
+			if(e.ESExpr.tagOf(other) !== tag) {
 				assert.strictEqual(e.ESExpr.codec.isEncodedEqual(expr, other), false);
 				assert.strictEqual(e.ESExpr.codec.isEncodedEqual(other, expr), false);
 			}
@@ -33,11 +33,11 @@ for (const [i, [expr, tag, display]] of expressions.entries()) {
 
 test("expression equality compares constructor names, arguments, keywords, and payloads", () => {
 	const base: e.ESExpr.Constructor = { type: "constructor", name: "a", args: [true], kwargs: new Map([["x", 1n]]) };
-	for (const other of [
+	for(const other of [
 		{ ...base, name: "b" }, { ...base, args: [false] }, { ...base, kwargs: new Map([["x", 2n]]) },
 		{ ...base, kwargs: new Map() }, { ...base, kwargs: new Map([["y", 1n]]) },
 	]) assert.strictEqual(e.ESExpr.codec.isEncodedEqual(base, other), false);
-	for (const [a, b] of [
+	for(const [a, b] of [
 		[{ type: "float16", value: 0 }, { type: "float16", value: -0 }],
 		[{ type: "float32", value: 1 }, { type: "float32", value: 2 }],
 		[{ type: "float16-nan", bits: 1 }, { type: "float16-nan", bits: 2 }],
@@ -62,7 +62,7 @@ test("tag sets handle universal, empty, overlapping, and disjoint sets", () => {
 	assert.strictEqual(e.ESExprTagSet.has(a, String), false);
 	assert.ok(e.ESExprTagSet.disjoint(a, b));
 	assert.strictEqual(e.ESExprTagSet.disjoint(a, a), false);
-	for (const set of [empty, a, all]) {
+	for(const set of [empty, a, all]) {
 		assert.strictEqual(e.ESExprTagSet.disjoint(all, set), set === empty);
 		assert.strictEqual(e.ESExprTagSet.disjoint(set, all), set === empty);
 		assert.strictEqual(e.ESExprTagSet.union(all, set), all);

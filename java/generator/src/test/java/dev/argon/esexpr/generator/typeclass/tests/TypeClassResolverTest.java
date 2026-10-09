@@ -30,7 +30,8 @@ public class TypeClassResolverTest {
 
 		var sourceFiles = ImmutableList.of(
 			new SimpleJavaFileObject(
-				java.net.URI.create("string:///test/CustomType.java"), JavaFileObject.Kind.SOURCE
+				java.net.URI.create("string:///test/CustomType.java"),
+				JavaFileObject.Kind.SOURCE
 			) {
 				@Override
 				public CharSequence getCharContent(boolean ignoreEncodingErrors) {
@@ -52,7 +53,8 @@ public class TypeClassResolverTest {
 			},
 
 			new SimpleJavaFileObject(
-				java.net.URI.create("string:///test/MyTypeClass.java"), JavaFileObject.Kind.SOURCE
+				java.net.URI.create("string:///test/MyTypeClass.java"),
+				JavaFileObject.Kind.SOURCE
 			) {
 				@Override
 				public CharSequence getCharContent(boolean ignoreEncodingErrors) {
@@ -107,7 +109,8 @@ public class TypeClassResolverTest {
 			},
 
 			new SimpleJavaFileObject(
-				java.net.URI.create("string:///test/TypeClassUser.java"), JavaFileObject.Kind.SOURCE
+				java.net.URI.create("string:///test/TypeClassUser.java"),
+				JavaFileObject.Kind.SOURCE
 			) {
 				@Override
 				public CharSequence getCharContent(boolean ignoreEncodingErrors) {
@@ -251,7 +254,8 @@ public class TypeClassResolverTest {
 					IllegalArgumentException.class,
 					() -> checkedResolver.getTypeClassType(
 						new TypeClassResult.Method(
-							fixedMethod, ImmutableList.of(Objects.requireNonNull(results.get(1)))
+							fixedMethod,
+							ImmutableList.of(Objects.requireNonNull(results.get(1)))
 						)
 					)
 				);
@@ -269,7 +273,7 @@ public class TypeClassResolverTest {
 						? ImmutableList.<TypeClassResult>of()
 						: ImmutableList.of(Objects.requireNonNull(results.get(0)));
 					var reconstructed = resolver.getTypeClassType(new TypeClassResult.Method(method, arguments));
-					var suffix = switch (name) {
+					var suffix = switch(name) {
 						case "extending" -> "? extends java.lang.String";
 						case "accepting" -> "? super java.lang.String";
 						default -> "?";
@@ -314,11 +318,13 @@ public class TypeClassResolverTest {
 					.stream().filter(e -> e.getSimpleName().contentEquals("locals")).findFirst().orElseThrow();
 				var target = types.getDeclaredType(typeClassElement, locals.getTypeParameters().get(0).asType());
 				var mismatched = new TypeClassResolver(
-					types, new TypeClassLocalScope(List.of(locals.getParameters().get(0)))
+					types,
+					new TypeClassLocalScope(List.of(locals.getParameters().get(0)))
 				);
 				assertNull(mismatched.resolve(target));
 				var matching = new TypeClassResolver(
-					types, new TypeClassLocalScope(List.copyOf(locals.getParameters()))
+					types,
+					new TypeClassLocalScope(List.copyOf(locals.getParameters()))
 				);
 				var matched = assertInstanceOf(TypeClassResult.Local.class, matching.resolve(target));
 				assertEquals(locals.getParameters().get(1), matched.localVar());
@@ -387,7 +393,8 @@ public class TypeClassResolverTest {
 					.orElseThrow();
 				var binaryClass = elements.getTypeElement("test.MyTypeClass.Binary");
 				var binaryResolver = new TypeClassResolver(
-					types, new TypeClassLocalScope(List.copyOf(binaryMethod.getParameters()))
+					types,
+					new TypeClassLocalScope(List.copyOf(binaryMethod.getParameters()))
 				);
 				var firstType = binaryMethod.getTypeParameters().get(0).asType();
 				var secondType = binaryMethod.getTypeParameters().get(1).asType();

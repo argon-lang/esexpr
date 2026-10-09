@@ -22,7 +22,8 @@ public class KeywordArgTests extends TestBase {
 		assertCodecMatch(
 			KeywordArguments.codec(),
 			new ESExpr.Constructor(
-				"keyword-arguments", ImmutableList.of(),
+				"keyword-arguments",
+				ImmutableList.of(),
 				ImmutableMap.of(
 					"a",
 					new ESExpr.Bool(false),
@@ -47,7 +48,8 @@ public class KeywordArgTests extends TestBase {
 		assertCodecMatch(
 			KeywordArguments.codec(),
 			new ESExpr.Constructor(
-				"keyword-arguments", ImmutableList.of(),
+				"keyword-arguments",
+				ImmutableList.of(),
 				ImmutableMap.of(
 					"a",
 					new ESExpr.Bool(false),
@@ -67,7 +69,8 @@ public class KeywordArgTests extends TestBase {
 			DecodeException.class,
 			() -> KeywordArguments.codec().decode(
 				new ESExpr.Constructor(
-					"keyword-arguments", ImmutableList.of(),
+					"keyword-arguments",
+					ImmutableList.of(),
 					ImmutableMap.of("a", new ESExpr.Bool(false), "b2", new ESExpr.Bool(false))
 				)
 			)

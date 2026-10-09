@@ -15,6 +15,17 @@ export default defineConfig([
 			jsx: false,
 		})],
 		rules: {
+			"@stylistic/keyword-spacing": ["error", {
+				overrides: {
+					if: { after: false },
+					for: { after: false },
+					while: { after: false },
+					switch: { after: false },
+					catch: { after: false },
+					with: { after: false },
+				},
+			}],
+			"@stylistic/space-before-function-paren": ["error", "never"],
 			// Preserve the existing layout of unions, expressions, and blocks.
 			"@stylistic/arrow-parens": ["error", "as-needed"],
 			"@stylistic/indent-binary-ops": "off",

@@ -4,13 +4,13 @@ import { ExprReader, ESExprFormatError, ArrayStringPool, readExprStream } from "
 
 async function* chunks(bytes: readonly number[]): AsyncIterable<Uint8Array> {
 	yield new Uint8Array();
-	for (const byte of bytes) {
+	for(const byte of bytes) {
 		yield new Uint8Array([byte]);
 		yield new Uint8Array();
 	}
 }
 
-for (const [name, bytes, message] of [
+for(const [name, bytes, message] of [
 	["constructor end outside constructor", [0xE0], "Unexpected constructor end"],
 	["keyword outside constructor", [0xC0], "Unexpected keyword: index=0"],
 	["missing string pool value", [0x80], "Invalid string pool index"],
@@ -24,7 +24,7 @@ for (const [name, bytes, message] of [
 	["truncated float64", [0xE5, 0x00], "Unexpected end of file"],
 	["invalid string pool update", [0xEB, 0xE1], "Invalid string pool"],
 ] as const) {
-	test(`binary reader rejects ${name}`, async () => {
+	test(`binary reader rejects ${name}`, async() => {
 		await assert.rejects(new ExprReader(chunks(bytes)).readExpr(), (error: unknown) => {
 			assert.ok(error instanceof ESExprFormatError);
 			assert.strictEqual(error.message, message);
@@ -33,7 +33,7 @@ for (const [name, bytes, message] of [
 	});
 }
 
-test("empty streams end cleanly while required reads reject EOF", async () => {
+test("empty streams end cleanly while required reads reject EOF", async() => {
 	assert.strictEqual(await new ExprReader(chunks([])).tryReadExpr(), undefined);
 	await assert.rejects(new ExprReader(chunks([])).readExpr(), ESExprFormatError);
 	assert.deepStrictEqual(await Array.fromAsync(readExprStream(chunks([]))), []);
@@ -52,12 +52,12 @@ test("string pools copy input, append entries, and reject invalid indexes", () =
 	assert.strictEqual(pool.length, 4);
 	assert.deepStrictEqual(pool.toEncoded(), { values: ["a", "b", "c", "d"] });
 	assert.deepStrictEqual(ArrayStringPool.fromEncoded(pool.toEncoded()).toEncoded(), pool.toEncoded());
-	for (const index of [-1, 4]) assert.throws(() => pool.get(index), ESExprFormatError);
+	for(const index of [-1, 4]) assert.throws(() => pool.get(index), ESExprFormatError);
 });
 
-test("keyword values must be complete expressions", async () => {
+test("keyword values must be complete expressions", async() => {
 	const pool = new ArrayStringPool(["key"]);
-	for (const bytes of [[0xE7, 0xC0], [0xE7, 0xC0, 0xE0]]) {
+	for(const bytes of [[0xE7, 0xC0], [0xE7, 0xC0, 0xE0]]) {
 		await assert.rejects(new ExprReader(chunks(bytes), pool).readExpr(), ESExprFormatError);
 	}
 });

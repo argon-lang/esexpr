@@ -29,16 +29,20 @@ class BinaryCompactionTest {
 				"outer",
 				ImmutableList.of(
 					new ESExpr.Constructor(
-						"inner", ImmutableList.of(new ESExpr.Str("shared"), new ESExpr.Str("once")), ImmutableMap.of()
+						"inner",
+						ImmutableList.of(new ESExpr.Str("shared"), new ESExpr.Str("once")),
+						ImmutableMap.of()
 					)
-				), ImmutableMap.of("shared", new ESExpr.Str("shared"))
+				),
+				ImmutableMap.of("shared", new ESExpr.Str("shared"))
 			)
 		);
 		assertEquals(List.of("shared", "inner", "outer"), builder.build());
 		assertEquals(List.of("shared", "inner", "outer"), builder.build());
 		builder.record(
 			new ESExpr.Constructor(
-				"list", ImmutableList.of(new ESExpr.Str("map"), new ESExpr.Str("map")),
+				"list",
+				ImmutableList.of(new ESExpr.Str("map"), new ESExpr.Str("map")),
 				ImmutableMap.of("set", new ESExpr.Bool(true))
 			)
 		);
@@ -87,7 +91,8 @@ class BinaryCompactionTest {
 	@Test
 	void compactedStreamDecodesWithFreshReaderAndSavesBytes() throws Exception {
 		var expr = new ESExpr.Constructor(
-			"custom", ImmutableList.of(new ESExpr.Str("repeated long value"), new ESExpr.Str("repeated long value")),
+			"custom",
+			ImmutableList.of(new ESExpr.Str("repeated long value"), new ESExpr.Str("repeated long value")),
 			ImmutableMap.of("key", new ESExpr.Str("once"))
 		);
 		var builder = new StringTableBuilder();
@@ -173,7 +178,7 @@ class BinaryCompactionTest {
 			var output = new ByteArrayOutputStream();
 			var writer = new ESExprBinaryWriter(pool, output);
 			writer.write(new ESExpr.Str("zz"));
-			byte[] expected = switch (index) {
+			byte[] expected = switch(index) {
 				case 15 -> new byte[]{(byte)0x8F};
 				case 16 -> new byte[]{(byte)0x90, 1};
 				case 2047 -> new byte[]{(byte)0x9F, 0x7F};

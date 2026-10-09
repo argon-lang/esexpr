@@ -142,7 +142,7 @@ public class ESExprTextReader {
 				s.append((char)c);
 				continue;
 			}
-			switch (next()) {
+			switch(next()) {
 				case 'f' -> s.append('\f');
 				case 'n' -> s.append('\n');
 				case 'r' -> s.append('\r');
@@ -276,7 +276,7 @@ public class ESExprTextReader {
 			var n = integer(token());
 			if(n.signum() < 0 || n.bitLength() > width)
 				throw error("Unsigned array element out of range");
-			switch (width) {
+			switch(width) {
 				case 8 -> bytes.add(n.byteValue());
 				case 16 -> shorts.add(n.shortValue());
 				case 32 -> ints.add(n.intValue());
@@ -288,7 +288,7 @@ public class ESExprTextReader {
 				default -> throw new AssertionError(width);
 			}
 		}
-		return switch (width) {
+		return switch(width) {
 			case 8 -> new ESExpr.Array8(bytes.toImmutable());
 			case 16 -> new ESExpr.Array16(shorts.toImmutable());
 			case 32 -> new ESExpr.Array32(ints.toImmutable());
@@ -299,13 +299,13 @@ public class ESExprTextReader {
 	}
 
 	private ESExpr special(int width, String s) throws SyntaxException {
-		int pw = switch (width) {
+		int pw = switch(width) {
 			case 16 -> 10;
 			case 32 -> 23;
 			default -> 52;
 		};
 		long sign = s.startsWith("-") ? 1L << (width - 1) : 0;
-		long exponent = switch (width) {
+		long exponent = switch(width) {
 			case 16 -> 0x7C00L;
 			case 32 -> 0x7F800000L;
 			default -> 0x7FF0000000000000L;
@@ -323,7 +323,7 @@ public class ESExprTextReader {
 			}
 		}
 		long bits = sign | exponent | payload;
-		return switch (width) {
+		return switch(width) {
 			case 16 -> new ESExpr.Float16((short)bits);
 			case 32 -> new ESExpr.Float32(Float.intBitsToFloat((int)bits));
 			default -> new ESExpr.Float64(Double.longBitsToDouble(bits));

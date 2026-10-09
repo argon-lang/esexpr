@@ -29,7 +29,7 @@ public class OptionalCodec<T> implements ESExprCodec<Optional<T>> {
 
 	@Override
 	public ESExprTagSet tags() {
-		return switch (itemCodec.tags()) {
+		return switch(itemCodec.tags()) {
 			case ESExprTagSet.Tags(var elementTags) -> {
 				var tags = ImmutableSet.<ESExprTag>builder();
 				tags.add(ESExprTag.NULL);

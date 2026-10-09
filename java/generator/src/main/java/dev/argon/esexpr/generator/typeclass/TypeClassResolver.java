@@ -28,7 +28,7 @@ public final class TypeClassResolver {
 	}
 
 	public TypeMirror getTypeClassType(TypeClassResult tc) {
-		return switch (tc) {
+		return switch(tc) {
 			case TypeClassResult.Field(var field) -> field.asType();
 			case TypeClassResult.Local(var local) -> local.asType();
 			case TypeClassResult.Method method -> {
@@ -79,7 +79,7 @@ public final class TypeClassResolver {
 
 			boolean hasCheckedLocal = false;
 			for(var typeArg : declaredType.getTypeArguments()) {
-				switch (typeArg.getKind()) {
+				switch(typeArg.getKind()) {
 					case DECLARED -> {
 						var declaredTypeArg = (DeclaredType)typeArg;
 						result = resolveInClass(declaredTypeArg.asElement(), typeClassType, depthLimit);
@@ -109,7 +109,7 @@ public final class TypeClassResolver {
 
 	private @Nullable TypeClassResult resolveInClass(Element cls, TypeMirror typeClassType, int depthLimit) {
 		candidateLoop : for(var elem : cls.getEnclosedElements()) {
-			switch (elem.getKind()) {
+			switch(elem.getKind()) {
 				case METHOD -> {
 					var method = (ExecutableElement)elem;
 					if(!method.getModifiers().contains(Modifier.STATIC)
@@ -176,7 +176,7 @@ public final class TypeClassResolver {
 	}
 
 	private @Nullable TypeMirror substituteTypes(TypeMirror t, Map<String, TypeMirror> typeParams) {
-		return switch (t.getKind()) {
+		return switch(t.getKind()) {
 			case ARRAY -> {
 				var array = (ArrayType)t;
 				var componentType = substituteTypes(array.getComponentType(), typeParams);
@@ -235,7 +235,7 @@ public final class TypeClassResolver {
 			return true;
 		}
 
-		return switch (actualType.getKind()) {
+		return switch(actualType.getKind()) {
 			// Simple types
 			case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE, VOID, NULL, NONE ->
 				expectedType.getKind() == actualType.getKind();
@@ -313,7 +313,7 @@ public final class TypeClassResolver {
 			return false;
 		}
 
-		return switch (a.getKind()) {
+		return switch(a.getKind()) {
 			// Simple types
 			case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE, VOID, NULL, NONE -> true;
 

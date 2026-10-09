@@ -3,7 +3,7 @@ export const hashSymbol: unique symbol = Symbol.for("esexpr-hash");
 export const equalsSymbol: unique symbol = Symbol.for("esexpr-equals");
 
 export function hash(value: unknown): number {
-	switch (typeof value) {
+	switch(typeof value) {
 		case "boolean":
 			return hashBoolean(value);
 
@@ -17,17 +17,17 @@ export function hash(value: unknown): number {
 			return hashString(value);
 
 		case "object":
-			if (value === null) return 0;
-			else if (Array.isArray(value)) {
+			if(value === null) return 0;
+			else if(Array.isArray(value)) {
 				return hashArray(value);
 			}
-			else if (ArrayBuffer.isView(value)) {
+			else if(ArrayBuffer.isView(value)) {
 				return hashBufferView(value);
 			}
-			else if (hashSymbol in value) {
+			else if(hashSymbol in value) {
 				return (value as { [hashSymbol](): number })[hashSymbol]();
 			}
-			else if (isSimpleObject(value)) {
+			else if(isSimpleObject(value)) {
 				return hashObject(value);
 			}
 			else {
@@ -44,27 +44,27 @@ export function hash(value: unknown): number {
 }
 
 export function equals(a: unknown, b: unknown): boolean {
-	if (Object.is(a, b)) {
+	if(Object.is(a, b)) {
 		return true;
 	}
-	else if (a === null || b === null) {
+	else if(a === null || b === null) {
 		return false;
 	}
-	else if (typeof a !== "object" || typeof b !== "object") {
+	else if(typeof a !== "object" || typeof b !== "object") {
 		return false;
 	}
-	else if (Array.isArray(a)) {
+	else if(Array.isArray(a)) {
 		return Array.isArray(b) && arrayEquals(a, b);
 	}
-	else if (ArrayBuffer.isView(a)) {
+	else if(ArrayBuffer.isView(a)) {
 		return ArrayBuffer.isView(b) &&
             Object.getPrototypeOf(a) === Object.getPrototypeOf(b) &&
             arrayBufferViewEquals(a, b);
 	}
-	else if (equalsSymbol in a) {
+	else if(equalsSymbol in a) {
 		return (a as Record<symbol, (other: unknown) => boolean>)[equalsSymbol]!(b);
 	}
-	else if (isSimpleObject(a)) {
+	else if(isSimpleObject(a)) {
 		return isSimpleObject(b) && objectEquals(a, b);
 	}
 	else {
@@ -77,7 +77,7 @@ function hashBoolean(b: boolean): number {
 }
 
 function hashNumber(x: number): number {
-	if (x === (x | 0) || x === (x >>> 0)) return x | 0;
+	if(x === (x | 0) || x === (x >>> 0)) return x | 0;
 
 	const buf = new ArrayBuffer(8);
 	const view = new DataView(buf);
@@ -96,7 +96,7 @@ function hashNumber(x: number): number {
 
 
 function hashBigInt(x: bigint): number {
-	if (x >= -0x80000000n && x <= 0xffffffffn) {
+	if(x >= -0x80000000n && x <= 0xffffffffn) {
 		return Number(BigInt.asIntN(32, x));
 	}
 
@@ -104,7 +104,7 @@ function hashBigInt(x: bigint): number {
 	let v = x < 0n ? -x : x; // ignore sign initially
 	const sign = x < 0n ? 1 : 0;
 
-	while (v !== 0n) {
+	while(v !== 0n) {
 		const limb = Number(BigInt.asUintN(32, v));
 		v >>= 32n;
 
@@ -114,7 +114,7 @@ function hashBigInt(x: bigint): number {
 		h ^= h >>> 13;
 	}
 
-	if (sign) {
+	if(sign) {
 		h ^= 0x9e3779b9;
 	}
 
@@ -131,7 +131,7 @@ function hashString(str: string): number {
 	const len = str.length;
 
 	let i = 0;
-	while (i + 1 < len) {
+	while(i + 1 < len) {
 		const k = str.charCodeAt(i) | (str.charCodeAt(i + 1) << 16);
 		i += 2;
 
@@ -140,7 +140,7 @@ function hashString(str: string): number {
 		h ^= h >>> 13;
 	}
 
-	if (i < len) {
+	if(i < len) {
 		h ^= str.charCodeAt(i);
 		h = Math.imul(h, 0x85ebca6b);
 	}
@@ -155,7 +155,7 @@ function hashString(str: string): number {
 const identityHashMap = new WeakMap<symbol | object, number>();
 function hashIdentity(x: symbol | object): number {
 	let hash = identityHashMap.get(x);
-	if (hash === undefined) {
+	if(hash === undefined) {
 		hash = (Math.random() * 0xFFFFFFFF) | 0;
 		identityHashMap.set(x, hash);
 	}
@@ -165,7 +165,7 @@ function hashIdentity(x: symbol | object): number {
 function hashArray(arr: Readonly<ArrayLike<unknown>>) {
 	let h = 0x811c9dc5;
 
-	for (let i = 0; i < arr.length; i++) {
+	for(let i = 0; i < arr.length; i++) {
 		const eh = hash(arr[i]);
 
 		h ^= eh;
@@ -203,7 +203,7 @@ function hashBytes(bytes: Uint8Array) {
 	let i = 0;
 
 	// process 4 bytes at a time
-	while (i + 3 < len) {
+	while(i + 3 < len) {
 		const k =
 			bytes[i]!
             | (bytes[i + 1]! << 8)
@@ -217,7 +217,7 @@ function hashBytes(bytes: Uint8Array) {
 	}
 
 	// tail
-	while (i < len) {
+	while(i < len) {
 		h ^= bytes[i++]!;
 		h = Math.imul(h, 0x85ebca6b);
 	}
@@ -235,7 +235,7 @@ function hashObject(obj: Record<PropertyKey, unknown>): number {
 
 	const keys = Reflect.ownKeys(obj);
 
-	for (const k of keys) {
+	for(const k of keys) {
 		const kh = hash(k);
 		const vh = hash(obj[k]);
 
@@ -257,22 +257,22 @@ function hashObject(obj: Record<PropertyKey, unknown>): number {
 
 
 function arrayEquals(a: Readonly<ArrayLike<unknown>>, b: Readonly<ArrayLike<unknown>>): boolean {
-	if (a.length !== b.length) return false;
-	for (let i = 0; i < a.length; ++i) {
-		if (!equals(a[i], b[i])) return false;
+	if(a.length !== b.length) return false;
+	for(let i = 0; i < a.length; ++i) {
+		if(!equals(a[i], b[i])) return false;
 	}
 	return true;
 }
 
 function arrayBufferViewEquals(a: Readonly<ArrayBufferView>, b: Readonly<ArrayBufferView>): boolean {
-	if (a.byteLength !== b.byteLength) return false;
-	if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
+	if(a.byteLength !== b.byteLength) return false;
+	if(Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
 
 	const aBytes = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
 	const bBytes = new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
 
-	for (let i = 0; i < a.byteLength; ++i) {
-		if (aBytes[i]! !== bBytes[i]!) return false;
+	for(let i = 0; i < a.byteLength; ++i) {
+		if(aBytes[i]! !== bBytes[i]!) return false;
 	}
 
 	return true;
@@ -282,13 +282,13 @@ function objectEquals(a: Record<PropertyKey, unknown>, b: Record<PropertyKey, un
 	const aKeys = Reflect.ownKeys(a);
 	const bKeys = Reflect.ownKeys(b);
 
-	for (const k of aKeys) {
-		if (!equals(a[k], b[k])) return false;
+	for(const k of aKeys) {
+		if(!equals(a[k], b[k])) return false;
 	}
 
-	for (const k of bKeys) {
-		if (b[k] === undefined) continue;
-		if (a[k] === undefined) return false;
+	for(const k of bKeys) {
+		if(b[k] === undefined) continue;
+		if(a[k] === undefined) return false;
 	}
 
 	return true;

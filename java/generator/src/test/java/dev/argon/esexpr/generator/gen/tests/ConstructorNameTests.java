@@ -32,7 +32,8 @@ public class ConstructorNameTests extends TestBase {
 					new ESExpr.Int(new BigInteger("18446744073709551615")),
 					new ESExpr.Float32(0.0f),
 					new ESExpr.Float64(0.0)
-				), ImmutableMap.of()
+				),
+				ImmutableMap.of()
 			),
 			new PrimitiveFields(false, (byte)0, (byte)-1, (short)0, (short)-1, 0, -1, 0L, -1L, 0.0f, 0.0)
 		);
@@ -44,7 +45,9 @@ public class ConstructorNameTests extends TestBase {
 		assertCodecMatch(
 			ConstructorName123Conversion.codec(),
 			new ESExpr.Constructor(
-				"constructor-name123-conversion", ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)), ImmutableMap.of()
+				"constructor-name123-conversion",
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new ConstructorName123Conversion(0)
 		);
@@ -56,7 +59,9 @@ public class ConstructorNameTests extends TestBase {
 		assertCodecMatch(
 			ConstructorName_456Conversion.codec(),
 			new ESExpr.Constructor(
-				"constructor-name-456-conversion", ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)), ImmutableMap.of()
+				"constructor-name-456-conversion",
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new ConstructorName_456Conversion(0)
 		);
@@ -97,7 +102,9 @@ public class ConstructorNameTests extends TestBase {
 		assertCodecMatch(
 			CustomConstructorEnum.codec(),
 			new ESExpr.Constructor(
-				"my-ctor-name", ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)), ImmutableMap.of()
+				"my-ctor-name",
+				ImmutableList.of(new ESExpr.Int(BigInteger.ZERO)),
+				ImmutableMap.of()
 			),
 			new CustomConstructorEnum.CustomNameCase(0)
 		);

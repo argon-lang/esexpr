@@ -15,7 +15,7 @@ const equalPairs: readonly (readonly [unknown, unknown])[] = [
 	[new DataView(new Uint8Array([9, 1, 2, 9]).buffer, 1, 2), new DataView(new Uint8Array([1, 2]).buffer)],
 ];
 
-for (const [i, [a, b]] of equalPairs.entries()) {
+for(const [i, [a, b]] of equalPairs.entries()) {
 	test(`equal values have equal hashes (${i})`, () => {
 		assert.ok(equals(a, b));
 		assert.ok(equals(b, a));
@@ -31,14 +31,14 @@ test("structural equality rejects different values and types", () => {
 		[new Uint8Array([1]), new Uint8Array([1, 2])],
 		[new Uint8Array([1]), new Uint8Array([2])], [new Date(0), new Date(0)],
 	];
-	for (const [a, b] of pairs) {
+	for(const [a, b] of pairs) {
 		assert.strictEqual(equals(a, b), false);
 		assert.strictEqual(equals(b, a), false);
 	}
 });
 
 test("identity hashes are stable for objects, functions, and symbols", () => {
-	for (const value of [new Date(0), () => 1, Symbol("key")]) {
+	for(const value of [new Date(0), () => 1, Symbol("key")]) {
 		assert.strictEqual(hash(value), hash(value));
 		assert.ok(equals(value, value));
 	}
@@ -61,7 +61,7 @@ test("symbol properties and custom equality participate in hashing", () => {
 });
 
 test("small bigint hashes preserve the signed 32-bit representation", () => {
-	for (const [value, expected] of [[0n, 0], [-2147483648n, -2147483648], [2147483647n, 2147483647], [4294967295n, -1]] as const) {
+	for(const [value, expected] of [[0n, 0], [-2147483648n, -2147483648], [2147483647n, 2147483647], [4294967295n, -1]] as const) {
 		assert.strictEqual(hash(value), expected);
 		assert.strictEqual(hash(value), hash(Number(value)));
 	}

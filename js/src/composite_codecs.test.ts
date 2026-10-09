@@ -8,7 +8,7 @@ function ctor(name: string, args: readonly e.ESExpr[] = [], kwargs: ReadonlyMap<
 function failurePath<T>(codec: e.ESExprCodec<T>, expr: e.ESExpr, path: e.DecodeErrorPath): void {
 	const result = codec.decode(expr);
 	assert.strictEqual(result.success, false);
-	if (!result.success) assert.deepStrictEqual(result.path, path);
+	if(!result.success) assert.deepStrictEqual(result.path, path);
 }
 
 test("hash map codec round trips entries and compares keys and values", () => {
@@ -21,8 +21,8 @@ test("hash map codec round trips entries and compares keys and values", () => {
 	assert.ok(decoded.success);
 	assert.deepStrictEqual([...decoded.value], [...value]);
 	assert.ok(codec.isEncodedEqual(value, new e.HashMap([["b", false], ["a", true]])));
-	for (const other of [new e.HashMap<string, boolean>(), new e.HashMap([["c", true], ["b", false]]), new e.HashMap([["a", false], ["b", false]])]) assert.strictEqual(codec.isEncodedEqual(value, other), false);
-	for (const invalid of [null, ctor("wrong"), ctor("map", [], new Map([["a", true]]))]) failurePath(codec, invalid, { type: "current" });
+	for(const other of [new e.HashMap<string, boolean>(), new e.HashMap([["c", true], ["b", false]]), new e.HashMap([["a", false], ["b", false]])]) assert.strictEqual(codec.isEncodedEqual(value, other), false);
+	for(const invalid of [null, ctor("wrong"), ctor("map", [], new Map([["a", true]]))]) failurePath(codec, invalid, { type: "current" });
 	failurePath(codec, ctor("map", [false, true]), { type: "positional", constructor: "map", index: 0, next: { type: "current" } });
 	failurePath(codec, ctor("map", ["a", "bad"]), { type: "positional", constructor: "map", index: 1, next: { type: "current" } });
 });
@@ -38,7 +38,7 @@ test("hash set codec deduplicates values and reports invalid item positions", ()
 	assert.ok(codec.isEncodedEqual(value, new e.HashSet(["b", "a"])));
 	assert.strictEqual(codec.isEncodedEqual(value, new e.HashSet(["a"])), false);
 	assert.strictEqual(codec.isEncodedEqual(value, new e.HashSet(["a", "c"])), false);
-	for (const invalid of [null, ctor("wrong"), ctor("set", [], new Map([["a", true]]))]) failurePath(codec, invalid, { type: "current" });
+	for(const invalid of [null, ctor("wrong"), ctor("set", [], new Map([["a", true]]))]) failurePath(codec, invalid, { type: "current" });
 	failurePath(codec, ctor("set", ["a", false]), { type: "positional", constructor: "set", index: 1, next: { type: "current" } });
 });
 
@@ -51,7 +51,7 @@ test("option codec distinguishes absence, present values, and present null", () 
 	assert.deepStrictEqual(codec.decode("a"), { success: true, value: e.Option.some("a") });
 	assert.ok(codec.isEncodedEqual(null, null));
 	assert.ok(codec.isEncodedEqual("a", "a"));
-	for (const [a, b] of [[null, "a"], ["a", null], ["a", "b"]] as const) assert.strictEqual(codec.isEncodedEqual(a, b), false);
+	for(const [a, b] of [[null, "a"], ["a", null], ["a", "b"]] as const) assert.strictEqual(codec.isEncodedEqual(a, b), false);
 	failurePath(codec, true, { type: "current" });
 	const nested = e.optionCodec(codec);
 	const presentNull = e.Option.some(null);
@@ -66,7 +66,7 @@ test("option codec distinguishes absence, present values, and present null", () 
 test("record failures retain positional and keyword paths", () => {
 	const codec = e.recordCodec("record", { a: e.positionalFieldCodec(e.boolCodec), b: e.keywordFieldCodec("b", e.strCodec) });
 	assert.ok(codec.isEncodedEqual({ a: true, b: "a" }, { a: true, b: "a" }));
-	for (const other of [{ a: false, b: "a" }, { a: true, b: "b" }]) assert.strictEqual(codec.isEncodedEqual({ a: true, b: "a" }, other), false);
+	for(const other of [{ a: false, b: "a" }, { a: true, b: "b" }]) assert.strictEqual(codec.isEncodedEqual({ a: true, b: "a" }, other), false);
 	failurePath(codec, ctor("record"), { type: "constructor", constructor: "record" });
 	failurePath(codec, ctor("record", [true]), { type: "constructor", constructor: "record" });
 	failurePath(codec, ctor("record", ["bad"]), { type: "positional", constructor: "record", index: 0, next: { type: "current" } });
@@ -90,7 +90,7 @@ test("default positional fields omit defaults and leave other tags for following
 	assert.deepStrictEqual(field.tags, new Set([BigInt]));
 	assert.ok(field.isEncodedEqual(4, 4));
 	assert.strictEqual(field.isEncodedEqual(4, 5), false);
-	for (const [value, args] of [[{ a: 4, b: "x" }, ["x"]], [{ a: 5, b: "x" }, [5n, "x"]]] as const) {
+	for(const [value, args] of [[{ a: 4, b: "x" }, ["x"]], [{ a: 5, b: "x" }, [5n, "x"]]] as const) {
 		assert.deepStrictEqual(codec.encode(value), ctor("r", args));
 		assert.deepStrictEqual(codec.decode(ctor("r", args)), { success: true, value });
 	}
@@ -102,8 +102,8 @@ test("optional fields compare absence and propagate invalid values", () => {
 	const optional = e.undefinedOptionalCodec(e.signedInt8Codec);
 	assert.ok(optional.isEncodedEqual(undefined, undefined));
 	assert.ok(optional.isEncodedEqual(1, 1));
-	for (const [a, b] of [[undefined, 1], [1, undefined], [1, 2]] as const) assert.strictEqual(optional.isEncodedEqual(a, b), false);
-	for (const field of [e.optionalPositionalFieldCodec(optional), e.optionalKeywordFieldCodec("a", optional)]) {
+	for(const [a, b] of [[undefined, 1], [1, undefined], [1, 2]] as const) assert.strictEqual(optional.isEncodedEqual(a, b), false);
+	for(const field of [e.optionalPositionalFieldCodec(optional), e.optionalKeywordFieldCodec("a", optional)]) {
 		assert.deepStrictEqual(field.tags, new Set([BigInt]));
 		assert.ok(field.isEncodedEqual(undefined, undefined));
 		assert.strictEqual(field.isEncodedEqual(1, 2), false);
@@ -139,7 +139,7 @@ test("vararg and dictionary fields compare collections and retain failure locati
 	assert.deepStrictEqual(dict.tags, new Set([BigInt]));
 	const a = new Map([["a", 1]]);
 	assert.ok(dict.isEncodedEqual(a, new Map(a)));
-	for (const b of [new Map<string, number>(), new Map([["b", 1]]), new Map([["a", 2]])]) assert.strictEqual(dict.isEncodedEqual(a, b), false);
+	for(const b of [new Map<string, number>(), new Map([["b", 1]]), new Map([["a", 2]])]) assert.strictEqual(dict.isEncodedEqual(a, b), false);
 	failurePath(e.recordCodec("r", { a: dict }), ctor("r", [], new Map([["a", 128n]])), { type: "keyword", constructor: "r", keyword: "a", next: { type: "current" } });
 });
 

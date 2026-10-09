@@ -88,7 +88,7 @@ public class Lookup {
 
 		if(t.getKind().isPrimitive()) {
 			if(isUnsigned) {
-				var unboxedClass = switch (t.getKind()) {
+				var unboxedClass = switch(t.getKind()) {
 					case BYTE -> UnsignedByte.class;
 					case SHORT -> UnsignedShort.class;
 					case INT -> UnsignedInteger.class;
@@ -99,7 +99,8 @@ public class Lookup {
 				var te = env.getElementUtils().getTypeElement(unboxedClass.getCanonicalName());
 				if(te == null) {
 					throw new AbortException(
-						"Could not find unsigned type element: " + unboxedClass, associatedElement
+						"Could not find unsigned type element: " + unboxedClass,
+						associatedElement
 					);
 				}
 
@@ -148,7 +149,7 @@ public class Lookup {
 
 		seenTypes.add(fullName);
 
-		return switch (te.getKind()) {
+		return switch(te.getKind()) {
 			case RECORD -> {
 				if(te.getAnnotation(Flags.class) != null) {
 					yield ESExprTagSet.of(ESExprTag.INT);
@@ -167,7 +168,7 @@ public class Lookup {
 								.map(e -> e instanceof RecordComponentElement rce ? rce : null).findFirst()
 								.orElseThrow();
 
-							switch (lookupTagsImpl(field.asType(), seenTypes)) {
+							switch(lookupTagsImpl(field.asType(), seenTypes)) {
 								case ESExprTagSet.All all -> {
 									yield all;
 								}
@@ -200,7 +201,7 @@ public class Lookup {
 			throw new AbortException("Could not find codec for " + t, associatedElement);
 		}
 
-		var codecElement = switch (codecResult) {
+		var codecElement = switch(codecResult) {
 			case TypeClassResult.Field field -> field.field();
 			case TypeClassResult.Local _ -> null;
 			case TypeClassResult.Method method -> method.method();
@@ -245,7 +246,7 @@ public class Lookup {
 				throw new AbortException("Could not determine tags for type parameter " + tp);
 			}
 
-			switch (lookupTagsImpl(tpt, seenTypes)) {
+			switch(lookupTagsImpl(tpt, seenTypes)) {
 				case ESExprTagSet.Tags tpTags -> ts.addAll(tpTags.tags());
 				case ESExprTagSet.All all -> {
 					return all;

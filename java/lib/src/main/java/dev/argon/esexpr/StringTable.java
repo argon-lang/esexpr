@@ -54,7 +54,8 @@ public record StringTable(ImmutableList<String> values) {
 				&& name.equals(BinToken.StringTableName)) {
 				if(!kwargs.isEmpty()) {
 					throw new DecodeException(
-						"Unexpected keyword arguments for string table", path.withConstructor(BinToken.StringTableName)
+						"Unexpected keyword arguments for string table",
+						path.withConstructor(BinToken.StringTableName)
 					);
 				}
 

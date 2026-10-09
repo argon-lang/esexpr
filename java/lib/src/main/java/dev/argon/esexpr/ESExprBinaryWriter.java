@@ -105,10 +105,10 @@ public class ESExprBinaryWriter {
 	}
 
 	private void writeExprRaw(ESExpr expr, boolean usePooledStrings) throws IOException {
-		switch (expr) {
+		switch(expr) {
 			case ESExpr.Constructor(var constructor, var args, var kwargs) -> {
 				Objects.requireNonNull(constructor);
-				switch (constructor) {
+				switch(constructor) {
 					case BinToken.StringTableName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_STRING_TABLE);
 					case BinToken.ListName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_LIST);
 					case BinToken.MapName -> writeToken(BinToken.Fixed.CONSTRUCTOR_START_MAP);
@@ -275,9 +275,9 @@ public class ESExprBinaryWriter {
 	}
 
 	private void writeToken(BinToken token) throws IOException {
-		switch (token) {
+		switch(token) {
 			case BinToken.WithInteger(var type, var value) -> {
-				int b = switch (type) {
+				int b = switch(type) {
 					case CONSTRUCTOR -> 0x00;
 					case INT -> 0x20;
 					case NEG_INT -> 0x40;
@@ -300,7 +300,7 @@ public class ESExprBinaryWriter {
 				}
 			}
 			case BinToken.Fixed fixed -> {
-				int b = switch (fixed) {
+				int b = switch(fixed) {
 					case CONSTRUCTOR_END -> 0xE0;
 					case TRUE -> 0xE1;
 					case FALSE -> 0xE2;

@@ -27,7 +27,7 @@ public class MetadataCache {
 	}
 
 	private static boolean hasLocal(TypeClassResult result) {
-		return switch (result) {
+		return switch(result) {
 			case TypeClassResult.Field _ -> false;
 			case TypeClassResult.Local _ -> true;
 			case TypeClassResult.Method method -> method.arguments().stream().anyMatch(MetadataCache::hasLocal);

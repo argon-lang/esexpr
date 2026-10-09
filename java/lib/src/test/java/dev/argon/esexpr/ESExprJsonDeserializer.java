@@ -69,7 +69,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 				var fv = node.get("float16");
 				short value;
 				if(fv.isString()) {
-					value = switch (fv.asString()) {
+					value = switch(fv.asString()) {
 						case "+inf" -> Float.floatToFloat16(Float.POSITIVE_INFINITY);
 						case "-inf" -> Float.floatToFloat16(Float.NEGATIVE_INFINITY);
 						case "nan" -> Float.floatToFloat16(Float.NaN);
@@ -86,7 +86,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 				var fv = node.get("float32");
 				float value;
 				if(fv.isString()) {
-					value = switch (fv.asString()) {
+					value = switch(fv.asString()) {
 						case "+inf" -> Float.POSITIVE_INFINITY;
 						case "-inf" -> Float.NEGATIVE_INFINITY;
 						case "nan" -> Float.NaN;
@@ -103,7 +103,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 				var fv = node.get("float64");
 				double value;
 				if(fv.isString()) {
-					value = switch (fv.asString()) {
+					value = switch(fv.asString()) {
 						case "+inf" -> Double.POSITIVE_INFINITY;
 						case "-inf" -> Double.NEGATIVE_INFINITY;
 						case "nan" -> Double.NaN;

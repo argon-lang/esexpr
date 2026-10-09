@@ -54,7 +54,9 @@ public abstract class ListCodecBase<T, L extends List<T>> implements ESExprCodec
 	@Override
 	public ESExpr encode(L value) {
 		return new ESExpr.Constructor(
-			"list", value.stream().map(itemCodec::encode).collect(ImmutableList.toImmutableList()), ImmutableMap.of()
+			"list",
+			value.stream().map(itemCodec::encode).collect(ImmutableList.toImmutableList()),
+			ImmutableMap.of()
 		);
 	}
 

@@ -47,7 +47,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 
 			BigInteger mask = null;
 
-			switch (t.getKind()) {
+			switch(t.getKind()) {
 				case BOOLEAN -> {
 					mask = getFlagMask(f);
 					var bitIndex = getFlagBitIndex(mask);
@@ -119,7 +119,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 		for(var f : getFields(elem)) {
 			var t = f.asType();
 
-			switch (t.getKind()) {
+			switch(t.getKind()) {
 				case BOOLEAN -> {
 					var mask = getFlagMask(f);
 					var bitIndex = getFlagBitIndex(mask);

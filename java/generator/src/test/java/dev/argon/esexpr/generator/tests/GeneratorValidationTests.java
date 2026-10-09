@@ -36,31 +36,38 @@ public class GeneratorValidationTests {
 	public Stream<DynamicTest> invalidDefinitions() {
 		return Stream.of(
 			new InvalidSource(
-				"unsigned float", "@ESExprCodecGen public record Example(@Unsigned float value) {}",
+				"unsigned float",
+				"@ESExprCodecGen public record Example(@Unsigned float value) {}",
 				"Unsupported unsigned type: @dev.argon.esexpr.Unsigned float"
 			),
 			new InvalidSource(
-				"unsigned reference", "@ESExprCodecGen public record Example(@Unsigned String value) {}",
+				"unsigned reference",
+				"@ESExprCodecGen public record Example(@Unsigned String value) {}",
 				"Unsupported unsigned type: java.lang.@dev.argon.esexpr.Unsigned String"
 			),
 			new InvalidSource(
-				"missing field codec", "@ESExprCodecGen public record Example(Thread value) {}",
+				"missing field codec",
+				"@ESExprCodecGen public record Example(Thread value) {}",
 				"Could not find codec (dev.argon.esexpr.ESExprCodec) for type java.lang.Thread"
 			),
 			new InvalidSource(
-				"unknown optional codec", "@ESExprCodecGen public record Example(@OptionalValue String value) {}",
+				"unknown optional codec",
+				"@ESExprCodecGen public record Example(@OptionalValue String value) {}",
 				"Could not find codec (dev.argon.esexpr.OptionalValueCodec) for type java.lang.String"
 			),
 			new InvalidSource(
-				"class", "@ESExprCodecGen public class Example {}",
+				"class",
+				"@ESExprCodecGen public class Example {}",
 				"ESExprCodeGen must be used with a record, sealed interface (of records), or an enum."
 			),
 			new InvalidSource(
-				"unsealed interface", "@ESExprCodecGen public interface Example {}",
+				"unsealed interface",
+				"@ESExprCodecGen public interface Example {}",
 				"ESExprCodeGen must be used with a record, sealed interface (of records), or an enum."
 			),
 			new InvalidSource(
-				"enum constructor", "@ESExprCodecGen @Constructor(\"x\") public enum Example { A }",
+				"enum constructor",
+				"@ESExprCodecGen @Constructor(\"x\") public enum Example { A }",
 				"Constructor name may only be specified for records"
 			),
 			new InvalidSource(
@@ -69,26 +76,33 @@ public class GeneratorValidationTests {
 				"Constructor name may only be specified for records"
 			),
 			new InvalidSource(
-				"flags constructor", "@ESExprCodecGen @Flags @Constructor(\"x\") public record Example() {}",
+				"flags constructor",
+				"@ESExprCodecGen @Flags @Constructor(\"x\") public record Example() {}",
 				"Constructor name may not be specified for flags"
 			),
 			new InvalidSource(
-				"missing mask", "@ESExprCodecGen @Flags public record Example(boolean a) {}", "Missing @FlagMask"
+				"missing mask",
+				"@ESExprCodecGen @Flags public record Example(boolean a) {}",
+				"Missing @FlagMask"
 			),
 			new InvalidSource(
-				"negative mask", "@ESExprCodecGen @Flags public record Example(@FlagMask(-1) boolean a) {}",
+				"negative mask",
+				"@ESExprCodecGen @Flags public record Example(@FlagMask(-1) boolean a) {}",
 				"Flag mask must not be negative"
 			),
 			new InvalidSource(
-				"zero mask", "@ESExprCodecGen @Flags public record Example(@FlagMask(0) boolean a) {}",
+				"zero mask",
+				"@ESExprCodecGen @Flags public record Example(@FlagMask(0) boolean a) {}",
 				"Flag mask must be a single bit"
 			),
 			new InvalidSource(
-				"multiple bits", "@ESExprCodecGen @Flags public record Example(@FlagMask(3) boolean a) {}",
+				"multiple bits",
+				"@ESExprCodecGen @Flags public record Example(@FlagMask(3) boolean a) {}",
 				"Flag mask must be a single bit"
 			),
 			new InvalidSource(
-				"malformed mask", "@ESExprCodecGen @Flags public record Example(@FlagMask(bits=\"0xZZ\") boolean a) {}",
+				"malformed mask",
+				"@ESExprCodecGen @Flags public record Example(@FlagMask(bits=\"0xZZ\") boolean a) {}",
 				"Invalid flag mask"
 			),
 			new InvalidSource(
@@ -97,11 +111,13 @@ public class GeneratorValidationTests {
 				"Duplicate flag mask: 1"
 			),
 			new InvalidSource(
-				"primitive flag", "@ESExprCodecGen @Flags public record Example(int a) {}",
+				"primitive flag",
+				"@ESExprCodecGen @Flags public record Example(int a) {}",
 				"Invalid field type for flags: int"
 			),
 			new InvalidSource(
-				"reference flag", "@ESExprCodecGen @Flags public record Example(String a) {}",
+				"reference flag",
+				"@ESExprCodecGen @Flags public record Example(String a) {}",
 				"Invalid field type for flags: java.lang.String"
 			),
 			new InvalidSource(

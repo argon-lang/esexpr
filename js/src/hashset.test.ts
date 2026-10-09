@@ -30,7 +30,7 @@ describe("HashSet", () => {
 		];
 		const set = new HashSet<unknown>(values);
 
-		for (const v of values) {
+		for(const v of values) {
 			assert.strictEqual(set.has(v), true);
 		}
 
@@ -69,12 +69,12 @@ describe("HashSet", () => {
 
 	test("collisions", () => {
 		const values: number[] = [];
-		for (let i = 0; i < 1000; i++) {
+		for(let i = 0; i < 1000; i++) {
 			values.push(i);
 		}
 		const set = new HashSet<number>(values);
 		assert.strictEqual(set.size, 1000);
-		for (let i = 0; i < 1000; i++) {
+		for(let i = 0; i < 1000; i++) {
 			assert.strictEqual(set.has(i), true);
 		}
 	});

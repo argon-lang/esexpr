@@ -34,7 +34,8 @@ class BinaryEdgeCaseTest {
 			var output = new ByteArrayOutputStream();
 			var writer = new ESExprBinaryWriter(output);
 			var expr = new ESExpr.Constructor(
-				"x", ImmutableList.of(new ESExpr.Str("x")),
+				"x",
+				ImmutableList.of(new ESExpr.Str("x")),
 				withKeyword ? ImmutableMap.of("y", new ESExpr.Str("y")) : ImmutableMap.of()
 			);
 			writer.write(expr);
@@ -99,7 +100,8 @@ class BinaryEdgeCaseTest {
 		);
 		assertNull(reader(0xeb, 0x61, 'x').tryRead());
 		var missingKeywordValue = new ESExprBinaryReader(
-			List.of("field"), new ByteArrayInputStream(new byte[]{(byte)0xe7, (byte)0xc0})
+			List.of("field"),
+			new ByteArrayInputStream(new byte[]{(byte)0xe7, (byte)0xc0})
 		);
 		assertThrows(EOFException.class, missingKeywordValue::read);
 	}
@@ -135,7 +137,9 @@ class BinaryEdgeCaseTest {
 		var symbols = List.of("custom", "field");
 		var writer = new ESExprBinaryWriter(symbols, output);
 		var expr = new ESExpr.Constructor(
-			"custom", ImmutableList.of(), ImmutableMap.of("field", new ESExpr.Bool(true))
+			"custom",
+			ImmutableList.of(),
+			ImmutableMap.of("field", new ESExpr.Bool(true))
 		);
 		writer.write(expr);
 		assertArrayEquals(new byte[]{0, (byte)0xc1, (byte)0xe1, (byte)0xe0}, output.toByteArray());

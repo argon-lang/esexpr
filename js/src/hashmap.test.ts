@@ -99,12 +99,12 @@ describe("HashMap", () => {
 		// Since we don't know the exact hash function without looking deeper,
 		// let's use many keys to ensure some buckets have multiple entries.
 		const entries: [number, number][] = [];
-		for (let i = 0; i < 1000; i++) {
+		for(let i = 0; i < 1000; i++) {
 			entries.push([i, i * 2]);
 		}
 		const map = new HashMap<number, number>(entries);
 		assert.strictEqual(map.size, 1000);
-		for (let i = 0; i < 1000; i++) {
+		for(let i = 0; i < 1000; i++) {
 			assert.strictEqual(map.get(i), i * 2);
 		}
 	});

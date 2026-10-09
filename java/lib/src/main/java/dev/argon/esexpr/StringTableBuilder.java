@@ -46,7 +46,7 @@ public final class StringTableBuilder {
 	 *            The expression to record.
 	 */
 	public void record(ESExpr expr) {
-		switch (expr) {
+		switch(expr) {
 			case ESExpr.Constructor(var name, var args, var kwargs) -> {
 				if(!isDedicatedConstructor(name)) {
 					recordString(name, true);
@@ -127,7 +127,7 @@ public final class StringTableBuilder {
 	}
 
 	static boolean isDedicatedConstructor(String name) {
-		return switch (name) {
+		return switch(name) {
 			case BinToken.StringTableName, BinToken.ListName, BinToken.MapName, BinToken.SetName -> true;
 			default -> false;
 		};

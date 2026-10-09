@@ -73,7 +73,9 @@ class BinaryRoundTripPropertyTest {
 					.combine(names(), children.list().ofMaxSize(4), Arbitraries.maps(names(), children).ofMaxSize(4))
 					.as(
 						(name, args, kwargs) -> new ESExpr.Constructor(
-							name, ImmutableList.copyOf(args), ImmutableMap.copyOf(kwargs)
+							name,
+							ImmutableList.copyOf(args),
+							ImmutableMap.copyOf(kwargs)
 						)
 					)
 			),

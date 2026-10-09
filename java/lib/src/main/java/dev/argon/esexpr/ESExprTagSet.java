@@ -61,7 +61,7 @@ public sealed interface ESExprTagSet {
 
 		@Override
 		public ESExprTagSet union(ESExprTagSet other) {
-			return switch (other) {
+			return switch(other) {
 				case All all -> all;
 				case Tags(var otherTags) ->
 					new Tags(ImmutableSet.<ESExprTag>builder().addAll(tags).addAll(otherTags).build());
@@ -85,7 +85,7 @@ public sealed interface ESExprTagSet {
 
 		@Override
 		public boolean isDisjoint(ESExprTagSet other) {
-			return switch (other) {
+			return switch(other) {
 				case All() -> isEmpty();
 				case Tags(var otherTags) -> Collections.disjoint(tags, otherTags);
 			};

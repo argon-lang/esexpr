@@ -10,7 +10,7 @@ function checkCodec<T>(codec: e.ESExprCodec<T>, value: T, different: T, expr: e.
 	assert.strictEqual(codec.isEncodedEqual(value, different), false);
 	const failure = codec.decode(null);
 	assert.strictEqual(failure.success, false);
-	if (!failure.success) {
+	if(!failure.success) {
 		assert.deepStrictEqual(failure.path, { type: "current" });
 		assert.ok(failure.message.length > 0);
 	}
@@ -32,25 +32,25 @@ const smallIntegers: readonly (readonly [string, e.ESExprCodec<number>, number, 
 	["int32", e.signedInt32Codec, -2147483648, 2147483647],
 	["uint32", e.unsignedInt32Codec, 0, 4294967295],
 ];
-for (const [name, codec, min, max] of smallIntegers) {
+for(const [name, codec, min, max] of smallIntegers) {
 	test(`${name} accepts boundaries and rejects overflow`, () => {
 		checkCodec(codec, min, max, BigInt(min), BigInt);
 		assert.deepStrictEqual(codec.decode(BigInt(max)), { success: true, value: max });
-		for (const value of [BigInt(min) - 1n, BigInt(max) + 1n]) {
+		for(const value of [BigInt(min) - 1n, BigInt(max) + 1n]) {
 			assert.deepStrictEqual(codec.decode(value), {
 				success: false, message: "Integer value is out of range", path: { type: "current" },
 			});
 		}
 	});
 }
-for (const [name, codec, min, max] of [
+for(const [name, codec, min, max] of [
 	["int64", e.signedInt64Codec, -(2n ** 63n), 2n ** 63n - 1n],
 	["uint64", e.unsignedInt64Codec, 0n, 2n ** 64n - 1n],
 ] as const) {
 	test(`${name} preserves large integers and rejects overflow`, () => {
 		checkCodec(codec, max, min, max, BigInt);
 		assert.deepStrictEqual(codec.decode(min), { success: true, value: min });
-		for (const value of [min - 1n, max + 1n]) {
+		for(const value of [min - 1n, max + 1n]) {
 			assert.strictEqual(codec.decode(value).success, false);
 		}
 	});
@@ -73,7 +73,7 @@ test("array codecs compare contents and preserve their element types", () => {
 	checkArray(e.array128Codec, bytes, bytes.slice(), new Uint8Array(), changed, { type: "array128", value: bytes }, e.Array128Symbol);
 });
 
-for (const [name, codec, preserving, nan, tag] of [
+for(const [name, codec, preserving, nan, tag] of [
 	["float16", e.float16Codec, e.float16NaNCodec, { type: "float16-nan", bits: 0x7E01 }, e.Float16Symbol],
 	["float32", e.float32Codec, e.float32NaNCodec, { type: "float32-nan", bits: 0x7FC00001 }, e.Float32Symbol],
 	["float64", e.float64Codec, e.float64NaNCodec, { type: "float64-nan", bits: 0x7FF8000000000001n }, Number],
@@ -85,12 +85,12 @@ for (const [name, codec, preserving, nan, tag] of [
 		assert.strictEqual(codec.isEncodedEqual(0, -0), false);
 		assert.deepStrictEqual(codec.decode(nan), { success: true, value: NaN });
 		// Exercise each payload-preserving codec with its corresponding representation.
-		if (name === "float16") {
+		if(name === "float16") {
 			checkCodec(e.float16NaNCodec, nan, 1.5, nan, tag);
 			assert.ok(e.float16NaNCodec.isEncodedEqual(nan, { ...nan }));
 			assert.strictEqual(e.float16NaNCodec.isEncodedEqual(nan, { ...nan, bits: nan.bits + 1 }), false);
 		}
-		else if (name === "float32") {
+		else if(name === "float32") {
 			checkCodec(e.float32NaNCodec, nan, 1.5, nan, tag);
 			assert.ok(e.float32NaNCodec.isEncodedEqual(nan, { ...nan }));
 			assert.strictEqual(e.float32NaNCodec.isEncodedEqual(nan, { ...nan, bits: nan.bits + 1 }), false);
@@ -111,7 +111,7 @@ test("list decoding identifies invalid element paths and rejects keywords", () =
 	const expr: e.ESExpr.Constructor = { type: "constructor", name: "list", args: [true, "bad"], kwargs: new Map() };
 	const result = codec.decode(expr);
 	assert.strictEqual(result.success, false);
-	if (!result.success) {
+	if(!result.success) {
 		assert.deepStrictEqual(result.path, { type: "positional", constructor: "list", index: 1, next: { type: "current" } });
 	}
 	assert.strictEqual(codec.decode({ ...expr, args: [], kwargs: new Map([["a", true]]) }).success, false);

@@ -30,19 +30,19 @@ type ESExprJson =
 ;
 
 function json2esexpr(json: ESExprJson): ESExpr {
-	if (typeof json === "string" || typeof json === "boolean" || json === null) {
+	if(typeof json === "string" || typeof json === "boolean" || json === null) {
 		return json;
 	}
-	else if (json instanceof Array) {
+	else if(json instanceof Array) {
 		return json2esexpr({
 			constructor_name: "list",
 			args: json,
 		});
 	}
-	else if ("constructor_name" in json) {
+	else if("constructor_name" in json) {
 		const kwargs = new Map<string, ESExpr>();
-		if (json.kwargs !== undefined) {
-			for (const [k, v] of Object.entries(json.kwargs)) {
+		if(json.kwargs !== undefined) {
+			for(const [k, v] of Object.entries(json.kwargs)) {
 				kwargs.set(k, json2esexpr(v));
 			}
 		}
@@ -54,73 +54,73 @@ function json2esexpr(json: ESExprJson): ESExpr {
 			kwargs,
 		};
 	}
-	else if ("int" in json) {
+	else if("int" in json) {
 		return BigInt(json.int);
 	}
-	else if ("float16" in json) {
-		if (json.float16 === "+inf") {
+	else if("float16" in json) {
+		if(json.float16 === "+inf") {
 			return { type: "float16", value: Number.POSITIVE_INFINITY };
 		}
-		else if (json.float16 === "-inf") {
+		else if(json.float16 === "-inf") {
 			return { type: "float16", value: Number.NEGATIVE_INFINITY };
 		}
-		else if (json.float16 === "nan") {
+		else if(json.float16 === "nan") {
 			return { type: "float16-nan", bits: 0x7E00 };
 		}
 		else {
 			return { type: "float16", value: Math.f16round(json.float16) };
 		}
 	}
-	else if ("float32" in json) {
-		if (json.float32 === "+inf") {
+	else if("float32" in json) {
+		if(json.float32 === "+inf") {
 			return { type: "float32", value: Number.POSITIVE_INFINITY };
 		}
-		else if (json.float32 === "-inf") {
+		else if(json.float32 === "-inf") {
 			return { type: "float32", value: Number.NEGATIVE_INFINITY };
 		}
-		else if (json.float32 === "nan") {
+		else if(json.float32 === "nan") {
 			return { type: "float32-nan", bits: 0x7FC00000 };
 		}
 		else {
 			return { type: "float32", value: Math.fround(json.float32) };
 		}
 	}
-	else if ("float64" in json) {
-		if (json.float64 === "+inf") {
+	else if("float64" in json) {
+		if(json.float64 === "+inf") {
 			return Number.POSITIVE_INFINITY;
 		}
-		else if (json.float64 === "-inf") {
+		else if(json.float64 === "-inf") {
 			return Number.NEGATIVE_INFINITY;
 		}
-		else if (json.float64 === "nan") {
+		else if(json.float64 === "nan") {
 			return { type: "float64-nan", bits: 0x7FF8000000000000n };
 		}
 		else {
 			return json.float64;
 		}
 	}
-	else if ("base64" in json) {
+	else if("base64" in json) {
 		return new Uint8Array(Buffer.from(json.base64, "base64"));
 	}
-	else if ("array8" in json) {
+	else if("array8" in json) {
 		return new Uint8Array(json.array8);
 	}
-	else if ("array16" in json) {
+	else if("array16" in json) {
 		return new Uint16Array(json.array16);
 	}
-	else if ("array32" in json) {
+	else if("array32" in json) {
 		return new Uint32Array(json.array32);
 	}
-	else if ("array64" in json) {
+	else if("array64" in json) {
 		return new BigUint64Array(json.array64.map(n => BigInt(n)));
 	}
-	else if ("array128" in json) {
+	else if("array128" in json) {
 		return {
 			type: "array128",
 			value: new Uint8Array(json.array128.flatMap(n => {
 				let n2 = BigInt(n);
 				const bytes: number[] = [];
-				for (let i = 0; i < 16; ++i) {
+				for(let i = 0; i < 16; ++i) {
 					bytes.push(Number(BigInt.asUintN(8, n2)));
 					n2 >>= 8n;
 				}
@@ -128,7 +128,7 @@ function json2esexpr(json: ESExprJson): ESExpr {
 			})),
 		};
 	}
-	else if ("null" in json) {
+	else if("null" in json) {
 		return { type: "null", level: BigInt(json.null) };
 	}
 	else {
@@ -137,7 +137,7 @@ function json2esexpr(json: ESExprJson): ESExpr {
 }
 
 function json2esexprMany(json: ESExprJson): ESExpr[] {
-	if (json instanceof Array) {
+	if(json instanceof Array) {
 		return json.map(json2esexpr);
 	}
 	else {
@@ -146,7 +146,7 @@ function json2esexprMany(json: ESExprJson): ESExpr[] {
 }
 
 async function* arrayToAsyncIterable<A>(arr: readonly A[]): AsyncIterable<A> {
-	for (const a of arr) {
+	for(const a of arr) {
 		yield a;
 	}
 }
@@ -172,7 +172,7 @@ async function decodeBinMany(data: AsyncIterable<Uint8Array>): Promise<ESExpr[]>
 async function decodeBin1(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
 	const esxbArray = await decodeBinMany(data);
 
-	if (esxbArray.length !== 1) {
+	if(esxbArray.length !== 1) {
 		throw new Error("Expected a single expr");
 	}
 
@@ -181,7 +181,7 @@ async function decodeBin1(data: AsyncIterable<Uint8Array>): Promise<ESExpr> {
 
 async function* singleByteChunks(data: AsyncIterable<Uint8Array>): AsyncIterable<Uint8Array> {
 	for await (const arr of data) {
-		for (const b of arr) {
+		for(const b of arr) {
 			yield new Uint8Array([b]);
 		}
 	}
@@ -196,7 +196,7 @@ async function run_test_case(esxbFile: string): Promise<void> {
 	);
 
 	const reencoded: ESExpr[] = [];
-	for (const expr of exprs) {
+	for(const expr of exprs) {
 		reencoded.push(await decodeBin1(encodeBin(expr)));
 	}
 
@@ -205,24 +205,24 @@ async function run_test_case(esxbFile: string): Promise<void> {
 }
 
 const dir = path.join(import.meta.dirname, "../../tests/");
-for (const file of await fs.readdir(dir, { withFileTypes: true })) {
-	if (file.isDirectory()) {
+for(const file of await fs.readdir(dir, { withFileTypes: true })) {
+	if(file.isDirectory()) {
 		continue;
 	}
 
-	if (path.extname(file.name) !== ".esxb") {
+	if(path.extname(file.name) !== ".esxb") {
 		continue;
 	}
 
 	const fileName = path.join(dir, file.name);
 
-	test("Binary Format " + file.name, async () => {
+	test("Binary Format " + file.name, async() => {
 		await run_test_case(fileName);
 	});
 
 }
 
-test("Multi byte strings", async () => {
+test("Multi byte strings", async() => {
 	const strings = [
 		"ñ", // Latin-1 Supplement (U+00F1)
 		"Δ", // Greek (U+0394)
@@ -236,7 +236,7 @@ test("Multi byte strings", async () => {
 		"𝕏", // Mathematical symbols (U+1D54F)
 	];
 
-	for (const s of strings) {
+	for(const s of strings) {
 		const converted = await decodeBin1(singleByteChunks(encodeBin(s)));
 		assert.deepStrictEqual(converted, s);
 	}

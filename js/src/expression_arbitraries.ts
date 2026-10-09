@@ -13,14 +13,14 @@ const arrayConstraints = { maxLength: 32 };
 function floatFromBits(width: 16 | 32 | 64): fc.Arbitrary<ESExpr> {
 	return fc.bigInt({ min: 0n, max: (1n << BigInt(width)) - 1n }).map(bits => {
 		const data = new DataView(new ArrayBuffer(width / 8));
-		if (width === 16) {
+		if(width === 16) {
 			data.setUint16(0, Number(bits));
 			const value = data.getFloat16(0);
 			return Number.isNaN(value)
 				? { type: "float16-nan", bits: Number(bits) }
 				: { type: "float16", value };
 		}
-		else if (width === 32) {
+		else if(width === 32) {
 			data.setUint32(0, Number(bits));
 			const value = data.getFloat32(0);
 			return Number.isNaN(value)
@@ -55,7 +55,7 @@ export const primitives: Record<string, fc.Arbitrary<ESExpr>> = {
 
 export function expressions(depth: number): fc.Arbitrary<ESExpr> {
 	const primitive = fc.oneof(...Object.values(primitives));
-	if (depth === 0) {
+	if(depth === 0) {
 		return primitive;
 	}
 	const child = expressions(depth - 1);

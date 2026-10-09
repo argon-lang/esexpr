@@ -36,7 +36,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		MetadataCache metadataCache,
 		TypeElement typeElem
 	) throws AbortException {
-		switch (typeElem.getKind()) {
+		switch(typeElem.getKind()) {
 			case RECORD -> {
 				if(typeElem.getAnnotation(Flags.class) != null) {
 					return writer -> new FlagsCodecGenerator(writer, processingEnv, metadataCache, typeElem);
@@ -76,14 +76,15 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 			.getCodec(t, codecType);
 		if(typeClassResult == null) {
 			throw new AbortException(
-				"Could not find codec (" + codecType.codecClass() + ") for type " + t, associatedElement
+				"Could not find codec (" + codecType.codecClass() + ") for type " + t,
+				associatedElement
 			);
 		}
 		printTypeClassExpr(typeClassResult);
 	}
 
 	private void printTypeClassExpr(TypeClassResult typeClassResult) throws IOException {
-		switch (typeClassResult) {
+		switch(typeClassResult) {
 			case TypeClassResult.Field(var field) -> {
 				var owningType = (TypeElement)field.getEnclosingElement();
 				Objects.requireNonNull(owningType);
@@ -520,7 +521,8 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 
 		if(fieldTags.isAll()) {
 			throw new AbortException(
-				"Field '" + rce.getSimpleName() + "' cannot follow optional positional arguments with all tags", rce
+				"Field '" + rce.getSimpleName() + "' cannot follow optional positional arguments with all tags",
+				rce
 			);
 		}
 
@@ -813,7 +815,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 			return;
 		}
 
-		switch (t.getKind()) {
+		switch(t.getKind()) {
 			case BYTE -> print(".byteValue()");
 			case SHORT -> print(".shortValue()");
 			case INT -> print(".intValue()");
@@ -832,7 +834,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		boolean isUnsigned = t.getAnnotationMirrors().stream()
 			.anyMatch(ann -> ann.getAnnotationType().toString().equals("dev.argon.esexpr.Unsigned"));
 		if(isUnsigned) {
-			switch (t.getKind()) {
+			switch(t.getKind()) {
 				case BYTE -> print("dev.argon.esexpr.UnsignedByte.fromByteBits(");
 				case SHORT -> print("dev.argon.esexpr.UnsignedShort.fromShortBits(");
 				case INT -> print("com.google.common.primitives.UnsignedInteger.fromIntBits(");
@@ -844,7 +846,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		callback.run();
 
 		if(isUnsigned) {
-			switch (t.getKind()) {
+			switch(t.getKind()) {
 				case BYTE, SHORT, INT, LONG -> print(")");
 				default -> {
 				}
@@ -855,7 +857,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 	private void writeTagsImpl() throws IOException, AbortException {
 		var lookup = new Lookup(env, metadataCache, codecLocalScope(), elem);
 
-		switch (lookup.lookupTags(elem.asType())) {
+		switch(lookup.lookupTags(elem.asType())) {
 			case ESExprTagSet.All() -> {
 				println("return new dev.argon.esexpr.ESExprTagSet.All();");
 			}
@@ -869,7 +871,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 					}
 					isFirst = false;
 
-					switch (tag) {
+					switch(tag) {
 						case ESExprTag.Constructor(var name) -> {
 							print("new dev.argon.esexpr.ESExprTag.Constructor(");
 							printStringLiteral(name);
