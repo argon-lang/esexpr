@@ -1,56 +1,71 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.util.List;
 import net.jqwik.api.*;
 import org.eclipse.collections.api.factory.primitive.*;
 
-class TextRoundTripPropertyTest {
+public class BinaryRoundTripPropertyTest {
 	@Property
-	void expressionRoundTrip(@ForAll("expressions") ESExpr expression) throws Exception {
-		assertRoundTrip(List.of(expression), null);
+	public void expressionRoundTrip(@ForAll("expressions") ESExpr expression) throws Exception {
+		assertRoundTrip(List.of(expression), List.of());
 	}
 
 	@Property
-	void streamRoundTrip(@ForAll("expressionStreams") List<ESExpr> expressions) throws Exception {
-		assertRoundTrip(expressions, null);
+	public void streamRoundTrip(@ForAll("expressionStreams") List<ESExpr> expressions) throws Exception {
+		assertRoundTrip(expressions, List.of());
 	}
 
 	@Property
-	void indentedStreamRoundTrip(
+	public void streamRoundTripWithInitialSymbols(
 		@ForAll("expressionStreams") List<ESExpr> expressions,
-		@ForAll("indentations") String indentation
+		@ForAll("symbolTables") List<String> symbols
 	) throws Exception {
-		assertRoundTrip(expressions, indentation);
+		assertRoundTrip(expressions, symbols);
 	}
 
-	private void assertRoundTrip(List<ESExpr> expressions, @org.jspecify.annotations.Nullable String indentation)
-		throws Exception {
-		var output = new StringWriter();
-		var writer = new ESExprTextWriter(output, indentation);
+	@Property
+	public void compactedStreamRoundTrip(@ForAll("expressionStreams") List<ESExpr> expressions) throws Exception {
+		var builder = new StringTableBuilder();
+		expressions.forEach(builder::record);
+		var output = new ByteArrayOutputStream();
+		var writer = new ESExprBinaryWriter(output);
+		writer.addStrings(builder.build());
 		for(var expression : expressions)
 			writer.write(expression);
-		var reader = new ESExprTextReader(new StringReader(output.toString()));
+		var reader = new ESExprBinaryReader(new ByteArrayInputStream(output.toByteArray()));
+		assertEquals(expressions, reader.readAll().toList());
+	}
+
+	private void assertRoundTrip(List<ESExpr> expressions, List<String> symbols) throws Exception {
+		var output = new ByteArrayOutputStream();
+		var writer = new ESExprBinaryWriter(symbols, output);
+		for(var expression : expressions) {
+			writer.write(expression);
+		}
+		var reader = new ESExprBinaryReader(symbols, new ByteArrayInputStream(output.toByteArray()));
 		assertEquals(expressions, reader.readAll().toList());
 	}
 
 	@Provide
-	Arbitrary<List<ESExpr>> expressionStreams() {
+	public Arbitrary<List<ESExpr>> expressionStreams() {
 		return expressions().list().ofMaxSize(12);
 	}
 
 	@Provide
-	Arbitrary<String> indentations() {
-		return Arbitraries.of("", " ", "  ", "    ", "\t", "\t\t");
+	public Arbitrary<List<String>> symbolTables() {
+		return names().list().uniqueElements().ofMaxSize(24);
 	}
 
 	@Provide
-	Arbitrary<ESExpr> expressions() {
+	public Arbitrary<ESExpr> expressions() {
 		// Bound depth and width to keep generated trees and shrunk failures small.
 		return Arbitraries.recursive(
 			this::scalars,
@@ -71,16 +86,12 @@ class TextRoundTripPropertyTest {
 	}
 
 	private Arbitrary<String> names() {
-		// Include simple names, quoted identifiers, escapes and reserved constructors.
-		return Arbitraries.oneOf(
-			Arbitraries
-				.of("", "list", "map", "set", "string-table", "field", "λ", "a-b", "a\'b", "a\\b", "\n", "\u0000"),
-			strings()
-		);
+		// Shared names exercise pooled strings as well as reserved constructors.
+		return Arbitraries.oneOf(Arbitraries.of("", "list", "map", "set", "string-table", "field", "λ"), strings());
 	}
 
 	private Arbitrary<String> strings() {
-		// Generate Unicode scalar values, including supplementary characters.
+		// UTF-8 preserves Unicode scalar values, but not unpaired surrogates.
 		return Arbitraries.integers().between(0, 0x10ffff).filter(cp -> cp < 0xd800 || cp > 0xdfff).list().ofMaxSize(40)
 			.map(codePoints -> {
 				var result = new StringBuilder();

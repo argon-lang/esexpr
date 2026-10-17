@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -12,13 +14,13 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
-class BinaryCompactionTest {
+public class BinaryCompactionTest {
 	private static ESExpr constructor(String name) {
 		return new ESExpr.Constructor(name, ImmutableList.of(), ImmutableMap.of());
 	}
 
 	@Test
-	void recordsNestedMixedRolesAndDedicatedConstructors() {
+	public void recordsNestedMixedRolesAndDedicatedConstructors() {
 		var builder = new StringTableBuilder();
 		assertEquals(List.of(), builder.build());
 		for(var name : List.of("list", "map", "set", "string-table"))
@@ -50,7 +52,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void selectsByUtf8CostAndCombinedFrequency() {
+	public void selectsByUtf8CostAndCombinedFrequency() {
 		var builder = new StringTableBuilder();
 		for(var s : List.of("", "x", "ab", "é", "a long single-use literal", "", "x", "ab", "é", "x"))
 			builder.record(new ESExpr.Str(s));
@@ -62,7 +64,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void tiesUseUnicodeCodePointOrderRegardlessOfRecordingOrder() {
+	public void tiesUseUnicodeCodePointOrderRegardlessOfRecordingOrder() {
 		var first = new StringTableBuilder();
 		var second = new StringTableBuilder();
 		for(var name : List.of("\uD800\uDC00", "\uE000", "c", "b", "a"))
@@ -74,7 +76,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void selectionAccountsForIndexWidth() {
+	public void selectionAccountsForIndexWidth() {
 		for(int prefix : new int[]{15, 16, 2047, 2048}) {
 			var builder = new StringTableBuilder();
 			for(int i = 0; i < prefix; ++i) {
@@ -89,7 +91,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void compactedStreamDecodesWithFreshReaderAndSavesBytes() throws Exception {
+	public void compactedStreamDecodesWithFreshReaderAndSavesBytes() throws Exception {
 		var expr = new ESExpr.Constructor(
 			"custom",
 			ImmutableList.of(new ESExpr.Str("repeated long value"), new ESExpr.Str("repeated long value")),
@@ -111,7 +113,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void additionsPreserveIndicesAndSkipDuplicates() throws Exception {
+	public void additionsPreserveIndicesAndSkipDuplicates() throws Exception {
 		var output = new ByteArrayOutputStream();
 		var writer = new ESExprBinaryWriter(output);
 		writer.addStrings(List.of());
@@ -139,7 +141,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void additionsAfterAutomaticSymbolsPreserveIndices() throws Exception {
+	public void additionsAfterAutomaticSymbolsPreserveIndices() throws Exception {
 		var output = new ByteArrayOutputStream();
 		var writer = new ESExprBinaryWriter(output);
 		writer.write(constructor("first"));
@@ -158,7 +160,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void dedicatedConstructorsNeedNoAppends() throws Exception {
+	public void dedicatedConstructorsNeedNoAppends() throws Exception {
 		var output = new ByteArrayOutputStream();
 		var writer = new ESExprBinaryWriter(output);
 		for(var name : List.of("list", "map", "set", "string-table"))
@@ -170,7 +172,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void referencesUseActualIndexWidthAndInlineFallback() throws Exception {
+	public void referencesUseActualIndexWidthAndInlineFallback() throws Exception {
 		for(int index : new int[]{15, 16, 2047, 2048}) {
 			var pool = new java.util.ArrayList<>(IntStream.range(0, index).mapToObj(i -> "entry" + i).toList());
 			pool.add("zz");
@@ -194,7 +196,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void stringLengthBoundariesRoundTrip() throws Exception {
+	public void stringLengthBoundariesRoundTrip() throws Exception {
 		for(int length : new int[]{15, 16, 2047, 2048}) {
 			var expr = new ESExpr.Str("z".repeat(length));
 			var builder = new StringTableBuilder();
@@ -210,7 +212,7 @@ class BinaryCompactionTest {
 	}
 
 	@Test
-	void additionErrorsPropagateAtEveryByte() throws Exception {
+	public void additionErrorsPropagateAtEveryByte() throws Exception {
 		for(var strings : List.of(List.<String>of(), List.of("single"), List.of("first", "second", "first"))) {
 			var baseline = new ByteArrayOutputStream();
 			new ESExprBinaryWriter(baseline).addStrings(strings);

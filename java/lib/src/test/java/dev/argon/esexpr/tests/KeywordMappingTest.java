@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import com.google.common.collect.ImmutableList;
@@ -6,9 +8,9 @@ import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class KeywordMappingTest {
+public class KeywordMappingTest {
 	@Test
-	void roundTripsAndEncodedEquality() throws DecodeException {
+	public void roundTripsAndEncodedEquality() throws DecodeException {
 		var codec = KeywordMapping.codec(ESExprCodec.floatCodec());
 		var dict = KeywordMapping.dictCodec(ESExprCodec.floatCodec());
 		var values = List.of(
@@ -37,7 +39,7 @@ class KeywordMappingTest {
 	}
 
 	@Test
-	void rejectsInvalidStructureAndReportsKeywordPath() {
+	public void rejectsInvalidStructureAndReportsKeywordPath() {
 		var codec = KeywordMapping.codec(ESExprCodec.stringCodec());
 		var path = new ESExprCodec.FailurePath.Current().append("outer", 1);
 		assertEquals(path, assertThrows(DecodeException.class, () -> codec.decode(new ESExpr.Bool(true), path)).path);
@@ -71,7 +73,7 @@ class KeywordMappingTest {
 	}
 
 	@Test
-	void stringTableValidation() throws DecodeException {
+	public void stringTableValidation() throws DecodeException {
 		var codec = StringTable.codec();
 		var value = new StringTable(ImmutableList.of("a", "λ"));
 		assertEquals(value, codec.decode(codec.encode(value)));

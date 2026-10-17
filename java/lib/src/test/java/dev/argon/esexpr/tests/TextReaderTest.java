@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import org.junit.jupiter.api.Test;
 import java.io.*;
@@ -6,13 +8,13 @@ import java.math.BigInteger;
 import java.nio.file.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class TextReaderTest {
+public class TextReaderTest {
 	private ESExprTextReader reader(String s) {
 		return new ESExprTextReader(new StringReader(s));
 	}
 
 	@Test
-	void sharedFixtures() throws Exception {
+	public void sharedFixtures() throws Exception {
 		try(var files = Files.list(Path.of("../../tests"))) {
 			for(var path : files.filter(p -> p.toString().endsWith(".esx")).toList()) {
 				var binary = path.resolveSibling(path.getFileName().toString().replace(".esx", ".esxb"));
@@ -28,7 +30,7 @@ class TextReaderTest {
 	}
 
 	@Test
-	void boundariesAndErrors() throws Exception {
+	public void boundariesAndErrors() throws Exception {
 		var r = reader(" // comment\n #true #false // final comment");
 		assertEquals(new ESExpr.Bool(true), r.read());
 		assertEquals(new ESExpr.Bool(false), r.read());
@@ -45,7 +47,7 @@ class TextReaderTest {
 	}
 
 	@Test
-	void numbersAndPayloads() throws Exception {
+	public void numbersAndPayloads() throws Exception {
 		assertEquals(
 			new ESExpr.Int(new BigInteger("340282366920938463463374607431768211456")),
 			reader("+0x100000000000000000000000000000000").read()
@@ -65,7 +67,7 @@ class TextReaderTest {
 	}
 
 	@Test
-	void constructorAndEscapes() throws Exception {
+	public void constructorAndEscapes() throws Exception {
 		var e = (ESExpr.Constructor)reader("('a\\u{1F600}' key: 1 \"\\n\\t\\f\\r\\\\\\\"\\'\" key: 2)").read();
 		assertEquals("a😀", e.constructor());
 		assertEquals(new ESExpr.Int(BigInteger.TWO), e.kwargs().get("key"));
@@ -73,7 +75,7 @@ class TextReaderTest {
 	}
 
 	@Test
-	void propagatesIoErrors() {
+	public void propagatesIoErrors() {
 		var r = new ESExprTextReader(new Reader() {
 			@Override
 			public int read(char[] buffer, int start, int length) throws IOException {

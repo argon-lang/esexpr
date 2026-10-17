@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -10,7 +12,7 @@ import java.nio.file.*;
 import java.util.Random;
 import static org.junit.jupiter.api.Assertions.*;
 
-class TextWriterTest {
+public class TextWriterTest {
 	private String format(ESExpr expr) throws IOException {
 		var output = new StringWriter();
 		new ESExprTextWriter(output).write(expr);
@@ -24,7 +26,7 @@ class TextWriterTest {
 	}
 
 	@Test
-	void fixtures() throws Exception {
+	public void fixtures() throws Exception {
 		try(var files = Files.list(Path.of("../../tests"))) {
 			for(var path : files.filter(p -> p.toString().endsWith(".esxb")).toList()) {
 				try(var input = Files.newInputStream(path)) {
@@ -44,7 +46,7 @@ class TextWriterTest {
 	}
 
 	@Test
-	void floatBits() throws Exception {
+	public void floatBits() throws Exception {
 		// Every half-precision pattern includes subnormals, signed zeros and all NaN
 		// payloads.
 		for(int bits = 0; bits < 65536; ++bits)
@@ -60,7 +62,7 @@ class TextWriterTest {
 	}
 
 	@Test
-	void escapingAndFormatting() throws Exception {
+	public void escapingAndFormatting() throws Exception {
 		var expr = new ESExpr.Constructor(
 			"a'b",
 			ImmutableList.of(new ESExpr.Str("\u0000\n\r\t\f\\\"😀")),
@@ -83,7 +85,7 @@ class TextWriterTest {
 	}
 
 	@Test
-	void unsigned128AndInvalidValues() throws Exception {
+	public void unsigned128AndInvalidValues() throws Exception {
 		var array = new ESExpr.Array128(LongLists.immutable.of(-1L, -1L, 1L, 2L));
 		assertEquals("#u128[340282366920938463463374607431768211455 36893488147419103233]", format(array));
 		roundTrip(array);
@@ -92,7 +94,7 @@ class TextWriterTest {
 	}
 
 	@Test
-	void ioFailure() {
+	public void ioFailure() {
 		var writer = new ESExprTextWriter(new Writer() {
 			@Override
 			public void write(char[] chars, int start, int length) throws IOException {

@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import com.google.common.collect.ImmutableList;
@@ -12,9 +14,9 @@ import java.util.List;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.junit.jupiter.api.Test;
 
-class BinaryEdgeCaseTest {
+public class BinaryEdgeCaseTest {
 	@Test
-	void writerReusesInitialPoolAndWritesMissingStringsDirectly() throws Exception {
+	public void writerReusesInitialPoolAndWritesMissingStringsDirectly() throws Exception {
 		var symbols = java.util.stream.IntStream.range(0, 17).mapToObj(i -> "symbol" + i).toList();
 		var output = new ByteArrayOutputStream();
 		var writer = new ESExprBinaryWriter(symbols, output);
@@ -29,7 +31,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void writerReusesAppendedSymbolsAfterDefiningThemLiterally() throws Exception {
+	public void writerReusesAppendedSymbolsAfterDefiningThemLiterally() throws Exception {
 		for(boolean withKeyword : List.of(false, true)) {
 			var output = new ByteArrayOutputStream();
 			var writer = new ESExprBinaryWriter(output);
@@ -60,7 +62,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void truncatedValuesThrowEof() {
+	public void truncatedValuesThrowEof() {
 		// Continuation integers, strings, arrays, floats, and incomplete constructors.
 		for(int[] bytes : List.of(
 			new int[]{},
@@ -85,7 +87,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void invalidTokensAndStringTableUpdates() throws Exception {
+	public void invalidTokensAndStringTableUpdates() throws Exception {
 		assertThrows(SyntaxException.class, () -> reader(0xff).read());
 		assertThrows(SyntaxException.class, () -> reader(0xe0).read());
 		var keyword = new ESExprBinaryReader(List.of("field"), new ByteArrayInputStream(new byte[]{(byte)0xc0}));
@@ -107,7 +109,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void readAllWrapsParseAndIoFailures() {
+	public void readAllWrapsParseAndIoFailures() {
 		assertInstanceOf(
 			SyntaxException.class,
 			assertThrows(RuntimeException.class, () -> reader(0xff).readAll().toList()).getCause()
@@ -132,7 +134,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void initialSymbolsAndReservedConstructors() throws Exception {
+	public void initialSymbolsAndReservedConstructors() throws Exception {
 		var output = new ByteArrayOutputStream();
 		var symbols = List.of("custom", "field");
 		var writer = new ESExprBinaryWriter(symbols, output);
@@ -158,7 +160,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void oddArray128IsRejected() {
+	public void oddArray128IsRejected() {
 		var writer = new ESExprBinaryWriter(new ByteArrayOutputStream());
 		assertThrows(
 			IllegalArgumentException.class,
@@ -167,7 +169,7 @@ class BinaryEdgeCaseTest {
 	}
 
 	@Test
-	void syntaxExceptionConstructorsRetainDetails() {
+	public void syntaxExceptionConstructorsRetainDetails() {
 		var cause = new IOException("cause");
 		assertEquals("message", new SyntaxException("message").getMessage());
 		assertSame(cause, new SyntaxException(cause).getCause());

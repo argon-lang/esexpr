@@ -3,10 +3,10 @@
  * ESExprCodeGen.
  */
 @SuppressWarnings("module") module dev.argon.esexpr.generator {
-	requires transitive java.compiler;
+	requires java.compiler;
 	requires org.apache.commons.text;
-	requires transitive dev.argon.esexpr;
-	requires org.jspecify;
+	requires dev.argon.esexpr;
+	requires static org.jspecify;
 
 	exports dev.argon.esexpr.generator;
 

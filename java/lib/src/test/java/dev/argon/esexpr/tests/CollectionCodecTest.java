@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,7 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
 
-class CollectionCodecTest {
+public class CollectionCodecTest {
 	private static ESExpr.Constructor ctor(String name, ESExpr... args) {
 		return new ESExpr.Constructor(name, ImmutableList.copyOf(args), ImmutableMap.of());
 	}
@@ -46,7 +48,7 @@ class CollectionCodecTest {
 	}
 
 	@Test
-	void collections() throws DecodeException {
+	public void collections() throws DecodeException {
 		var strings = ESExprCodec.stringCodec();
 		collection(ESExprCodec.listCodec(strings), "list", List.of(), List.of("a"), List.of("b"));
 		collection(ESExprCodec.setCodec(strings), "set", Set.of(), Set.of("a"), Set.of("b"));
@@ -84,7 +86,7 @@ class CollectionCodecTest {
 	}
 
 	@Test
-	void nestedOptionals() throws DecodeException {
+	public void nestedOptionals() throws DecodeException {
 		var codec = ESExprCodec.optionalCodec(ESExprCodec.optionalCodec(ESExprCodec.stringCodec()));
 		List<Optional<Optional<String>>> values = List
 			.of(Optional.empty(), Optional.of(Optional.empty()), Optional.of(Optional.of("value")));
@@ -101,7 +103,7 @@ class CollectionCodecTest {
 	}
 
 	@Test
-	void optionalArguments() throws DecodeException {
+	public void optionalArguments() throws DecodeException {
 		var codec = OptionalValueCodec.optionalValueCodec(ESExprCodec.stringCodec());
 		assertEquals(Optional.empty(), codec.encodeOptional(Optional.empty()));
 		assertEquals(Optional.of(new ESExpr.Str("a")), codec.encodeOptional(Optional.of("a")));
@@ -125,7 +127,7 @@ class CollectionCodecTest {
 	}
 
 	@Test
-	void varargsStopBeforeDifferentTagAndPreserveOffsets() throws DecodeException {
+	public void varargsStopBeforeDifferentTagAndPreserveOffsets() throws DecodeException {
 		var codec = VarargCodec.listCodec(ESExprCodec.signedByteCodec());
 		var builder = ImmutableList.<ESExpr>builder();
 		codec.encodeVararg(List.of((byte)1, (byte)2), builder);

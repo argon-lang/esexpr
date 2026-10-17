@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -11,7 +13,7 @@ import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.junit.jupiter.api.Test;
 
-class ScalarCodecTest {
+public class ScalarCodecTest {
 	private <T> void check(ESExprCodec<T> codec, T first, T second) throws DecodeException {
 		for(T value : List.of(first, second)) {
 			var encoded = codec.encode(value);
@@ -33,7 +35,7 @@ class ScalarCodecTest {
 	}
 
 	@Test
-	void signedIntegers() throws DecodeException {
+	public void signedIntegers() throws DecodeException {
 		check(ESExprCodec.signedByteCodec(), Byte.MIN_VALUE, Byte.MAX_VALUE);
 		check(ESExprCodec.signedShortCodec(), Short.MIN_VALUE, Short.MAX_VALUE);
 		check(ESExprCodec.signedIntegerCodec(), Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -53,7 +55,7 @@ class ScalarCodecTest {
 	}
 
 	@Test
-	void unsignedIntegers() throws DecodeException {
+	public void unsignedIntegers() throws DecodeException {
 		check(UnsignedByte.INSTANCE, UnsignedByte.fromByteBits((byte)0), UnsignedByte.fromByteBits((byte)-1));
 		check(UnsignedShort.INSTANCE, UnsignedShort.fromShortBits((short)0), UnsignedShort.fromShortBits((short)-1));
 		check(
@@ -91,7 +93,7 @@ class ScalarCodecTest {
 	}
 
 	@Test
-	void scalarsAndFloatingPointBits() throws DecodeException {
+	public void scalarsAndFloatingPointBits() throws DecodeException {
 		check(ESExprCodec.booleanCodec(), true, false);
 		check(ESExprCodec.stringCodec(), "", "hello λ");
 		check(ESExprCodec.floatCodec(), 0.0f, -0.0f);
@@ -111,7 +113,7 @@ class ScalarCodecTest {
 	}
 
 	@Test
-	void primitiveArraysAndLists() throws DecodeException {
+	public void primitiveArraysAndLists() throws DecodeException {
 		check(ESExprCodec.byteArrayCodec(), new byte[0], new byte[]{0, -1, 127});
 		check(ESExprCodec.shortArrayCodec(), new short[0], new short[]{0, -1, Short.MAX_VALUE});
 		check(ESExprCodec.intArrayCodec(), new int[0], new int[]{0, -1, Integer.MAX_VALUE});

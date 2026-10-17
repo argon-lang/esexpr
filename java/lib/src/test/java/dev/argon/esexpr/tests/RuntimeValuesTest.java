@@ -1,12 +1,14 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigInteger;
 import org.junit.jupiter.api.Test;
 
-class RuntimeValuesTest {
+public class RuntimeValuesTest {
 	@Test
-	void tagSetOperations() {
+	public void tagSetOperations() {
 		var empty = ESExprTagSet.of();
 		var strings = ESExprTagSet.of(ESExprTag.STR);
 		var ints = ESExprTagSet.of(ESExprTag.INT);
@@ -32,7 +34,7 @@ class RuntimeValuesTest {
 	}
 
 	@Test
-	void unsignedWrappersPreserveBitsAndValueEquality() {
+	public void unsignedWrappersPreserveBitsAndValueEquality() {
 		var b = UnsignedByte.fromByteBits((byte)-1);
 		assertEquals(255, b.intValue());
 		assertEquals(255, b.shortValue());
@@ -65,7 +67,7 @@ class RuntimeValuesTest {
 
 	@Test
 	@SuppressWarnings("NullAway") // Deliberately exercise defensive validation of invalid input.
-	void unsignedBigIntegerRejectsNull() {
+	public void unsignedBigIntegerRejectsNull() {
 		assertThrows(IllegalArgumentException.class, () -> UnsignedBigInteger.valueOf((BigInteger)null));
 	}
 }

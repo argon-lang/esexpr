@@ -1,4 +1,6 @@
-package dev.argon.esexpr;
+package dev.argon.esexpr.tests;
+
+import dev.argon.esexpr.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigInteger;
@@ -9,9 +11,9 @@ import com.google.common.collect.ImmutableMap;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.junit.jupiter.api.Test;
 
-class ExpressionTest {
+public class ExpressionTest {
 	@Test
-	void identityCodecAndTags() throws DecodeException {
+	public void identityCodecAndTags() throws DecodeException {
 		var codec = ESExpr.codec();
 		var values = List.<ESExpr>of(
 			new ESExpr.Null(BigInteger.ZERO),
@@ -36,7 +38,7 @@ class ExpressionTest {
 	}
 
 	@Test
-	void floatingExpressionsCompareRawBits() {
+	public void floatingExpressionsCompareRawBits() {
 		var half = new ESExpr.Float16((short)0x3c00);
 		assertEquals(half, new ESExpr.Float16((short)0x3c00));
 		assertNotEquals(half, new ESExpr.Float16((short)0xbc00));
@@ -56,7 +58,7 @@ class ExpressionTest {
 	}
 
 	@Test
-	void failurePathsPreserveParentsWhenExtended() {
+	public void failurePathsPreserveParentsWhenExtended() {
 		var current = new ESExprCodec.FailurePath.Current();
 		var constructor = current.withConstructor("old");
 		assertEquals(current.append("child", 2), constructor.append("child", 2));
