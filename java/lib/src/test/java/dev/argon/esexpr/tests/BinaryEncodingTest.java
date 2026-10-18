@@ -6,12 +6,15 @@ package dev.argon.esexpr.tests;
 import dev.argon.esexpr.*;
 
 import com.google.errorprone.annotations.MustBeClosed;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FilenameUtils;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DatabindException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.module.SimpleModule;
 import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -42,6 +45,45 @@ public class BinaryEncodingTest {
 
 		assertEquals(jsonValue, esxbValue);
 		assertEquals(esxbValue, reencodedValue);
+	}
+
+	@Test
+	public void rawJsonIntegersPreservePrecision() throws Exception {
+		var huge = BigInteger.ONE.shiftLeft(256);
+		for(var value : List.of(
+			BigInteger.ZERO,
+			BigInteger.valueOf(42),
+			BigInteger.valueOf(-42),
+			BigInteger.ONE.shiftLeft(64),
+			huge,
+			huge.negate()
+		)) {
+			var expr = new ESExpr.Int(value);
+			assertEquals(List.of(expr), parseJson(value.toString()));
+			assertEquals(List.of(expr), parseJson("[" + value + "]"));
+			assertEquals(List.of(new ESExpr.Str(value.toString())), parseJson("\"" + value + "\""));
+			assertEquals(
+				List.of(new ESExpr.Constructor("nested", ImmutableList.of(expr), ImmutableMap.of("value", expr))),
+				parseJson(
+					"{\"constructor_name\":\"nested\",\"args\":[" + value + "],\"kwargs\":{\"value\":" + value + "}}"
+				)
+			);
+		}
+		assertThrows(DatabindException.class, () -> parseJson("1.5"));
+	}
+
+	@Test
+	public void wideJsonIntegersPreservePrecision() throws Exception {
+		assertEquals(
+			List.of(new ESExpr.Array64(org.eclipse.collections.api.factory.primitive.LongLists.immutable.of(-1L))),
+			parseJson("{\"array64\":[18446744073709551615]}")
+		);
+		assertEquals(
+			List.of(new ESExpr.Array128(org.eclipse.collections.api.factory.primitive.LongLists.immutable.of(0L, 1L))),
+			parseJson("{\"array128\":[18446744073709551616]}")
+		);
+		var level = BigInteger.ONE.shiftLeft(256);
+		assertEquals(List.of(new ESExpr.Null(level)), parseJson("{\"null\":" + level + "}"));
 	}
 
 	private List<ESExpr> parseJson(String value) throws Exception {

@@ -21,7 +21,7 @@ fn parse_test(path: &Path) {
 			.expect("fixture name should be UTF-8")
 	));
 	let json = std::fs::read_to_string(json).expect("JSON fixture should be readable");
-	let json: esexpr_json::JsonEncodedESExpr = serde_json::from_str(&json).expect("JSON fixture should parse");
+	let json: esexpr_json::JsonEncodedESExpr = deser_json::from_str(&json).expect("JSON fixture should parse");
 	let json = match json {
 		esexpr_json::JsonEncodedESExpr::List(items) => items,
 		_ => vec![json],

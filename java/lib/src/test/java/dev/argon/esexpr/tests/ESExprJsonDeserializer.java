@@ -30,6 +30,9 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 		if(node.isBoolean()) {
 			return new ESExpr.Bool(node.asBoolean());
 		}
+		else if(node.isIntegralNumber()) {
+			return new ESExpr.Int(node.bigIntegerValue());
+		}
 		else if(node.isString()) {
 			return new ESExpr.Str(node.asString());
 		}
@@ -160,12 +163,12 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 				for(int i = 0; i < array.size(); i++) {
 					BigInteger value = getInt(array.get(i));
 					longs[i * 2] = value.longValue();
-					longs[i * 2 + 1] = value.shiftLeft(64).longValue();
+					longs[i * 2 + 1] = value.shiftRight(64).longValue();
 				}
 				return new ESExpr.Array128(LongLists.immutable.of(longs));
 			}
 			else if(node.has("null")) {
-				return new ESExpr.Null(new BigInteger(node.get("null").asString()));
+				return new ESExpr.Null(node.get("null").bigIntegerValue());
 			}
 		}
 
@@ -177,7 +180,7 @@ public class ESExprJsonDeserializer extends ValueDeserializer<ESExpr> {
 			return new BigInteger(node.asString());
 		}
 		else {
-			return BigInteger.valueOf(node.asLong());
+			return node.bigIntegerValue();
 		}
 	}
 

@@ -21,7 +21,7 @@ nom = { workspace = true }
 [dev-dependencies]
 proptest = { workspace = true }
 esexpr = { workspace = true, features = ["proptest"] }
-serde_json = { workspace = true }
+deser-json = { workspace = true }
 esexpr-json = { workspace = true }
 
 [lints]

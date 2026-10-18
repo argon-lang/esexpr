@@ -31,7 +31,7 @@ static_assertions = { workspace = true }
 esexpr = { workspace = true, features = ["proptest"] }
 proptest = { workspace = true }
 esexpr-json = { workspace = true }
-serde_json = { workspace = true }
+deser-json = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "fs"] }
 embedded-io-adapters = { workspace = true, features = ["std", "tokio-1"] }
 

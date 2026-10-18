@@ -45,8 +45,9 @@ num-traits = { version = "0.2.19", default-features = false }
 proc-macro2 = "1.0.107"
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 quote = "1.0.47"
-serde = { version = "1.0.229", default-features = false, features = ["derive", "alloc"] }
-serde_json = { version = "1.0.151", default-features = false, features = ["float_roundtrip", "alloc"] }
+deser = { version = "0.10.1", default-features = false, features = ["derive"] }
+deser-value = "0.10.1"
+deser-json = { version = "0.10.1", default-features = false }
 static_assertions = "1.1.0"
 syn = { version = "3.0.6", features = ["derive", "full", "visit"] }
 tokio = "1.53.2"

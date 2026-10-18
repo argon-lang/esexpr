@@ -49,52 +49,49 @@ pub enum JsonExpr {
 }
 
 impl JsonExpr {
-	/// Converts a `serde_json::Value` into a `JsonExpr`
-	pub fn from_json(value: serde_json::Value) -> Option<JsonExpr> {
-		Some(match value {
-			serde_json::Value::Null => JsonExpr::Null(()),
-			serde_json::Value::Bool(b) => JsonExpr::Bool(b),
-			serde_json::Value::Number(n) => JsonExpr::Num(n.as_f64()?),
-			serde_json::Value::String(s) => JsonExpr::Str(s),
-			serde_json::Value::Array(arr) => {
-				JsonExpr::Arr(arr.into_iter().map(Self::from_json).collect::<Option<Vec<_>>>()?)
-			},
-			serde_json::Value::Object(obj) => {
-				let values = obj
+	/// Converts a dynamic value into a JSON expression, rejecting non-JSON types.
+	#[expect(clippy::cast_precision_loss, reason = "JSON expressions represent numbers as f64")]
+	pub fn from_json(value: deser_value::Value) -> Option<Self> {
+		use deser_value::Kind;
+		Some(match value.into_kind() {
+			Kind::Null => Self::Null(()),
+			Kind::Bool(b) => Self::Bool(b),
+			Kind::Str(s) => Self::Str(s),
+			Kind::U64(n) => Self::Num(n as f64),
+			Kind::I64(n) => Self::Num(n as f64),
+			Kind::F32(n) if n.is_finite() => Self::Num(f64::from(n)),
+			Kind::F64(n) if n.is_finite() => Self::Num(n),
+			Kind::Seq(arr) => Self::Arr(arr.into_iter().map(Self::from_json).collect::<Option<_>>()?),
+			Kind::Map(obj) => Self::Obj {
+				values: obj
 					.into_iter()
-					.map(|(k, v)| Some((k, Self::from_json(v)?)))
-					.collect::<Option<BTreeMap<_, _>>>()?;
-
-				JsonExpr::Obj { values }
+					.map(|(k, v)| Some((k.as_str()?.into(), Self::from_json(v)?)))
+					.collect::<Option<_>>()?,
 			},
+			_ => return None,
 		})
 	}
 
-	/// Converts a `JsonExpr` into a `serde_json::Value`
-	pub fn into_json(self) -> Option<serde_json::Value> {
+	/// Converts a JSON expression into a dynamic value, rejecting nonfinite numbers.
+	pub fn into_json(self) -> Option<deser_value::Value> {
 		Some(match self {
-			JsonExpr::Obj { values } => {
-				let obj = values
-					.into_iter()
-					.map(|(k, v)| Some((k, v.into_json()?)))
-					.collect::<Option<serde_json::Map<_, _>>>()?;
-
-				serde_json::Value::Object(obj)
-			},
-			JsonExpr::Arr(arr) => {
-				serde_json::Value::Array(arr.into_iter().map(Self::into_json).collect::<Option<Vec<_>>>()?)
-			},
-			JsonExpr::Str(s) => serde_json::Value::String(s),
-			JsonExpr::Num(n) => serde_json::Value::Number(serde_json::Number::from_f64(n)?),
-			JsonExpr::Bool(b) => serde_json::Value::Bool(b),
-			JsonExpr::Null(_) => serde_json::Value::Null,
+			Self::Null(()) => ().into(),
+			Self::Bool(b) => b.into(),
+			Self::Str(s) => s.into(),
+			Self::Num(n) if n.is_finite() => n.into(),
+			Self::Num(_) => return None,
+			Self::Arr(arr) => arr.into_iter().map(Self::into_json).collect::<Option<Vec<_>>>()?.into(),
+			Self::Obj { values } => values
+				.into_iter()
+				.map(|(k, v)| Some((k, v.into_json()?)))
+				.collect::<Option<deser_value::Value>>()?,
 		})
 	}
 }
 
 /// Represents an `ESExpr` encoded as JSON with type information
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
-#[serde(untagged)]
+#[derive(deser::Serialize, deser::Deserialize, Debug, PartialEq)]
+#[deser(untagged)]
 pub enum JsonEncodedESExpr {
 	/// A constructor with a name and optional arguments
 	Constructor {
@@ -111,15 +108,11 @@ pub enum JsonEncodedESExpr {
 	/// A bool value
 	Bool(bool),
 
-	/// An arbitrary-precision integer
-	Int {
-		/// The integer value
-		#[serde(with = "serde_bigint")]
-		int: BigInt,
-	},
-
 	/// A string value
-	Str(String),
+	Str(#[deser(deserialize_as = StrictString)] String),
+
+	/// An arbitrary-precision integer encoded directly as a JSON number.
+	Int(#[deser(as = deser::adapters::FromInto<NativeBigInt>)] BigInt),
 
 	/// Binary data encoded as base64
 	BinaryBase64 {
@@ -130,6 +123,7 @@ pub enum JsonEncodedESExpr {
 	/// An array of 8-bit values.
 	Array8 {
 		///	The 8-bit values encoded as uint8.
+		#[deser(as = Vec<deser::adapters::Same>)]
 		array8: Vec<u8>,
 	},
 
@@ -153,30 +147,28 @@ pub enum JsonEncodedESExpr {
 
 	/// An array of 128-bit values.
 	Array128 {
-		/// The 128-bit values, encoded as JSON numbers through `u64::MAX`
-		/// and decimal strings for larger values.
-		#[serde(with = "serde_u128_vec")]
+		/// The 128-bit values, encoded as JSON integers.
 		array128: Vec<u128>,
 	},
 
 	/// A 16-bit floating point number
 	Float16 {
 		/// The float32 value
-		#[serde(with = "serde_f16")]
+		#[deser(as = Float16)]
 		float16: f16,
 	},
 
 	/// A 32-bit floating point number
 	Float32 {
 		/// The float32 value
-		#[serde(with = "serde_f32")]
+		#[deser(as = Float32)]
 		float32: f32,
 	},
 
 	/// A 64-bit floating point number
 	Float64 {
 		/// The float64 value
-		#[serde(with = "serde_f64")]
+		#[deser(as = Float64)]
 		float64: f64,
 	},
 
@@ -186,7 +178,7 @@ pub enum JsonEncodedESExpr {
 	/// A null value with a level
 	NullLevel {
 		/// The level of the null value
-		#[serde(with = "serde_biguint")]
+		#[deser(as = deser::adapters::TryFromInto<NativeBigInt>)]
 		null: BigUint,
 	},
 }
@@ -206,7 +198,7 @@ impl JsonEncodedESExpr {
 				),
 			},
 			ESExpr::Bool(b) => JsonEncodedESExpr::Bool(b),
-			ESExpr::Int(i) => JsonEncodedESExpr::Int { int: i.into_owned() },
+			ESExpr::Int(i) => JsonEncodedESExpr::Int(i.into_owned()),
 			ESExpr::Str(s) => JsonEncodedESExpr::Str(s.into_string()),
 			ESExpr::Float16(float16) => JsonEncodedESExpr::Float16 { float16 },
 			ESExpr::Float32(float32) => JsonEncodedESExpr::Float32 { float32 },
@@ -257,7 +249,7 @@ impl JsonEncodedESExpr {
 			},
 
 			JsonEncodedESExpr::Bool(b) => ESExpr::Bool(b),
-			JsonEncodedESExpr::Int { int } => ESExpr::Int(Cow::Owned(int)),
+			JsonEncodedESExpr::Int(int) => ESExpr::Int(Cow::Owned(int)),
 			JsonEncodedESExpr::Str(s) => ESExpr::Str(CowStr::Owned(s)),
 			JsonEncodedESExpr::BinaryBase64 { base64 } => ESExpr::Array8(Cow::Owned(base64.0)),
 			JsonEncodedESExpr::Array8 { array8 } => ESExpr::Array8(Cow::Owned(array8)),
@@ -278,275 +270,140 @@ impl JsonEncodedESExpr {
 #[derive(Debug, PartialEq)]
 pub struct Base64Value(Vec<u8>);
 
-impl serde::Serialize for Base64Value {
-	fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-		let encoded = BASE64_STANDARD.encode(&self.0);
-		serializer.serialize_str(&encoded)
+use alloc::string::ToString;
+use deser::de::{Slot, default_atom};
+use deser::ser::Emit;
+use deser::{Atom, Deserialize, Error, ErrorKind, Serialize, State};
+
+impl Serialize for Base64Value {
+	fn serialize<'a>(value: &'a Self, _state: &mut State) -> Result<Emit<'a>, Error> {
+		Ok(Emit::Atom(Atom::Str(BASE64_STANDARD.encode(&value.0).into())))
 	}
 }
-
-struct Base64Visitor;
-
-impl<'de> serde::de::Visitor<'de> for Base64Visitor {
-	type Value = Vec<u8>;
-
-	fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-		formatter.write_str("a base64 encoded string")
-	}
-
-	fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Vec<u8>, E> {
-		BASE64_STANDARD
-			.decode(value)
-			.map_err(|_| serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self))
-	}
-}
-
-impl<'de> serde::Deserialize<'de> for Base64Value {
-	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-		let bytes = deserializer.deserialize_str(Base64Visitor)?;
-		Ok(Base64Value(bytes))
-	}
-}
-
-// Helper modules for serialization/deserialization
-
-mod serde_u128_vec {
-	use alloc::string::ToString;
-	use alloc::vec::Vec;
-	use core::fmt;
-
-	use serde::de::{SeqAccess, Visitor};
-	use serde::ser::SerializeSeq;
-	use serde::{Deserialize, Deserializer, Serializer};
-
-	pub fn serialize<S: Serializer>(values: &[u128], serializer: S) -> Result<S::Ok, S::Error> {
-		let mut sequence = serializer.serialize_seq(Some(values.len()))?;
-		for value in values {
-			if let Ok(value) = u64::try_from(*value) {
-				sequence.serialize_element(&value)?;
-			}
-			else {
-				sequence.serialize_element(&value.to_string())?;
-			}
-		}
-		sequence.end()
-	}
-
-	struct Uint128(u128);
-
-	impl<'de> Deserialize<'de> for Uint128 {
-		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			struct Uint128Visitor;
-
-			impl<'de> Visitor<'de> for Uint128Visitor {
-				type Value = Uint128;
-
-				fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-					formatter.write_str("a uint64 number or a decimal string containing a uint128")
-				}
-
-				fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Self::Value, E> {
-					Ok(Uint128(u128::from(value)))
-				}
-
-				fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
-					value
-						.parse()
-						.map(Uint128)
-						.map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-				}
-			}
-
-			deserializer.deserialize_any(Uint128Visitor)
+impl<'de> Deserialize<'de> for Base64Value {
+	fn deserialize_atom(slot: &mut Slot<Self>, atom: Atom, state: &mut State) -> Result<(), Error> {
+		if let Atom::Str(s) = atom {
+			slot.set(Self(
+				BASE64_STANDARD
+					.decode(s.as_bytes())
+					.map_err(|_| Error::new(ErrorKind::InvalidValue, "invalid base64"))?,
+			));
+			Ok(())
+		} else {
+			default_atom(slot, atom, state)
 		}
 	}
-
-	pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<u128>, D::Error> {
-		struct Uint128VecVisitor;
-
-		impl<'de> Visitor<'de> for Uint128VecVisitor {
-			type Value = Vec<u128>;
-
-			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-				formatter.write_str("an array of uint128 values")
-			}
-
-			fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
-				let mut values = Vec::new();
-				while let Some(Uint128(value)) = sequence.next_element()? {
-					values.push(value);
-				}
-				Ok(values)
-			}
-		}
-
-		deserializer.deserialize_seq(Uint128VecVisitor)
-	}
 }
 
-/// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
-mod serde_f16 {
-	use half::f16;
-
-	use crate::serde_f32;
-
-	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
-	pub fn serialize<S: serde::Serializer>(f: &f16, serializer: S) -> Result<S::Ok, S::Error> {
-		serde_f32::serialize(&f32::from(*f), serializer)
-	}
-
-	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f16, D::Error> {
-		serde_f32::deserialize(deserializer).map(f16::from_f32)
-	}
-}
-
-/// Module for serializing and deserializing f32 values, handling special cases like NaN and infinities
-mod serde_f32 {
-	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
-	pub fn serialize<S: serde::Serializer>(f: &f32, serializer: S) -> Result<S::Ok, S::Error> {
-		match *f {
-			f if f.is_nan() => serializer.serialize_str("nan"),
-			f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
-			f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
-			f => serializer.serialize_f32(f),
+macro_rules! float_adapter {
+	($name:ident, $ty:ty, $from:expr, $to:expr, $atom:expr) => {
+		struct $name;
+		impl Serialize<$ty> for $name {
+			fn serialize<'a>(value: &'a $ty, _state: &mut State) -> Result<Emit<'a>, Error> {
+				let f = ($to)(*value);
+				Ok(Emit::Atom(if f.is_nan() {
+					Atom::Str("nan".into())
+				} else if f == f64::INFINITY {
+					Atom::Str("+inf".into())
+				} else if f == f64::NEG_INFINITY {
+					Atom::Str("-inf".into())
+				} else {
+					($atom)(f)
+				}))
+			}
 		}
-	}
-
-	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f32, D::Error> {
-		struct Float32ValueVisitor;
-
-		impl<'de> serde::de::Visitor<'de> for Float32ValueVisitor {
-			type Value = f32;
-
-			fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-				formatter.write_str("a number or a string containing nan, +inf, or -inf")
-			}
-
-			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f32")]
-			fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f32, E> {
-				Ok(v as f32)
-			}
-
-			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f32")]
-			fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f32, E> {
-				Ok(v as f32)
-			}
-
+		impl<'de> Deserialize<'de, $ty> for $name {
 			#[expect(
-				clippy::cast_possible_truncation,
-				reason = "The format makes it explicit this is a f64"
+				clippy::cast_precision_loss,
+				reason = "Typed floats accept JSON integers with floating point precision"
 			)]
-			fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f32, E> {
-				Ok(v as f32)
-			}
-
-			fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f32, E> {
-				match value {
-					"nan" => Ok(f32::NAN),
-					"+inf" => Ok(f32::INFINITY),
-					"-inf" => Ok(f32::NEG_INFINITY),
-					_ => Err(serde::de::Error::invalid_value(
-						serde::de::Unexpected::Str(value),
-						&self,
-					)),
-				}
+			fn deserialize_atom(slot: &mut Slot<$ty, Self>, atom: Atom, state: &mut State) -> Result<(), Error> {
+				let f = match atom {
+					Atom::U64(n) => n as f64,
+					Atom::I64(n) => n as f64,
+					Atom::F64(n) => n,
+					Atom::F32(n) => f64::from(n),
+					Atom::Str(s) => match s.as_ref() {
+						"nan" => f64::NAN,
+						"+inf" => f64::INFINITY,
+						"-inf" => f64::NEG_INFINITY,
+						_ => return Err(Error::new(ErrorKind::InvalidValue, "invalid float")),
+					},
+					other => return default_atom(slot, other, state),
+				};
+				slot.set(($from)(f));
+				Ok(())
 			}
 		}
+	};
+}
+float_adapter!(Float16, f16, f16::from_f64, f64::from, float32_atom);
+float_adapter!(Float32, f32, narrow_float, f64::from, float32_atom);
+float_adapter!(Float64, f64, |f| f, |f: f64| f, Atom::F64);
 
-		deserializer.deserialize_any(Float32ValueVisitor)
-	}
+#[expect(
+	clippy::cast_possible_truncation,
+	reason = "The encoded type explicitly requests f32 precision"
+)]
+fn narrow_float(value: f64) -> f32 {
+	value as f32
+}
+fn float32_atom(value: f64) -> Atom<'static> {
+	Atom::F32(narrow_float(value))
 }
 
-/// Module for serializing and deserializing f64 values, handling special cases like NaN and infinities
-mod serde_f64 {
-	#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde requires this to be a reference")]
-	pub fn serialize<S: serde::Serializer>(f: &f64, serializer: S) -> Result<S::Ok, S::Error> {
-		match *f {
-			f if f.is_nan() => serializer.serialize_str("nan"),
-			f if f.is_infinite() && f.is_sign_positive() => serializer.serialize_str("+inf"),
-			f if f.is_infinite() && f.is_sign_negative() => serializer.serialize_str("-inf"),
-			f => serializer.serialize_f64(f),
-		}
-	}
+// Bridge num-bigint 0.5 to Deser's arbitrary precision integer extension.
+#[derive(deser::Serialize, deser::Deserialize)]
+#[deser(transparent)]
+struct NativeBigInt(deser::ext::BigInt);
 
-	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
-		struct Float64ValueVisitor;
-
-		impl<'de> serde::de::Visitor<'de> for Float64ValueVisitor {
-			type Value = f64;
-
-			fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-				formatter.write_str("a number or a string containing nan, +inf, or -inf")
-			}
-
-			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f64")]
-			fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<f64, E> {
-				Ok(v as f64)
-			}
-
-			#[expect(clippy::cast_precision_loss, reason = "The format makes it explicit this is a f64")]
-			fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<f64, E> {
-				Ok(v as f64)
-			}
-
-			fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<f64, E> {
-				Ok(v)
-			}
-
-			fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<f64, E> {
-				match value {
-					"nan" => Ok(f64::NAN),
-					"+inf" => Ok(f64::INFINITY),
-					"-inf" => Ok(f64::NEG_INFINITY),
-					_ => Err(serde::de::Error::invalid_value(
-						serde::de::Unexpected::Str(value),
-						&self,
-					)),
-				}
-			}
-		}
-
-		deserializer.deserialize_any(Float64ValueVisitor)
-	}
-}
-
-/// Module for serializing and deserializing arbitrary-precision integers
-mod serde_bigint {
-	use alloc::string::{String, ToString};
-
-	use num_bigint::BigInt;
-	use serde::Deserialize;
-
-	pub fn serialize<S: serde::Serializer>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error> {
-		serializer.serialize_str(&value.to_string())
-	}
-
-	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<BigInt, D::Error> {
-		let s = String::deserialize(deserializer)?;
-		BigInt::parse_bytes(s.as_bytes(), 10).ok_or_else(|| {
-			serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"a string containing a big integer")
+impl From<BigInt> for NativeBigInt {
+	fn from(value: BigInt) -> Self {
+		let (sign, magnitude) = value.to_bytes_be();
+		Self(deser::ext::BigInt {
+			negative: sign == num_bigint::Sign::Minus,
+			magnitude,
 		})
 	}
 }
 
-/// Module for serializing and deserializing arbitrary-precision unsigned integers
-mod serde_biguint {
-	use alloc::string::{String, ToString};
-
-	use num_bigint::BigUint;
-	use serde::Deserialize;
-
-	pub fn serialize<S: serde::Serializer>(value: &BigUint, serializer: S) -> Result<S::Ok, S::Error> {
-		serializer.serialize_str(&value.to_string())
+impl From<NativeBigInt> for BigInt {
+	fn from(value: NativeBigInt) -> Self {
+		let sign = if value.0.negative {
+			num_bigint::Sign::Minus
+		} else {
+			num_bigint::Sign::Plus
+		};
+		Self::from_bytes_be(sign, &value.0.magnitude)
 	}
+}
 
-	pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<BigUint, D::Error> {
-		let s = String::deserialize(deserializer)?;
-		BigUint::parse_bytes(s.as_bytes(), 10).ok_or_else(|| {
-			serde::de::Error::invalid_value(
-				serde::de::Unexpected::Str(&s),
-				&"a string containing an unsigned big integer",
-			)
+struct StrictString;
+impl<'de> Deserialize<'de, String> for StrictString {
+	fn deserialize_atom(slot: &mut Slot<String, Self>, atom: Atom, _state: &mut State) -> Result<(), Error> {
+		if let Atom::Str(value) = atom {
+			slot.set(value.to_string());
+			Ok(())
+		} else {
+			Err(Error::new(ErrorKind::InvalidValue, "expected a JSON string"))
+		}
+	}
+}
+
+impl From<BigUint> for NativeBigInt {
+	fn from(value: BigUint) -> Self {
+		Self(deser::ext::BigInt {
+			negative: false,
+			magnitude: value.to_bytes_be(),
 		})
+	}
+}
+impl TryFrom<NativeBigInt> for BigUint {
+	type Error = Error;
+	fn try_from(value: NativeBigInt) -> Result<Self, Error> {
+		if value.0.is_negative() {
+			return Err(Error::new(ErrorKind::InvalidValue, "negative null level"));
+		}
+		Ok(Self::from_bytes_be(&value.0.magnitude))
 	}
 }

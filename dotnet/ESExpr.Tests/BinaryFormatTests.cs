@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Numerics;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -32,6 +33,7 @@ public class BinaryFormatTests : TestBase {
 				JsonValueKind.True => new Expr.Bool(true),
 				JsonValueKind.False => new Expr.Bool(false),
 				JsonValueKind.String => new Expr.Str(elem.GetString()!),
+				JsonValueKind.Number => new Expr.Int(BigInteger.Parse(elem.GetRawText(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture)),
 				JsonValueKind.Null => new Expr.Null(0),
 				JsonValueKind.Array => new Expr.Constructor(
 					"list",
@@ -99,7 +101,7 @@ public class BinaryFormatTests : TestBase {
 					new Expr.Array128(ReadFixedArray<UInt128>(array128Value)),
 
 				JsonValueKind.Object when elem.TryGetProperty("null", out var nullLevel) =>
-					new Expr.Null(BigInteger.Parse(nullLevel.GetString() ?? throw new InvalidOperationException())),
+					new Expr.Null(BigInteger.Parse(nullLevel.GetRawText(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture)),
 
 				_ => throw new ArgumentException($"Unexpected JSON: {elem}", nameof(elem)),
 			};
@@ -112,6 +114,42 @@ public class BinaryFormatTests : TestBase {
 		}
 	}
 
+	[Test]
+	public void RawJsonIntegersPreservePrecision() {
+		BigInteger[] values = [0, 42, -42, BigInteger.One << 64, BigInteger.One << 256, -(BigInteger.One << 256)];
+		foreach(var value in values) {
+			var number = value.ToString(CultureInfo.InvariantCulture);
+			var expr = new Expr.Int(value);
+			using var scalar = JsonDocument.Parse(number);
+			Assert.That(DecodeJson(scalar.RootElement), Is.EqualTo(new Expr[] { expr }));
+			using var array = JsonDocument.Parse("[" + number + "]");
+			Assert.That(DecodeJson(array.RootElement), Is.EqualTo(new Expr[] { expr }));
+			using var str = JsonDocument.Parse(JsonSerializer.Serialize(number));
+			Assert.That(DecodeJson(str.RootElement), Is.EqualTo(new Expr[] { new Expr.Str(number) }));
+			using var nested = JsonDocument.Parse("{\"constructor_name\":\"nested\",\"args\":[" + number + "],\"kwargs\":{\"value\":" + number + "}}");
+			var constructor = new Expr.Constructor("nested", [expr], ImmutableDictionary<string, Expr>.Empty.Add("value", expr));
+			Assert.That(DecodeJson(nested.RootElement), Is.EqualTo(new Expr[] { constructor }));
+		}
+	}
+
+	[TestCase("1.5")]
+	[TestCase("1e3")]
+	public void RawJsonFloatsAreRejected(string json) {
+		using var doc = JsonDocument.Parse(json);
+		Assert.Throws<FormatException>(() => DecodeJson(doc.RootElement));
+	}
+
+	[Test]
+	public void WideJsonIntegersPreservePrecision() {
+		using var array64 = JsonDocument.Parse("{\"array64\":[18446744073709551615]}");
+		Assert.That(DecodeJson(array64.RootElement), Is.EqualTo(new Expr[] { new Expr.Array64([ulong.MaxValue]) }));
+		using var array128 = JsonDocument.Parse("{\"array128\":[340282366920938463463374607431768211455]}");
+		Assert.That(DecodeJson(array128.RootElement), Is.EqualTo(new Expr[] { new Expr.Array128([UInt128.MaxValue]) }));
+		var level = BigInteger.One << 256;
+		using var nullLevel = JsonDocument.Parse("{\"null\":" + level.ToString(CultureInfo.InvariantCulture) + "}");
+		Assert.That(DecodeJson(nullLevel.RootElement), Is.EqualTo(new Expr[] { new Expr.Null(level) }));
+	}
+
 	private ImmutableArray<T> ReadFixedArray<T>(JsonElement arrayValue)
 		where T : IUnsignedNumber<T> {
 		if(arrayValue.ValueKind != JsonValueKind.Array)
@@ -119,8 +157,7 @@ public class BinaryFormatTests : TestBase {
 
 		return arrayValue.EnumerateArray()
 			.Select(e => e.ValueKind switch {
-				JsonValueKind.String => T.Parse(e.GetString()!, null),
-				JsonValueKind.Number => T.CreateChecked(e.GetInt64()),
+							JsonValueKind.Number => T.Parse(e.GetRawText(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture),
 				_ => throw new ArgumentException($"Unexpected value kind: {e.ValueKind}", nameof(arrayValue))
 			})
 			.ToImmutableArray();

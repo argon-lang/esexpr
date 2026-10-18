@@ -3,11 +3,11 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 
+use deser_value::value as json;
 use esexpr::{ESExpr, ESExprCodec, ESExprEncodedEq};
 use esexpr_json::{JsonEncodedESExpr, JsonExpr};
 use half::f16;
 use num_bigint::{BigInt, BigUint};
-use serde_json::json;
 
 #[test]
 fn nested_json_values_round_trip() {
@@ -72,8 +72,8 @@ fn every_esexpr_variant_round_trips_through_json() {
 	];
 	for expr in expressions {
 		let encoded = JsonEncodedESExpr::from_esexpr(expr.clone());
-		let json = serde_json::to_string(&encoded).expect("expression should serialize");
-		let decoded: JsonEncodedESExpr = serde_json::from_str(&json).unwrap_or_else(|error| panic!("{json}: {error}"));
+		let json = deser_json::to_string(&encoded).expect("expression should serialize");
+		let decoded: JsonEncodedESExpr = deser_json::from_str(&json).unwrap_or_else(|error| panic!("{json}: {error}"));
 		assert_eq!(decoded.into_esexpr(), expr, "JSON: {json}");
 	}
 }
@@ -84,10 +84,10 @@ fn omitted_constructor_fields_lists_and_array8() {
 		r#"{"constructor_name":"empty"}"#,
 		r#"{"constructor_name":"empty","args":null,"kwargs":null}"#,
 	] {
-		let decoded: JsonEncodedESExpr = serde_json::from_str(input).expect("omitted fields should decode");
+		let decoded: JsonEncodedESExpr = deser_json::from_str(input).expect("omitted fields should decode");
 		assert_eq!(decoded.into_esexpr(), ESExpr::constructor("empty", [], []));
 	}
-	let list: JsonEncodedESExpr = serde_json::from_str("[true,\"str\",null]").expect("list should deserialize");
+	let list: JsonEncodedESExpr = deser_json::from_str("[true,\"str\",null]").expect("list should deserialize");
 	assert_eq!(
 		list.into_esexpr(),
 		ESExpr::constructor(
@@ -100,11 +100,11 @@ fn omitted_constructor_fields_lists_and_array8() {
 			[]
 		)
 	);
-	let bytes: JsonEncodedESExpr = serde_json::from_str(r#"{"array8":[0,255]}"#).expect("array8 should deserialize");
+	let bytes: JsonEncodedESExpr = deser_json::from_str(r#"{"array8":[0,255]}"#).expect("array8 should deserialize");
 	let bytes = bytes.into_esexpr();
 	assert_eq!(bytes, ESExpr::Array8(Cow::Owned(vec![0, 255])));
 	assert_eq!(
-		serde_json::to_value(JsonEncodedESExpr::from_esexpr(bytes)).expect("bytes serialize"),
+		deser_value::to_value(&JsonEncodedESExpr::from_esexpr(bytes)).expect("bytes serialize"),
 		json!({"base64":"AP8="})
 	);
 }
@@ -138,9 +138,9 @@ fn float_json_representations_and_numeric_visitors() {
 		),
 	] {
 		for (expr, special) in values.into_iter().zip(["nan", "+inf", "-inf"]) {
-			let value = serde_json::to_value(JsonEncodedESExpr::from_esexpr(expr)).expect("special float serialize");
+			let value = deser_value::to_value(&JsonEncodedESExpr::from_esexpr(expr)).expect("special float serialize");
 			assert_eq!(value, json!({width: special}));
-			let decoded = serde_json::from_value::<JsonEncodedESExpr>(value)
+			let decoded = deser_value::from_value::<JsonEncodedESExpr>(&value)
 				.expect("special float deserialize")
 				.into_esexpr();
 			let f = match decoded {
@@ -159,10 +159,10 @@ fn float_json_representations_and_numeric_visitors() {
 	}
 	for width in ["float16", "float32", "float64"] {
 		for n in [json!(-1), json!(1), json!(1.5)] {
-			let input = json!({width: n});
-			let decoded = serde_json::from_value::<JsonEncodedESExpr>(input.clone()).expect("numeric float visitor");
+			let input = json!({width: n.clone()});
+			let decoded = deser_value::from_value::<JsonEncodedESExpr>(&input.clone()).expect("numeric float visitor");
 			assert_eq!(
-				serde_json::to_value(decoded).expect("finite float serialize"),
+				deser_value::to_value(&decoded).expect("finite float serialize"),
 				json!({width: n.as_f64().expect("number")})
 			);
 		}
@@ -176,6 +176,7 @@ fn invalid_typed_json_values_are_rejected() {
 		json!({"base64":123}),
 		json!({"int":"not an integer"}),
 		json!({"int":42}),
+		json!(1.5),
 		json!({"null":"-1"}),
 		json!({"null":"bad"}),
 		json!({"array128":[-1]}),
@@ -189,32 +190,28 @@ fn invalid_typed_json_values_are_rejected() {
 		json!({"float64":{}}),
 	] {
 		assert!(
-			serde_json::from_value::<JsonEncodedESExpr>(input.clone()).is_err(),
-			"accepted {input}"
+			deser_value::from_value::<JsonEncodedESExpr>(&input.clone()).is_err(),
+			"accepted {input:?}"
 		);
 	}
 }
 
 #[test]
-fn uint128_json_uses_strings_only_above_uint64_range() {
+fn uint128_json_uses_integer_numbers() {
 	let values = vec![0u128, u128::from(u64::MAX), u128::from(u64::MAX) + 1, u128::MAX];
 	let encoded = JsonEncodedESExpr::from_esexpr(ESExpr::Array128(Cow::Owned(values.clone())));
-	let expected =
-		json!({"array128": [0, u64::MAX, "18446744073709551616", "340282366920938463463374607431768211455"]});
+	let expected = json!({"array128": [0, u64::MAX, u128::from(u64::MAX) + 1, u128::MAX]});
 	assert_eq!(
-		serde_json::to_value(&encoded).expect("mixed uint128 array should serialize"),
+		deser_value::to_value(&&encoded).expect("mixed uint128 array should serialize"),
 		expected
 	);
 	for decoded in [
-		serde_json::from_value::<JsonEncodedESExpr>(expected).expect("mixed array from Value"),
-		serde_json::from_str::<JsonEncodedESExpr>(&serde_json::to_string(&encoded).expect("serialize array"))
+		deser_value::from_value::<JsonEncodedESExpr>(&expected).expect("mixed array from Value"),
+		deser_json::from_str::<JsonEncodedESExpr>(&deser_json::to_string(&encoded).expect("serialize array"))
 			.expect("mixed array from string"),
 	] {
 		assert_eq!(decoded.into_esexpr(), ESExpr::Array128(Cow::Owned(values.clone())));
 	}
-	let small_strings: JsonEncodedESExpr =
-		serde_json::from_str(r#"{"array128":["0","42"]}"#).expect("decimal strings are accepted");
-	assert_eq!(small_strings.into_esexpr(), ESExpr::Array128(Cow::Owned(vec![0, 42])));
 	for value in [
 		json!("340282366920938463463374607431768211456"),
 		json!("-1"),
@@ -223,14 +220,14 @@ fn uint128_json_uses_strings_only_above_uint64_range() {
 		json!(true),
 		json!(null),
 	] {
-		assert!(serde_json::from_value::<JsonEncodedESExpr>(json!({"array128":[value]})).is_err());
+		assert!(deser_value::from_value::<JsonEncodedESExpr>(&json!({"array128":[value]})).is_err());
 	}
 }
 
 #[test]
 fn invalid_array128_container_types_are_rejected() {
 	for value in [json!(true), json!(42), json!("not an array"), json!(null), json!({})] {
-		assert!(serde_json::from_value::<JsonEncodedESExpr>(json!({"array128": value})).is_err());
+		assert!(deser_value::from_value::<JsonEncodedESExpr>(&json!({"array128": value})).is_err());
 	}
 }
 
@@ -264,17 +261,63 @@ fn serialization_io_errors_propagate_at_every_output_byte() {
 		ESExpr::Null(Cow::Owned(BigUint::from(1u8) << 128usize)),
 	] {
 		let expr = JsonEncodedESExpr::from_esexpr(expr);
-		let expected = serde_json::to_vec(&expr).expect("baseline should serialize");
+		let expected = deser_json::to_string(&expr)
+			.map(String::into_bytes)
+			.expect("baseline should serialize");
 		for offset in 0..expected.len() {
 			let mut writer = FailingWriter {
 				output: Vec::new(),
 				remaining: offset,
 			};
-			let error = serde_json::to_writer(&mut writer, &expr).expect_err("writer must fail");
-			assert!(error.is_io());
-			assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::Other));
+			let error = deser_json::to_writer(&mut writer, &expr).expect_err("writer must fail");
+			assert_eq!(error.kind(), deser::ErrorKind::Io);
+
 			assert!(error.to_string().contains("test writer failure"));
 			assert_eq!(writer.output, expected[..offset], "prefix at offset {offset}");
 		}
 	}
+}
+
+#[test]
+fn integers_are_raw_json_numbers() {
+	let huge = BigInt::from(1u8) << 256usize;
+	for int in [
+		BigInt::from(0),
+		BigInt::from(42),
+		BigInt::from(-42),
+		BigInt::from(u128::MAX),
+		huge.clone(),
+		-huge,
+	] {
+		let expected = int.to_string();
+		let encoded = JsonEncodedESExpr::Int(int);
+		assert_eq!(deser_json::to_string(&encoded).expect("serialize integer"), expected);
+		assert_eq!(
+			deser_json::from_str::<JsonEncodedESExpr>(&expected).expect("parse integer"),
+			encoded
+		);
+	}
+}
+
+#[test]
+fn numeric_strings_remain_strings() {
+	for input in ["42", "-42", "340282366920938463463374607431768211456"] {
+		let json = deser_json::to_string(&input).expect("serialize string");
+		assert_eq!(
+			deser_json::from_str::<JsonEncodedESExpr>(&json).expect("parse string"),
+			JsonEncodedESExpr::Str(input.into())
+		);
+	}
+}
+
+#[test]
+fn null_levels_are_raw_json_integers() {
+	let level = BigUint::from(1u8) << 256usize;
+	let encoded = JsonEncodedESExpr::NullLevel { null: level.clone() };
+	let expected = format!("{{\"null\":{level}}}");
+	assert_eq!(deser_json::to_string(&encoded).expect("serialize level"), expected);
+	assert_eq!(
+		deser_json::from_str::<JsonEncodedESExpr>(&expected).expect("parse level"),
+		encoded
+	);
 }
