@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fc from "fast-check";
 import { ArrayStringPool, readExprStream, writeExpr, writeExprs } from "./binary_format.js";
 
-import { primitives, expressions } from "./expression_arbitraries.js";
+import { primitives, expressions } from "./expression_arbitraries.test.js";
 
 async function* rechunk(data: AsyncIterable<Uint8Array>, size: number): AsyncIterable<Uint8Array> {
 	const chunks = await Array.fromAsync(data);

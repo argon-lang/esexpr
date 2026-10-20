@@ -6,7 +6,7 @@ import fc from "fast-check";
 import type { ESExpr } from "./index.js";
 import * as text from "./text_format.js";
 import * as binary from "./binary_format.js";
-import { expressions, primitives } from "./expression_arbitraries.js";
+import { expressions, primitives } from "./expression_arbitraries.test.js";
 
 async function* chunks(source: string, size = 1): AsyncIterable<string> {
 	yield "";

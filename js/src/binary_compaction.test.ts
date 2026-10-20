@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fc from "fast-check";
 import type { ESExpr } from "./index.js";
 import { addStrings, ArrayStringPool, readExprStream, StringTableBuilder, writeExpr, writeExprs } from "./binary_format.js";
-import { expressions } from "./expression_arbitraries.js";
+import { expressions } from "./expression_arbitraries.test.js";
 
 function constructor(name: string, args: readonly ESExpr[] = [], kwargs: ReadonlyMap<string, ESExpr> = new Map()): ESExpr {
 	return { type: "constructor", name, args, kwargs };
