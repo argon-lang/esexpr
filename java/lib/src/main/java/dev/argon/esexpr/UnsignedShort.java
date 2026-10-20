@@ -1,6 +1,7 @@
 package dev.argon.esexpr;
 
 import dev.argon.esexpr.codecs.UnsignedShortCodec;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A wrapper for an unsigned short.
@@ -59,7 +60,7 @@ public class UnsignedShort {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof UnsignedShort us && shortValue() == us.shortValue();
 	}
 

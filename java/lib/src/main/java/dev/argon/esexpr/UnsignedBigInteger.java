@@ -1,6 +1,7 @@
 package dev.argon.esexpr;
 
 import dev.argon.esexpr.codecs.NonNegativeBigIntegerCodec;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigInteger;
 
@@ -101,7 +102,7 @@ public class UnsignedBigInteger {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof UnsignedBigInteger ubi && value.equals(ubi.value);
 	}
 

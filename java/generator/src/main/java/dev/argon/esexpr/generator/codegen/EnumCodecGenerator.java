@@ -10,6 +10,7 @@ import dev.argon.esexpr.generator.lookup.MetadataCache;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.TypeElement;
@@ -30,22 +31,16 @@ public final class EnumCodecGenerator extends GeneratorBase {
 	}
 
 	public static List<TypeElement> getEnumCases(TypeElement elem, ProcessingEnvironment env) throws AbortException {
-		var cases = elem.getEnclosedElements().stream().map(e -> e instanceof TypeElement te ? te : null).filter(te -> {
-			if(te == null) {
-				return false;
+		var cases = elem.getEnclosedElements().stream().<TypeElement>mapMulti((e, c) -> {
+			if(!(e instanceof TypeElement te)) {
+				return;
 			}
 
-			return te.getInterfaces().stream().anyMatch((TypeMirror ifaceMirror) -> {
-				var iface = (DeclaredType)ifaceMirror;
-				if(iface.getTypeArguments().size() != elem.getTypeParameters().size()) {
-					return false;
-				}
+			if(!isEnumVariantType(elem, env, te)) {
+				return;
+			}
 
-				var elemType = env.getTypeUtils()
-					.getDeclaredType(elem, iface.getTypeArguments().toArray(TypeMirror[]::new));
-
-				return env.getTypeUtils().isSameType(iface, elemType);
-			});
+			c.accept(te);
 		}).toList();
 
 		if(cases.isEmpty()) {
@@ -53,6 +48,20 @@ public final class EnumCodecGenerator extends GeneratorBase {
 		}
 
 		return cases;
+	}
+
+	private static boolean isEnumVariantType(TypeElement parentElem, ProcessingEnvironment env, TypeElement te) {
+		return te.getInterfaces().stream().anyMatch((TypeMirror ifaceMirror) -> {
+			var iface = (DeclaredType)ifaceMirror;
+			if(iface.getTypeArguments().size() != parentElem.getTypeParameters().size()) {
+				return false;
+			}
+
+			var elemType = env.getTypeUtils()
+				.getDeclaredType(parentElem, iface.getTypeArguments().toArray(TypeMirror[]::new));
+
+			return env.getTypeUtils().isSameType(iface, elemType);
+		});
 	}
 
 	@Override

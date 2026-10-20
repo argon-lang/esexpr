@@ -1,7 +1,6 @@
 module dev.argon.esexpr.generator.tests {
 	requires java.compiler;
 	requires dev.argon.esexpr;
-	requires com.google.common;
 	requires dev.argon.esexpr.generator;
 	requires org.junit.jupiter.api;
 	requires org.jspecify;

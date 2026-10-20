@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,7 +24,12 @@ public class GeneratorRunTests {
 
 	@Test
 	public void runGeneratorOnTestSources(@TempDir Path outputDirectory) throws IOException {
-		Path sourceDirectory = Path.of(System.getProperty("esexpr.generator.testSources"));
+		Path sourceDirectory = Path.of(
+			Objects.requireNonNull(
+				System.getProperty("esexpr.generator.testSources"),
+				"esexpr.generator.testSources must be set"
+			)
+		);
 		List<Path> sourceFiles;
 		try(var paths = Files.list(sourceDirectory)) {
 			sourceFiles = paths.filter(path -> path.toString().endsWith(".java")).sorted().toList();
@@ -51,7 +57,7 @@ public class GeneratorRunTests {
 				diagnostics,
 				List.of(
 					"--module-path",
-					System.getProperty("jdk.module.path"),
+					Objects.requireNonNull(System.getProperty("jdk.module.path"), "jdk.module.path must be set"),
 					"-proc:only",
 					"-s",
 					outputDirectory.toString(),

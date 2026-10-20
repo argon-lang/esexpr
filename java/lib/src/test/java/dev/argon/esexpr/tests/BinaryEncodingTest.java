@@ -27,14 +27,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class BinaryEncodingTest {
 	@ParameterizedTest
 	@MethodSource("fileProvider")
 	public void binaryEncoding(Path jsonPath) throws Exception {
-		var esxbPath = jsonPath
-			.resolveSibling(FilenameUtils.removeExtension(jsonPath.getFileName().toString()) + ".esxb");
+		var esxbPath = jsonPath.resolveSibling(
+			FilenameUtils.removeExtension(Objects.requireNonNull(jsonPath.getFileName()).toString()) + ".esxb"
+		);
 
 		var jsonValue = parseJson(Files.readString(jsonPath));
 		var esxbValue = parseEsxb(Files.readAllBytes(esxbPath));
@@ -134,6 +136,6 @@ public class BinaryEncodingTest {
 	public static Stream<Path> fileProvider() throws IOException {
 		Path directory = Paths.get("../../tests");
 		return Files.list(directory).filter(Files::isRegularFile)
-			.filter(p -> FilenameUtils.getExtension(p.getFileName().toString()).equals("json"));
+			.filter(p -> FilenameUtils.getExtension(p.toString()).equals("json"));
 	}
 }

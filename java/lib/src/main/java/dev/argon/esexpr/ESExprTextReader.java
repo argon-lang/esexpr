@@ -7,6 +7,9 @@ import org.jspecify.annotations.Nullable;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.LongFunction;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -24,10 +27,16 @@ public class ESExprTextReader {
 	private final Reader reader;
 	private int ahead = -2;
 	private long offset;
+	private static final Pattern IDENTIFIER = Pattern.compile("[a-z][a-z0-9]*(?:-[a-z0-9]+)*");
+	private static final Pattern ARRAY_ATOM = Pattern.compile("u(8|16|32|64|128)");
+	private static final Pattern NULL_ATOM = Pattern.compile("null[0-9]+");
 	private static final Pattern INT = Pattern.compile("[+-]?(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0o[0-7]+|[0-9]+)");
 	private static final Pattern FLOAT = Pattern.compile(
 		"[+-]?(?:[0-9]+\\.[0-9]+(?:[eE][+-]?[0-9]+)?|0[xX][0-9a-fA-F]+\\.[0-9a-fA-F]+[pP][+-]?[0-9]+)(?:f16|F16|[fFdD])?"
 	);
+	private static final Pattern FLOAT_ATOM = Pattern
+		.compile("float(?<floatSize>16|32|64):(?<sign>[+-])?(?<nan>nan(?::(?<nanPayload>[0-9]+))?|(?<inf>inf))");
+
 	/**
 	 * Reads an expression or null at EOF.
 	 * 
@@ -126,7 +135,7 @@ public class ESExprTextReader {
 		var s = new StringBuilder();
 		while (peek() >= 0 && ((peek() >= 'a' && peek() <= 'z') || (peek() >= '0' && peek() <= '9') || peek() == '-'))
 			s.append((char)next());
-		if(!s.toString().matches("[a-z][a-z0-9]*(?:-[a-z0-9]+)*"))
+		if(!IDENTIFIER.matcher(s).matches())
 			throw error("Invalid identifier");
 		return s.toString();
 	}
@@ -214,20 +223,22 @@ public class ESExprTextReader {
 				next();
 				return new ESExpr.Array8(bytes.toImmutable());
 			}
-			String atom = "#" + token();
-			if(peek() == '[' && atom.matches("#u(8|16|32|64|128)"))
-				return array(Integer.parseInt(atom.substring(2)));
-			if(atom.equals("#true"))
+			String atom = token();
+			if(ARRAY_ATOM.matcher(atom).matches())
+				return array(Integer.parseInt(atom.substring(1)));
+			if(atom.equals("true"))
 				return new ESExpr.Bool(true);
-			if(atom.equals("#false"))
+			if(atom.equals("false"))
 				return new ESExpr.Bool(false);
-			if(atom.equals("#null"))
+			if(atom.equals("null"))
 				return new ESExpr.Null(BigInteger.ZERO);
-			if(atom.matches("#null[0-9]+"))
-				return new ESExpr.Null(new BigInteger(atom.substring(5)));
-			var m = Pattern.compile("#float(16|32|64):([+-]?nan(?::[0-9]+)?|[+-]inf)").matcher(atom);
-			if(m.matches())
-				return special(Integer.parseInt(m.group(1)), m.group(2));
+			if(NULL_ATOM.matcher(atom).matches())
+				return new ESExpr.Null(new BigInteger(atom.substring(4)));
+			var m = FLOAT_ATOM.matcher(atom);
+			if(m.matches()) {
+				return buildFloatAtom(atom, m);
+			}
+
 			throw error("Invalid atom");
 		}
 		String n = token();
@@ -262,71 +273,122 @@ public class ESExprTextReader {
 	}
 
 	private ESExpr array(int width) throws IOException, SyntaxException {
-		expect('[');
-		var bytes = ByteLists.mutable.empty();
-		var shorts = ShortLists.mutable.empty();
-		var ints = IntLists.mutable.empty();
-		var longs = LongLists.mutable.empty();
-		for(;;) {
-			ws();
-			if(peek() == ']') {
-				next();
-				break;
-			}
-			var n = integer(token());
-			if(n.signum() < 0 || n.bitLength() > width)
-				throw error("Unsigned array element out of range");
-			switch(width) {
-				case 8 -> bytes.add(n.byteValue());
-				case 16 -> shorts.add(n.shortValue());
-				case 32 -> ints.add(n.intValue());
-				case 64 -> longs.add(n.longValue());
-				case 128 -> {
-					longs.add(n.longValue());
-					longs.add(n.shiftRight(64).longValue());
-				}
-				default -> throw new AssertionError(width);
-			}
-		}
 		return switch(width) {
-			case 8 -> new ESExpr.Array8(bytes.toImmutable());
-			case 16 -> new ESExpr.Array16(shorts.toImmutable());
-			case 32 -> new ESExpr.Array32(ints.toImmutable());
-			case 64 -> new ESExpr.Array64(longs.toImmutable());
-			case 128 -> new ESExpr.Array128(longs.toImmutable());
+			case 8 -> {
+				var values = ByteLists.mutable.empty();
+				arrayElements(width, n -> values.add(n.byteValue()));
+				yield new ESExpr.Array8(values.toImmutable());
+			}
+			case 16 -> {
+				var values = ShortLists.mutable.empty();
+				arrayElements(width, n -> values.add(n.shortValue()));
+				yield new ESExpr.Array16(values.toImmutable());
+			}
+			case 32 -> {
+				var values = IntLists.mutable.empty();
+				arrayElements(width, n -> values.add(n.intValue()));
+				yield new ESExpr.Array32(values.toImmutable());
+			}
+			case 64 -> {
+				var values = LongLists.mutable.empty();
+				arrayElements(width, n -> values.add(n.longValue()));
+				yield new ESExpr.Array64(values.toImmutable());
+			}
+			case 128 -> {
+				var values = LongLists.mutable.empty();
+				arrayElements(width, n -> {
+					values.add(n.longValue());
+					values.add(n.shiftRight(64).longValue());
+				});
+				yield new ESExpr.Array128(values.toImmutable());
+			}
 			default -> throw new AssertionError(width);
 		};
 	}
 
-	private ESExpr special(int width, String s) throws SyntaxException {
-		int pw = switch(width) {
-			case 16 -> 10;
-			case 32 -> 23;
-			default -> 52;
-		};
-		long sign = s.startsWith("-") ? 1L << (width - 1) : 0;
-		long exponent = switch(width) {
-			case 16 -> 0x7C00L;
-			case 32 -> 0x7F800000L;
-			default -> 0x7FF0000000000000L;
-		};
-		long payload = 0;
-		if(s.contains("nan")) {
-			int colon = s.indexOf(':');
-			if(colon < 0)
-				payload = 1L << (pw - 1);
-			else {
-				var n = new BigInteger(s.substring(colon + 1));
-				if(n.bitLength() > pw)
-					throw error("Invalid NaN payload");
-				payload = n.longValue();
+	private void arrayElements(int width, Consumer<BigInteger> addElement) throws IOException, SyntaxException {
+		expect('[');
+		for(;;) {
+			ws();
+			if(peek() == ']') {
+				next();
+				return;
 			}
+			var n = integer(token());
+			if(n.signum() < 0 || n.bitLength() > width)
+				throw error("Unsigned array element out of range");
+			addElement.accept(n);
 		}
-		long bits = sign | exponent | payload;
-		return switch(width) {
-			case 16 -> new ESExpr.Float16((short)bits);
-			case 32 -> new ESExpr.Float32(Float.intBitsToFloat((int)bits));
-			default -> new ESExpr.Float64(Double.longBitsToDouble(bits));
+	}
+
+	private ESExpr buildFloatAtom(String atom, Matcher m) throws SyntaxException {
+		String floatSize = Objects.requireNonNull(m.group("floatSize"));
+
+		boolean isNeg = switch(m.group("sign")) {
+			case null -> false;
+			case "+" -> false;
+			case "-" -> true;
+			case String signStr -> throw new AssertionError(signStr);
 		};
+
+		if(m.group("inf") != null) {
+			return switch(floatSize) {
+				case "16" -> new ESExpr.Float16(isNeg ? (short)0xFC00 : (short)0x7C00);
+				case "32" -> new ESExpr.Float32(isNeg ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY);
+				case "64" -> new ESExpr.Float64(isNeg ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY);
+				default -> throw new AssertionError(floatSize);
+			};
+		}
+
+		if(m.group("nan") != null) {
+			int width;
+			int pw;
+			long exponent;
+			LongFunction<ESExpr> factory;
+			switch(floatSize) {
+				case "16" -> {
+					width = 16;
+					pw = 10;
+					exponent = 0x7C00L;
+					factory = bits -> new ESExpr.Float16((short)bits);
+				}
+				case "32" -> {
+					width = 32;
+					pw = 23;
+					exponent = 0x7F800000L;
+					factory = bits -> new ESExpr.Float32(Float.intBitsToFloat((int)bits));
+				}
+				case "64" -> {
+					width = 64;
+					pw = 52;
+					exponent = 0x7FF0000000000000L;
+					factory = bits -> new ESExpr.Float64(Double.longBitsToDouble(bits));
+				}
+				default -> throw new AssertionError(floatSize);
+			};
+
+			long sign = isNeg ? 1L << (width - 1) : 0L;
+			long payload = 0;
+
+			var nanPayload = m.group("nanPayload");
+			if(nanPayload == null) {
+				payload = 1L << (pw - 1);
+			}
+			else {
+				try {
+					payload = Long.parseLong(nanPayload);
+				}
+				catch(NumberFormatException e) {
+					throw error("Invalid NaN payload");
+				}
+				if(payload >= (1L << pw))
+					throw error("Invalid NaN payload");
+			}
+
+			long bits = sign | exponent | payload;
+			return factory.apply(bits);
+		}
+
+		throw new IllegalArgumentException("Invalid float atom: " + atom);
 	}
 }

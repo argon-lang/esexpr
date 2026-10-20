@@ -1,6 +1,7 @@
 package dev.argon.esexpr;
 
 import dev.argon.esexpr.codecs.UnsignedByteCodec;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A wrapper for an unsigned byte.
@@ -63,7 +64,7 @@ public class UnsignedByte {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof UnsignedByte ub && byteValue() == ub.byteValue();
 	}
 

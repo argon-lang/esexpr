@@ -96,7 +96,7 @@ public class Lookup {
 					default -> throw new AbortException("Unsupported unsigned type: " + t, associatedElement);
 				};
 
-				var te = env.getElementUtils().getTypeElement(unboxedClass.getCanonicalName());
+				var te = env.getElementUtils().getTypeElement(Objects.requireNonNull(unboxedClass.getCanonicalName()));
 				if(te == null) {
 					throw new AbortException(
 						"Could not find unsigned type element: " + unboxedClass,

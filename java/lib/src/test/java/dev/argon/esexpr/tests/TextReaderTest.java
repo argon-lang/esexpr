@@ -2,10 +2,13 @@ package dev.argon.esexpr.tests;
 
 import dev.argon.esexpr.*;
 
+import org.apache.commons.io.FilenameUtils;
 import org.junit.jupiter.api.Test;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.*;
+import java.util.Objects;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TextReaderTest {
@@ -17,7 +20,9 @@ public class TextReaderTest {
 	public void sharedFixtures() throws Exception {
 		try(var files = Files.list(Path.of("../../tests"))) {
 			for(var path : files.filter(p -> p.toString().endsWith(".esx")).toList()) {
-				var binary = path.resolveSibling(path.getFileName().toString().replace(".esx", ".esxb"));
+				var binary = path.resolveSibling(
+					FilenameUtils.removeExtension(Objects.requireNonNull(path.getFileName()).toString()) + ".esxb"
+				);
 				try(var text = Files.newBufferedReader(path); var bytes = Files.newInputStream(binary)) {
 					assertEquals(
 						new ESExprBinaryReader(bytes).readAll().toList(),
@@ -37,7 +42,8 @@ public class TextReaderTest {
 		assertNull(r.tryRead());
 		assertThrows(EOFException.class, r::read);
 		for(String s : new String[]{"(list", "\"unterminated", "\"\\u{110000}\"", "\"\\u{D800}\"", "\"\\q\"", "0x1.0",
-				"1.0e", "#truex", "#u8[256]", "#u16[-1]", "#\"0\"", "#float32:nan:8388608", "(a key:)"}) {
+				"1.0e", "#truex", "#u8[256]", "#u16[-1]", "#\"0\"", "#float32:nan:8388608",
+				"#float64:nan:4503599627370496", "#float64:nan:9223372036854775808", "(a key:)"}) {
 			assertThrows(SyntaxException.class, () -> {
 				var r2 = reader(s);
 				while (r2.tryRead() != null) {

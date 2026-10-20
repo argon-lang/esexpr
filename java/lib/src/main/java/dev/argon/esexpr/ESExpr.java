@@ -6,6 +6,7 @@ import org.eclipse.collections.api.list.primitive.ImmutableByteList;
 import org.eclipse.collections.api.list.primitive.ImmutableIntList;
 import org.eclipse.collections.api.list.primitive.ImmutableLongList;
 import org.eclipse.collections.api.list.primitive.ImmutableShortList;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -98,7 +99,7 @@ public sealed interface ESExpr {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			return obj instanceof Float16(var other) && f == other;
 		}
 
@@ -126,7 +127,7 @@ public sealed interface ESExpr {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			return obj instanceof Float32(var other) && Float.floatToRawIntBits(f) == Float.floatToRawIntBits(other);
 		}
 
@@ -149,7 +150,7 @@ public sealed interface ESExpr {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			return obj instanceof Float64(var other)
 				&& Double.doubleToRawLongBits(d) == Double.doubleToRawLongBits(other);
 		}

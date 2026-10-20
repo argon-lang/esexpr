@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -409,7 +410,7 @@ public class GeneratorValidationTests {
 				diagnostics,
 				List.of(
 					defaultPackage ? "--class-path" : "--module-path",
-					System.getProperty("jdk.module.path"),
+					Objects.requireNonNull(System.getProperty("jdk.module.path"), "jdk.module.path must be set"),
 					"-s",
 					directory.toString(),
 					"-d",
@@ -486,7 +487,7 @@ public class GeneratorValidationTests {
 				List.of(
 					"-proc:only",
 					"--class-path",
-					System.getProperty("jdk.module.path"),
+					Objects.requireNonNull(System.getProperty("jdk.module.path"), "jdk.module.path must be set"),
 					"-s",
 					directory.toString()
 				),

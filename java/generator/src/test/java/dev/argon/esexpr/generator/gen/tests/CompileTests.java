@@ -9,6 +9,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import dev.argon.esexpr.generator.ESExprGeneratorProcessor;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,7 +42,7 @@ public class CompileTests {
 				diagnostics,
 				List.of(
 					"--module-path",
-					System.getProperty("jdk.module.path"),
+					Objects.requireNonNull(System.getProperty("jdk.module.path"), "jdk.module.path must be set"),
 					"-s",
 					"build/test_output_files",
 					"-d",

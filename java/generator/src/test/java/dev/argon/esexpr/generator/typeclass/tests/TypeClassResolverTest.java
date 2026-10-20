@@ -154,7 +154,11 @@ public class TypeClassResolverTest {
 			null,
 			fileManager,
 			diagnostics,
-			ImmutableList.of("-proc:only", "--module-path", System.getProperty("jdk.module.path")),
+			ImmutableList.of(
+				"-proc:only",
+				"--module-path",
+				Objects.requireNonNull(System.getProperty("jdk.module.path"), "jdk.module.path must be set")
+			),
 			null,
 			sourceFiles
 		);
@@ -240,7 +244,7 @@ public class TypeClassResolverTest {
 						types.getDeclaredType(typeClassElement, listStringType)
 					)
 				);
-				var localResult = ((TypeClassResult.Method)results.get(6)).arguments().get(0);
+				var localResult = ((TypeClassResult.Method)Objects.requireNonNull(results.get(6))).arguments().get(0);
 				assertTrue(types.isSameType(resolver.getTypeClassType(localResult), useTypeClassParam.asType()));
 				var checkedResolver = resolver;
 				var listMethod = ((TypeClassResult.Method)results.get(2)).method();
@@ -463,13 +467,19 @@ public class TypeClassResolverTest {
 
 		assertNotNull(results.get(6));
 		assertTrue(results.get(6) instanceof TypeClassResult.Method);
-		assertEquals("listInstance", ((TypeClassResult.Method)results.get(6)).method().getSimpleName().toString());
-		assertEquals(1, ((TypeClassResult.Method)results.get(6)).arguments().size());
-		assertTrue(((TypeClassResult.Method)results.get(6)).arguments().get(0) instanceof TypeClassResult.Local);
+		assertEquals(
+			"listInstance",
+			((TypeClassResult.Method)Objects.requireNonNull(results.get(6))).method().getSimpleName().toString()
+		);
+		assertEquals(1, ((TypeClassResult.Method)Objects.requireNonNull(results.get(6))).arguments().size());
+		assertTrue(
+			((TypeClassResult.Method)Objects.requireNonNull(results.get(6))).arguments()
+				.get(0) instanceof TypeClassResult.Local
+		);
 		assertEquals(
 			"instance",
-			((TypeClassResult.Local)((TypeClassResult.Method)results.get(6)).arguments().get(0)).localVar()
-				.getSimpleName().toString()
+			((TypeClassResult.Local)((TypeClassResult.Method)Objects.requireNonNull(results.get(6))).arguments().get(0))
+				.localVar().getSimpleName().toString()
 		);
 	}
 
