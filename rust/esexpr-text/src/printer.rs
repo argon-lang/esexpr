@@ -1,6 +1,9 @@
 //! Compact, lossless text printing.
-use alloc::{format, string::String, vec::Vec};
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::{self, Write};
+
 use esexpr::ESExpr;
 
 /// Indentation used for each nesting level in multiline output.
@@ -85,7 +88,8 @@ impl<W: Write> PrinterState<'_, W> {
 	fn separator(&mut self) -> fmt::Result {
 		if self.options.indentation == Indentation::Compact {
 			self.writer.write_char(' ')
-		} else {
+		}
+		else {
 			self.line_break()
 		}
 	}
@@ -113,7 +117,8 @@ impl<W: Write> PrinterState<'_, W> {
 	fn identifier(&mut self, name: &str) -> fmt::Result {
 		if crate::parser::simple_identifier(name).is_ok_and(|(rest, parsed)| rest.is_empty() && parsed == name) {
 			self.writer.write_str(name)
-		} else {
+		}
+		else {
 			self.quoted(name, '\'')
 		}
 	}
@@ -128,16 +133,20 @@ impl<W: Write> PrinterState<'_, W> {
 			let sign = if bits & sign == 0 { "+" } else { "-" };
 			if bits & payload == 0 {
 				write!(self.writer, "#float{width}:{sign}inf")
-			} else {
+			}
+			else {
 				write!(self.writer, "#float{width}:{sign}nan:{}", bits & payload)
 			}
-		} else {
+		}
+		else {
 			// The grammar requires digits on both sides of the decimal point.
 			if finite.contains('.') {
 				self.writer.write_str(&finite)?;
-			} else if let Some(pos) = finite.find(['e', 'E']) {
+			}
+			else if let Some(pos) = finite.find(['e', 'E']) {
 				write!(self.writer, "{}.0{}", &finite[..pos], &finite[pos..])?;
-			} else {
+			}
+			else {
 				write!(self.writer, "{finite}.0")?;
 			}
 			self.writer.write_str(suffix)
@@ -174,7 +183,9 @@ impl<W: Write> PrinterState<'_, W> {
 					self.write_expr(&value)?;
 				}
 				self.depth -= 1;
-				if self.options.indentation != Indentation::Compact && (!ctor.args.is_empty() || !ctor.kwargs.is_empty()) {
+				if self.options.indentation != Indentation::Compact &&
+					(!ctor.args.is_empty() || !ctor.kwargs.is_empty())
+				{
 					self.line_break()?;
 				}
 				self.writer.write_char(')')
@@ -201,7 +212,8 @@ impl<W: Write> PrinterState<'_, W> {
 			ESExpr::Null(value) => {
 				if **value == num_bigint::BigUint::ZERO {
 					self.writer.write_str("#null")
-				} else {
+				}
+				else {
 					write!(self.writer, "#null{value}")
 				}
 			},

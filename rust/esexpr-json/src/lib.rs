@@ -271,6 +271,7 @@ impl JsonEncodedESExpr {
 pub struct Base64Value(Vec<u8>);
 
 use alloc::string::ToString;
+
 use deser::de::{Slot, default_atom};
 use deser::ser::Emit;
 use deser::{Atom, Deserialize, Error, ErrorKind, Serialize, State};
@@ -289,7 +290,8 @@ impl<'de> Deserialize<'de> for Base64Value {
 					.map_err(|_| Error::new(ErrorKind::InvalidValue, "invalid base64"))?,
 			));
 			Ok(())
-		} else {
+		}
+		else {
 			default_atom(slot, atom, state)
 		}
 	}
@@ -303,11 +305,14 @@ macro_rules! float_adapter {
 				let f = ($to)(*value);
 				Ok(Emit::Atom(if f.is_nan() {
 					Atom::Str("nan".into())
-				} else if f == f64::INFINITY {
+				}
+				else if f == f64::INFINITY {
 					Atom::Str("+inf".into())
-				} else if f == f64::NEG_INFINITY {
+				}
+				else if f == f64::NEG_INFINITY {
 					Atom::Str("-inf".into())
-				} else {
+				}
+				else {
 					($atom)(f)
 				}))
 			}
@@ -371,7 +376,8 @@ impl From<NativeBigInt> for BigInt {
 	fn from(value: NativeBigInt) -> Self {
 		let sign = if value.0.negative {
 			num_bigint::Sign::Minus
-		} else {
+		}
+		else {
 			num_bigint::Sign::Plus
 		};
 		Self::from_bytes_be(sign, &value.0.magnitude)
@@ -384,7 +390,8 @@ impl<'de> Deserialize<'de, String> for StrictString {
 		if let Atom::Str(value) = atom {
 			slot.set(value.to_string());
 			Ok(())
-		} else {
+		}
+		else {
 			Err(Error::new(ErrorKind::InvalidValue, "expected a JSON string"))
 		}
 	}
