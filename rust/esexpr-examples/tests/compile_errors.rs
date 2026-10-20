@@ -8,7 +8,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
 	config.comment_defaults.base().set_custom(
 		"dependencies",
 		DependencyBuilder {
-			crate_manifest_path: PathBuf::from("../esexpr/Cargo.toml"),
+			crate_manifest_path: PathBuf::from("Cargo.toml"),
 			..DependencyBuilder::default()
 		},
 	);
