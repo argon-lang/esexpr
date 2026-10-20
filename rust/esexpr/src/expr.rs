@@ -93,6 +93,7 @@ impl<'a> ESExpr<'a> {
 	}
 
 	/// Performs a deep clone of the value.
+	#[must_use]
 	pub fn as_owned(&self) -> ESExpr<'static> {
 		match self {
 			ESExpr::Constructor(constructor) => ESExpr::Constructor(constructor.as_owned()),
@@ -112,6 +113,7 @@ impl<'a> ESExpr<'a> {
 	}
 
 	/// Ensures that any borrowed values are converted to owned values.
+	#[must_use]
 	pub fn into_owned(self) -> ESExpr<'static> {
 		match self {
 			ESExpr::Constructor(constructor) => ESExpr::Constructor(constructor.into_owned()),
@@ -131,6 +133,7 @@ impl<'a> ESExpr<'a> {
 	}
 
 	/// Creates an `ESExpr` value from a reference without making a deep copy.
+	#[must_use]
 	pub fn as_borrowed<'b>(&'b self) -> ESExpr<'b>
 	where
 		'a: 'b,
@@ -220,6 +223,7 @@ impl ESExprStatic {
 	}
 
 	/// Get the underlying `ESExpr`.
+	#[must_use]
 	pub fn into_inner(self) -> ESExpr<'static> {
 		self.0
 	}
