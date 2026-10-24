@@ -22,7 +22,7 @@ public class GeneratorDiagnosticTests {
 
 	private static string Union(string cases) => $$"""
 		[ESExprCodec]
-		public abstract partial record InvalidUnion {
+		public closed partial record InvalidUnion {
 			private InvalidUnion() { }
 			{{cases}}
 			[TypeClassInstance]
@@ -33,12 +33,13 @@ public class GeneratorDiagnosticTests {
 	private static string Flags(string fields) => Record(fields).Replace("[ESExprCodec]", "[ESExprCodec(Flags = true)]", StringComparison.Ordinal);
 
 	private static IEnumerable<TestCaseData> InvalidInputs() {
+		yield return new TestCaseData("ESX0005", "no primary constructor parameters", "[ESExprCodec] public closed partial record PositionalUnion(int Value) { [TypeClassInstance] public static partial IESExprCodec<PositionalUnion> Codec { get; } }").SetName("UnionRejectsPrimaryConstructorParameters");
+		yield return new TestCaseData("ESX0003", "closed record", "[ESExprCodec] public abstract partial record OpenUnion { private OpenUnion() { } [TypeClassInstance] public static partial IESExprCodec<OpenUnion> Codec { get; } }").SetName("AbstractUnionIsRejected");
 		yield return new TestCaseData("ESX0002", "must not be nested", "public class Outer { " + Record("") + " }").SetName("NestedRecordIsRejected");
 		yield return new TestCaseData("ESX0003", "must be a record", "[ESExprCodec] public struct InvalidStruct { [TypeClassInstance] public static IESExprCodec<InvalidStruct> Codec => null!; }").SetName("StructIsRejected");
 		yield return new TestCaseData("ESX0004", "only named fields", "[ESExprCodec] public sealed partial record Positional(int Value) { [TypeClassInstance] public static partial IESExprCodec<Positional> Codec { get; } }").SetName("PositionalRecordIsRejected");
-		yield return new TestCaseData("ESX0005", "single private constructor", "[ESExprCodec] public abstract partial record MissingConstructor { [TypeClassInstance] public static partial IESExprCodec<MissingConstructor> Codec { get; } }").SetName("UnionRequiresPrivateConstructor");
-		yield return new TestCaseData("ESX0005", "single private constructor", "[ESExprCodec] public abstract partial record PublicConstructor { public PublicConstructor() { } [TypeClassInstance] public static partial IESExprCodec<PublicConstructor> Codec { get; } }").SetName("UnionRejectsPublicConstructor");
-		yield return new TestCaseData("ESX0005", "single private constructor", "[ESExprCodec] public abstract partial record TwoConstructors { private TwoConstructors() { } private TwoConstructors(int n) { } [TypeClassInstance] public static partial IESExprCodec<TwoConstructors> Codec { get; } }").SetName("UnionRejectsMultipleConstructors");
+		yield return new TestCaseData("ESX0005", "single private parameterless constructor", "[ESExprCodec] public closed partial record PublicConstructor { public PublicConstructor() { } [TypeClassInstance] public static partial IESExprCodec<PublicConstructor> Codec { get; } }").SetName("UnionRejectsPublicConstructor");
+		yield return new TestCaseData("ESX0005", "single private parameterless constructor", "[ESExprCodec] public closed partial record TwoConstructors { private TwoConstructors() { } private TwoConstructors(int n) { } [TypeClassInstance] public static partial IESExprCodec<TwoConstructors> Codec { get; } }").SetName("UnionRejectsMultipleConstructors");
 		yield return new TestCaseData("ESX0013", "Duplicate keyword", Record("[Keyword(\"same\")] public required int A { get; init; } [Keyword(\"same\")] public required int B { get; init; }")).SetName("DuplicateRequiredKeywordsAreRejected");
 		yield return new TestCaseData("ESX0013", "Duplicate keyword", Record("[Optional, Keyword(\"same\")] public Option<int> A { get; init; } [Optional, Keyword(\"same\")] public Option<int> B { get; init; }")).SetName("DuplicateOptionalKeywordsAreRejected");
 		yield return new TestCaseData("ESX0009", "overlapping", Union("[Constructor(\"same\")] public sealed record A : InvalidUnion; [Constructor(\"same\")] public sealed record B : InvalidUnion;")).SetName("DuplicateUnionConstructorsAreRejected");
@@ -135,7 +136,6 @@ public class GeneratorDiagnosticTests {
 				[TypeClassInstance] public static partial IESExprCodec<MissingLocal<T>> Codec<T>(IESExprCodec<string> wrongCodec);
 			}
 			""").SetName("MismatchedLocalCodecIsRejected");
-		yield return new TestCaseData("CS8785", "Unable to substitute type parameters", Union("[InlineValue] public sealed record ValueCase<U> : InvalidUnion { public required U Value { get; init; } }")).SetName("UnresolvedInlineCaseTypeParameterIsRejected");
 		yield return new TestCaseData("CS8785", "Unable to find TypeClassInstance", "[ESExprCodec] public sealed record NoCompanion<T> { public required T Value { get; init; } }").SetName("GenericRecordWithoutCodecCompanionIsRejected");
 		yield return new TestCaseData("CS8785", "Unable to find TypeClassInstance", "[ESExprCodec] public sealed partial record UnmarkedAccessor { public static IESExprCodec<UnmarkedAccessor> Codec => throw new NotImplementedException(); }").SetName("AccessorWithoutInstanceAttributeIsRejected");
 		// These failures arise while constructing the incremental model; Roslyn
@@ -159,7 +159,7 @@ public class GeneratorDiagnosticTests {
 
 	[TestCaseSource(nameof(InvalidInputs))]
 	public void InvalidSourceReportsExpectedDiagnostic(string id, string message, string source) {
-		var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp13);
+		var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
 		var tree = CSharpSyntaxTree.ParseText(Imports + Environment.NewLine + source, parseOptions);
 		var assemblyPaths = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
 		var references = assemblyPaths.Select(path => MetadataReference.CreateFromFile(path))

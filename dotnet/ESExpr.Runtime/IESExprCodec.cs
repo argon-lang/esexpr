@@ -143,19 +143,19 @@ public static class IESExprCodec {
 
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]
-	public static IESExprCodec<Dictionary<K, V>> MapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new MapCodec<K, V>(keyCodec, valueCodec);
+	public static IESExprCodec<Dictionary<TKey, TValue>> MapCodec<TKey, TValue>(IESExprCodec<TKey> keyCodec, IESExprCodec<TValue> valueCodec) where TKey : notnull => new MapCodec<TKey, TValue>(keyCodec, valueCodec);
 
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]
-	public static IESExprCodec<ImmutableDictionary<K, V>> ImmutableMapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new ImmutableMapCodec<K, V>(keyCodec, valueCodec);
+	public static IESExprCodec<ImmutableDictionary<TKey, TValue>> ImmutableMapCodec<TKey, TValue>(IESExprCodec<TKey> keyCodec, IESExprCodec<TValue> valueCodec) where TKey : notnull => new ImmutableMapCodec<TKey, TValue>(keyCodec, valueCodec);
 
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]
-	public static IESExprCodec<IReadOnlyDictionary<K, V>> ReadOnlyMapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new ReadOnlyMapCodec<K, V>(keyCodec, valueCodec);
+	public static IESExprCodec<IReadOnlyDictionary<TKey, TValue>> ReadOnlyMapCodec<TKey, TValue>(IESExprCodec<TKey> keyCodec, IESExprCodec<TValue> valueCodec) where TKey : notnull => new ReadOnlyMapCodec<TKey, TValue>(keyCodec, valueCodec);
 
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]
-	public static IESExprCodec<IImmutableDictionary<K, V>> InterfaceImmutableMapCodec<K, V>(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) where K : notnull => new InterfaceImmutableMapCodec<K, V>(keyCodec, valueCodec);
+	public static IESExprCodec<IImmutableDictionary<TKey, TValue>> InterfaceImmutableMapCodec<TKey, TValue>(IESExprCodec<TKey> keyCodec, IESExprCodec<TValue> valueCodec) where TKey : notnull => new InterfaceImmutableMapCodec<TKey, TValue>(keyCodec, valueCodec);
 
 	[TypeClassInstance]
 	[ESExprTags(Constructors = ["map"])]

@@ -3,8 +3,7 @@ using ESExpr.Runtime;
 namespace ESExpr.Tests;
 
 [ESExprCodec]
-public abstract partial record MyEnum {
-	private MyEnum() { }
+public closed partial record MyEnum {
 
 	public sealed record MyCaseA : MyEnum {
 		public required int A { get; init; }

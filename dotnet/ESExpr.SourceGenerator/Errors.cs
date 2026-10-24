@@ -24,7 +24,7 @@ internal static class Errors {
 	public static readonly DiagnosticDescriptor InvalidESExprTypeDeclaration = new DiagnosticDescriptor(
 		id: "ESX0003",
 		title: "Invalid ESExpr type declaration",
-		messageFormat: "ESExpr type '{0}' must be a record, an abstract record, or an enum",
+		messageFormat: "ESExpr type '{0}' must be a record, a closed record, or an enum",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
@@ -41,8 +41,8 @@ internal static class Errors {
 
 	public static readonly DiagnosticDescriptor InvalidESExprEnumDeclaration = new DiagnosticDescriptor(
 		id: "ESX0005",
-		title: "Invalid ESExpr abstract record declaration",
-		messageFormat: "ESExpr abstract record type '{0}' must contain only a single private constructor",
+		title: "Invalid ESExpr closed record declaration",
+		messageFormat: "ESExpr closed record type '{0}' must have no primary constructor parameters and at most a single private parameterless constructor",
 		category: "SourceGenerator",
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true

@@ -1,3 +1,6 @@
+// Closed hierarchy APIs are experimental in the .NET 11 RC2 Roslyn release.
+#pragma warning disable RSEXPERIMENTAL006
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -64,7 +67,7 @@ internal class ModelBuilder {
 				}
 
 
-			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.AbstractKeyword):
+			case RecordDeclarationSyntax recordDecl when recordDecl.Modifiers.Any(SyntaxKind.ClosedKeyword):
 				if(!IsValidEnumRecord(recordDecl)) {
 					return new InvalidTypeSourceModel {
 						Descriptor = Errors.InvalidESExprEnumDeclaration,
@@ -84,7 +87,7 @@ internal class ModelBuilder {
 		}
 	}
 
-	private ITypeSourceModel? CreateUnionRecordSourceModel(RecordDeclarationSyntax recordDecl) {
+	private UnionRecordSourceModel CreateUnionRecordSourceModel(RecordDeclarationSyntax recordDecl) {
 		return new UnionRecordSourceModel {
 			Usings = GetUsings(recordDecl),
 			Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
@@ -107,7 +110,7 @@ internal class ModelBuilder {
 		};
 	}
 
-	private ITypeSourceModel? CreateRecordSourceModel(RecordDeclarationSyntax recordDecl) {
+	private RecordSourceModel CreateRecordSourceModel(RecordDeclarationSyntax recordDecl) {
 		return new RecordSourceModel {
 			Usings = GetUsings(recordDecl),
 			Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
@@ -121,7 +124,7 @@ internal class ModelBuilder {
 		};
 	}
 
-	private ITypeSourceModel? CreateFlagsSourceModel(RecordDeclarationSyntax recordDecl) {
+	private FlagsSourceModel CreateFlagsSourceModel(RecordDeclarationSyntax recordDecl) {
 		return new FlagsSourceModel {
 			Usings = GetUsings(recordDecl),
 			Namespace = GetNamespaceFromNamespaceNodes(recordDecl.Parent),
@@ -133,7 +136,7 @@ internal class ModelBuilder {
 		};
 	}
 
-	private ITypeSourceModel? CreateSimpleEnumSourceModel(EnumDeclarationSyntax enumDecl) {
+	private SimpleEnumSourceModel CreateSimpleEnumSourceModel(EnumDeclarationSyntax enumDecl) {
 		return new SimpleEnumSourceModel {
 			Usings = GetUsings(enumDecl),
 			Namespace = GetNamespaceFromNamespaceNodes(enumDecl.Parent),
@@ -175,11 +178,19 @@ internal class ModelBuilder {
 		throw new Exception("Unable to find TypeClassInstance method or property for " + recordDecl.Identifier.ToString());
 	}
 
-	private bool IsValidEnumRecord(RecordDeclarationSyntax decl) {
+	private static bool IsValidEnumRecord(RecordDeclarationSyntax decl) {
+		if((decl.ParameterList?.Parameters.Count ?? 0) != 0) {
+			return false;
+		}
+
 		var constructors = decl.Members
 			.OfType<ConstructorDeclarationSyntax>()
 			.Take(2)
 			.ToList();
+
+		if(constructors.Count == 0) {
+			return true;
+		}
 
 		if(constructors.Count != 1) {
 			return false;
@@ -551,7 +562,7 @@ internal class ModelBuilder {
 				return new TypeTags(ESExprTagSet.Create([new ESExprTag.Constructor(constructorName)]), []);
 			}
 		}
-		else if(t.IsRecord && t.IsAbstract) {
+		else if(t.IsRecord && t.IsClosed) {
 			var tags = new HashSet<ESExprTag>();
 			var unionWithTypes = ImmutableList.CreateBuilder<ITypeSymbol>();
 			var substitutions = new Dictionary<ITypeParameterSymbol, ITypeSymbol>(typeParams, SymbolEqualityComparer.Default);
@@ -576,7 +587,7 @@ internal class ModelBuilder {
 							Diagnostic.Create(
 								Errors.InvalidInlineValue,
 								null,
-								new object[] { }
+								Array.Empty<object>()
 							)
 						);
 					}

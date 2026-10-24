@@ -291,7 +291,7 @@ internal sealed class TypeClassResolver {
 		}
 	}
 
-	private bool CheckConstraints(ITypeParameterSymbol tp, ITypeSymbol typeSymbol) {
+	private static bool CheckConstraints(ITypeParameterSymbol tp, ITypeSymbol typeSymbol) {
 		if(tp.HasValueTypeConstraint && !typeSymbol.IsValueType) {
 			return false;
 		}
@@ -328,7 +328,7 @@ internal sealed class TypeClassResolver {
 		return true;
 	}
 
-	private bool SatisfiesTypeConstraint(ITypeSymbol type, ITypeSymbol constraint) {
+	private static bool SatisfiesTypeConstraint(ITypeSymbol type, ITypeSymbol constraint) {
 		if(SymbolEqualityComparer.Default.Equals(type, constraint))
 			return true;
 

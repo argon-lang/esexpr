@@ -82,7 +82,7 @@ public class GeneratorIncrementalTests {
 		const string source = """
 			using ESExpr.Runtime;
 			[ESExprCodec]
-			public abstract partial record RecursiveTags {
+			public closed partial record RecursiveTags {
 				private RecursiveTags() {}
 				[InlineValue] public sealed record Loop : RecursiveTags { public required RecursiveTags Value { get; init; } }
 				[TypeClassInstance] public static partial IESExprCodec<RecursiveTags> Codec { get; }

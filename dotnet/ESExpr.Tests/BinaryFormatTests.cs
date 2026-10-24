@@ -180,7 +180,7 @@ public class BinaryFormatTests : TestBase {
 		var esxbValue = await ReadEsxbFile(Path.Join(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file) + ".esxb"));
 
 		var rewrittenValue = await esxbValue.ToAsyncEnumerable()
-			.SelectAwait(async expr => await ParseEsxb(await EncodeEsxb(expr)))
+			.Select(async (Expr expr, System.Threading.CancellationToken cancellationToken) => await ParseEsxb(await EncodeEsxb(expr)))
 			.ToListAsync();
 
 		Assert.That(esxbValue, Is.EqualTo(jsonValue));

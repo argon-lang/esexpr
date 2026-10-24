@@ -403,7 +403,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	}
 
-	private AttributeSyntax TagsToAttribute(ESExprTagSet tags) {
+	private static AttributeSyntax TagsToAttribute(ESExprTagSet tags) {
 		var attrName = QualifiedName(
 			QualifiedName(
 				AliasQualifiedName(
@@ -494,7 +494,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 	}
 
-	protected BlockSyntax WriteIsEqualFields(IReadOnlyList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
+	protected static BlockSyntax WriteIsEqualFields(IReadOnlyList<SourceModelField> fields, ExpressionSyntax aExpr, ExpressionSyntax bExpr) {
 		var stmts = new List<StatementSyntax>();
 
 		foreach(var field in fields) {
@@ -515,7 +515,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				SourceModelField.FieldMode.Optional { OptionalValueCodecInstance: var codec } => GetCodecExpr(codec),
 				SourceModelField.FieldMode.Dict { DictCodecInstance: var codec } => GetCodecExpr(codec),
 				SourceModelField.FieldMode.Vararg { VarargCodecInstance: var codec } => GetCodecExpr(codec),
-				_ => throw new ArgumentOutOfRangeException()
 			};
 
 			var isEqualCall = InvocationExpression(
@@ -950,7 +949,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 						Context.ReportDiagnostic(Diagnostic.Create(
 							Errors.MultipleDict,
 							field.Location,
-							new object?[] { }
+							Array.Empty<object>()
 						));
 					}
 
@@ -1037,7 +1036,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return Block(stmts);
 	}
 
-	protected BlockSyntax WriteDecodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, TypeSyntax objectType) {
+	protected static BlockSyntax WriteDecodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, TypeSyntax objectType) {
 		var stmts = new List<StatementSyntax>();
 
 		var fieldInits = new List<ExpressionSyntax>();
@@ -1739,7 +1738,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 
 
-	protected NameSyntax ESExprType => QualifiedName(
+	protected static NameSyntax ESExprType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
 				IdentifierName(Token(SyntaxKind.GlobalKeyword)),
@@ -1750,7 +1749,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		IdentifierName("Expr")
 	);
 
-	protected NameSyntax ESExprTagType => QualifiedName(
+	protected static NameSyntax ESExprTagType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
 				IdentifierName(Token(SyntaxKind.GlobalKeyword)),
@@ -1761,7 +1760,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		IdentifierName("ESExprTag")
 	);
 
-	protected NameSyntax ESExprTagSetType => QualifiedName(
+	protected static NameSyntax ESExprTagSetType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
 				IdentifierName(Token(SyntaxKind.GlobalKeyword)),
@@ -1772,7 +1771,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		IdentifierName("ESExprTagSet")
 	);
 
-	protected TypeSyntax ESExprCodecType(TypeSyntax elementType) => QualifiedName(
+	protected static TypeSyntax ESExprCodecType(TypeSyntax elementType) => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
 				IdentifierName(Token(SyntaxKind.GlobalKeyword)),
@@ -1789,7 +1788,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	);
 
 
-	protected TypeSyntax DecodeFailurePathType => QualifiedName(
+	protected static TypeSyntax DecodeFailurePathType => QualifiedName(
 		QualifiedName(
 			AliasQualifiedName(
 				IdentifierName(Token(SyntaxKind.GlobalKeyword)),
@@ -1833,7 +1832,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return ns;
 	}
 
-	protected ExpressionSyntax GetCodecExpr(SourceModelTypeClassInstance codec) {
+	protected static ExpressionSyntax GetCodecExpr(SourceModelTypeClassInstance codec) {
 		switch(codec) {
 			case SourceModelTypeClassInstance.Local { Name: var name }:
 				return IdentifierName("instance_" + name);

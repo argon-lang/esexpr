@@ -3,7 +3,7 @@ using ESExpr.Runtime;
 namespace ESExpr.Tests;
 
 [ESExprCodec]
-public abstract partial record InlineValueEnum {
+public closed partial record InlineValueEnum {
 	private InlineValueEnum() { }
 
 	[InlineValue]

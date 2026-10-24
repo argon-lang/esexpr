@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ESExpr.SourceGenerator;
 
-internal abstract record SourceModelType {
+internal closed record SourceModelType {
 	private SourceModelType() { }
 
 
@@ -135,16 +135,16 @@ internal abstract record SourceModelType {
 			if(IsEnum) sb.Append("enum ");
 			sb.Append(Parent);
 			if(!Parent.IsEmpty) {
-				sb.Append(".");
+				sb.Append('.');
 			}
 			sb.Append(Name);
 			if(!TypeArguments.IsEmpty) {
-				sb.Append("<");
+				sb.Append('<');
 				sb.Append(string.Join(", ", TypeArguments));
-				sb.Append(">");
+				sb.Append('>');
 			}
 
-			sb.Append(")");
+			sb.Append(')');
 			return sb.ToString();
 		}
 	}

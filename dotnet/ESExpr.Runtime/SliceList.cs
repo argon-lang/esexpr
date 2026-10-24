@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace ESExpr.Runtime;
 
-public class SliceList<T> : IReadOnlyList<T> {
+public sealed class SliceList<T> : IReadOnlyList<T> {
 	public SliceList(IReadOnlyList<T> inner) {
 		this.inner = inner;
 		start = 0;
@@ -35,7 +35,7 @@ public class SliceList<T> : IReadOnlyList<T> {
 	public T this[int index] {
 		get {
 			if(index < 0 || index >= count) {
-				throw new IndexOutOfRangeException();
+				throw new ArgumentOutOfRangeException(nameof(index));
 			}
 
 			return inner[start + index];

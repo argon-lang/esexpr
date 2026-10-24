@@ -360,7 +360,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 	}
 
 
-	private void CheckFlagBits(BigInteger mask) {
+	private static void CheckFlagBits(BigInteger mask) {
 		bool hasBit = false;
 		uint bitIndex = 0;
 		foreach(var maskByte in mask.ToByteArray()) {
@@ -381,7 +381,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 		}
 	}
 
-	private QualifiedNameSyntax BigIntegerType =>
+	private static QualifiedNameSyntax BigIntegerType =>
 		QualifiedName(
 			QualifiedName(
 				AliasQualifiedName(IdentifierName(Token(SyntaxKind.GlobalKeyword)), IdentifierName("System")),
@@ -390,7 +390,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 			IdentifierName("BigInteger")
 		);
 
-	private ExpressionSyntax BigIntLiteral(BigInteger value) =>
+	private static ExpressionSyntax BigIntLiteral(BigInteger value) =>
 		value <= ulong.MaxValue
 			? LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal((ulong)value))
 			: InvocationExpression(
@@ -419,7 +419,7 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 			);
 
 
-	private BigInteger GetEnumMask(SourceModelFlagsFieldEnum enumField) {
+	private static BigInteger GetEnumMask(SourceModelFlagsFieldEnum enumField) {
 		var mask = BigInteger.Zero;
 		foreach(var enumCase in enumField.Cases) {
 			if(enumCase.Value < 0) {

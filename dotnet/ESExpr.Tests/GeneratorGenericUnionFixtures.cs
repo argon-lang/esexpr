@@ -4,8 +4,7 @@ using ESExpr.Runtime;
 namespace ESExpr.Tests;
 
 [ESExprCodec]
-public abstract record GeneratorGenericInline<T> {
-	private GeneratorGenericInline() { }
+public closed record GeneratorGenericInline<T> {
 	[InlineValue]
 	public sealed record ValueCase : GeneratorGenericInline<T> {
 		public required T Value { get; init; }
@@ -18,8 +17,7 @@ public static partial class GeneratorGenericInline {
 }
 
 [ESExprCodec]
-public abstract record GeneratorGenericUnion<T> {
-	private GeneratorGenericUnion() { }
+public closed record GeneratorGenericUnion<T> {
 	public sealed record ValueCase : GeneratorGenericUnion<T> {
 		public required T Value { get; init; }
 	}

@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ESExpr.Runtime;
 
+#pragma warning disable CA1716
+
 public struct Option<T> : IEquatable<Option<T>> {
 	public Option(T value) {
 		hasValue = true;

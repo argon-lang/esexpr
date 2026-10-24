@@ -43,7 +43,7 @@ namespace ESExpr.Tests {
 	}
 
 	[ESExprCodec]
-	public abstract partial record GeneratorAnyUnion {
+	public closed partial record GeneratorAnyUnion {
 		private GeneratorAnyUnion() { }
 		[InlineValue]
 		public sealed record ValueCase : GeneratorAnyUnion {
@@ -54,7 +54,7 @@ namespace ESExpr.Tests {
 	}
 
 	[ESExprCodec]
-	public abstract partial record GeneratorNullableUnion {
+	public closed partial record GeneratorNullableUnion {
 		private GeneratorNullableUnion() { }
 		[InlineValue]
 		public sealed record ValueCase : GeneratorNullableUnion {

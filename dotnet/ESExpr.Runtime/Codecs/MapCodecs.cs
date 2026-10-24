@@ -5,20 +5,20 @@ using System.Linq;
 
 namespace ESExpr.Runtime.Codecs;
 
-public abstract class MapCodecBase<K, V, TMap> : IESExprCodec<TMap>
-	where TMap : IReadOnlyDictionary<K, V> {
+public abstract class MapCodecBase<TKey, TValue, TMap> : IESExprCodec<TMap>
+	where TMap : IReadOnlyDictionary<TKey, TValue> {
 
-	private protected MapCodecBase(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) {
+	private protected MapCodecBase(IESExprCodec<TKey> keyCodec, IESExprCodec<TValue> valueCodec) {
 		this.keyCodec = keyCodec;
 		this.valueCodec = valueCodec;
 	}
 
 	internal const string MapConstructor = "map";
 
-	private readonly IESExprCodec<K> keyCodec;
-	private readonly IESExprCodec<V> valueCodec;
+	private readonly IESExprCodec<TKey> keyCodec;
+	private readonly IESExprCodec<TValue> valueCodec;
 
-	protected abstract TMap CreateMap(IEnumerable<KeyValuePair<K, V>> items);
+	protected abstract TMap CreateMap(IEnumerable<KeyValuePair<TKey, TValue>> items);
 
 	public ESExprTagSet Tags { get; } = ESExprTagSet.Create([new ESExprTag.Constructor(MapConstructor)]);
 
@@ -47,9 +47,9 @@ public abstract class MapCodecBase<K, V, TMap> : IESExprCodec<TMap>
 				throw new DecodeException("Expected an even number of arguments for map.", path.WithConstructor(MapConstructor));
 			}
 
-			var items = new List<KeyValuePair<K, V>>(args.Count / 2);
+			var items = new List<KeyValuePair<TKey, TValue>>(args.Count / 2);
 			for(int i = 0; i < args.Count; i += 2) {
-				items.Add(new KeyValuePair<K, V>(
+				items.Add(new KeyValuePair<TKey, TValue>(
 					keyCodec.Decode(args[i], path.Append(MapConstructor, i)),
 					valueCodec.Decode(args[i + 1], path.Append(MapConstructor, i + 1))
 				));
@@ -63,28 +63,28 @@ public abstract class MapCodecBase<K, V, TMap> : IESExprCodec<TMap>
 	}
 }
 
-internal class MapCodec<K, V> : MapCodecBase<K, V, Dictionary<K, V>> where K : notnull {
+internal sealed class MapCodec<K, V> : MapCodecBase<K, V, Dictionary<K, V>> where K : notnull {
 	public MapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 
 	protected override Dictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 }
 
-internal class ImmutableMapCodec<K, V> : MapCodecBase<K, V, ImmutableDictionary<K, V>> where K : notnull {
+internal sealed class ImmutableMapCodec<K, V> : MapCodecBase<K, V, ImmutableDictionary<K, V>> where K : notnull {
 	public ImmutableMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 
 	protected override ImmutableDictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToImmutableDictionary();
 }
 
-internal class ReadOnlyMapCodec<K, V> : MapCodecBase<K, V, IReadOnlyDictionary<K, V>> where K : notnull {
+internal sealed class ReadOnlyMapCodec<K, V> : MapCodecBase<K, V, IReadOnlyDictionary<K, V>> where K : notnull {
 	public ReadOnlyMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 
 	protected override IReadOnlyDictionary<K, V> CreateMap(IEnumerable<KeyValuePair<K, V>> items) => items.ToImmutableDictionary();
 }
 
-internal class InterfaceImmutableMapCodec<K, V> : MapCodecBase<K, V, IImmutableDictionary<K, V>> where K : notnull {
+internal sealed class InterfaceImmutableMapCodec<K, V> : MapCodecBase<K, V, IImmutableDictionary<K, V>> where K : notnull {
 	public InterfaceImmutableMapCodec(IESExprCodec<K> keyCodec, IESExprCodec<V> valueCodec) : base(keyCodec, valueCodec) {
 	}
 

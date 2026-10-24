@@ -63,7 +63,7 @@ public abstract class DictionaryCodecBase<T, TDict> : IESExprCodec<TDict>
 	}
 }
 
-internal class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>> {
+internal sealed class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>> {
 	internal DictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -80,7 +80,7 @@ internal class DictionaryCodec<T> : DictionaryCodecBase<T, Dictionary<string, T>
 	}
 }
 
-internal class ImmutableDictionaryCodec<T> : DictionaryCodecBase<T, ImmutableDictionary<string, T>> {
+internal sealed class ImmutableDictionaryCodec<T> : DictionaryCodecBase<T, ImmutableDictionary<string, T>> {
 	public ImmutableDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -97,7 +97,7 @@ internal class ImmutableDictionaryCodec<T> : DictionaryCodecBase<T, ImmutableDic
 	}
 }
 
-internal class InterfaceDictionaryCodec<T> : DictionaryCodecBase<T, IDictionary<string, T>> {
+internal sealed class InterfaceDictionaryCodec<T> : DictionaryCodecBase<T, IDictionary<string, T>> {
 	public InterfaceDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -114,7 +114,7 @@ internal class InterfaceDictionaryCodec<T> : DictionaryCodecBase<T, IDictionary<
 	}
 }
 
-internal class ReadOnlyDictionaryCodec<T> : DictionaryCodecBase<T, IReadOnlyDictionary<string, T>> {
+internal sealed class ReadOnlyDictionaryCodec<T> : DictionaryCodecBase<T, IReadOnlyDictionary<string, T>> {
 	public ReadOnlyDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -131,7 +131,7 @@ internal class ReadOnlyDictionaryCodec<T> : DictionaryCodecBase<T, IReadOnlyDict
 	}
 }
 
-internal class InterfaceImmutableDictionaryCodec<T> : DictionaryCodecBase<T, IImmutableDictionary<string, T>> {
+internal sealed class InterfaceImmutableDictionaryCodec<T> : DictionaryCodecBase<T, IImmutableDictionary<string, T>> {
 	public InterfaceImmutableDictionaryCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -184,7 +184,7 @@ public abstract class DictionaryDictCodecBase<T, TDict> : IDictCodec<TDict, T>
 	}
 }
 
-internal class DictionaryDictCodec<T> : DictionaryDictCodecBase<T, Dictionary<string, T>> {
+internal sealed class DictionaryDictCodec<T> : DictionaryDictCodecBase<T, Dictionary<string, T>> {
 	public DictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -201,7 +201,7 @@ internal class DictionaryDictCodec<T> : DictionaryDictCodecBase<T, Dictionary<st
 	}
 }
 
-internal class ImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, ImmutableDictionary<string, T>> {
+internal sealed class ImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, ImmutableDictionary<string, T>> {
 	public ImmutableDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -218,7 +218,7 @@ internal class ImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, Immu
 	}
 }
 
-internal class InterfaceDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IDictionary<string, T>> {
+internal sealed class InterfaceDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IDictionary<string, T>> {
 	public InterfaceDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -235,7 +235,7 @@ internal class InterfaceDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IDic
 	}
 }
 
-internal class ReadOnlyDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IReadOnlyDictionary<string, T>> {
+internal sealed class ReadOnlyDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IReadOnlyDictionary<string, T>> {
 	public ReadOnlyDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 
@@ -252,7 +252,7 @@ internal class ReadOnlyDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IRead
 	}
 }
 
-internal class InterfaceImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IImmutableDictionary<string, T>> {
+internal sealed class InterfaceImmutableDictionaryDictCodec<T> : DictionaryDictCodecBase<T, IImmutableDictionary<string, T>> {
 	public InterfaceImmutableDictionaryDictCodec(IESExprCodec<T> itemCodec) : base(itemCodec) {
 	}
 

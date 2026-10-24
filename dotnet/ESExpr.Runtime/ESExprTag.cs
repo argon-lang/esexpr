@@ -4,7 +4,14 @@ namespace ESExpr.SourceGenerator;
 namespace ESExpr.Runtime;
 #endif
 
+#pragma warning disable CA1720
+
+// The analyzer also compiles this file against netstandard2.0.
+#if ESEXPR_SOURCE_GENERATOR
 public abstract record ESExprTag {
+#else
+public closed record ESExprTag {
+#endif
 	public sealed record Constructor(string constructor) : ESExprTag;
 	public sealed record Bool() : ESExprTag;
 	public sealed record Int() : ESExprTag;

@@ -6,7 +6,9 @@ using System.Linq;
 
 namespace ESExpr.Runtime;
 
-public abstract record Expr {
+#pragma warning disable CA1720
+
+public closed record Expr {
 	private Expr() { }
 
 	public abstract ESExprTag Tag { get; }

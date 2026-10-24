@@ -4,6 +4,7 @@ using System.Numerics;
 
 namespace ESExpr.Runtime;
 
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class FlagBitsAttribute : Attribute {
 	public FlagBitsAttribute(ulong bits) {
 		Bits = bits;

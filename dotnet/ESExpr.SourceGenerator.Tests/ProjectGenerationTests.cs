@@ -29,7 +29,9 @@ public class ProjectGenerationTests {
 
 		// Remove analyzers before requesting a compilation so workspace-generated
 		// codecs cannot become inputs to the explicit generator run below.
-		project = project.WithAnalyzerReferences([]);
+		// Roslyn 5.9 exposes closed hierarchies through its preview language mode.
+		project = project.WithAnalyzerReferences([])
+			.WithParseOptions(((CSharpParseOptions)project.ParseOptions!).WithLanguageVersion(LanguageVersion.Preview));
 		var compilation = await project.GetCompilationAsync();
 		Assert.That(compilation, Is.Not.Null);
 		var parseOptions = (CSharpParseOptions)project.ParseOptions!;

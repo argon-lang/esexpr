@@ -12,13 +12,13 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 	private NameSyntax GetCaseType(SourceModelEnumCase c) =>
 		QualifiedName((NameSyntax)GetDeclarationAsType(TypeModel.TypeName, TypeModel.TypeParameters), IdentifierName(c.Name));
 
-	private SourceModelField GetInlineValueField(SourceModelEnumCase c) {
+	private static SourceModelField GetInlineValueField(SourceModelEnumCase c) {
 		if(c.Fields.Count != 1) {
 			throw new AbortGenerationException(
 				Diagnostic.Create(
 					Errors.InvalidInlineValue,
 					c.Location,
-					new object[] { }
+					Array.Empty<object>()
 				)
 			);
 		}

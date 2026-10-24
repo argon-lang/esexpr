@@ -11,6 +11,10 @@ indent_size = 4
 tab_width = 4
 
 [*.cs]
+dotnet_diagnostic.CA1000.severity = none
+dotnet_diagnostic.CA1805.severity = none
+dotnet_diagnostic.CA1859.severity = none
+
 # Braces and line breaks
 csharp_new_line_before_open_brace = none
 csharp_new_line_before_else = true

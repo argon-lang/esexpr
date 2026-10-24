@@ -5,26 +5,26 @@ using System.Numerics;
 namespace ESExpr.Runtime.Codecs;
 
 
-public abstract class IntCodecBase<I> : IESExprCodec<I>
-	where I : IBinaryInteger<I>, IMinMaxValue<I> {
+public abstract class IntCodecBase<TInt> : IESExprCodec<TInt>
+	where TInt : IBinaryInteger<TInt>, IMinMaxValue<TInt> {
 	internal IntCodecBase() {
 
 	}
 
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Int()]);
 
-	public bool IsEncodedEqual(I a, I b) {
+	public bool IsEncodedEqual(TInt a, TInt b) {
 		return a == b;
 	}
 
-	public Expr Encode(I value) {
+	public Expr Encode(TInt value) {
 		return new Expr.Int(BigInteger.CreateChecked(value));
 	}
 
-	public I Decode(Expr expr, DecodeFailurePath path) {
+	public TInt Decode(Expr expr, DecodeFailurePath path) {
 		if(expr is Expr.Int(var i)) {
 			try {
-				return I.CreateChecked(i);
+				return TInt.CreateChecked(i);
 			}
 			catch(OverflowException) {
 				throw new DecodeException("Integer value out of range", path);

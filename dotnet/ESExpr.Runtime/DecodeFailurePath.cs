@@ -1,6 +1,6 @@
 namespace ESExpr.Runtime;
 
-public abstract record DecodeFailurePath {
+public closed record DecodeFailurePath {
 	private DecodeFailurePath() { }
 
 	public sealed record Current : DecodeFailurePath {

@@ -4,7 +4,7 @@ using ESExpr.Runtime;
 namespace ESExpr.Tests;
 
 [ESExprCodec]
-public abstract partial record GeneratorScalarUnion {
+public closed partial record GeneratorScalarUnion {
 	private GeneratorScalarUnion() { }
 
 	[InlineValue]

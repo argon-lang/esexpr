@@ -11,7 +11,7 @@ internal sealed record SourceModelField {
 
 	public required FieldMode Mode { get; init; }
 
-	public abstract record KeywordMode {
+	public closed record KeywordMode {
 		public sealed record Keyword : KeywordMode {
 			public required string KeywordName { get; init; }
 		}
@@ -21,7 +21,7 @@ internal sealed record SourceModelField {
 		}
 	}
 
-	public abstract record FieldMode {
+	public closed record FieldMode {
 		public sealed record Normal : FieldMode {
 			public required SourceModelTypeClassInstance CodecInstance { get; init; }
 			public required SourceModelSyntax<ExpressionSyntax>? DefaultValue { get; init; }

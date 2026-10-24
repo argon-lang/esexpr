@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace ESExpr.Runtime.Codecs;
 
-internal class ImmutableArrayByteCodec : IESExprCodec<ImmutableArray<byte>> {
+internal sealed class ImmutableArrayByteCodec : IESExprCodec<ImmutableArray<byte>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Array8()]);
 
 	public bool IsEncodedEqual(ImmutableArray<byte> a, ImmutableArray<byte> b) =>
@@ -24,7 +24,7 @@ internal class ImmutableArrayByteCodec : IESExprCodec<ImmutableArray<byte>> {
 	}
 }
 
-internal class ImmutableArrayUInt16Codec : IESExprCodec<ImmutableArray<ushort>> {
+internal sealed class ImmutableArrayUInt16Codec : IESExprCodec<ImmutableArray<ushort>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Array16()]);
 
 	public bool IsEncodedEqual(ImmutableArray<ushort> a, ImmutableArray<ushort> b) =>
@@ -44,7 +44,7 @@ internal class ImmutableArrayUInt16Codec : IESExprCodec<ImmutableArray<ushort>> 
 	}
 }
 
-internal class ImmutableArrayUInt32Codec : IESExprCodec<ImmutableArray<uint>> {
+internal sealed class ImmutableArrayUInt32Codec : IESExprCodec<ImmutableArray<uint>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Array32()]);
 
 	public bool IsEncodedEqual(ImmutableArray<uint> a, ImmutableArray<uint> b) =>
@@ -64,7 +64,7 @@ internal class ImmutableArrayUInt32Codec : IESExprCodec<ImmutableArray<uint>> {
 	}
 }
 
-internal class ImmutableArrayUInt64Codec : IESExprCodec<ImmutableArray<ulong>> {
+internal sealed class ImmutableArrayUInt64Codec : IESExprCodec<ImmutableArray<ulong>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Array64()]);
 
 	public bool IsEncodedEqual(ImmutableArray<ulong> a, ImmutableArray<ulong> b) =>
@@ -84,7 +84,7 @@ internal class ImmutableArrayUInt64Codec : IESExprCodec<ImmutableArray<ulong>> {
 	}
 }
 
-internal class ImmutableArrayUInt128Codec : IESExprCodec<ImmutableArray<UInt128>> {
+internal sealed class ImmutableArrayUInt128Codec : IESExprCodec<ImmutableArray<UInt128>> {
 	public ESExprTagSet Tags => ESExprTagSet.Create([new ESExprTag.Array128()]);
 
 	public bool IsEncodedEqual(ImmutableArray<UInt128> a, ImmutableArray<UInt128> b) =>
