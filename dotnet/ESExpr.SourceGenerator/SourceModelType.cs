@@ -40,7 +40,7 @@ internal closed record SourceModelType {
 	}
 
 	private static NamedSymbol FromNamedSymbol(INamedTypeSymbol named) {
-		INamedSymbolParent parent;
+		NamedSymbolParent parent;
 		if(named.ContainingType is { } containingType) {
 			parent = FromNamedSymbol(containingType);
 		}
@@ -72,12 +72,19 @@ internal closed record SourceModelType {
 
 	public record TypeParameter(string Name) : SourceModelType;
 
-	public interface INamedSymbolParent : IEquatable<INamedSymbolParent?> {
-		bool IsEmpty { get; }
+	public union NamedSymbolParent(NamespaceSymbolParent, NamedSymbol) : IEquatable<NamedSymbolParent> {
+		public bool IsEmpty => this switch {
+			NamespaceSymbolParent ns => ns.Namespace.IsEmpty,
+			NamedSymbol => false,
+		};
+
+		public bool Equals(NamedSymbolParent other) => Equals(Value, other.Value);
+		public override bool Equals(object? obj) => obj is NamedSymbolParent other && Equals(other);
+		public override int GetHashCode() => Value?.GetHashCode() ?? 0;
+		public override string ToString() => Value?.ToString() ?? "";
 	}
 
-	public sealed record NamespaceSymbolParent(ImmutableList<string> Namespace) : INamedSymbolParent {
-		public bool IsEmpty => Namespace.IsEmpty;
+	public sealed record NamespaceSymbolParent(ImmutableList<string> Namespace) {
 
 		public override int GetHashCode() {
 			int hash = 17;
@@ -91,20 +98,15 @@ internal closed record SourceModelType {
 		public bool Equals(NamespaceSymbolParent? other) =>
 			other is not null && Namespace.SequenceEqual(other.Namespace);
 
-		public bool Equals(INamedSymbolParent? other) =>
-			Equals(other as NamespaceSymbolParent);
-
 		public override string ToString() {
 			return string.Join(".", Namespace);
 		}
 	}
 
-	public sealed record NamedSymbol(INamedSymbolParent Parent, string Name) : SourceModelType, INamedSymbolParent {
+	public sealed record NamedSymbol(NamedSymbolParent Parent, string Name) : SourceModelType {
 		public required ImmutableList<SourceModelType> TypeArguments { get; init; }
 		public required bool IsEnum { get; init; }
 
-
-		bool INamedSymbolParent.IsEmpty => false;
 
 		public override int GetHashCode() {
 			int hash = 17;
@@ -125,9 +127,6 @@ internal closed record SourceModelType {
 				   TypeArguments.SequenceEqual(other.TypeArguments) &&
 				   IsEnum == other.IsEnum;
 		}
-
-		public bool Equals(INamedSymbolParent? other) =>
-			Equals(other as NamedSymbol);
 
 		public override string ToString() {
 			var sb = new StringBuilder();

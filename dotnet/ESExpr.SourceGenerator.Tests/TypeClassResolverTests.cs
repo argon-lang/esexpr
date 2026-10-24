@@ -95,10 +95,10 @@ public class TypeClassResolverTests {
 		var nested = (SourceModelType.NamedSymbol)SourceModelType.FromSymbol(((IFieldSymbol)shapes.GetMembers("Nested").Single()).Type);
 		Assert.That(nested.Name, Is.EqualTo("Inner"));
 		Assert.That(nested.TypeArguments, Is.EqualTo(new[] { SourceModelType.FromSymbol(compilation.GetSpecialType(SpecialType.System_String)) }));
-		var outer = (SourceModelType.NamedSymbol)nested.Parent;
+		var outer = (SourceModelType.NamedSymbol)nested.Parent.Value!;
 		Assert.That(outer.Name, Is.EqualTo("Outer"));
 		Assert.That(outer.TypeArguments, Is.EqualTo(new[] { SourceModelType.FromSymbol(compilation.GetSpecialType(SpecialType.System_Int32)) }));
-		Assert.That(((SourceModelType.NamespaceSymbolParent)outer.Parent).Namespace, Is.EqualTo(new[] { "Models" }));
+		Assert.That(((SourceModelType.NamespaceSymbolParent)outer.Parent.Value!).Namespace, Is.EqualTo(new[] { "Models" }));
 		var function = ((IFieldSymbol)shapes.GetMembers("Function").Single()).Type;
 		Assert.Throws<NotSupportedException>(() => SourceModelType.FromSymbol(function));
 	}

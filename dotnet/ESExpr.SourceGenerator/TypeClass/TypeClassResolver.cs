@@ -27,7 +27,6 @@ internal sealed class TypeClassResolver {
 			TypeClassResult.Local { LocalInfo: var local } => local.Type,
 			TypeClassResult.Property { PropertySymbol: var property } => property.Type,
 			TypeClassResult.Method method => GetTypeForMethod(method),
-			_ => throw new ArgumentOutOfRangeException(nameof(typeClass))
 		};
 
 		ITypeSymbol GetTypeForMethod(TypeClassResult.Method method) {

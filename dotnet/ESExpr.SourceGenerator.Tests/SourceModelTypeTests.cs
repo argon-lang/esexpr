@@ -22,10 +22,15 @@ public class SourceModelTypeTests {
 
 		Assert.That(ns1, Is.Not.EqualTo(nsEmpty));
 
-		// Interface equality
-		SourceModelType.INamedSymbolParent i1 = ns1;
-		SourceModelType.INamedSymbolParent i2 = ns2;
+		// Union equality
+		SourceModelType.NamedSymbolParent i1 = ns1;
+		SourceModelType.NamedSymbolParent i2 = ns2;
 		Assert.That(i1.Equals(i2), Is.True);
+		Assert.That(i1.GetHashCode(), Is.EqualTo(i2.GetHashCode()));
+		Assert.That(i1.IsEmpty, Is.False);
+		SourceModelType.NamedSymbolParent emptyParent = nsEmpty;
+		Assert.That(emptyParent.IsEmpty, Is.True);
+		Assert.That(i1.ToString(), Is.EqualTo(ns1.ToString()));
 	}
 
 	[Test]
@@ -158,6 +163,17 @@ public class SourceModelTypeTests {
 			TypeArguments = ImmutableList<SourceModelType>.Empty,
 			IsEnum = false
 		};
+
+		SourceModelType.NamedSymbolParent parent1 = outer;
+		SourceModelType.NamedSymbolParent parent2 = new SourceModelType.NamedSymbol(ns, "Outer") {
+			TypeArguments = ImmutableList<SourceModelType>.Empty,
+			IsEnum = false
+		};
+		Assert.That(parent1.Equals(parent2), Is.True);
+		Assert.That(parent1.GetHashCode(), Is.EqualTo(parent2.GetHashCode()));
+		Assert.That(parent1.IsEmpty, Is.False);
+		Assert.That(parent1.Equals((SourceModelType.NamedSymbolParent)ns), Is.False);
+		Assert.That(parent1.ToString(), Is.EqualTo(outer.ToString()));
 
 		Assert.That(inner1, Is.EqualTo(inner2));
 		Assert.That(inner1.GetHashCode(), Is.EqualTo(inner2.GetHashCode()));

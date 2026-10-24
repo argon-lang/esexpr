@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ESExpr.SourceGenerator.TypeClass;
 
-internal abstract record TypeClassResult {
+internal closed record TypeClassResult {
 	public sealed record Method(
 		ImmutableList<ITypeSymbol> TypeArguments,
 		ImmutableList<TypeClassResult> Arguments,

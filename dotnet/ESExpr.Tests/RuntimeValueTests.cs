@@ -126,8 +126,8 @@ public class RuntimeValueTests {
 		Assert.That(((IEnumerable)slice).Cast<int>(), Is.EqualTo(new[] { 1, 2 }));
 		Assert.That(slice.Slice(1), Is.EqualTo(new[] { 2 }));
 		Assert.That(slice.Slice(2).Count, Is.Zero);
-		Assert.Throws<IndexOutOfRangeException>(() => _ = slice[-1]);
-		Assert.Throws<IndexOutOfRangeException>(() => _ = slice[2]);
+		Assert.Throws<ArgumentOutOfRangeException>(() => _ = slice[-1]);
+		Assert.Throws<ArgumentOutOfRangeException>(() => _ = slice[2]);
 		Assert.Throws<ArgumentOutOfRangeException>(() => slice.Slice(-1));
 		Assert.Throws<ArgumentOutOfRangeException>(() => slice.Slice(3));
 		Assert.Throws<ArgumentOutOfRangeException>(() => slice.Slice(0, -1));

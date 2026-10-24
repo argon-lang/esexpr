@@ -142,8 +142,6 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 				}
 
 
-				default:
-					throw new InvalidOperationException($"Unknown flags field type: {field.GetType().Name}");
 			}
 		}
 
@@ -254,11 +252,8 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 						SyntaxKind.ObjectInitializerExpression,
 						SeparatedList<ExpressionSyntax>(
 							TypeModel.Fields.Select(field => {
-								ExpressionSyntax fieldValue;
-
-								switch(field) {
-									case SourceModelFlagsFieldFlag flagField: {
-										fieldValue = BinaryExpression(
+								ExpressionSyntax fieldValue = field switch {
+									SourceModelFlagsFieldFlag flagField => BinaryExpression(
 											SyntaxKind.NotEqualsExpression,
 											ParenthesizedExpression(
 												BinaryExpression(
@@ -268,81 +263,74 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 												)
 											),
 											LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))
-										);
+										),
+									SourceModelFlagsFieldEnum enumField => DecodeEnumField(enumField),
+								};
 
-										break;
-									}
+								ExpressionSyntax DecodeEnumField(SourceModelFlagsFieldEnum enumField) {
+									var mask = GetEnumMask(enumField);
 
-									case SourceModelFlagsFieldEnum enumField: {
-										var mask = GetEnumMask(enumField);
+									var maskExpr = BigIntLiteral(mask);
 
-										var maskExpr = BigIntLiteral(mask);
+									// var <fieldName> = <fieldName>Bits switch { ... };
+									return SwitchExpression(
+										ParenthesizedExpression(
+											BinaryExpression(
+												SyntaxKind.BitwiseAndExpression,
+												IdentifierName("bits"),
+												maskExpr
+											)
+										),
+										SeparatedList(
+											enumField.Cases.Select(enumCase => {
+												var caseValue = MemberAccessExpression(
+													SyntaxKind.SimpleMemberAccessExpression,
+													ConvertTypeToTypeSyntax(enumField.Type),
+													IdentifierName(enumCase.Name)
+												);
 
-										// var <fieldName> = <fieldName>Bits switch { ... };
-										fieldValue = SwitchExpression(
-											ParenthesizedExpression(
-												BinaryExpression(
-													SyntaxKind.BitwiseAndExpression,
-													IdentifierName("bits"),
-													maskExpr
-												)
-											),
-											SeparatedList(
-												enumField.Cases.Select(enumCase => {
-													var caseValue = MemberAccessExpression(
-														SyntaxKind.SimpleMemberAccessExpression,
-														ConvertTypeToTypeSyntax(enumField.Type),
-														IdentifierName(enumCase.Name)
-													);
-
-													var bigIntValue = BigIntLiteral(enumCase.Value);
-													return SwitchExpressionArm(
-														VarPattern(SingleVariableDesignation(Identifier("maskedValue"))),
-														WhenClause(
-															BinaryExpression(
-																SyntaxKind.EqualsExpression,
-																IdentifierName("maskedValue"),
-																bigIntValue
-															)
-														),
-														caseValue
-													);
-												}).Append(
-													SwitchExpressionArm(
-														DiscardPattern(),
-														ThrowExpression(
-															ObjectCreationExpression(
+												var bigIntValue = BigIntLiteral(enumCase.Value);
+												return SwitchExpressionArm(
+													VarPattern(SingleVariableDesignation(Identifier("maskedValue"))),
+													WhenClause(
+														BinaryExpression(
+															SyntaxKind.EqualsExpression,
+															IdentifierName("maskedValue"),
+															bigIntValue
+														)
+													),
+													caseValue
+												);
+											}).Append(
+												SwitchExpressionArm(
+													DiscardPattern(),
+													ThrowExpression(
+														ObjectCreationExpression(
+															QualifiedName(
 																QualifiedName(
-																	QualifiedName(
-																		AliasQualifiedName(
-																			IdentifierName(Token(SyntaxKind.GlobalKeyword)),
-																			IdentifierName("ESExpr")
-																		),
-																		IdentifierName("Runtime")
+																	AliasQualifiedName(
+																		IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+																		IdentifierName("ESExpr")
 																	),
-																	IdentifierName("DecodeException")
-																)
+																	IdentifierName("Runtime")
+																),
+																IdentifierName("DecodeException")
 															)
-															.WithArgumentList(
-																ArgumentList(SeparatedList<ArgumentSyntax>([
-																	Argument(
-																		LiteralExpression(SyntaxKind.StringLiteralExpression, Literal($"Invalid value for {field.Name}"))
-																	),
-																	Token(SyntaxKind.CommaToken),
-																	Argument(IdentifierName("path")),
-																]))
-															)
+														)
+														.WithArgumentList(
+															ArgumentList(SeparatedList<ArgumentSyntax>([
+																Argument(
+																	LiteralExpression(SyntaxKind.StringLiteralExpression, Literal($"Invalid value for {field.Name}"))
+																),
+																Token(SyntaxKind.CommaToken),
+																Argument(IdentifierName("path")),
+															]))
 														)
 													)
 												)
 											)
-										);
-
-										break;
-									}
-
-									default:
-										throw new InvalidOperationException($"Unknown flags field type: {field.GetType().Name}");
+										)
+									);
 								}
 
 								return AssignmentExpression(

@@ -393,7 +393,6 @@ internal class ModelBuilder {
 				DeclaringType = SourceModelType.FromSymbol(property.ContainingType),
 				Name = property.Name,
 			},
-			_ => throw new ArgumentOutOfRangeException(nameof(res))
 		};
 	}
 
@@ -436,7 +435,6 @@ internal class ModelBuilder {
 				seenTypes
 			),
 			TypeClassResult.Property property => GetTagsForMember(type, property.PropertySymbol, new(SymbolEqualityComparer.Default), seenTypes),
-			_ => throw new ArgumentOutOfRangeException(nameof(res))
 		};
 	}
 

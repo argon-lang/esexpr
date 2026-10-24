@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ESExpr.SourceGenerator.TypeClass;
 
-internal abstract record SourceModelTypeClassInstance {
+internal closed record SourceModelTypeClassInstance {
 	public sealed record Method : SourceModelTypeClassInstance {
 		public required ImmutableList<SourceModelType> TypeArguments { get; init; }
 		public required ImmutableList<SourceModelTypeClassInstance> Arguments { get; init; }

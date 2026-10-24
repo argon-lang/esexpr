@@ -11,7 +11,7 @@ using ESExpr.Runtime.Codecs;
 
 namespace ESExpr.Runtime;
 
-public class ESExprBinaryWriter {
+public sealed class ESExprBinaryWriter {
 	public ESExprBinaryWriter(Stream stream) {
 		symbolTable = [];
 		symbolSet = [];
@@ -80,208 +80,193 @@ public class ESExprBinaryWriter {
 		await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
 	}
 
-	private async Task WriteRaw(Expr expr, CancellationToken cancellationToken) {
-		switch(expr) {
-			case Expr.Constructor(var constructor, var args, var kwargs):
-				switch(constructor) {
-					case StringTable.StringTableConstructor:
-						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartStringTable, null), cancellationToken).ConfigureAwait(false);
-						break;
+	private Task WriteRaw(Expr expr, CancellationToken cancellationToken) => expr switch {
+		Expr.Constructor(var constructor, var args, var kwargs) => WriteRawConstructor(constructor, args, kwargs, cancellationToken),
+		Expr.Bool(var value) => WriteRawBool(value, cancellationToken),
+		Expr.Int(var i) => WriteRawInt(i, cancellationToken),
+		Expr.Str(var s) => WriteRawStr(s, cancellationToken),
+		Expr.Float16(var h) => WriteRawFloat16(h, cancellationToken),
+		Expr.Float16NaN(var bits) => WriteRawFloat16NaN(bits, cancellationToken),
+		Expr.Float32(var f) => WriteRawFloat32(f, cancellationToken),
+		Expr.Float32NaN(var bits) => WriteRawFloat32NaN(bits, cancellationToken),
+		Expr.Float64(var d) => WriteRawFloat64(d, cancellationToken),
+		Expr.Float64NaN(var bits) => WriteRawFloat64NaN(bits, cancellationToken),
+		Expr.Array8(var b) => WriteRawArray8(b, cancellationToken),
+		Expr.Array16(var b) => WriteRawArray16(b, cancellationToken),
+		Expr.Array32(var b) => WriteRawArray32(b, cancellationToken),
+		Expr.Array64(var b) => WriteRawArray64(b, cancellationToken),
+		Expr.Array128(var b) => WriteRawArray128(b, cancellationToken),
+		Expr.Null(var level) => WriteRawNull(level, cancellationToken),
+	};
 
-					case ListCodecBase<int, List<int>>.ListConstructor:
-						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartList, null), cancellationToken).ConfigureAwait(false);
-						break;
-
-					case MapCodecBase<int, int, Dictionary<int, int>>.MapConstructor:
-						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartMap, null), cancellationToken).ConfigureAwait(false);
-						break;
-
-					case SetCodecBase<int, HashSet<int>>.SetConstructor:
-						await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartSet, null), cancellationToken).ConfigureAwait(false);
-						break;
-
-					default:
-						var index = await GetSymbolIndex(constructor, cancellationToken);
-						await WriteToken(new BinToken(BinToken.TokenType.Constructor, index), cancellationToken).ConfigureAwait(false);
-						break;
-				}
-
-				foreach(var arg in args) {
-					await WriteRaw(arg, cancellationToken).ConfigureAwait(false);
-				}
-
-				foreach(var kvp in kwargs) {
-					var index = await GetSymbolIndex(kvp.Key, cancellationToken);
-					await WriteToken(new BinToken(BinToken.TokenType.Keyword, index), cancellationToken).ConfigureAwait(false);
-					await WriteRaw(kvp.Value, cancellationToken).ConfigureAwait(false);
-				}
-
-				await WriteToken(new BinToken(BinToken.TokenType.ConstructorEnd, null), cancellationToken).ConfigureAwait(false);
-
+	private async Task WriteRawConstructor(string constructor, ImmutableList<Expr> args, ImmutableDictionary<string, Expr> kwargs, CancellationToken cancellationToken) {
+		switch(constructor) {
+			case StringTable.StringTableConstructor:
+				await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartStringTable, null), cancellationToken).ConfigureAwait(false);
 				break;
 
-			case Expr.Bool(true):
-				await WriteToken(new BinToken(BinToken.TokenType.True, null), cancellationToken).ConfigureAwait(false);
+			case ListCodecBase<int, List<int>>.ListConstructor:
+				await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartList, null), cancellationToken).ConfigureAwait(false);
 				break;
 
-			case Expr.Bool(false):
-				await WriteToken(new BinToken(BinToken.TokenType.False, null), cancellationToken).ConfigureAwait(false);
+			case MapCodecBase<int, int, Dictionary<int, int>>.MapConstructor:
+				await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartMap, null), cancellationToken).ConfigureAwait(false);
 				break;
 
-			case Expr.Int(var i):
-				if(i.Sign >= 0) {
-					await WriteToken(new BinToken(BinToken.TokenType.Int, i), cancellationToken).ConfigureAwait(false);
-				}
-				else {
-					await WriteToken(new BinToken(BinToken.TokenType.NegInt, (-i) - 1), cancellationToken).ConfigureAwait(false);
-				}
-				break;
-
-			case Expr.Str(var s): {
-				int index = symbolTable.IndexOf(s);
-				if(index >= 0 && StringTableBuilder.TaggedIntSize(index) <= StringTableBuilder.InlineStringSize(s)) {
-					await WriteToken(new BinToken(BinToken.TokenType.StringPoolIndex, index), cancellationToken).ConfigureAwait(false);
-				}
-				else {
-					await WriteInlineString(s, cancellationToken).ConfigureAwait(false);
-				}
-				break;
-			}
-
-			case Expr.Float16(var h): {
-				await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
-
-				ushort bits = BitConverter.HalfToUInt16Bits(h);
-				await WriteFixed16(bits, cancellationToken);
-
-				break;
-			}
-
-			case Expr.Float16NaN(var bits): {
-				await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
-				await WriteFixed16(bits, cancellationToken);
-				break;
-			}
-
-			case Expr.Float32(var f): {
-				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
-
-				uint bits = BitConverter.SingleToUInt32Bits(f);
-				await WriteFixed32(bits, cancellationToken);
-
-				break;
-			}
-
-			case Expr.Float32NaN(var bits): {
-				await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
-				await WriteFixed32(bits, cancellationToken);
-				break;
-			}
-
-			case Expr.Float64(var d): {
-				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
-
-				ulong bits = BitConverter.DoubleToUInt64Bits(d);
-				await WriteFixed64(bits, cancellationToken);
-
-				break;
-			}
-
-			case Expr.Float64NaN(var bits): {
-				await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
-				await WriteFixed64(bits, cancellationToken);
-				break;
-			}
-
-			case Expr.Array8(var b):
-				await WriteToken(new BinToken(BinToken.TokenType.Array8, b.Length), cancellationToken).ConfigureAwait(false);
-				await stream.WriteAsync(b.AsMemory(), cancellationToken).ConfigureAwait(false);
-				break;
-
-			case Expr.Array16(var b): {
-				await WriteToken(new BinToken(BinToken.TokenType.Array16, null), cancellationToken)
-					.ConfigureAwait(false);
-				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
-				byte[] buff = new byte[sizeof(ushort)];
-				foreach(var value in b) {
-					buff[0] = unchecked((byte)value);
-					buff[1] = unchecked((byte)(value >> 8));
-					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
-				}
-
-				break;
-			}
-
-			case Expr.Array32(var b): {
-				await WriteToken(new BinToken(BinToken.TokenType.Array32, null), cancellationToken)
-					.ConfigureAwait(false);
-				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
-				byte[] buff = new byte[sizeof(uint)];
-				foreach(var value in b) {
-					buff[0] = unchecked((byte)value);
-					buff[1] = unchecked((byte)(value >> 8));
-					buff[2] = unchecked((byte)(value >> 16));
-					buff[3] = unchecked((byte)(value >> 24));
-					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
-				}
-
-				break;
-			}
-
-			case Expr.Array64(var b): {
-				await WriteToken(new BinToken(BinToken.TokenType.Array64, null), cancellationToken)
-					.ConfigureAwait(false);
-				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
-				byte[] buff = new byte[sizeof(ulong)];
-				foreach(var value in b) {
-					for(int i = 0; i < sizeof(ulong); i++) {
-						buff[i] = unchecked((byte)(value >> (8 * i)));
-					}
-
-					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
-				}
-
-				break;
-			}
-
-			case Expr.Array128(var b): {
-				await WriteToken(new BinToken(BinToken.TokenType.Array128, null), cancellationToken)
-					.ConfigureAwait(false);
-				await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
-				byte[] buff = new byte[16];
-				foreach(var value in b) {
-					for(int i = 0; i < 16; i++) {
-						buff[i] = (byte)((value >> (8 * i)) & 0xFF);
-					}
-
-					await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
-				}
-
-				break;
-			}
-
-
-			case Expr.Null(var level):
-				if(level == 0) {
-					await WriteToken(new BinToken(BinToken.TokenType.Null0, null), cancellationToken).ConfigureAwait(false);
-				}
-				else if(level == 1) {
-					await WriteToken(new BinToken(BinToken.TokenType.Null1, null), cancellationToken).ConfigureAwait(false);
-				}
-				else if(level == 2) {
-					await WriteToken(new BinToken(BinToken.TokenType.Null2, null), cancellationToken).ConfigureAwait(false);
-				}
-				else {
-					await WriteToken(new BinToken(BinToken.TokenType.NullN, null), cancellationToken).ConfigureAwait(false);
-					await WriteInt(level - 3, cancellationToken).ConfigureAwait(false);
-				}
+			case SetCodecBase<int, HashSet<int>>.SetConstructor:
+				await WriteToken(new BinToken(BinToken.TokenType.ConstructorStartSet, null), cancellationToken).ConfigureAwait(false);
 				break;
 
 			default:
-				throw new InvalidOperationException();
+				var index = await GetSymbolIndex(constructor, cancellationToken);
+				await WriteToken(new BinToken(BinToken.TokenType.Constructor, index), cancellationToken).ConfigureAwait(false);
+				break;
 		}
 
+		foreach(var arg in args) {
+			await WriteRaw(arg, cancellationToken).ConfigureAwait(false);
+		}
 
+		foreach(var kvp in kwargs) {
+			var index = await GetSymbolIndex(kvp.Key, cancellationToken);
+			await WriteToken(new BinToken(BinToken.TokenType.Keyword, index), cancellationToken).ConfigureAwait(false);
+			await WriteRaw(kvp.Value, cancellationToken).ConfigureAwait(false);
+		}
+
+		await WriteToken(new BinToken(BinToken.TokenType.ConstructorEnd, null), cancellationToken).ConfigureAwait(false);
+	}
+
+	private Task WriteRawBool(bool value, CancellationToken cancellationToken) =>
+		WriteToken(new BinToken(value ? BinToken.TokenType.True : BinToken.TokenType.False, null), cancellationToken);
+
+	private async Task WriteRawInt(BigInteger i, CancellationToken cancellationToken) {
+		if(i.Sign >= 0) {
+			await WriteToken(new BinToken(BinToken.TokenType.Int, i), cancellationToken).ConfigureAwait(false);
+		}
+		else {
+			await WriteToken(new BinToken(BinToken.TokenType.NegInt, (-i) - 1), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteRawStr(string s, CancellationToken cancellationToken) {
+		int index = symbolTable.IndexOf(s);
+		if(index >= 0 && StringTableBuilder.TaggedIntSize(index) <= StringTableBuilder.InlineStringSize(s)) {
+			await WriteToken(new BinToken(BinToken.TokenType.StringPoolIndex, index), cancellationToken).ConfigureAwait(false);
+		}
+		else {
+			await WriteInlineString(s, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteRawFloat16(Half h, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
+
+		ushort bits = BitConverter.HalfToUInt16Bits(h);
+		await WriteFixed16(bits, cancellationToken);
+	}
+
+	private async Task WriteRawFloat16NaN(ushort bits, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Float16, null), cancellationToken).ConfigureAwait(false);
+		await WriteFixed16(bits, cancellationToken);
+	}
+
+	private async Task WriteRawFloat32(float f, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
+
+		uint bits = BitConverter.SingleToUInt32Bits(f);
+		await WriteFixed32(bits, cancellationToken);
+	}
+
+	private async Task WriteRawFloat32NaN(uint bits, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Float32, null), cancellationToken).ConfigureAwait(false);
+		await WriteFixed32(bits, cancellationToken);
+	}
+
+	private async Task WriteRawFloat64(double d, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
+
+		ulong bits = BitConverter.DoubleToUInt64Bits(d);
+		await WriteFixed64(bits, cancellationToken);
+	}
+
+	private async Task WriteRawFloat64NaN(ulong bits, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Float64, null), cancellationToken).ConfigureAwait(false);
+		await WriteFixed64(bits, cancellationToken);
+	}
+
+	private async Task WriteRawArray8(ImmutableArray<byte> b, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Array8, b.Length), cancellationToken).ConfigureAwait(false);
+		await stream.WriteAsync(b.AsMemory(), cancellationToken).ConfigureAwait(false);
+	}
+
+	private async Task WriteRawArray16(ImmutableArray<ushort> b, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Array16, null), cancellationToken)
+			.ConfigureAwait(false);
+		await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+		byte[] buff = new byte[sizeof(ushort)];
+		foreach(var value in b) {
+			buff[0] = unchecked((byte)value);
+			buff[1] = unchecked((byte)(value >> 8));
+			await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteRawArray32(ImmutableArray<uint> b, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Array32, null), cancellationToken)
+			.ConfigureAwait(false);
+		await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+		byte[] buff = new byte[sizeof(uint)];
+		foreach(var value in b) {
+			buff[0] = unchecked((byte)value);
+			buff[1] = unchecked((byte)(value >> 8));
+			buff[2] = unchecked((byte)(value >> 16));
+			buff[3] = unchecked((byte)(value >> 24));
+			await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteRawArray64(ImmutableArray<ulong> b, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Array64, null), cancellationToken)
+			.ConfigureAwait(false);
+		await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+		byte[] buff = new byte[sizeof(ulong)];
+		foreach(var value in b) {
+			for(int i = 0; i < sizeof(ulong); i++) {
+				buff[i] = unchecked((byte)(value >> (8 * i)));
+			}
+
+			await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteRawArray128(ImmutableArray<UInt128> b, CancellationToken cancellationToken) {
+		await WriteToken(new BinToken(BinToken.TokenType.Array128, null), cancellationToken)
+			.ConfigureAwait(false);
+		await WriteInt(b.Length, cancellationToken).ConfigureAwait(false);
+		byte[] buff = new byte[16];
+		foreach(var value in b) {
+			for(int i = 0; i < 16; i++) {
+				buff[i] = (byte)((value >> (8 * i)) & 0xFF);
+			}
+
+			await stream.WriteAsync(buff, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async Task WriteRawNull(BigInteger level, CancellationToken cancellationToken) {
+		if(level == 0) {
+			await WriteToken(new BinToken(BinToken.TokenType.Null0, null), cancellationToken).ConfigureAwait(false);
+		}
+		else if(level == 1) {
+			await WriteToken(new BinToken(BinToken.TokenType.Null1, null), cancellationToken).ConfigureAwait(false);
+		}
+		else if(level == 2) {
+			await WriteToken(new BinToken(BinToken.TokenType.Null2, null), cancellationToken).ConfigureAwait(false);
+		}
+		else {
+			await WriteToken(new BinToken(BinToken.TokenType.NullN, null), cancellationToken).ConfigureAwait(false);
+			await WriteInt(level - 3, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	private async Task WriteFixed64(ulong bits, CancellationToken cancellationToken) {

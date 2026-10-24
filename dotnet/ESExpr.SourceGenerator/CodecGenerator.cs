@@ -391,7 +391,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 												null
 											),
 
-											_ => throw new Exception("Unknown tag type: " + tag.GetType()),
 										}).Select(ExpressionElement)
 									)
 								)
@@ -1026,8 +1025,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					break;
 				}
 
-				default:
-					throw new Exception("Unexpected field mode");
 			}
 		}
 
@@ -1534,8 +1531,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					break;
 				}
 
-				default:
-					throw new Exception("Unexpected field mode");
 			}
 
 			void DecodeKeywordCommon(string keyword, Func<ExpressionSyntax, (ExpressionSyntax decodedExpr, BlockSyntax falseBody)> buildDecode) {
@@ -1833,19 +1828,16 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 	}
 
 	protected static ExpressionSyntax GetCodecExpr(SourceModelTypeClassInstance codec) {
-		switch(codec) {
-			case SourceModelTypeClassInstance.Local { Name: var name }:
-				return IdentifierName("instance_" + name);
+		return codec switch {
+			SourceModelTypeClassInstance.Local { Name: var name } => IdentifierName("instance_" + name),
 
-			case SourceModelTypeClassInstance.Property property:
-				return MemberAccessExpression(
+			SourceModelTypeClassInstance.Property property => MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
 					ConvertTypeToTypeSyntax(property.DeclaringType),
 					IdentifierName(property.Name)
-				);
+				),
 
-			case SourceModelTypeClassInstance.Method method:
-				return InvocationExpression(
+			SourceModelTypeClassInstance.Method method => InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
 						ConvertTypeToTypeSyntax(method.DeclaringType),
@@ -1862,37 +1854,18 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					ArgumentList(SeparatedList<ArgumentSyntax>(
 						method.Arguments.Select(arg => Argument(GetCodecExpr(arg)))
 					))
-				);
+				),
 
-			default:
-				throw new ArgumentException("Unknown SourceModelTypeClassInstance codec", nameof(codec));
-		}
+		};
 	}
 
-	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) {
-		switch(t) {
-			case SourceModelType.NamedSymbol namedTypeSymbol: {
-				return GetNamedSymbolSyntax(namedTypeSymbol);
-			}
-
-			case SourceModelType.Array arrayTypeSymbol:
-				var elementTypeSyntax = ConvertTypeToTypeSyntax(arrayTypeSymbol.Element);
-				return ArrayType(elementTypeSyntax, SingletonList(ArrayRankSpecifier()));
-
-			case SourceModelType.Pointer pointerTypeSymbol:
-				var pointedAtTypeSyntax = ConvertTypeToTypeSyntax(pointerTypeSymbol.PointedAtType);
-				return PointerType(pointedAtTypeSyntax);
-
-			case SourceModelType.TypeParameter typeParameterSymbol:
-				return IdentifierName(typeParameterSymbol.Name);
-
-			case SourceModelType.Nullable nullableType:
-				return NullableType(ConvertTypeToTypeSyntax(nullableType.Inner));
-
-			default:
-				throw new Exception("Unexpected SourceModelType");
-		}
-	}
+	protected static TypeSyntax ConvertTypeToTypeSyntax(SourceModelType t) => t switch {
+		SourceModelType.NamedSymbol named => GetNamedSymbolSyntax(named),
+		SourceModelType.Array array => ArrayType(ConvertTypeToTypeSyntax(array.Element), SingletonList(ArrayRankSpecifier())),
+		SourceModelType.Pointer pointer => PointerType(ConvertTypeToTypeSyntax(pointer.PointedAtType)),
+		SourceModelType.TypeParameter parameter => IdentifierName(parameter.Name),
+		SourceModelType.Nullable nullable => NullableType(ConvertTypeToTypeSyntax(nullable.Inner)),
+	};
 
 	private static NameSyntax GetNamedSymbolSyntax(SourceModelType.NamedSymbol namedTypeSymbol) {
 		SimpleNameSyntax name;
@@ -1910,18 +1883,10 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return GetNamedParentMemberSyntax(namedTypeSymbol.Parent, name);
 	}
 
-	private static NameSyntax GetNamedParentMemberSyntax(SourceModelType.INamedSymbolParent parent, SimpleNameSyntax name) {
-		switch(parent) {
-			case SourceModelType.NamespaceSymbolParent nsParent:
-				return GetNamespaceMemberSyntax(nsParent.Namespace, nsParent.Namespace.Count, name);
-
-			case SourceModelType.NamedSymbol namedParent:
-				return QualifiedName(GetNamedSymbolSyntax(namedParent), name);
-
-			default:
-				throw new Exception("Unexpected parent type");
-		}
-	}
+	private static NameSyntax GetNamedParentMemberSyntax(SourceModelType.NamedSymbolParent parent, SimpleNameSyntax name) => parent switch {
+		SourceModelType.NamespaceSymbolParent ns => GetNamespaceMemberSyntax(ns.Namespace, ns.Namespace.Count, name),
+		SourceModelType.NamedSymbol named => QualifiedName(GetNamedSymbolSyntax(named), name),
+	};
 
 	private static NameSyntax GetNamespaceMemberSyntax(ImmutableList<string> ns, int nsPartCount, SimpleNameSyntax memberName) {
 		if(nsPartCount > 0) {
