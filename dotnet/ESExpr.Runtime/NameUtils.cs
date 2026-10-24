@@ -27,7 +27,7 @@ internal static partial class NameUtils {
 			args.Count == 1
 		) {
 			if(args[0].Expression is not LiteralExpressionSyntax value) {
-				throw new Exception("ConstructorAttribute must have a string literal argument");
+				throw new InputDiagnosticException(Errors.MalformedMetadata, "ConstructorAttribute must have a string literal argument");
 			}
 
 			return value.Token.ValueText;
@@ -43,7 +43,7 @@ internal static partial class NameUtils {
 			args.Count == 1
 		) {
 			if(args[0].Expression is not LiteralExpressionSyntax value) {
-				throw new Exception("ConstructorAttribute must have a string literal argument");
+				throw new InputDiagnosticException(Errors.MalformedMetadata, "ConstructorAttribute must have a string literal argument");
 			}
 
 			return value.Token.ValueText;
@@ -58,7 +58,7 @@ internal static partial class NameUtils {
 		var attr = GetAttribute(symbol, "ESExpr.Runtime.ConstructorAttribute");
 		if(attr is not null && attr.ConstructorArguments.Length == 1) {
 			if(attr.ConstructorArguments[0].Value is not string name) {
-				throw new Exception("ConstructorAttribute must have a string argument");
+				throw new InputDiagnosticException(Errors.MalformedMetadata, "ConstructorAttribute must have a string argument");
 			}
 
 			return name;

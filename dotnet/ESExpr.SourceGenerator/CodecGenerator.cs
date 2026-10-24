@@ -105,8 +105,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		}
 
 
-
-
 		var constructor = ConstructorDeclaration("GeneratedCodecImpl")
 			.AddModifiers(Token(SyntaxKind.PublicKeyword))
 			.AddParameterListParameters(
@@ -252,7 +250,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		}
 
 		syntaxTree = syntaxTree.WithLeadingTrivia(ParseLeadingTrivia("#nullable enable annotations\n")).NormalizeWhitespace();
-
 
 
 		Context.AddSource($"{fileNamePrefix}.ESExprCodec.g.cs", syntaxTree.GetText(Encoding.UTF8));
@@ -546,7 +543,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		return Block(stmts);
 	}
 
-	protected BlockSyntax WriteEncodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, ExpressionSyntax valueExpr) {
+	protected static BlockSyntax WriteEncodeFields(string constructorName, IReadOnlyList<SourceModelField> fields, ExpressionSyntax valueExpr) {
 		var argsDeclaration = ParseStatement(
 			"var args = global::System.Collections.Immutable.ImmutableList.CreateBuilder<global::ESExpr.Runtime.Expr>();"
 		);
@@ -587,9 +584,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			kwargsDeclaration,
 		};
 
-		bool hasDict = false;
-		var prevOptionalPositionalTags = ESExprTagSet.Empty;
-		var keywords = new HashSet<string>();
 
 		foreach(var field in fields) {
 			var propertyValue = MemberAccessExpression(
@@ -598,21 +592,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 				IdentifierName(field.Name)
 			);
 
-			void PosTagCheck(ESExprTagSet tags) {
-				if(prevOptionalPositionalTags.IsEmpty) {
-					return;
-				}
-
-				if(!prevOptionalPositionalTags.IsDisjointFrom(tags)) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.OverlappingFieldTags,
-						field.Location,
-						field.Name,
-						tags,
-						prevOptionalPositionalTags
-					));
-				}
-			}
 
 			switch(field.Mode) {
 				case SourceModelField.FieldMode.Normal {
@@ -620,10 +599,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					CodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
 				} normalField: {
-					if(!prevOptionalPositionalTags.IsEmpty) {
-						PosTagCheck(tags);
-						prevOptionalPositionalTags = ESExprTagSet.Empty;
-					}
 
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
@@ -657,8 +632,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					CodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
 				} normalField: {
-					PosTagCheck(tags);
-					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+
 
 					var codecExpr = GetCodecExpr(codec);
 
@@ -725,20 +699,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					CodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
 				} normalField: {
-					if(hasDict) {
-						Context.ReportDiagnostic(Diagnostic.Create(
-							Errors.KeywordWithDict,
-							field.Location
-						));
-					}
-
-					if(!keywords.Add(keyword)) {
-						Context.ReportDiagnostic(Diagnostic.Create(
-							Errors.DuplicateKeyword,
-							field.Location,
-							keyword
-						));
-					}
 
 
 					var encodedExpr = InvocationExpression(
@@ -825,8 +785,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					ElementType: var elementType,
 					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags },
 				}: {
-					PosTagCheck(tags);
-					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+
 
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
@@ -876,21 +835,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					OptionalValueCodecInstance: var codec,
 					KeywordMode: SourceModelField.KeywordMode.Keyword { KeywordName: var keyword }
 				}: {
-
-					if(hasDict) {
-						Context.ReportDiagnostic(Diagnostic.Create(
-							Errors.KeywordWithDict,
-							field.Location
-						));
-					}
-
-					if(!keywords.Add(keyword)) {
-						Context.ReportDiagnostic(Diagnostic.Create(
-							Errors.DuplicateKeyword,
-							field.Location,
-							keyword
-						));
-					}
 
 
 					var encodedExpr = InvocationExpression(
@@ -944,16 +888,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					DictCodecInstance: var codec,
 				}: {
 
-					if(hasDict) {
-						Context.ReportDiagnostic(Diagnostic.Create(
-							Errors.MultipleDict,
-							field.Location,
-							Array.Empty<object>()
-						));
-					}
-
-					hasDict = true;
-
 
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
@@ -995,8 +929,7 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 					ElementType: var elementType,
 					ElementTags: var tags,
 				} varargField: {
-					PosTagCheck(tags);
-					prevOptionalPositionalTags = prevOptionalPositionalTags.Union(tags);
+
 
 					var encodedExpr = InvocationExpression(
 						MemberAccessExpression(
@@ -1039,13 +972,10 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 		var fieldInits = new List<ExpressionSyntax>();
 
 
-
-
 		int positionalIndex = 0;
 
 		foreach(var field in fields) {
 			var localName = "local_" + field.Name;
-
 
 
 			switch(field.Mode) {
@@ -1645,7 +1575,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			));
 
 
-
 		// if(args.Count > 0) throw new global::ESExpr.Runtime.DecodeException("Extra positional arguments", path.WithConstructor("<name>"));
 		stmts.Add(IfStatement(
 			BinaryExpression(
@@ -1730,7 +1659,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 
 		return Block(stmts);
 	}
-
 
 
 	protected static NameSyntax ESExprType => QualifiedName(
@@ -1899,7 +1827,6 @@ internal abstract class CodecGenerator<TTypeModel> : ICodecGenerator where TType
 			);
 		}
 	}
-
 
 
 }

@@ -52,20 +52,10 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 				bitsExpr
 			));
 
-		BigInteger usedBits = BigInteger.Zero;
 		foreach(var field in TypeModel.Fields) {
 			switch(field) {
 				case SourceModelFlagsFieldFlag flagField: {
-					if((usedBits & flagField.Mask) != BigInteger.Zero) {
-						throw new InvalidOperationException("Duplicate flag mask");
-					}
 
-					if(flagField.Mask < 0) {
-						throw new InvalidOperationException("Negative mask not supported");
-					}
-
-					CheckFlagBits(flagField.Mask);
-					usedBits |= flagField.Mask;
 
 					var maskExpr = BigIntLiteral(flagField.Mask);
 
@@ -85,13 +75,6 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 
 
 				case SourceModelFlagsFieldEnum enumField: {
-					var mask = GetEnumMask(enumField);
-
-					if((usedBits & mask) != BigInteger.Zero) {
-						throw new InvalidOperationException("Duplicate enum mask");
-					}
-					usedBits |= mask;
-
 					var bitsValue = SwitchExpression(
 						MemberAccessExpression(
 							SyntaxKind.SimpleMemberAccessExpression,
@@ -347,27 +330,6 @@ internal class FlagsCodecGenerator : CodecGenerator<FlagsSourceModel> {
 		return Block(stmts);
 	}
 
-
-	private static void CheckFlagBits(BigInteger mask) {
-		bool hasBit = false;
-		uint bitIndex = 0;
-		foreach(var maskByte in mask.ToByteArray()) {
-			byte bits = maskByte;
-			for(int i = 0; i < 8; ++i, ++bitIndex, bits >>= 1) {
-				if((bits & 1) == 1) {
-					if(hasBit) {
-						throw new InvalidOperationException("Flag mask must have only one bit set");
-					}
-
-					hasBit = true;
-				}
-			}
-		}
-
-		if(!hasBit) {
-			throw new InvalidOperationException("Flag mask must have at least one bit set");
-		}
-	}
 
 	private static QualifiedNameSyntax BigIntegerType =>
 		QualifiedName(

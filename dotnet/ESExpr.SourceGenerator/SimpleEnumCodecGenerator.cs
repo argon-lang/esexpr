@@ -1,24 +1,10 @@
-using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 
 namespace ESExpr.SourceGenerator;
 
-internal class SimpleEnumCodecGenerator(SourceProductionContext context, SimpleEnumSourceModel typeModel) : ICodecGenerator {
-	public void Generate() {
-		var prevTags = new HashSet<string>();
+internal class SimpleEnumCodecGenerator : ICodecGenerator {
+	public SimpleEnumCodecGenerator(SourceProductionContext context, SimpleEnumSourceModel typeModel) { }
 
-		foreach(var c in typeModel.Cases) {
-			if(prevTags.Contains(c.ConstructorName)) {
-				context.ReportDiagnostic(Diagnostic.Create(
-					Errors.OverlappingEnumConstructors,
-					c.Location,
-					typeModel.TypeName,
-					c.ConstructorName,
-					prevTags
-				));
-			}
-
-			prevTags.Add(c.ConstructorName);
-		}
-	}
+	// Enum codecs use the runtime implementation; validation runs before emission.
+	public void Generate() { }
 }

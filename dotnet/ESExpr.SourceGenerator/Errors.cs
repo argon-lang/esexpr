@@ -128,4 +128,14 @@ internal static class Errors {
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
+	private static DiagnosticDescriptor InputError(string id, string title) =>
+		new(id, title, "{0}", "SourceGenerator", DiagnosticSeverity.Error, true);
+
+	public static readonly DiagnosticDescriptor MissingRuntimeMember = InputError("ESX0015", "Missing codec accessor or runtime interface");
+	public static readonly DiagnosticDescriptor MalformedMetadata = InputError("ESX0016", "Malformed attribute or tag metadata");
+	public static readonly DiagnosticDescriptor UnsupportedSourceType = InputError("ESX0017", "Unsupported source type");
+	public static readonly DiagnosticDescriptor InvalidFlag = InputError("ESX0018", "Invalid flag definition");
+	public static readonly DiagnosticDescriptor OverlappingFlagMasks = InputError("ESX0019", "Overlapping flag masks");
+	public static readonly DiagnosticDescriptor InvalidInlineDeclaration = InputError("ESX0020", "Invalid inline declaration");
+	public static readonly DiagnosticDescriptor InternalFailure = InputError("SG001", "Source Generator Exception");
 }

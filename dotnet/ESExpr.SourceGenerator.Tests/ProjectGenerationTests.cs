@@ -3,6 +3,7 @@ using ESExpr.SourceGenerator;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
 
 namespace ESExpr.SourceGenerator.Tests;
@@ -50,7 +51,21 @@ public class ProjectGenerationTests {
 				Is.True, $"No codec generated for {fixture}");
 		}
 		var outputDiagnostics = outputCompilation.GetDiagnostics();
+		foreach(var fixture in new[] { "MyEnum", "InlineValueEnum", "GeneratorGenericUnion", "GeneratorGenericInline" }) {
+			var source = result.Results[0].GeneratedSources.Single(source => source.HintName.Contains(fixture + ".ESExprCodec", StringComparison.Ordinal));
+			var methods = source.SyntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+				.Where(method => method.Identifier.ValueText is "Encode" or "IsEncodedEqual").ToArray();
+			Assert.That(methods, Has.Length.EqualTo(2));
+			foreach(var method in methods) {
+				var dispatch = ((ReturnStatementSyntax)method.Body!.Statements[0]).Expression as SwitchExpressionSyntax;
+				Assert.That(dispatch, Is.Not.Null, $"{fixture}.{method.Identifier} must use exhaustive dispatch.");
+				Assert.That(dispatch!.Arms.All(arm => arm.Pattern is DeclarationPatternSyntax), Is.True,
+					$"{fixture}.{method.Identifier} must only match declared cases, without a fallback.");
+			}
+		}
 		Assert.That(outputDiagnostics.Where(d => d.Id == "CS8669"), Is.Empty, "Generated nullable annotations must have an explicit nullable context.");
+		Assert.That(outputDiagnostics.Where(d => d.Id is "CS8509" or "CS8655"), Is.Empty,
+			"Generated switch expressions must be exhaustive.");
 		var errors = outputDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
 		Assert.That(errors, Is.Empty, string.Join(Environment.NewLine, errors.Select(d => d.ToString())));
 	}

@@ -32,10 +32,10 @@ internal closed record SourceModelType {
 				return new Pointer(FromSymbol(ptr.PointedAtType));
 
 			case IFunctionPointerTypeSymbol:
-				throw new NotSupportedException();
+				throw new InputDiagnosticException(Errors.UnsupportedSourceType, $"Unsupported source type {t}");
 
 			default:
-				throw new Exception("Unexpected type symbol");
+				throw new InputDiagnosticException(Errors.UnsupportedSourceType, $"Unsupported source type {t}");
 		}
 	}
 

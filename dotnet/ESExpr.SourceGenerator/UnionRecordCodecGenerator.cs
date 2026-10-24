@@ -27,15 +27,13 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 	}
 
 	protected override BlockSyntax GenerateIsEqualBody() {
-		var cases = new List<SwitchSectionSyntax>();
+		var arms = new List<SwitchExpressionArmSyntax>();
+		var helpers = new List<StatementSyntax>();
 
 		foreach(var c in TypeModel.Cases) {
-			var label = CasePatternSwitchLabel(
-				DeclarationPattern(
-					GetCaseType(c),
-					SingleVariableDesignation(Identifier("a2"))
-				),
-				Token(SyntaxKind.ColonToken)
+			var pattern = DeclarationPattern(
+				GetCaseType(c),
+				SingleVariableDesignation(Identifier("a2"))
 			);
 
 			BlockSyntax switchBody = WriteIsEqualFields(c.Fields, IdentifierName("a2"), IdentifierName("b2"));
@@ -68,77 +66,33 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				)
 			);
 
-			cases.Add(SwitchSection(
-				List(new SwitchLabelSyntax[] { label }),
-				List(new StatementSyntax[] {
-					switchBody,
-				})
-			));
+			var helperName = "IsEqualCase" + arms.Count;
+			helpers.Add(LocalFunctionStatement(PredefinedType(Token(SyntaxKind.BoolKeyword)), Identifier(helperName))
+				.WithParameterList(ParameterList(SingletonSeparatedList(
+					Parameter(Identifier("a2")).WithType(GetCaseType(c)))))
+				.WithBody(switchBody));
+			arms.Add(SwitchExpressionArm(pattern,
+				InvocationExpression(IdentifierName(helperName),
+					ArgumentList(SingletonSeparatedList(Argument(IdentifierName("a2")))))));
 		}
 
-		cases.Add(SwitchSection(
-			List(new SwitchLabelSyntax[] { DefaultSwitchLabel() }),
-			List(new StatementSyntax[] {
-				ParseStatement("throw new global::System.InvalidOperationException(\"Unexpected instance type\");"),
-			})
-		));
-
-		var swStmt = SwitchStatement(IdentifierName("a"), List(cases));
-
-		return Block(swStmt);
+		return Block(new StatementSyntax[] {
+			ReturnStatement(SwitchExpression(IdentifierName("a"), SeparatedList(arms))),
+		}.Concat(helpers));
 	}
 
 	protected override BlockSyntax GenerateEncodeBody() {
-		var cases = new List<SwitchSectionSyntax>();
+		var arms = new List<SwitchExpressionArmSyntax>();
+		var helpers = new List<StatementSyntax>();
 
-		var prevTags = ESExprTagSet.Empty;
 
 		foreach(var c in TypeModel.Cases) {
 			var identName = "value2";
 
-			var label = CasePatternSwitchLabel(
-				DeclarationPattern(
-					GetCaseType(c),
-					SingleVariableDesignation(Identifier(identName))
-				),
-				Token(SyntaxKind.ColonToken)
+			var pattern = DeclarationPattern(
+				GetCaseType(c),
+				SingleVariableDesignation(Identifier(identName))
 			);
-
-			if(c.IsInlineValue) {
-				var field = GetInlineValueField(c);
-
-				if(field.Mode is not SourceModelField.FieldMode.Normal {
-					KeywordMode: SourceModelField.KeywordMode.Positional { Tags: var tags }
-				}) {
-					throw new Exception("Inline value field must be a required positional argument");
-				}
-
-				if(!prevTags.IsDisjointFrom(tags)) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.OverlappingEnumConstructors,
-						field.Location,
-						TypeModel.TypeName,
-						tags,
-						prevTags
-					));
-				}
-
-				prevTags = prevTags.Union(tags);
-			}
-			else {
-				var tag = new ESExprTag.Constructor(c.ConstructorName);
-				if(prevTags.Contains(tag)) {
-					Context.ReportDiagnostic(Diagnostic.Create(
-						Errors.OverlappingEnumConstructors,
-						c.Location,
-						TypeModel.TypeName,
-						tag,
-						prevTags
-					));
-				}
-
-				prevTags = prevTags.Add(tag);
-			}
 
 			StatementSyntax switchBody;
 
@@ -149,7 +103,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				if(field.Mode is not SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
 				}) {
-					throw new Exception("Inline value field must be a required positional argument");
+					throw new InvalidOperationException("Inline declaration was not validated before emission");
 				}
 
 
@@ -174,24 +128,19 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				switchBody = WriteEncodeFields(c.ConstructorName, c.Fields, IdentifierName(identName));
 			}
 
-			cases.Add(SwitchSection(
-				List(new SwitchLabelSyntax[] { label }),
-				List(new StatementSyntax[] {
-					switchBody,
-				})
-			));
+			var helperName = "EncodeCase" + arms.Count;
+			helpers.Add(LocalFunctionStatement(ESExprType, Identifier(helperName))
+				.WithParameterList(ParameterList(SingletonSeparatedList(
+					Parameter(Identifier("value2")).WithType(GetCaseType(c)))))
+				.WithBody(switchBody as BlockSyntax ?? Block(switchBody)));
+			arms.Add(SwitchExpressionArm(pattern,
+				InvocationExpression(IdentifierName(helperName),
+					ArgumentList(SingletonSeparatedList(Argument(IdentifierName("value2")))))));
 		}
 
-		cases.Add(SwitchSection(
-			List(new SwitchLabelSyntax[] { DefaultSwitchLabel() }),
-			List(new StatementSyntax[] {
-				ParseStatement("throw new global::System.InvalidOperationException(\"Unexpected instance type\");"),
-			})
-		));
-
-		var swStmt = SwitchStatement(IdentifierName("value"), List(cases));
-
-		return Block(swStmt);
+		return Block(new StatementSyntax[] {
+			ReturnStatement(SwitchExpression(IdentifierName("value"), SeparatedList(arms))),
+		}.Concat(helpers));
 	}
 
 	protected override BlockSyntax GenerateDecodeBody() {
@@ -207,7 +156,7 @@ internal class UnionRecordCodecGenerator : CodecGenerator<UnionRecordSourceModel
 				if(field.Mode is not SourceModelField.FieldMode.Normal {
 					CodecInstance: var codec,
 				}) {
-					throw new Exception("Inline value field must be a required positional argument");
+					throw new InvalidOperationException("Inline declaration was not validated before emission");
 				}
 
 				var label = CasePatternSwitchLabel(

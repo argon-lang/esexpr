@@ -100,7 +100,7 @@ public class TypeClassResolverTests {
 		Assert.That(outer.TypeArguments, Is.EqualTo(new[] { SourceModelType.FromSymbol(compilation.GetSpecialType(SpecialType.System_Int32)) }));
 		Assert.That(((SourceModelType.NamespaceSymbolParent)outer.Parent.Value!).Namespace, Is.EqualTo(new[] { "Models" }));
 		var function = ((IFieldSymbol)shapes.GetMembers("Function").Single()).Type;
-		Assert.Throws<NotSupportedException>(() => SourceModelType.FromSymbol(function));
+		Assert.Throws<InputDiagnosticException>(() => SourceModelType.FromSymbol(function));
 	}
 
 	[Test]
