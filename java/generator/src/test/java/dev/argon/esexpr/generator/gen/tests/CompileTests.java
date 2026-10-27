@@ -18,6 +18,7 @@ public class CompileTests {
 
 	private static final String MODULE_INFO = """
 			module dev.argon.esexpr.gen_error_tests {
+				requires static java.compiler;
 				requires dev.argon.esexpr;
 				exports dev.argon.esexpr.gen_error_tests;
 			}

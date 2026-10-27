@@ -143,7 +143,6 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 	}
 
 	private void writeClassImpl() throws IOException, AbortException {
-		println("@java.lang.SuppressWarnings(\"UnnecessaryParentheses\")");
 		print("class ");
 		print(elem.getSimpleName());
 		print("_CodecImpl");
@@ -260,8 +259,67 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		dedent();
 		println("}");
 
+		writeDefaultValueMethods();
+
 		dedent();
 		println("}");
+	}
+
+	private final Map<RecordComponentElement, String> defaultValueMethods = new LinkedHashMap<>();
+
+	private void printDefaultValueCall(RecordComponentElement field) throws IOException {
+		String name = defaultValueMethods.computeIfAbsent(field, key -> "defaultValue_" + defaultValueMethods.size());
+		print(elem.getSimpleName());
+		print("_CodecImpl.");
+		var owner = (TypeElement)Objects.requireNonNull(field.getEnclosingElement());
+		if(!owner.getTypeParameters().isEmpty()) {
+			print("<");
+			for(int i = 0; i < owner.getTypeParameters().size(); ++i) {
+				if(i > 0) {
+					print(", ");
+				}
+				printInstanceParamType(owner.getTypeParameters().get(i).asType());
+			}
+			print(">");
+		}
+		print(name);
+		print("()");
+	}
+
+	private void writeDefaultValueMethods() throws IOException {
+		for(var entry : defaultValueMethods.entrySet()) {
+			var field = entry.getKey();
+			var owner = (TypeElement)Objects.requireNonNull(field.getEnclosingElement());
+			print("private static ");
+			if(!owner.getTypeParameters().isEmpty()) {
+				print("<");
+				for(int i = 0; i < owner.getTypeParameters().size(); ++i) {
+					if(i > 0) {
+						print(", ");
+					}
+					var parameter = owner.getTypeParameters().get(i);
+					print(parameter.getSimpleName());
+					print(" extends ");
+					for(int j = 0; j < parameter.getBounds().size(); ++j) {
+						if(j > 0) {
+							print(" & ");
+						}
+						print(parameter.getBounds().get(j).toString());
+					}
+				}
+				print("> ");
+			}
+			print(field.asType().toString());
+			print(" ");
+			print(entry.getValue());
+			println("() {");
+			indent();
+			print("return ");
+			print(field.getAnnotation(DefaultValue.class).value());
+			println(";");
+			dedent();
+			println("}");
+		}
 	}
 
 	protected void printTypeArguments() throws IOException {
@@ -377,12 +435,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 					print(", ");
 
 					printBoxUnsignedPrimitive(field.asType(), () -> {
-						print("(");
-
-						print(defaultValue);
-
-						print(")");
-
+						printDefaultValueCall(field);
 					});
 					print(")) ");
 				}
@@ -475,9 +528,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 					print(", ");
 
 					printBoxUnsignedPrimitive(field.asType(), () -> {
-						print("(");
-						print(defaultValue);
-						print(")");
+						printDefaultValueCall(field);
 					});
 					print(")) ");
 				}
@@ -631,9 +682,8 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 					print(field.getSimpleName());
 					print(" == null ? ");
 
-					print("(");
-					print(defaultValue);
-					print(") : ");
+					printDefaultValueCall(field);
+					print(" : ");
 					printCodecExpr(field.asType(), field);
 					print(".decode(expr_");
 					print(field.getSimpleName());
@@ -744,9 +794,8 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 					printStringLiteral(getConstructorName(te));
 					print(", args0.size() - args.size()))");
 					printUnboxUnsignedPrimitive(field.asType());
-					print(" : (");
-					print(defaultValue);
-					print(");");
+					print(" : ");
+					printDefaultValueCall(field);
 					println(";");
 				}
 				else {

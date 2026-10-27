@@ -54,7 +54,6 @@ public class OptionalCodec<T> implements ESExprCodec<Optional<T>> {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // incorrectly assumes orElseGet could return null
 	public ESExpr encode(Optional<T> value) {
 		return value.map(x -> {
 			var res = itemCodec.encode(x);

@@ -16,7 +16,7 @@ jackson-databind = { group = "tools.jackson.core", name = "jackson-databind", ve
 guava = { group = "com.google.guava", name = "guava", version = "33.7.2-jre" }
 eclipse-collections = { group = "org.eclipse.collections", name = "eclipse-collections", version = "13.0.0" }
 errorprone = { module = "com.google.errorprone:error_prone_core", version = "2.50.0" }
-nullaway = { module = "com.uber.nullaway:nullaway", version = "0.14.2" }
+nullaway = { module = "com.uber.nullaway:nullaway", version = "0.14.3" }
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version = "5.1.1" }

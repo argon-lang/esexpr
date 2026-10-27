@@ -16,7 +16,7 @@ plugins {
 subprojects {
     apply(plugin = "com.diffplug.spotless")
     group = "dev.argon.esexpr"
-    version = "0.6.0"
+    version = "0.6.1-SNAPSHOT"
 
     repositories {
         mavenCentral()
@@ -88,7 +88,6 @@ subprojects {
 
         tasks.withType<JavaCompile>().configureEach {
             options.errorprone {
-                disable("RefactorSwitch")
                 option("NullAway:OnlyNullMarked", "true")
                 option("NullAway:JSpecifyExperimental", "true")
                 option("NullAway:JSpecifyMode", "true")

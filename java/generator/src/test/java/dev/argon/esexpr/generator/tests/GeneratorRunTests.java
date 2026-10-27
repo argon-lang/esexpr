@@ -38,6 +38,7 @@ public class GeneratorRunTests {
 		Path moduleInfo = outputDirectory.resolve("module-info.java");
 		Files.writeString(moduleInfo, """
 			module generator.fixtures {
+			    requires static java.compiler;
 			    requires dev.argon.esexpr;
 			    requires com.google.common;
 			    requires org.jspecify;

@@ -33,6 +33,32 @@ public class GeneratorValidationTests {
 
 	private record InvalidSource(String name, String source, String error) {}
 
+	@Test
+	public void genericDefaultValueMethods() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example<T>(
+			    @Keyword @DefaultValue("java.util.Optional.<T>empty()") java.util.Optional<T> value
+			) {
+			    @TypeClassInstance public static <T> ESExprCodec<Example<T>> codec(ESExprCodec<T> item) {
+			        return new Example_CodecImpl<T>(item);
+			    }
+			}
+			""", "", false);
+	}
+
+	@Test
+	public void defaultValueMethodsForCasesWithSameFieldName() throws IOException {
+		compile("""
+			@ESExprCodecGen public sealed interface Example {
+			    record A(@DefaultValue("true ? 1 : 2") int value) implements Example {}
+			    record B(@Keyword @DefaultValue("3") int value) implements Example {}
+			    @TypeClassInstance public static ESExprCodec<Example> codec() {
+			        return Example_CodecImpl.INSTANCE;
+			    }
+			}
+			""", "", false);
+	}
+
 	@TestFactory
 	public Stream<DynamicTest> invalidDefinitions() {
 		return Stream.of(
@@ -394,7 +420,10 @@ public class GeneratorValidationTests {
 		}
 		Path directory = Files.createTempDirectory(outputDirectory, "compile-");
 		Path moduleInfo = directory.resolve("module-info.java");
-		Files.writeString(moduleInfo, "module generator.validation { requires dev.argon.esexpr; }");
+		Files.writeString(
+			moduleInfo,
+			"module generator.validation { requires dev.argon.esexpr; requires static java.compiler; }"
+		);
 		Path sourceFile = directory.resolve("Example.java");
 		Files.writeString(
 			sourceFile,

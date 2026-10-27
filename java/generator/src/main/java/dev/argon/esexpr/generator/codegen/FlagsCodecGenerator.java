@@ -64,7 +64,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 					var typeElem = dt.asElement();
 
 					if(typeElem.getKind() == ElementKind.ENUM) {
-						print("switch(value.");
+						print("bits = bits.or(switch(value.");
 						print(f.getSimpleName());
 						println("()) {");
 						indent();
@@ -76,9 +76,9 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 						for(var e : maskMap.entrySet()) {
 							print("case ");
 							print(e.getKey());
-							print(" -> bits = bits.or(");
+							print(" -> ");
 							writeBigIntegerLiteral(e.getValue());
-							println(");");
+							println(";");
 
 							if(!usedValues.add(e.getValue())) {
 								throw new AbortException("Duplicate enum mask for " + e.getKey(), f);
@@ -86,7 +86,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 						}
 
 						dedent();
-						println("}");
+						println("});");
 					}
 				}
 
