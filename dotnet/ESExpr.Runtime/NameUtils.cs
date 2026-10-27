@@ -73,7 +73,8 @@ internal static partial class NameUtils {
 	public static string GetConstructorName<T>(T value) where T : struct, Enum {
 		var name = Enum.GetName(value);
 		if(name == null) {
-			throw new Exception("Could not get enum value name");
+			throw new ArgumentOutOfRangeException(
+				nameof(value), value, "Enum value must have a declared name.");
 		}
 
 		if(typeof(T).GetField(name)?.GetCustomAttribute<ConstructorAttribute>() is { } ctor) {
