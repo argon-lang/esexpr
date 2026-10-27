@@ -16,7 +16,7 @@ plugins {
 subprojects {
     apply(plugin = "com.diffplug.spotless")
     group = "dev.argon.esexpr"
-    version = "0.6.1-SNAPSHOT"
+    version = "0.6.1"
 
     repositories {
         mavenCentral()
