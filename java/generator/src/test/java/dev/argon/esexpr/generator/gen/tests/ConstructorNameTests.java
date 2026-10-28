@@ -67,7 +67,11 @@ public class ConstructorNameTests extends TestBase {
 		);
 
 		assertEquals(
-			ESExprTagSet.of(new ESExprTag.Constructor("my-case-a"), new ESExprTag.Constructor("my-case-b")),
+			ESExprTagSet.of(
+				new ESExprTag.Constructor("my-case-a"),
+				new ESExprTag.Constructor("my-case-b"),
+				new ESExprTag.Constructor("my-case-c")
+			),
 			MyEnum.codec().tags()
 		);
 		assertCodecMatch(
@@ -81,6 +85,19 @@ public class ConstructorNameTests extends TestBase {
 			new MyEnum.MyCaseB(0.0f)
 		);
 
+	}
+
+	@Test
+	public void fieldlessEnumVariant() throws Throwable {
+		var codec = MyEnum.codec();
+		assertCodecMatch(
+			codec,
+			new ESExpr.Constructor("my-case-c", ImmutableList.of(), ImmutableMap.of()),
+			new MyEnum.MyCaseC()
+		);
+		assertTrue(codec.isEncodedEqual(new MyEnum.MyCaseC(), new MyEnum.MyCaseC()));
+		assertFalse(codec.isEncodedEqual(new MyEnum.MyCaseC(), new MyEnum.MyCaseA(0)));
+		assertFalse(codec.isEncodedEqual(new MyEnum.MyCaseA(0), new MyEnum.MyCaseC()));
 	}
 
 	@Test

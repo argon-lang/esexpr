@@ -82,7 +82,7 @@ public final class EnumCodecGenerator extends GeneratorBase {
 			print(".");
 			print(c.getSimpleName());
 			printTypeArguments();
-			println(" x2 -> {");
+			println(getFields(c).isEmpty() ? " _ -> {" : " x2 -> {");
 			indent();
 
 			print("if(!(y instanceof ");
@@ -90,7 +90,7 @@ public final class EnumCodecGenerator extends GeneratorBase {
 			print(".");
 			print(c.getSimpleName());
 			printTypeArguments();
-			println(" y2)) {");
+			println(getFields(c).isEmpty() ? ")) {" : " y2)) {");
 			indent();
 			println("yield false;");
 			dedent();
@@ -119,7 +119,7 @@ public final class EnumCodecGenerator extends GeneratorBase {
 			print(".");
 			print(c.getSimpleName());
 			printTypeArguments();
-			println(" caseValue -> {");
+			println(getFields(c).isEmpty() ? " _ -> {" : " caseValue -> {");
 			indent();
 
 			ESExprTagSet caseTags;

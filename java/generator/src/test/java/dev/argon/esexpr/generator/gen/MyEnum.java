@@ -6,6 +6,7 @@ import dev.argon.esexpr.*;
 public sealed interface MyEnum {
 	record MyCaseA(int a) implements MyEnum {}
 	record MyCaseB(float b) implements MyEnum {}
+	record MyCaseC() implements MyEnum {}
 
 	@TypeClassInstance
 	public static ESExprCodec<MyEnum> codec() {
