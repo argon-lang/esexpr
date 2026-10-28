@@ -59,6 +59,85 @@ public class GeneratorValidationTests {
 			""", "", false);
 	}
 
+	@Test
+	public void unrestrictedOptionalTagsBeforeRequiredField() throws IOException {
+		compile(
+			"""
+				@ESExprCodecGen public record Example<T>(@OptionalValue java.util.Optional<T> first, String second) {
+				    @TypeClassInstance public static <T> ESExprCodec<Example<T>> codec(ESExprCodec<T> element) {
+				        return new Example_CodecImpl<T>(element);
+				    }
+				}
+				""",
+			"Field 'second' must have distinct tags from immediately preceding optional positional arguments",
+			false
+		);
+	}
+
+	@Test
+	public void implicitKeywordNameCollision() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example(@Keyword int someValue, @Keyword("some-value") int other) {}
+			""", "Duplicate keyword argument: some-value");
+	}
+
+	@Test
+	public void cumulativeOptionalTags() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example(
+			    @OptionalValue java.util.Optional<String> first,
+			    @OptionalValue java.util.Optional<Integer> second,
+			    String third
+			) {}
+			""", "Field 'third' must have distinct tags from immediately preceding optional positional arguments");
+	}
+
+	@Test
+	public void keywordDoesNotResetOptionalTags() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example(
+			    @OptionalValue java.util.Optional<String> first, @Keyword int middle, String last
+			) {}
+			""", "Field 'last' must have distinct tags from immediately preceding optional positional arguments");
+	}
+
+	@Test
+	public void dictionaryDoesNotResetOptionalTags() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example(
+			    @OptionalValue java.util.Optional<String> first, @Dict KeywordMapping<Integer> middle, String last
+			) {}
+			""", "Field 'last' must have distinct tags from immediately preceding optional positional arguments");
+	}
+
+	@Test
+	public void requiredPositionalResetsOptionalTags() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example(
+			    @OptionalValue java.util.Optional<String> first, int separator, String last
+			) {}
+			""", "");
+	}
+
+	@Test
+	public void positionalDefaultTagsAccumulateWithOptional() throws IOException {
+		compile("""
+			@ESExprCodecGen public record Example(
+			    @DefaultValue("0") int first, @OptionalValue java.util.Optional<String> second, int third
+			) {}
+			""", "Field 'third' must have distinct tags from immediately preceding optional positional arguments");
+	}
+
+	@Test
+	public void derivedSimpleEnumNameCollision() throws IOException {
+		compile("""
+			@ESExprCodecGen public enum Example {
+			    SOME_VALUE, @Constructor("some-value") OTHER;
+			    @TypeClassInstance public static ESExprCodec<Example> codec() { return Example_CodecImpl.INSTANCE; }
+			}
+			""", "Duplicate enum value: some-value");
+	}
+
 	@TestFactory
 	public Stream<DynamicTest> invalidDefinitions() {
 		return Stream.of(

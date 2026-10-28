@@ -159,6 +159,19 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 
 				print("T_");
 				print(tp.getSimpleName());
+				var bounds = tp.getBounds();
+				if(bounds.size() == 1 && bounds.getFirst() instanceof DeclaredType bound
+					&& bound.asElement() instanceof TypeElement boundElement
+					&& boundElement.getQualifiedName().contentEquals("java.lang.Object")) {
+					continue;
+				}
+				print(" extends ");
+				for(int j = 0; j < bounds.size(); ++j) {
+					if(j > 0) {
+						print(" & ");
+					}
+					printInstanceParamType(tp.getBounds().get(j));
+				}
 			}
 			print(">");
 		}
@@ -299,6 +312,12 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 					}
 					var parameter = owner.getTypeParameters().get(i);
 					print(parameter.getSimpleName());
+					var bounds = parameter.getBounds();
+					if(bounds.size() == 1 && bounds.getFirst() instanceof DeclaredType bound
+						&& bound.asElement() instanceof TypeElement boundElement
+						&& boundElement.getQualifiedName().contentEquals("java.lang.Object")) {
+						continue;
+					}
 					print(" extends ");
 					for(int j = 0; j < parameter.getBounds().size(); ++j) {
 						if(j > 0) {
@@ -656,7 +675,7 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 				println(");");
 
 				if(isOptional(field)) {
-					print(field.asType().toString());
+					printInstanceParamType(field.asType());
 					print(" field_");
 					print(field.getSimpleName());
 					print(" = ");
@@ -1017,6 +1036,19 @@ public abstract class GeneratorBase extends GeneratorBaseWriter {
 		}
 		else if(t instanceof TypeVariable tv) {
 			print("T_" + tv.asElement().getSimpleName());
+		}
+		else if(t instanceof WildcardType wildcard) {
+			print("?");
+			var extendsBound = wildcard.getExtendsBound();
+			var superBound = wildcard.getSuperBound();
+			if(extendsBound != null) {
+				print(" extends ");
+				printInstanceParamType(extendsBound);
+			}
+			else if(superBound != null) {
+				print(" super ");
+				printInstanceParamType(superBound);
+			}
 		}
 		else {
 			print(t.toString());

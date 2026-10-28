@@ -276,7 +276,7 @@ public final class FlagsCodecGenerator extends GeneratorBase {
 		else if(value.bitLength() < 64) {
 			print("java.math.BigInteger.valueOf(");
 			print(value.toString());
-			print(")");
+			print("L)");
 		}
 		else {
 			print("new java.math.BigInteger(\"");

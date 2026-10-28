@@ -20,6 +20,11 @@ tasks.test {
     systemProperty("esexpr.generator.testSources", generatorTestSources.asFile.absolutePath)
 }
 
+// Positive processor fixtures must compile without javac warnings or Error Prone findings.
+tasks.compileTestJava {
+    options.compilerArgs.addAll(listOf("-Xlint:removal,cast", "-Werror"))
+}
+
 tasks.javadoc {
     exclude("dev/argon/esexpr/generator/codegen/**")
     exclude("dev/argon/esexpr/generator/lookup/**")
